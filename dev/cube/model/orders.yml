@@ -213,5 +213,3 @@ cubes:
         dimensions: [status]
         indexes:
           - { name: status_idx, columns: [status] }
-        indexes:
-          - { name: status_idx, columns: [status] }
