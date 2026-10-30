@@ -2,7 +2,7 @@ cubes:
   - name: orders
     title: Orders
     description: Customer orders. One row per order.
-    sql_table: public.orders
+    sql_table: shop.orders
     meta: { owner: finance, ai_hint: "Revenue questions start here." }
     joins:
       - { name: users, relationship: many_to_one, sql: "{CUBE}.user_id = {users.id}" }
@@ -42,7 +42,7 @@ cubes:
       - { name: first_order_at, sql: created_at, type: min, description: Time of the first order. }
       - { name: last_order_at, sql: created_at, type: max, description: Time of the latest order. }
       - { name: has_orders, sql: "COUNT(*) > 0", type: boolean, description: At least one order exists. }
-      - { name: statuses, sql: "STRING_AGG(DISTINCT status, ',' ORDER BY status)", type: string, description: Distinct statuses in the group. }
+      - { name: statuses, sql: "arrayStringConcat(arraySort(groupUniqArray(status)), ',')", type: string, description: Distinct statuses in the group. }
       - { name: public_false_measure, sql: amount, type: sum, public: false }
     segments:
       - { name: paid, sql: "{CUBE}.status IN ('completed','shipped')", title: Paid, description: Completed or shipped orders. }

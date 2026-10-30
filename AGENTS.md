@@ -9,13 +9,17 @@ Every Cube semantic layer feature works natively in Metabase, for people and for
 An agent that uses the Metabase MCP server must find, understand and query Cube measures,
 dimensions and segments without knowledge of Cube.
 
+The main target is Cube on top of ClickHouse. Test with ClickHouse first and tune for it first.
+Other Cube data sources must keep working, but they come second. The driver speaks to Cube only, so
+ClickHouse behaviour reaches it through Cube SQL generation.
+
 ## Definition of done
 
 `conformance/features.yaml` is the only source of truth for coverage.
 
 - Each entry names one Cube or Metabase feature, a status and an executable check.
 - Status `pass` requires a check that ran against the live stack and compared results with the truth.
-- Get the truth from a direct SQL query on the demo Postgres. Cube and Metabase cannot supply it.
+- Get the truth from a direct SQL query on the demo ClickHouse. Cube and Metabase cannot supply it.
 - Status `partial`, `blocked` or `unsupported` requires a reason in the entry.
 - Report only the coverage number that `conformance/run.py` prints.
 
@@ -23,6 +27,7 @@ dimensions and segments without knowledge of Cube.
 
 - Metabase `v0.64.3`, OSS image `metabase/metabase`.
 - Cube `v1.8.15`, image `cubejs/cube`.
+- ClickHouse `26.8.36-alpine`, image `clickhouse/clickhouse-server`.
 
 Read Metabase code at tag `v0.64.3`. A clone is at `/Volumes/SanDisk2Tb/PycharmProjects/metabase`.
 Use `git show v0.64.3:<path>` there, because its checkout is `master`. Do not change that clone.

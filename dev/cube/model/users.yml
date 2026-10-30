@@ -2,7 +2,7 @@ cubes:
   - name: users
     title: Customers
     description: People who have an account in the shop.
-    sql_table: public.users
+    sql_table: shop.users
     meta: { owner: growth, ai_hint: "One row per customer account." }
     joins: []
     dimensions:
