@@ -50,6 +50,12 @@ The `security.*` entries in `conformance/features.yaml` test this against `dev/c
 - **Metabase permissions still apply on top.** This feature only limits what Cube returns.
 - **Other Cube data sources.** The live tests use ClickHouse only.
 
+## Delete a Cube database
+
+Metabase v0.64.3 has a defect, and a live test shows it. After you delete a database that has Measures, each search for a Measure gives HTTP 500, in the
+REST API and in the MCP tool `search`. The cause is a Measure in the search index with no table. To prevent it, archive the Measures of the
+database before you delete the database.
+
 ## Secrets
 
 - The API returns `**MetabasePass**` in place of the SQL password, and it hides the API secret. The check `security.secret.not_in_api` reads the admin and non-admin API and MCP.

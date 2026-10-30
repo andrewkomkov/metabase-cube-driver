@@ -3566,7 +3566,7 @@ class Secure:
     def create_db(self, name, details):
         old = [d for d in self.admin.api("GET", "/api/database")["data"] if d["name"] == name]
         for d in old:
-            self.admin.api("DELETE", "/api/database/%d" % d["id"])
+            self.delete_db(d["id"])
         db = self.admin.api("POST", "/api/database", {"engine": "cube", "name": name, "details": details})
         deadline = time.time() + 240
         while self.admin.api("GET", "/api/database/%d" % db["id"]).get("initial_sync_status") != "complete":
@@ -3618,10 +3618,20 @@ class Secure:
         mb.collection_id = self.admin.collection()
         return mb
 
+    def delete_db(self, db_id):
+        """Metabase v0.64.3: after DELETE of a database, its Measures stay in the search index with no table, and each
+        search for a Measure gives HTTP 500. Archive them first, so that search skips them."""
+        tables = {t["id"] for t in self.admin.api("GET", "/api/database/%d/metadata" % db_id)["tables"]}
+        for path, items in (("/api/measure", self.admin.api("GET", "/api/measure")), ("/api/segment", self.admin.api("GET", "/api/segment"))):
+            for item in items if isinstance(items, list) else items.get("data", []):
+                if item["table_id"] in tables:
+                    self.admin.api("PUT", "%s/%d" % (path, item["id"]), {"archived": True, "revision_message": "conformance cleanup"})
+        self.admin.api("DELETE", "/api/database/%d" % db_id)
+
     def cleanup(self):
         for db_id in self.dbs.values():
             try:
-                self.admin.api("DELETE", "/api/database/%d" % db_id)
+                self.delete_db(db_id)
             except Fail as e:
                 print("warning: could not remove database %s: %s" % (db_id, e))
         self.dbs = {}
