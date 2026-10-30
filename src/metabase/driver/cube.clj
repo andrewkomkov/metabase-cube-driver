@@ -1052,29 +1052,60 @@
                          select)
            :group-by (into [] (comp (remove measure?) (remove null?) (map first)) select))))
 
+(defn- identifier-names
+  "The last part of each identifier in a part of a HoneySQL form."
+  [form]
+  (into #{}
+        (keep (fn [x]
+                (when (h2x/identifier? x)
+                  (last (nth x 2)))))
+        (tree-seq coll? seq form)))
+
+(defn- stage-reads-a-table?
+  [form]
+  (and (map? form) (:select form) (from-a-table? form)))
+
+(defn- without-table-stages
+  "`form` without the stages that read a table, so what is left reads their columns."
+  [form]
+  (walk/prewalk (fn [x] (if (stage-reads-a-table? x) nil x)) form))
+
+(defn- drop-unused-null-columns
+  "Cube cannot plan MEASURE() of a subquery with a filter when the subquery has a NULL column: it fails, or it gives no row. No
+  later stage reads such a column, unless it shows raw rows, so the driver leaves it out."
+  [{:keys [select] :as form} null-columns used]
+  (assoc form :select (filterv (fn [[_ alias-form :as item]]
+                                 (or (not (contains? null-columns alias-form))
+                                     (contains? used (first (identifier-names item)))
+                                     (some used (identifier-names alias-form))))
+                               select)))
+
 (defn- restore-nested-measures
   "A measure is an empty column in raw rows, see raw-select-item. An outer stage aggregates the column of a subquery, and
   Cube reads that as the measure, so a subquery must select the measure itself. With `row-measures`, an outer stage filters or
   groups by the column, so the subquery must give the value of each row."
   [honeysql-form raw-measures row-measure-aliases null-columns]
   (if (and (map? honeysql-form) (seq raw-measures))
-    (update honeysql-form :from
-            (fn [from]
-              (walk/postwalk
-               (fn [form]
-                 (if (and (map? form) (:select form) (from-a-table? form))
-                   (let [restored (update form :select
-                                          (fn [items]
-                                            (mapv (fn [item]
-                                                    (if-let [compiled (when (vector? item) (get raw-measures (second item)))]
-                                                      [compiled (second item)]
-                                                      item))
-                                                  items)))]
-                     (if (some (comp row-measure-aliases second) (:select restored))
-                       (group-raw-stage restored raw-measures null-columns)
-                       restored))
-                   form))
-               from)))
+    (let [used (identifier-names (without-table-stages honeysql-form))]
+      (update honeysql-form :from
+              (fn [from]
+                (walk/postwalk
+                 (fn [form]
+                   (if (stage-reads-a-table? form)
+                     (let [restored (-> form
+                                        (drop-unused-null-columns null-columns used)
+                                        (update :select
+                                                (fn [items]
+                                                  (mapv (fn [item]
+                                                          (if-let [compiled (when (vector? item) (get raw-measures (second item)))]
+                                                            [compiled (second item)]
+                                                            item))
+                                                        items))))]
+                       (if (some (comp row-measure-aliases second) (:select restored))
+                         (group-raw-stage restored raw-measures null-columns)
+                         restored))
+                     form))
+                 from))))
     honeysql-form))
 
 (defn- current-meta
