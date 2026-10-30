@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 384,
+    "pass": 578,
     "partial": 0,
     "blocked": 24,
     "unsupported": 7,
-    "fail": 14,
-    "total": 429
+    "fail": 16,
+    "total": 625
   },
-  "coverage": "coverage: 384/429 pass",
+  "coverage": "coverage: 578/625 pass",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -183,7 +183,7 @@
     {
       "id": "measure.rolling.unbounded",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:39:33.729147435Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:45:03.763656205Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual"
     },
     {
       "id": "measure.type.avg",
@@ -733,7 +733,7 @@
     {
       "id": "preagg.original_sql",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:40:08.410651495Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing:"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:45:38.998746564Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing:"
     },
     {
       "id": "preagg.partitioned",
@@ -953,7 +953,7 @@
     {
       "id": "mb.agg.median",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:40:26.637144103Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:45:57.291203146Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/mbql\",\"source-table\":27,\"aggregation\":[[\"median\",{\"li"
     },
     {
       "id": "mb.agg.min_field",
@@ -968,7 +968,7 @@
     {
       "id": "mb.agg.percentile",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:40:27.617999336Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:45:58.296790212Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/mbql\",\"source-table\":27,\"aggregation\":[[\"percentile\","
     },
     {
       "id": "mb.agg.share",
@@ -1323,7 +1323,7 @@
     {
       "id": "mb.expr.datetime_diff",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:40:54.180850375Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:46:23.766971615Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/mbql\",\"source-table\":27,\"fields\":[[\"expression\",{\"lib"
     },
     {
       "id": "mb.expr.div",
@@ -1728,7 +1728,7 @@
     {
       "id": "mcp.execute_query.paging",
       "status": "fail",
-      "reason": "no next_cursor: {'query_handle': 'cc4d294a-79fc-4cbb-bb0e-607c6898644d', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
+      "reason": "no next_cursor: {'query_handle': '999a288a-53d2-450d-bbb0-c9304e2a1dfb', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
     },
     {
       "id": "mcp.execute_query.segment",
@@ -2154,6 +2154,986 @@
       "id": "semantic.measure.min_on_time_column",
       "status": "blocked",
       "reason": "Cube REST returns the time, but /v1/meta types the measure as number and the SQL API returns NULL for MEASURE(). The driver reads only the SQL API, so the demo measure first_order_at gives NULL. Use a measure of type time, see semantic.measure.type_time."
+    },
+    {
+      "id": "compile.agg.median_gives_error",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.agg.offset_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.bucket.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.bucket.hour",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.bucket.minute",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.bucket.month",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.bucket.quarter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.bucket.year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.approx_distinct_high_cardinality",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.approx_distinct_low_cardinality",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.array_as_text",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.array_has",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.array_length",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.array_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.bool_group",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.date32_week",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.date_month",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.date_part_on_ny",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.datetime64_berlin_hour",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.datetime_ny_day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.datetime_ny_raw",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.decimal_above_double",
+      "status": "fail",
+      "reason": "got 3000000000000.000000, truth 3000000000000.00000003"
+    },
+    {
+      "id": "compile.ch.decimal_row",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.decimal_sum",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.enum_group",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.float32",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.lowcardinality_distinct",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.lowcardinality_group",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.lowcardinality_nullable_group",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.nullable_bool_group",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.nullable_decimal_sum",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.nullable_int_avg",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.nullable_string_distinct",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.nullable_string_group",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.nullable_time_month",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.uint64_above_double",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.uuid_filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.empty.breakout",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.empty.count",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.empty.count_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.empty.distinct_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.empty.sum_is_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.boolean_is_true",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.case_two_branches",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.count_where_breakout",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.datediff_day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.datediff_hour",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.datediff_minute",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.datediff_second",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.datediff_week",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.datetime_add_in_aggregated_query_gives_error",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.datetime_diff_month_gives_error",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.distinct_where",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.exp",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.get_day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.get_day_of_week",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.get_hour",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.get_minute",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.get_quarter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.get_second",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.in_aggregation",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.in_breakout",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.in_filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.in_filter_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.integer_division",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.log_of_expression",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.ltrim",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.measure_arithmetic",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.rtrim",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.sum_of_dimension",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.sum_where",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.expr.trim",
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:48:37.84694218Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Internal Error: Date range is required for time series\\nQUERY: SELECT TRIM(CONCAT(' ', \\\"public\\\".\\\"orders\\\""
+    },
+    {
+      "id": "compile.filter.bool_expr",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.bool_false",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.bool_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.bool_nullable_ne",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.bool_nullable_true",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.bool_true",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.not_group",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.number_between",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.number_decimal_eq",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.number_gt_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.number_is_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.number_multi",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.number_ne_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.string_contains",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.string_ends",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.string_ends_ci",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.string_is_empty",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.string_is_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.string_multi_ne",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.string_ne_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.string_not_contains",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.string_not_empty",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.string_not_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.string_starts",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.time_between_minutes",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.time_day_eq",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.time_gte",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.time_is_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.time_lte",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.time_month_eq",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.time_ne_day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.time_next_days",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.time_not_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.time_on_berlin_column",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.time_on_date32_column",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.time_on_date_column",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.time_on_ny_column",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter_measure.bool_true",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter_measure.number_ne_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter_measure.string_ne_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter_measure.time_day_eq",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter_measure.time_is_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.granularity.native",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.granularity.native_fiscal_year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.granularity.native_sunday",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.granularity.proxy_no_bin",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.join.explicit_two_cubes",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.join.filter_on_both_sides",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.join.implicit_two_tables",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.join.implicit_uses_join_field",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.join.inner_drops_rows_with_no_match",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.join.inner_total",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.join.left_keeps_rows_with_no_match",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.join.no_fan_out",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.join.other_columns_give_error",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.join.subquery_gives_error",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.latency.ten_million_rows",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.native.error_keeps_cube_text",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.native.explain_regular_with_parameter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.native.field_filter_empty_is_all_rows",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.native.field_filter_multi",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.native.field_filter_number_range",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.native.field_filter_relative_date",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.nested.aggregate_of_grouped_rows",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.nested.custom_column_on_question",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.nested.model_of_a_native_query",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.nested.model_raw_rows_then_group",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.nested.model_with_measure_then_filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.nested.more_than_the_default_row_limit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.nested.raw_rows_with_filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.nested.week_on_question_is_clear",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.order.by_measure_desc",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.order.limit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.order.page_offset",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.order.page_offset_grouped",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.order.two_columns",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.part.day-of-month",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.part.day-of-week",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.part.day-of-year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.part.filter_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.part.filter_with_breakout",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.part.hour-of-day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.part.minute-of-hour",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.part.month-of-year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.part.non_additive_avg",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.part.number_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.part.quarter-of-year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.part.second-of-minute",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.pivot.date_and_string",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.pivot.two_dimensions",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rolling.by_week_sunday",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rolling.with_status_filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rollup.avg_reads_the_table",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rollup.count_rows",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rollup.date_range_aligned",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rollup.date_range_not_aligned_is_right",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rollup.day_status",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rollup.filter_status_month",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rollup.month",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rollup.small_month_rollup_on_day_filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rollup.total",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rollup.week_monday",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rollup.week_sunday",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.segment.two",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.segment.with_breakout",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.segment.with_filter_and_month",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.tz.dst_day_in_new_york_column",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.tz.filter_is_utc",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.tz.report_timezone_keeps_utc",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.tz.set_time_zone_error",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.values.big_table_status",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.values.remapped_nullable",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.values.search_lowcardinality",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.week.day_of_week_monday",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.week.day_of_week_sunday",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.week.monday",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.week.monday_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.week.saturday_without_granularity",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.week.sunday_non_additive",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.week.sunday_with_granularity",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.week.sunday_without_granularity",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.week.sunday_without_granularity_distinct",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.week.week_of_year_monday",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.join.explicit_measure_regular",
+      "status": "pass",
+      "reason": ""
     }
   ]
 }

@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 384/429 pass** (384 pass, 0 partial, 24 blocked, 7 unsupported, 14 fail of 429)
+**coverage: 578/625 pass** (578 pass, 0 partial, 24 blocked, 7 unsupported, 16 fail of 625)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f11dfc3fad41`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41081971615), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `4a84a59a3ba6`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41083127504), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -42,7 +42,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f11dfc3
 | `measure.rolling.to_date_month` | pass |  |
 | `measure.rolling.to_date_year` | pass |  |
 | `measure.rolling.trailing` | pass |  |
-| `measure.rolling.unbounded` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:39:33.729147435Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual |
+| `measure.rolling.unbounded` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:45:03.763656205Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual |
 | `measure.type.avg` | pass |  |
 | `measure.type.boolean` | pass |  |
 | `measure.type.count` | pass |  |
@@ -152,7 +152,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f11dfc3
 | `hierarchy.levels` | pass |  |
 | `hierarchy.public_false` | pass |  |
 | `preagg.indexes` | pass |  |
-| `preagg.original_sql` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:40:08.410651495Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing: |
+| `preagg.original_sql` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:45:38.998746564Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing: |
 | `preagg.partitioned` | pass |  |
 | `preagg.rollup` | pass |  |
 | `preagg.rollup_join` | blocked | rollup_join needs two data sources. The demo stack has one. |
@@ -196,10 +196,10 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f11dfc3
 | `mb.agg.custom_expression` | pass |  |
 | `mb.agg.distinct` | pass |  |
 | `mb.agg.max_field` | pass |  |
-| `mb.agg.median` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:40:26.637144103Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
+| `mb.agg.median` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:45:57.291203146Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"lib/type":"mbql/query","stages":[{"lib/type":"mbql.stage/mbql","source-table":27,"aggregation":[["median",{"li |
 | `mb.agg.min_field` | pass |  |
 | `mb.agg.offset_window` | fail | rows: got ['2025-01-01T00:00:00', 0.0], truth ['2025-01-01T00:00:00', None] |
-| `mb.agg.percentile` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:40:27.617999336Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
+| `mb.agg.percentile` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:45:58.296790212Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"lib/type":"mbql/query","stages":[{"lib/type":"mbql.stage/mbql","source-table":27,"aggregation":[["percentile", |
 | `mb.agg.share` | pass |  |
 | `mb.agg.stddev` | pass |  |
 | `mb.agg.sum_field` | pass |  |
@@ -270,7 +270,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f11dfc3
 | `mb.expr.coalesce` | pass |  |
 | `mb.expr.concat` | pass |  |
 | `mb.expr.datetime_add` | pass |  |
-| `mb.expr.datetime_diff` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:40:54.180850375Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_ |
+| `mb.expr.datetime_diff` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:46:23.766971615Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"lib/type":"mbql/query","stages":[{"lib/type":"mbql.stage/mbql","source-table":27,"fields":[["expression",{"lib |
 | `mb.expr.div` | pass |  |
 | `mb.expr.floor` | pass |  |
 | `mb.expr.get_month` | pass |  |
@@ -351,7 +351,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f11dfc3
 | `mcp.execute_query.filter` | pass |  |
 | `mcp.execute_query.implicit_join` | pass |  |
 | `mcp.execute_query.measure` | pass |  |
-| `mcp.execute_query.paging` | fail | no next_cursor: {'query_handle': 'cc4d294a-79fc-4cbb-bb0e-607c6898644d', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float' |
+| `mcp.execute_query.paging` | fail | no next_cursor: {'query_handle': '999a288a-53d2-450d-bbb0-c9304e2a1dfb', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float' |
 | `mcp.execute_query.segment` | pass |  |
 | `mcp.execute_query.view` | pass |  |
 | `mcp.execute_sql` | pass |  |
@@ -437,3 +437,199 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f11dfc3
 | `semantic.user_edit_reset` | pass |  |
 | `semantic.drill_members_native` | unsupported | Metabase has no column that lists the drill columns of a measure. Its drill-through uses all visible fields. The text in the description is the only place, see semantic.drill_members. |
 | `semantic.measure.min_on_time_column` | blocked | Cube REST returns the time, but /v1/meta types the measure as number and the SQL API returns NULL for MEASURE(). The driver reads only the SQL API, so the demo measure first_order_at gives NULL. Use a measure of type time, see semantic.measure.type_time. |
+| `compile.agg.median_gives_error` | pass |  |
+| `compile.agg.offset_measure` | pass |  |
+| `compile.bucket.day` | pass |  |
+| `compile.bucket.hour` | pass |  |
+| `compile.bucket.minute` | pass |  |
+| `compile.bucket.month` | pass |  |
+| `compile.bucket.quarter` | pass |  |
+| `compile.bucket.year` | pass |  |
+| `compile.ch.approx_distinct_high_cardinality` | pass |  |
+| `compile.ch.approx_distinct_low_cardinality` | pass |  |
+| `compile.ch.array_as_text` | pass |  |
+| `compile.ch.array_has` | pass |  |
+| `compile.ch.array_length` | pass |  |
+| `compile.ch.array_measure` | pass |  |
+| `compile.ch.bool_group` | pass |  |
+| `compile.ch.date32_week` | pass |  |
+| `compile.ch.date_month` | pass |  |
+| `compile.ch.date_part_on_ny` | pass |  |
+| `compile.ch.datetime64_berlin_hour` | pass |  |
+| `compile.ch.datetime_ny_day` | pass |  |
+| `compile.ch.datetime_ny_raw` | pass |  |
+| `compile.ch.decimal_above_double` | fail | got 3000000000000.000000, truth 3000000000000.00000003 |
+| `compile.ch.decimal_row` | pass |  |
+| `compile.ch.decimal_sum` | pass |  |
+| `compile.ch.enum_group` | pass |  |
+| `compile.ch.float32` | pass |  |
+| `compile.ch.lowcardinality_distinct` | pass |  |
+| `compile.ch.lowcardinality_group` | pass |  |
+| `compile.ch.lowcardinality_nullable_group` | pass |  |
+| `compile.ch.nullable_bool_group` | pass |  |
+| `compile.ch.nullable_decimal_sum` | pass |  |
+| `compile.ch.nullable_int_avg` | pass |  |
+| `compile.ch.nullable_string_distinct` | pass |  |
+| `compile.ch.nullable_string_group` | pass |  |
+| `compile.ch.nullable_time_month` | pass |  |
+| `compile.ch.uint64_above_double` | pass |  |
+| `compile.ch.uuid_filter` | pass |  |
+| `compile.empty.breakout` | pass |  |
+| `compile.empty.count` | pass |  |
+| `compile.empty.count_measure` | pass |  |
+| `compile.empty.distinct_measure` | pass |  |
+| `compile.empty.sum_is_null` | pass |  |
+| `compile.expr.boolean_is_true` | pass |  |
+| `compile.expr.case_two_branches` | pass |  |
+| `compile.expr.count_where_breakout` | pass |  |
+| `compile.expr.datediff_day` | pass |  |
+| `compile.expr.datediff_hour` | pass |  |
+| `compile.expr.datediff_minute` | pass |  |
+| `compile.expr.datediff_second` | pass |  |
+| `compile.expr.datediff_week` | pass |  |
+| `compile.expr.datetime_add_in_aggregated_query_gives_error` | pass |  |
+| `compile.expr.datetime_diff_month_gives_error` | pass |  |
+| `compile.expr.distinct_where` | pass |  |
+| `compile.expr.exp` | pass |  |
+| `compile.expr.get_day` | pass |  |
+| `compile.expr.get_day_of_week` | pass |  |
+| `compile.expr.get_hour` | pass |  |
+| `compile.expr.get_minute` | pass |  |
+| `compile.expr.get_quarter` | pass |  |
+| `compile.expr.get_second` | pass |  |
+| `compile.expr.in_aggregation` | pass |  |
+| `compile.expr.in_breakout` | pass |  |
+| `compile.expr.in_filter` | pass |  |
+| `compile.expr.in_filter_measure` | pass |  |
+| `compile.expr.integer_division` | pass |  |
+| `compile.expr.log_of_expression` | pass |  |
+| `compile.expr.ltrim` | pass |  |
+| `compile.expr.measure_arithmetic` | pass |  |
+| `compile.expr.rtrim` | pass |  |
+| `compile.expr.sum_of_dimension` | pass |  |
+| `compile.expr.sum_where` | pass |  |
+| `compile.expr.trim` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:48:37.84694218Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Internal Error: Date range is required for time series\nQUERY: SELECT TRIM(CONCAT(' ', \"public\".\"orders\" |
+| `compile.filter.bool_expr` | pass |  |
+| `compile.filter.bool_false` | pass |  |
+| `compile.filter.bool_null` | pass |  |
+| `compile.filter.bool_nullable_ne` | pass |  |
+| `compile.filter.bool_nullable_true` | pass |  |
+| `compile.filter.bool_true` | pass |  |
+| `compile.filter.not_group` | pass |  |
+| `compile.filter.number_between` | pass |  |
+| `compile.filter.number_decimal_eq` | pass |  |
+| `compile.filter.number_gt_null` | pass |  |
+| `compile.filter.number_is_null` | pass |  |
+| `compile.filter.number_multi` | pass |  |
+| `compile.filter.number_ne_null` | pass |  |
+| `compile.filter.string_contains` | pass |  |
+| `compile.filter.string_ends` | pass |  |
+| `compile.filter.string_ends_ci` | pass |  |
+| `compile.filter.string_is_empty` | pass |  |
+| `compile.filter.string_is_null` | pass |  |
+| `compile.filter.string_multi_ne` | pass |  |
+| `compile.filter.string_ne_null` | pass |  |
+| `compile.filter.string_not_contains` | pass |  |
+| `compile.filter.string_not_empty` | pass |  |
+| `compile.filter.string_not_null` | pass |  |
+| `compile.filter.string_starts` | pass |  |
+| `compile.filter.time_between_minutes` | pass |  |
+| `compile.filter.time_day_eq` | pass |  |
+| `compile.filter.time_gte` | pass |  |
+| `compile.filter.time_is_null` | pass |  |
+| `compile.filter.time_lte` | pass |  |
+| `compile.filter.time_month_eq` | pass |  |
+| `compile.filter.time_ne_day` | pass |  |
+| `compile.filter.time_next_days` | pass |  |
+| `compile.filter.time_not_null` | pass |  |
+| `compile.filter.time_on_berlin_column` | pass |  |
+| `compile.filter.time_on_date32_column` | pass |  |
+| `compile.filter.time_on_date_column` | pass |  |
+| `compile.filter.time_on_ny_column` | pass |  |
+| `compile.filter_measure.bool_true` | pass |  |
+| `compile.filter_measure.number_ne_null` | pass |  |
+| `compile.filter_measure.string_ne_null` | pass |  |
+| `compile.filter_measure.time_day_eq` | pass |  |
+| `compile.filter_measure.time_is_null` | pass |  |
+| `compile.granularity.native` | pass |  |
+| `compile.granularity.native_fiscal_year` | pass |  |
+| `compile.granularity.native_sunday` | pass |  |
+| `compile.granularity.proxy_no_bin` | pass |  |
+| `compile.join.explicit_two_cubes` | pass |  |
+| `compile.join.filter_on_both_sides` | pass |  |
+| `compile.join.implicit_two_tables` | pass |  |
+| `compile.join.implicit_uses_join_field` | pass |  |
+| `compile.join.inner_drops_rows_with_no_match` | pass |  |
+| `compile.join.inner_total` | pass |  |
+| `compile.join.left_keeps_rows_with_no_match` | pass |  |
+| `compile.join.no_fan_out` | pass |  |
+| `compile.join.other_columns_give_error` | pass |  |
+| `compile.join.subquery_gives_error` | pass |  |
+| `compile.latency.ten_million_rows` | pass |  |
+| `compile.native.error_keeps_cube_text` | pass |  |
+| `compile.native.explain_regular_with_parameter` | pass |  |
+| `compile.native.field_filter_empty_is_all_rows` | pass |  |
+| `compile.native.field_filter_multi` | pass |  |
+| `compile.native.field_filter_number_range` | pass |  |
+| `compile.native.field_filter_relative_date` | pass |  |
+| `compile.nested.aggregate_of_grouped_rows` | pass |  |
+| `compile.nested.custom_column_on_question` | pass |  |
+| `compile.nested.model_of_a_native_query` | pass |  |
+| `compile.nested.model_raw_rows_then_group` | pass |  |
+| `compile.nested.model_with_measure_then_filter` | pass |  |
+| `compile.nested.more_than_the_default_row_limit` | pass |  |
+| `compile.nested.raw_rows_with_filter` | pass |  |
+| `compile.nested.week_on_question_is_clear` | pass |  |
+| `compile.order.by_measure_desc` | pass |  |
+| `compile.order.limit` | pass |  |
+| `compile.order.page_offset` | pass |  |
+| `compile.order.page_offset_grouped` | pass |  |
+| `compile.order.two_columns` | pass |  |
+| `compile.part.day-of-month` | pass |  |
+| `compile.part.day-of-week` | pass |  |
+| `compile.part.day-of-year` | pass |  |
+| `compile.part.filter_measure` | pass |  |
+| `compile.part.filter_with_breakout` | pass |  |
+| `compile.part.hour-of-day` | pass |  |
+| `compile.part.minute-of-hour` | pass |  |
+| `compile.part.month-of-year` | pass |  |
+| `compile.part.non_additive_avg` | pass |  |
+| `compile.part.number_measure` | pass |  |
+| `compile.part.quarter-of-year` | pass |  |
+| `compile.part.second-of-minute` | pass |  |
+| `compile.pivot.date_and_string` | pass |  |
+| `compile.pivot.two_dimensions` | pass |  |
+| `compile.rolling.by_week_sunday` | pass |  |
+| `compile.rolling.with_status_filter` | pass |  |
+| `compile.rollup.avg_reads_the_table` | pass |  |
+| `compile.rollup.count_rows` | pass |  |
+| `compile.rollup.date_range_aligned` | pass |  |
+| `compile.rollup.date_range_not_aligned_is_right` | pass |  |
+| `compile.rollup.day_status` | pass |  |
+| `compile.rollup.filter_status_month` | pass |  |
+| `compile.rollup.month` | pass |  |
+| `compile.rollup.small_month_rollup_on_day_filter` | pass |  |
+| `compile.rollup.total` | pass |  |
+| `compile.rollup.week_monday` | pass |  |
+| `compile.rollup.week_sunday` | pass |  |
+| `compile.segment.two` | pass |  |
+| `compile.segment.with_breakout` | pass |  |
+| `compile.segment.with_filter_and_month` | pass |  |
+| `compile.tz.dst_day_in_new_york_column` | pass |  |
+| `compile.tz.filter_is_utc` | pass |  |
+| `compile.tz.report_timezone_keeps_utc` | pass |  |
+| `compile.tz.set_time_zone_error` | pass |  |
+| `compile.values.big_table_status` | pass |  |
+| `compile.values.remapped_nullable` | pass |  |
+| `compile.values.search_lowcardinality` | pass |  |
+| `compile.week.day_of_week_monday` | pass |  |
+| `compile.week.day_of_week_sunday` | pass |  |
+| `compile.week.monday` | pass |  |
+| `compile.week.monday_measure` | pass |  |
+| `compile.week.saturday_without_granularity` | pass |  |
+| `compile.week.sunday_non_additive` | pass |  |
+| `compile.week.sunday_with_granularity` | pass |  |
+| `compile.week.sunday_without_granularity` | pass |  |
+| `compile.week.sunday_without_granularity_distinct` | pass |  |
+| `compile.week.week_of_year_monday` | pass |  |
+| `compile.join.explicit_measure_regular` | pass |  |
