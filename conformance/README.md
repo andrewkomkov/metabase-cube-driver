@@ -7,6 +7,29 @@
 Run the suite on nettop, because it reads the truth with `docker compose exec`.
 
 ```sh
+make conformance
+```
+
+This command does not read the secret store, so it needs no Touch ID and it also runs when the screen of the Mac is locked. It uses `dev/docker-compose.conformance.yml`, which adds the service `metabase-conformance`:
+
+- Its address is `127.0.0.1:3301`. The service binds to the loopback interface only.
+- Its volume is `metabase-conformance-data`. Each run starts from a new volume, the same as CI. The container stops at the end of the run, and its log stays until the next run.
+- Its admin is `admin@example.com`, with a fixed throwaway password in `conformance/run_isolated.sh`. The data is fake, so the password is not a secret.
+- Its plugins directory is `dev/plugins-conformance`.
+
+The service `metabase`, its volume `metabase-data` and its admin in the secret store do not change. ClickHouse, Cube and `cube-secure` are shared, so a running `metabase` can see the probe model of a run in its own sync.
+
+Give options to the runner with `ARGS`:
+
+```sh
+make conformance ARGS="--only dimension.type.geo --no-write"
+```
+
+To remove the service and its volume, run `make conformance-down`.
+
+To run the suite on the normal Metabase, send its admin password:
+
+```sh
 METABASE_ADMIN_PASSWORD=... python3 conformance/run.py
 ```
 
