@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 618,
+    "pass": 625,
     "partial": 0,
     "blocked": 26,
     "unsupported": 10,
-    "fail": 11,
+    "fail": 4,
     "total": 665
   },
-  "coverage": "coverage: 618/665 pass",
+  "coverage": "coverage: 625/665 pass",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -107,8 +107,8 @@
     },
     {
       "id": "measure.opt.description",
-      "status": "fail",
-      "reason": "orders.revenue description='Total order amount in USD.\\n\\nTable: Orders (orders, id 27).', want 'Total order amount in USD.'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "measure.opt.drill_members",
@@ -272,8 +272,8 @@
     },
     {
       "id": "dimension.format.image_url",
-      "status": "fail",
-      "reason": "orders.thumb_url semantic_type='type/URL', want 'type/ImageURL'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.format.link",
@@ -883,7 +883,7 @@
     {
       "id": "meta.semantic_types",
       "status": "fail",
-      "reason": "users.email semantic_type None, want type/Email"
+      "reason": "users.name semantic_type None, want type/Name"
     },
     {
       "id": "meta.tables_match_public_members",
@@ -1057,13 +1057,13 @@
     },
     {
       "id": "mb.breakout.bin_count",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T16:46:49.877380215Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error preprocessing query in #'metabase.query-processor.middleware.binning/update-binning-strategy: Unable to bin Field without a min/max"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.breakout.bin_width",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T16:46:49.911919591Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error preprocessing query in #'metabase.query-processor.middleware.binning/update-binning-strategy: Unable to bin Field without a min/max"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.breakout.boolean",
@@ -1708,7 +1708,7 @@
     {
       "id": "mcp.execute_query.paging",
       "status": "fail",
-      "reason": "no next_cursor: {'query_handle': 'a9d2d142-6298-4b61-b70a-20a6b4ebdf61', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
+      "reason": "no next_cursor: {'query_handle': 'bd9eb3f3-ef5b-4d9f-b979-cbfcf395707e', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
     },
     {
       "id": "mcp.execute_query.segment",
@@ -2057,8 +2057,8 @@
     },
     {
       "id": "semantic.descriptions",
-      "status": "fail",
-      "reason": "the Segment paid has another description"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "semantic.format.currency",
@@ -2102,8 +2102,8 @@
     },
     {
       "id": "semantic.model_change_updates",
-      "status": "fail",
-      "reason": "the Measure did not follow the model: {'description': 'Second text.\\n\\nTable: Probe cube (conformance_probe_1793378866, id 45).', 'archived': False, 'table_id': 45, 'definition': {'lib/type': 'mbql/query', 'database': 2, 'stages': [{'source-table': 45, 'lib/type': 'mbql.stage/mbql', 'aggregation': [['sum', {'lib/uuid': 'e8063fca-f339-4ef7-a44e-d4e4db14e822', 'display-name': 'Probe total two'}, ['field', {'lib/uuid': '8fa9a7e2-4a70-4060-82c3-8ef1fe83b923'}, 396]]]}], 'lib/metadata': None}, 'creator': {'email': 'internal@metabase.com', 'first_name': 'Metabase', 'is_data_analyst': False, 'last_login': None, 'is_qbnewb': True, 'is_superuser': False, 'id': 13371338, 'last_name': 'Internal', 'tenant_id': None, 'date_joined': '2026-10-30T16:45:41.358902Z', 'common_name': 'Metabase Internal'}, 'definition_description': 'Probe total two', 'name': 'Probe total two', 'dimensions': None, 'creator_id': 13371338, 'updated_at': '2026-10-30T16:48:06.098548Z', 'dimension_mappings': None, 'id': 144, 'entity_id': '068D_5azEVJDQK8WpB-2V', 'created_at': '2026-10-30T16:47:47.976399Z'}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "semantic.removed_archived",
@@ -2122,8 +2122,8 @@
     },
     {
       "id": "semantic.user_edit_reset",
-      "status": "fail",
-      "reason": "the Measure did not take the Cube values: Probe edited, Cube text.\n\nTable: Probe cube (conformance_probe_1793378866, id 45)."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "semantic.drill_members_native",

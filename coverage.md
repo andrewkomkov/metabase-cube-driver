@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 618/665 pass** (618 pass, 0 partial, 26 blocked, 10 unsupported, 11 fail of 665)
+**coverage: 625/665 pass** (625 pass, 0 partial, 26 blocked, 10 unsupported, 4 fail of 665)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `edd43fd08cfc`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41092324058), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f673b0a14f3d`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41096728794), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -27,7 +27,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `edd43fd
 | `measure.multi_stage.time_shift_next` | pass |  |
 | `measure.multi_stage.time_shift_prior` | pass |  |
 | `measure.opt.cross_cube_reference` | pass |  |
-| `measure.opt.description` | fail | orders.revenue description='Total order amount in USD.\n\nTable: Orders (orders, id 27).', want 'Total order amount in USD.' |
+| `measure.opt.description` | pass |  |
 | `measure.opt.drill_members` | pass |  |
 | `measure.opt.filters` | pass |  |
 | `measure.opt.filters_on_count` | pass |  |
@@ -60,7 +60,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `edd43fd
 | `dimension.format.currency` | pass |  |
 | `dimension.format.currency_code` | pass |  |
 | `dimension.format.id` | pass |  |
-| `dimension.format.image_url` | fail | orders.thumb_url semantic_type='type/URL', want 'type/ImageURL' |
+| `dimension.format.image_url` | pass |  |
 | `dimension.format.link` | pass |  |
 | `dimension.format.link_label` | pass |  |
 | `dimension.format.percent` | pass |  |
@@ -182,7 +182,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `edd43fd
 | `meta.measure_is_marked` | pass |  |
 | `meta.no_internal_columns` | pass |  |
 | `meta.resync_keeps_metadata` | pass |  |
-| `meta.semantic_types` | fail | users.email semantic_type None, want type/Email |
+| `meta.semantic_types` | fail | users.name semantic_type None, want type/Name |
 | `meta.tables_match_public_members` | pass |  |
 | `mb.agg.avg_field` | pass |  |
 | `mb.agg.count_rows` | pass |  |
@@ -217,8 +217,8 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `edd43fd
 | `mb.bucket.week` | pass |  |
 | `mb.bucket.week-of-year` | pass |  |
 | `mb.bucket.year` | pass |  |
-| `mb.breakout.bin_count` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T16:46:49.877380215Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error preprocessing query in #'metabase.query-processor.middleware.binning/update-binning-strategy: Unable to bin Field without a min/max |
-| `mb.breakout.bin_width` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T16:46:49.911919591Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error preprocessing query in #'metabase.query-processor.middleware.binning/update-binning-strategy: Unable to bin Field without a min/max |
+| `mb.breakout.bin_count` | pass |  |
+| `mb.breakout.bin_width` | pass |  |
 | `mb.breakout.boolean` | pass |  |
 | `mb.breakout.limit` | pass |  |
 | `mb.breakout.sorted_by_measure` | pass |  |
@@ -347,7 +347,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `edd43fd
 | `mcp.execute_query.filter` | pass |  |
 | `mcp.execute_query.implicit_join` | pass |  |
 | `mcp.execute_query.measure` | pass |  |
-| `mcp.execute_query.paging` | fail | no next_cursor: {'query_handle': 'a9d2d142-6298-4b61-b70a-20a6b4ebdf61', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float' |
+| `mcp.execute_query.paging` | fail | no next_cursor: {'query_handle': 'bd9eb3f3-ef5b-4d9f-b979-cbfcf395707e', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float' |
 | `mcp.execute_query.segment` | pass |  |
 | `mcp.execute_query.view` | pass |  |
 | `mcp.execute_sql` | pass |  |
@@ -417,7 +417,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `edd43fd
 | `semantic.measure.type_boolean` | pass |  |
 | `semantic.segment.every_member` | pass |  |
 | `semantic.display_names` | pass |  |
-| `semantic.descriptions` | fail | the Segment paid has another description |
+| `semantic.descriptions` | pass |  |
 | `semantic.format.currency` | pass |  |
 | `semantic.format.percent` | pass |  |
 | `semantic.format.link` | pass |  |
@@ -426,11 +426,11 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `edd43fd
 | `semantic.drill_members` | pass |  |
 | `semantic.agent_reads_notes` | pass |  |
 | `semantic.resync_no_duplicates` | pass |  |
-| `semantic.model_change_updates` | fail | the Measure did not follow the model: {'description': 'Second text.\n\nTable: Probe cube (conformance_probe_1793378866, id 45).', 'archived': False, 'table_id': 45, 'definition': {'lib/type': 'mbql/query', 'database': 2, 'stages': [{'source-table': 45, 'lib/type': 'mbql.stage/mbql', 'aggregation': [['sum', {'lib/uuid': 'e8063fca-f339-4ef7-a44e-d4e4db14e822', 'display-name': 'Probe total two'}, ['field', {'lib/uuid': '8fa9a7e2-4a70-4060-82c3-8ef1fe83b923'}, 396]]]}], 'lib/metadata': None}, 'creator': {'email': 'internal@metabase.com', 'first_name': 'Metabase', 'is_data_analyst': False, 'last_login': None, 'is_qbnewb': True, 'is_superuser': False, 'id': 13371338, 'last_name': 'Internal', 'tenant_id': None, 'date_joined': '2026-10-30T16:45:41.358902Z', 'common_name': 'Metabase Internal'}, 'definition_description': 'Probe total two', 'name': 'Probe total two', 'dimensions': None, 'creator_id': 13371338, 'updated_at': '2026-10-30T16:48:06.098548Z', 'dimension_mappings': None, 'id': 144, 'entity_id': '068D_5azEVJDQK8WpB-2V', 'created_at': '2026-10-30T16:47:47.976399Z'} |
+| `semantic.model_change_updates` | pass |  |
 | `semantic.removed_archived` | pass |  |
 | `semantic.restored_member` | pass |  |
 | `semantic.user_edit_kept` | pass |  |
-| `semantic.user_edit_reset` | fail | the Measure did not take the Cube values: Probe edited, Cube text.  Table: Probe cube (conformance_probe_1793378866, id 45). |
+| `semantic.user_edit_reset` | pass |  |
 | `semantic.drill_members_native` | unsupported | Metabase has no column that lists the drill columns of a measure. Its drill-through uses all visible fields. The text in the description is the only place, see semantic.drill_members. |
 | `semantic.measure.min_on_time_column` | blocked | Cube REST returns the time, but /v1/meta types the measure as number and the SQL API returns NULL for MEASURE(). The driver reads only the SQL API, so the demo measure first_order_at gives NULL. Use a measure of type time, see semantic.measure.type_time. |
 | `compile.agg.median_gives_error` | pass |  |
