@@ -2,14 +2,14 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 629/666 pass** (629 pass, 0 partial, 26 blocked, 10 unsupported, 1 fail of 666)
+**coverage: 627/677 pass** (627 pass, 12 partial, 26 blocked, 10 unsupported, 2 fail of 677)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `9bbe10949137`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41102142613), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `b6f18731ce36`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41104841218), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
-| `measure.format.abbr` | pass |  |
-| `measure.format.accounting` | pass |  |
+| `measure.format.abbr` | partial | Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
+| `measure.format.accounting` | partial | Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
 | `measure.format.currency` | pass |  |
 | `measure.format.currency_code` | pass |  |
 | `measure.format.d3` | pass |  |
@@ -56,7 +56,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `9bbe109
 | `measure.type.string` | pass |  |
 | `measure.type.sum` | pass |  |
 | `measure.type.time` | pass |  |
-| `dimension.format.abbr` | pass |  |
+| `dimension.format.abbr` | partial | Metabase has no setting for an abbreviated number. The field has a decimal format with the same decimals, and the description keeps the text of Cube. |
 | `dimension.format.currency` | pass |  |
 | `dimension.format.currency_code` | pass |  |
 | `dimension.format.id` | pass |  |
@@ -105,7 +105,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `9bbe109
 | `join.one_to_many_no_fanout` | pass |  |
 | `join.one_to_one` | pass |  |
 | `join.sql_cube_join_field` | pass |  |
-| `join.transitive` | pass |  |
+| `join.transitive` | fail | rows: got 4 rows, truth has 3. got=[[None, 1.0], ['Gadget', 199.0], ['Gizmo', 199.0], ['Widget', 199.0]] truth=[['Gadget', 199.0], ['Gizmo', 199.0], ['Widget', 199.0]] |
 | `cube.calendar` | pass |  |
 | `cube.calendar_granularity_sql` | blocked | Needs a calendar table with SQL granularities in the demo model. Not modelled yet. |
 | `cube.data_source` | blocked | The demo stack has one data source. A second one needs a compose change and a Cube config, which do not exist yet. |
@@ -113,7 +113,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `9bbe109
 | `cube.extends` | pass |  |
 | `cube.meta` | pass |  |
 | `cube.public_false` | pass |  |
-| `cube.refresh_key` | pass |  |
+| `cube.refresh_key` | partial | A refresh key has no Metabase object. The check compares the value and reads the 1 hour key in the SQL that Cube generates. It changes no data, so it does not prove a refresh. |
 | `cube.sql` | pass |  |
 | `cube.sql_alias` | pass |  |
 | `cube.sql_table` | pass |  |
@@ -630,10 +630,10 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `9bbe109
 | `compile.week.week_of_year_monday` | pass |  |
 | `compile.join.explicit_measure_regular` | pass |  |
 | `compile.ch.integer_within_double` | pass |  |
-| `compile.xray.table_all_cards_run` | pass |  |
-| `compile.xray.field_all_cards_run` | pass |  |
-| `compile.xray.time_field_all_cards_run` | pass |  |
-| `compile.xray.typed_table_all_cards_run` | pass |  |
+| `compile.xray.table_all_cards_run` | partial | The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count. |
+| `compile.xray.field_all_cards_run` | partial | The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count. |
+| `compile.xray.time_field_all_cards_run` | partial | The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count. |
+| `compile.xray.typed_table_all_cards_run` | partial | The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count. |
 | `compile.granularity.native_offset_no_rollup` | pass |  |
 | `compile.filter.quote_in_value` | pass |  |
 | `compile.filter.backslash_quote_in_value` | pass |  |
@@ -653,6 +653,17 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `9bbe109
 | `mcp.agent.error_unknown_column` | pass |  |
 | `mcp.agent.error_join_on` | pass |  |
 | `mcp.execute_query.paging_measure` | pass |  |
+| `dimension.opt.propagate_filters_next_to_another_sub_query` | partial | Wrong number from Cube. In one SQL API query with a second sub_query dimension, the propagated dimension ignores the filter and shows all orders. Alone, it is right, see dimension.opt.propagate_filters. Do not select the two together. |
+| `measure.rolling.native_sql_limit` | partial | Wrong number from Cube, and the driver cannot read native SQL. With no time bucket, a rolling measure gives the total of all rows. With a filter inside a bucket, it gives the value of the whole bucket. The query builder and MCP execute_query stop these queries, see compile.rolling.*. |
+| `measure.multi_stage.time_shift_no_bucket_limit` | partial | Wrong number from Cube. With no time bucket, a time shift measure gives the total of all rows. /v1/meta does not tell which measure has a time shift, so the driver cannot stop this query. Group by a time bucket. |
+| `clickhouse.datetime64_millis` | partial | Cube reads a time as whole seconds. A raw value has no milliseconds, and a filter on them finds no row. Buckets of a second and above are right. A dimension with sql: toString(column) keeps the text. |
+| `compile.rolling.by_day_on_boundaries` | pass |  |
+| `compile.rolling.no_time_bucket_gives_error` | pass |  |
+| `compile.rolling.filter_inside_bucket_gives_error` | pass |  |
+| `compile.rolling.no_date_filter_gives_clear_error` | pass |  |
+| `compile.agg.other_aggregation_of_measure` | pass |  |
+| `compile.agg.count_of_measure` | pass |  |
+| `compile.agg.other_aggregation_can_give_error` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |
 | `security.security_context_row_filter` | pass |  |

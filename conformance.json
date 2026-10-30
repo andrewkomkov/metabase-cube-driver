@@ -1,24 +1,24 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 629,
-    "partial": 0,
+    "pass": 627,
+    "partial": 12,
     "blocked": 26,
     "unsupported": 10,
-    "fail": 1,
-    "total": 666
+    "fail": 2,
+    "total": 677
   },
-  "coverage": "coverage: 629/666 pass",
+  "coverage": "coverage: 627/677 pass",
   "features": [
     {
       "id": "measure.format.abbr",
-      "status": "pass",
-      "reason": ""
+      "status": "partial",
+      "reason": "Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
     },
     {
       "id": "measure.format.accounting",
-      "status": "pass",
-      "reason": ""
+      "status": "partial",
+      "reason": "Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
     },
     {
       "id": "measure.format.currency",
@@ -252,8 +252,8 @@
     },
     {
       "id": "dimension.format.abbr",
-      "status": "pass",
-      "reason": ""
+      "status": "partial",
+      "reason": "Metabase has no setting for an abbreviated number. The field has a decimal format with the same decimals, and the description keeps the text of Cube."
     },
     {
       "id": "dimension.format.currency",
@@ -497,8 +497,8 @@
     },
     {
       "id": "join.transitive",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "rows: got 4 rows, truth has 3. got=[[None, 1.0], ['Gadget', 199.0], ['Gizmo', 199.0], ['Widget', 199.0]] truth=[['Gadget', 199.0], ['Gizmo', 199.0], ['Widget', 199.0]]"
     },
     {
       "id": "cube.calendar",
@@ -537,8 +537,8 @@
     },
     {
       "id": "cube.refresh_key",
-      "status": "pass",
-      "reason": ""
+      "status": "partial",
+      "reason": "A refresh key has no Metabase object. The check compares the value and reads the 1 hour key in the SQL that Cube generates. It changes no data, so it does not prove a refresh."
     },
     {
       "id": "cube.sql",
@@ -3122,23 +3122,23 @@
     },
     {
       "id": "compile.xray.table_all_cards_run",
-      "status": "pass",
-      "reason": ""
+      "status": "partial",
+      "reason": "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
     },
     {
       "id": "compile.xray.field_all_cards_run",
-      "status": "pass",
-      "reason": ""
+      "status": "partial",
+      "reason": "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
     },
     {
       "id": "compile.xray.time_field_all_cards_run",
-      "status": "pass",
-      "reason": ""
+      "status": "partial",
+      "reason": "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
     },
     {
       "id": "compile.xray.typed_table_all_cards_run",
-      "status": "pass",
-      "reason": ""
+      "status": "partial",
+      "reason": "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
     },
     {
       "id": "compile.granularity.native_offset_no_rollup",
@@ -3232,6 +3232,61 @@
     },
     {
       "id": "mcp.execute_query.paging_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.opt.propagate_filters_next_to_another_sub_query",
+      "status": "partial",
+      "reason": "Wrong number from Cube. In one SQL API query with a second sub_query dimension, the propagated dimension ignores the filter and shows all orders. Alone, it is right, see dimension.opt.propagate_filters. Do not select the two together."
+    },
+    {
+      "id": "measure.rolling.native_sql_limit",
+      "status": "partial",
+      "reason": "Wrong number from Cube, and the driver cannot read native SQL. With no time bucket, a rolling measure gives the total of all rows. With a filter inside a bucket, it gives the value of the whole bucket. The query builder and MCP execute_query stop these queries, see compile.rolling.*."
+    },
+    {
+      "id": "measure.multi_stage.time_shift_no_bucket_limit",
+      "status": "partial",
+      "reason": "Wrong number from Cube. With no time bucket, a time shift measure gives the total of all rows. /v1/meta does not tell which measure has a time shift, so the driver cannot stop this query. Group by a time bucket."
+    },
+    {
+      "id": "clickhouse.datetime64_millis",
+      "status": "partial",
+      "reason": "Cube reads a time as whole seconds. A raw value has no milliseconds, and a filter on them finds no row. Buckets of a second and above are right. A dimension with sql: toString(column) keeps the text."
+    },
+    {
+      "id": "compile.rolling.by_day_on_boundaries",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rolling.no_time_bucket_gives_error",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rolling.filter_inside_bucket_gives_error",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.rolling.no_date_filter_gives_clear_error",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.agg.other_aggregation_of_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.agg.count_of_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.agg.other_aggregation_can_give_error",
       "status": "pass",
       "reason": ""
     },
