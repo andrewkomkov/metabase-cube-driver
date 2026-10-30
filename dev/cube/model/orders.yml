@@ -68,10 +68,7 @@ cubes:
         links:
           - name: search
             label: Search status
-            url: "'https://example.com/search'"
-            icon: external-link
-            target: blank
-            primary: true
+            dashboard: order_status
       - { name: masked_status, sql: status, type: string, mask: { sql: "'hidden'" }, description: Status with a mask. }
       - { name: display_currency, type: switch, values: [USD, EUR] }
     measures:
