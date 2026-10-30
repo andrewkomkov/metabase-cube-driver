@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security problem
+    url: https://github.com/andrewkomkov/metabase-cube-driver/security/advisories/new
+    about: Send a private report. Do not open a public issue.

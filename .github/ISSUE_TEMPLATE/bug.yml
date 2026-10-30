@@ -1,0 +1,32 @@
+name: Bug
+description: A Cube or Metabase feature gives a wrong result or an error.
+labels: [bug]
+body:
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Driver, Metabase, Cube and the data source.
+      placeholder: driver 0.1.0, Metabase v0.64.3, Cube v1.8.15, ClickHouse 26.8
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps
+      description: Give the Cube model, the question in Metabase and the steps.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual result
+      description: Give the result of a direct SQL query on the data source, if you can.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Metabase and Cube logs. Remove credentials.
+      render: text

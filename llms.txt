@@ -1,0 +1,28 @@
+# metabase-cube-driver
+
+> A Metabase driver plugin for Cube Core. The aim is that Cube measures, dimensions and segments work natively in Metabase, for people and for AI agents. The main target is Cube on top of ClickHouse.
+
+Coverage has one source of truth: conformance/features.yaml and the output of conformance/run.py. Do not state coverage from any other source.
+
+## Start here
+
+- [Agent guide](https://raw.githubusercontent.com/andrewkomkov/metabase-cube-driver/main/AGENTS.md): goal, definition of done, pinned versions and rules
+- [README](https://raw.githubusercontent.com/andrewkomkov/metabase-cube-driver/main/README.md): install, connect and use with an AI agent
+- [Contributing](https://raw.githubusercontent.com/andrewkomkov/metabase-cube-driver/main/CONTRIBUTING.md): commands and CI
+
+## Status from CI
+
+- [Coverage](https://raw.githubusercontent.com/andrewkomkov/metabase-cube-driver/status/coverage.md): the last result on the pinned pair
+- [Compatibility](https://raw.githubusercontent.com/andrewkomkov/metabase-cube-driver/status/compatibility.md): the version matrix
+- [Conformance JSON](https://raw.githubusercontent.com/andrewkomkov/metabase-cube-driver/status/conformance.json): the last result as data
+
+## Code
+
+- [Feature matrix](https://raw.githubusercontent.com/andrewkomkov/metabase-cube-driver/main/conformance/features.yaml)
+- [Conformance runner](https://raw.githubusercontent.com/andrewkomkov/metabase-cube-driver/main/conformance/README.md)
+- [Plugin manifest](https://raw.githubusercontent.com/andrewkomkov/metabase-cube-driver/main/resources/metabase-plugin.yaml)
+
+## Optional
+
+- [Docs site](https://andrewkomkov.github.io/metabase-cube-driver/)
+- [Releases](https://github.com/andrewkomkov/metabase-cube-driver/releases)

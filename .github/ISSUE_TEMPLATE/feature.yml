@@ -1,0 +1,23 @@
+name: Feature
+description: Ask for support of a Cube or Metabase feature.
+labels: [feature]
+body:
+  - type: input
+    id: feature
+    attributes:
+      label: Feature
+      description: The name of the feature, and its id in conformance/features.yaml if it has one.
+    validations:
+      required: true
+  - type: textarea
+    id: use
+    attributes:
+      label: Use case
+      description: Tell what you want to do in Metabase or with an AI agent.
+    validations:
+      required: true
+  - type: textarea
+    id: truth
+    attributes:
+      label: How to check it
+      description: Tell how a check can compare the result with a direct SQL query.

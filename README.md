@@ -1,5 +1,10 @@
 # Metabase driver for Cube
 
+[![ci](https://github.com/andrewkomkov/metabase-cube-driver/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/andrewkomkov/metabase-cube-driver/actions/workflows/ci.yml)
+[![coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fandrewkomkov%2Fmetabase-cube-driver%2Fstatus%2Fbadges%2Fcoverage.json)](https://andrewkomkov.github.io/metabase-cube-driver/coverage/)
+[![compatibility](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fandrewkomkov%2Fmetabase-cube-driver%2Fstatus%2Fbadges%2Fcompatibility.json)](https://andrewkomkov.github.io/metabase-cube-driver/compatibility/)
+[![latest release](https://img.shields.io/github/v/release/andrewkomkov/metabase-cube-driver?sort=semver)](https://github.com/andrewkomkov/metabase-cube-driver/releases/latest)
+
 A [Metabase](https://github.com/metabase/metabase) driver plugin for
 [Cube Core](https://github.com/cube-js/cube). The goal is that Cube measures, dimensions and segments
 work natively in Metabase, for people and for AI agents. The main target is Cube on top of ClickHouse.
@@ -8,16 +13,13 @@ This is an unofficial community project. It is not affiliated with or endorsed b
 
 ## Status
 
-Early development. **There is no released jar yet, and no feature is proven.**
+Early development. CI makes each number in the badges above. If a badge shows `no data` or a failure, CI
+has no green result.
 
 Coverage is not written by hand in this file. The only source of truth is
 [`conformance/features.yaml`](conformance/features.yaml). Each entry there names a feature, a status
 and an executable check, and a `pass` requires a check that ran against a live stack and compared the
-results with a direct SQL query on ClickHouse. The file is planned: if the link does not open, no
-coverage exists yet.
-
-The [`conformance` workflow](.github/workflows/conformance.yml) packages the jar, starts the demo
-stack and runs the suite on GitHub-hosted runners.
+results with a direct SQL query on ClickHouse. See the [coverage page](https://andrewkomkov.github.io/metabase-cube-driver/coverage/).
 
 ## Compatibility
 
@@ -27,13 +29,13 @@ stack and runs the suite on GitHub-hosted runners.
 | Cube       | `v1.8.15`        | `cubejs/cube`                 |
 | ClickHouse | `26.8.36-alpine` | `clickhouse/clickhouse-server` |
 
-These are the versions that the demo stack runs. Other versions are not tested. Other Cube data
-sources are a second priority.
+These are the versions that the demo stack runs. The [compatibility table](https://andrewkomkov.github.io/metabase-cube-driver/compatibility/)
+shows the other versions that CI tests. Other Cube data sources are a second priority.
 
 ## Install
 
-Planned: the release asset does not exist yet. When it does, install it in one step, then restart
-Metabase:
+No release exists yet, so this download fails until the first release. Install the jar in one step,
+then restart Metabase:
 
 ```sh
 curl -fL -o "$MB_PLUGINS_DIR/cube.metabase-driver.jar" \
@@ -44,9 +46,8 @@ curl -fL -o "$MB_PLUGINS_DIR/cube.metabase-driver.jar" \
 
 ## Connect
 
-Planned: the connection fields come from `resources/metabase-plugin.yaml`, which does not exist yet.
-Until then, these are the addresses of the demo stack, which you start with
-`cd dev && docker compose up -d clickhouse cube`:
+The connection fields are in [`resources/metabase-plugin.yaml`](resources/metabase-plugin.yaml). These
+are the addresses of the demo stack. Start it with `make up`:
 
 | Service       | Address from the host | Address from the Metabase container |
 | ------------- | --------------------- | ----------------------------------- |
@@ -86,7 +87,7 @@ This flow is a goal and is not yet proven with this driver. See
 
 ## Development
 
-Start with [`AGENTS.md`](AGENTS.md). Agents do most of the work in this repository. Project subagents
+Start with [`AGENTS.md`](AGENTS.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md). Agents do most of the work in this repository. Project subagents
 are in [`.claude/agents/`](.claude/agents) and repeated tasks are in
 [`.claude/skills/`](.claude/skills).
 
