@@ -4,12 +4,12 @@
 - id: measure.format.abbr
   area: cube.measures
   title: "measure format abbr"
-  status: fail
+  status: pass
   check: measure.format.abbr
 - id: measure.format.accounting
   area: cube.measures
   title: "measure format accounting"
-  status: fail
+  status: pass
   check: measure.format.accounting
 - id: measure.format.currency
   area: cube.measures
@@ -19,17 +19,17 @@
 - id: measure.format.currency_code
   area: cube.measures
   title: "measure format currency code"
-  status: fail
+  status: pass
   check: measure.format.currency_code
 - id: measure.format.d3
   area: cube.measures
   title: "measure format d3"
-  status: fail
+  status: pass
   check: measure.format.d3
 - id: measure.format.number_n
   area: cube.measures
   title: "measure format number n"
-  status: fail
+  status: pass
   check: measure.format.number_n
 - id: measure.format.percent
   area: cube.measures
@@ -39,7 +39,7 @@
 - id: measure.format.percent_n
   area: cube.measures
   title: "measure format percent n"
-  status: fail
+  status: pass
   check: measure.format.percent_n
 - id: measure.multi_stage.case_switch
   area: cube.measures
@@ -104,7 +104,7 @@
 - id: measure.opt.drill_members
   area: cube.measures
   title: "measure opt drill members"
-  status: fail
+  status: pass
   check: measure.opt.drill_members
 - id: measure.opt.filters
   area: cube.measures
@@ -124,7 +124,7 @@
 - id: measure.opt.meta
   area: cube.measures
   title: "measure opt meta"
-  status: fail
+  status: pass
   check: measure.opt.meta
 - id: measure.opt.multi_stage
   area: cube.measures
@@ -239,12 +239,12 @@
 - id: measure.type.time
   area: cube.measures
   title: "measure type time"
-  status: fail
+  status: pass
   check: measure.type.time
 - id: dimension.format.abbr
   area: cube.dimensions
   title: "dimension format abbr"
-  status: fail
+  status: pass
   check: dimension.format.abbr
 - id: dimension.format.currency
   area: cube.dimensions
@@ -254,12 +254,12 @@
 - id: dimension.format.currency_code
   area: cube.dimensions
   title: "dimension format currency code"
-  status: fail
+  status: pass
   check: dimension.format.currency_code
 - id: dimension.format.id
   area: cube.dimensions
   title: "dimension format id"
-  status: fail
+  status: pass
   check: dimension.format.id
 - id: dimension.format.image_url
   area: cube.dimensions
@@ -274,17 +274,17 @@
 - id: dimension.format.link_label
   area: cube.dimensions
   title: "dimension format link label"
-  status: fail
+  status: pass
   check: dimension.format.link_label
 - id: dimension.format.percent
   area: cube.dimensions
   title: "dimension format percent"
-  status: fail
+  status: pass
   check: dimension.format.percent
 - id: dimension.format.time
   area: cube.dimensions
   title: "dimension format time"
-  status: fail
+  status: pass
   check: dimension.format.time
 - id: dimension.opt.case_label_sql
   area: cube.dimensions
@@ -304,7 +304,7 @@
 - id: dimension.opt.links
   area: cube.dimensions
   title: "dimension opt links"
-  status: fail
+  status: pass
   check: dimension.opt.links
 - id: dimension.opt.mask_sql
   area: cube.dimensions
@@ -319,7 +319,7 @@
 - id: dimension.opt.meta
   area: cube.dimensions
   title: "dimension opt meta"
-  status: fail
+  status: pass
   check: dimension.opt.meta
 - id: dimension.opt.order
   area: cube.dimensions
@@ -349,7 +349,7 @@
 - id: dimension.opt.synthetic_hidden
   area: cube.dimensions
   title: "dimension opt synthetic hidden"
-  status: fail
+  status: pass
   check: dimension.opt.synthetic_hidden
 - id: dimension.opt.time_shift_calendar
   area: cube.dimensions
@@ -519,7 +519,7 @@
 - id: cube.meta
   area: cube.cubes
   title: "cube meta"
-  status: fail
+  status: pass
   check: cube.meta
 - id: cube.public_false
   area: cube.cubes
@@ -634,17 +634,17 @@
 - id: view.folders
   area: cube.views
   title: "view folders"
-  status: fail
+  status: pass
   check: view.folders
 - id: view.folders_nested
   area: cube.views
   title: "view folders nested"
-  status: fail
+  status: pass
   check: view.folders_nested
 - id: view.group
   area: cube.views
   title: "view group"
-  status: fail
+  status: pass
   check: view.group
 - id: view.includes
   area: cube.views
@@ -669,7 +669,7 @@
 - id: view.member_meta
   area: cube.views
   title: "view member meta"
-  status: fail
+  status: pass
   check: view.member_meta
 - id: view.member_title
   area: cube.views
@@ -679,7 +679,7 @@
 - id: view.meta
   area: cube.views
   title: "view meta"
-  status: fail
+  status: pass
   check: view.meta
 - id: view.meta_auto_run
   area: cube.views
@@ -709,7 +709,7 @@
 - id: hierarchy.levels
   area: cube.hierarchies
   title: "hierarchy levels"
-  status: fail
+  status: pass
   check: hierarchy.levels
 - id: hierarchy.public_false
   area: cube.hierarchies
@@ -869,12 +869,12 @@
 - id: meta.fingerprint_distinct_count
   area: metabase.sync
   title: "meta fingerprint distinct count"
-  status: fail
+  status: pass
   check: meta.fingerprint_distinct_count
 - id: meta.fk_implicit_target
   area: metabase.sync
   title: "meta fk implicit target"
-  status: fail
+  status: pass
   check: meta.fk_implicit_target
 - id: meta.measure_is_marked
   area: metabase.sync
@@ -894,7 +894,7 @@
 - id: meta.semantic_types
   area: metabase.sync
   title: "meta semantic types"
-  status: fail
+  status: pass
   check: meta.semantic_types
 - id: meta.tables_match_public_members
   area: metabase.sync
@@ -1389,27 +1389,27 @@
 - id: mb.join.explicit_inner
   area: metabase.joins
   title: "mb join explicit inner"
-  status: fail
+  status: pass
   check: mb.join.explicit_inner
 - id: mb.join.explicit_left
   area: metabase.joins
   title: "mb join explicit left"
-  status: fail
+  status: pass
   check: mb.join.explicit_left
 - id: mb.join.implicit
   area: metabase.joins
   title: "mb join implicit"
-  status: fail
+  status: pass
   check: mb.join.implicit
 - id: mb.join.implicit_filter
   area: metabase.joins
   title: "mb join implicit filter"
-  status: fail
+  status: pass
   check: mb.join.implicit_filter
 - id: mb.join.measure_across_cubes
   area: metabase.joins
   title: "mb join measure across cubes"
-  status: fail
+  status: pass
   check: mb.join.measure_across_cubes
 - id: mb.nested.filter_on_aggregation
   area: metabase.nested
@@ -1559,12 +1559,12 @@
 - id: mb.search.measure
   area: metabase.search
   title: "mb search measure"
-  status: fail
+  status: pass
   check: mb.search.measure
 - id: mb.search.segment
   area: metabase.search
   title: "mb search segment"
-  status: fail
+  status: pass
   check: mb.search.segment
 - id: mb.search.table
   area: metabase.search
@@ -1614,7 +1614,7 @@
 - id: mcp.agent_journey_no_cube_knowledge
   area: mcp
   title: "mcp agent journey no cube knowledge"
-  status: fail
+  status: pass
   check: mcp.agent_journey_no_cube_knowledge
 - id: mcp.alert_write
   area: mcp
@@ -1629,7 +1629,7 @@
 - id: mcp.browse.descriptions_in_get_fields
   area: mcp
   title: "mcp browse descriptions in get fields"
-  status: fail
+  status: pass
   check: mcp.browse.descriptions_in_get_fields
 - id: mcp.browse.get_fields_dimensions
   area: mcp
@@ -1644,7 +1644,7 @@
 - id: mcp.browse.get_fields_segments
   area: mcp
   title: "mcp browse get fields segments"
-  status: fail
+  status: pass
   check: mcp.browse.get_fields_segments
 - id: mcp.browse.list_databases
   area: mcp
@@ -1709,7 +1709,7 @@
 - id: mcp.execute_query.implicit_join
   area: mcp
   title: "mcp execute query implicit join"
-  status: fail
+  status: pass
   check: mcp.execute_query.implicit_join
 - id: mcp.execute_query.measure
   area: mcp
@@ -1824,12 +1824,12 @@
 - id: mcp.search.measure
   area: mcp
   title: "mcp search measure"
-  status: fail
+  status: pass
   check: mcp.search.measure
 - id: mcp.search.segment
   area: mcp
   title: "mcp search segment"
-  status: fail
+  status: pass
   check: mcp.search.segment
 - id: mcp.search.table_by_description
   area: mcp
@@ -2029,112 +2029,112 @@
 - id: semantic.measure.every_member
   area: semantic.sync
   title: "Each public Cube measure has one Metabase Measure, and it runs"
-  status: todo
+  status: pass
   check: semantic.measure.every_member
 - id: semantic.measure.in_summarize
   area: semantic.sync
   title: "Measures are in the table metadata that Summarize reads, and not plain columns"
-  status: todo
+  status: pass
   check: semantic.measure.in_summarize
 - id: semantic.measure.type_number
   area: semantic.sync
   title: "Measure of a number measure"
-  status: todo
+  status: pass
   check: semantic.measure.type_number
 - id: semantic.measure.type_string
   area: semantic.sync
   title: "Measure of a string measure"
-  status: todo
+  status: pass
   check: semantic.measure.type_string
 - id: semantic.measure.type_time
   area: semantic.sync
   title: "Measure of a time measure"
-  status: todo
+  status: pass
   check: semantic.measure.type_time
 - id: semantic.measure.type_boolean
   area: semantic.sync
   title: "Measure of a boolean measure"
-  status: todo
+  status: pass
   check: semantic.measure.type_boolean
 - id: semantic.segment.every_member
   area: semantic.sync
   title: "Each public Cube segment has one Metabase Segment, and it filters"
-  status: todo
+  status: pass
   check: semantic.segment.every_member
 - id: semantic.display_names
   area: semantic.sync
   title: "Titles become display names of tables, fields and measures"
-  status: todo
+  status: pass
   check: semantic.display_names
 - id: semantic.descriptions
   area: semantic.sync
   title: "Descriptions reach tables, fields, measures and segments"
-  status: todo
+  status: pass
   check: semantic.descriptions
 - id: semantic.format.currency
   area: semantic.sync
   title: "Format currency gives the semantic type Currency"
-  status: todo
+  status: pass
   check: semantic.format.currency
 - id: semantic.format.percent
   area: semantic.sync
   title: "Format percent gives the semantic type Percentage"
-  status: todo
+  status: pass
   check: semantic.format.percent
 - id: semantic.format.link
   area: semantic.sync
   title: "Format link gives the semantic type URL"
-  status: todo
+  status: pass
   check: semantic.format.link
 - id: semantic.fk.from_joins
   area: semantic.sync
   title: "Cube joins become foreign keys, and an implicit join runs"
-  status: todo
+  status: pass
   check: semantic.fk.from_joins
 - id: semantic.fk.join_removed
   area: semantic.sync
   title: "A foreign key goes away with its join"
-  status: todo
+  status: pass
   check: semantic.fk.join_removed
 - id: semantic.drill_members
   area: semantic.sync
   title: "Drill members are in the description of the Measure"
-  status: todo
+  status: pass
   check: semantic.drill_members
 - id: semantic.agent_reads_notes
   area: semantic.sync
   title: "An agent reads hierarchies, folders, view groups and meta through MCP"
-  status: todo
+  status: pass
   check: semantic.agent_reads_notes
 - id: semantic.resync_no_duplicates
   area: semantic.sync
   title: "A resync adds nothing and writes nothing"
-  status: todo
+  status: pass
   check: semantic.resync_no_duplicates
 - id: semantic.model_change_updates
   area: semantic.sync
   title: "A changed title and description update the same Measure"
-  status: todo
+  status: pass
   check: semantic.model_change_updates
 - id: semantic.removed_archived
   area: semantic.sync
   title: "A removed member and a removed cube archive their objects"
-  status: todo
+  status: pass
   check: semantic.removed_archived
 - id: semantic.restored_member
   area: semantic.sync
   title: "A member that comes back gets its archived object back"
-  status: todo
+  status: pass
   check: semantic.restored_member
 - id: semantic.user_edit_kept
   area: semantic.sync
   title: "A sync keeps the edits of a person on a Measure, a field and a table"
-  status: todo
+  status: pass
   check: semantic.user_edit_kept
 - id: semantic.user_edit_reset
   area: semantic.sync
   title: "A person gives an edited Measure back to Cube"
-  status: todo
+  status: pass
   check: semantic.user_edit_reset
 - id: semantic.drill_members_native
   area: semantic.sync
