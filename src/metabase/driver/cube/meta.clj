@@ -55,6 +55,22 @@
                       {:status (:status response)})))
     (json/decode+kw (:body response))))
 
+(def ^:private cached-meta-ttl-ms 60000)
+
+(defonce ^:private meta-cache (atom {}))
+
+(defn cached-meta
+  "The Cube data model, at most one minute old. The query compiler reads it, and it must not add a request per query."
+  [details]
+  (let [cache-key (select-keys details [:cube-rest-url :host :port])
+        now       (System/currentTimeMillis)
+        {:keys [at value]} (get @meta-cache cache-key)]
+    (if (and value (< (- now at) cached-meta-ttl-ms))
+      value
+      (let [fresh (fetch-meta details)]
+        (swap! meta-cache assoc cache-key {:at now, :value fresh})
+        fresh))))
+
 (defn- non-blank [s]
   (when (and (string? s) (not (str/blank? s)))
     s))
@@ -339,6 +355,43 @@
           [from to]      (if (#{"belongsTo" "many_to_one"} relationship) [local remote] [remote local])]
       (when (and from to (not= (first from) (first to)) (:primaryKey (nth to 2)))
         {:fk (subvec from 0 2), :pk (subvec to 0 2)}))))
+
+(defn- join->pair
+  "The two sides of one join as a set of two [cube member] vectors, or nil if the join SQL is not one plain equality."
+  [name->cube cube {:keys [sql], join-name :name, join-alias :alias}]
+  (when-let [[left right] (parse-join-sql sql)]
+    (let [resolve-side (fn [[reference column kind]]
+                         (when-let [target (cond
+                                             (#{"CUBE" (:name cube)} reference)  cube
+                                             (#{join-name join-alias} reference) (name->cube join-name))]
+                           (when-let [dimension (find-dimension target column kind)]
+                             [(:name target) (short-name (:name dimension))])))
+          a            (resolve-side left)
+          b            (resolve-side right)]
+      (when (and a b)
+        #{a b}))))
+
+(defn join-pairs
+  "All [cube member] pairs that a join of the data model compares, in both directions."
+  [cube-meta]
+  (let [name->cube (into {} (map (juxt :name identity)) (:cubes cube-meta))]
+    (into #{}
+          (keep identity)
+          (for [cube (:cubes cube-meta)
+                join (own-and-inherited-joins name->cube cube)]
+            (join->pair name->cube cube join)))))
+
+(defn time-granularities
+  "The custom granularities of a time dimension, as Cube lists them, or nil."
+  [cube-meta cube-name member-name]
+  (let [full-name (str cube-name "." member-name)]
+    (some (fn [{:keys [dimensions], cube :name}]
+            (when (= cube cube-name)
+              (some (fn [dimension]
+                      (when (= full-name (:name dimension))
+                        (:granularities dimension)))
+                    dimensions)))
+          (:cubes cube-meta))))
 
 (defn foreign-keys
   "All foreign keys that the joins of the public cubes mean, with one target per key column, ordered by key."

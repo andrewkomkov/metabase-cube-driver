@@ -3,14 +3,18 @@
   model comes from the Cube REST API, because pg_catalog on the SQL API has no titles, descriptions or member kinds."
   (:require
    [clojure.string :as str]
+   [clojure.walk :as walk]
    [metabase.driver :as driver]
    [metabase.driver-api.core :as driver-api]
    [metabase.driver.cube.meta :as cube.meta]
    [metabase.driver.cube.semantic]
    [metabase.driver.postgres]
    [metabase.driver.sql-jdbc.connection :as sql-jdbc.conn]
+   [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
    [metabase.driver.sql.query-processor :as sql.qp]
-   [metabase.util.honey-sql-2 :as h2x]))
+   [metabase.util.honey-sql-2 :as h2x])
+  (:import
+   (java.sql SQLException)))
 
 (set! *warn-on-reflection* true)
 
@@ -29,6 +33,11 @@
                  :describe-indexes
                  :describe-is-generated
                  :describe-is-nullable
+                 ;; Cube joins through the data model, and its joins are LEFT from the cube that the model starts at.
+                 :full-join
+                 :right-join
+                 ;; The Cube templates for ClickHouse have no PERCENTILE_CONT, so Cube rejects these aggregations.
+                 :percentile-aggregations
                  :index/fetch
                  :index/standalone-create
                  :metadata/table-existence-check
@@ -110,6 +119,8 @@
 
 ;;; --------------------------------------------------- compiler --------------------------------------------------
 
+(declare ^:dynamic *bucketed-field*)
+
 (defn- stored-field
   [clause]
   (when (and (vector? clause) (= :field (first clause)) (integer? (nth clause 2 nil)))
@@ -134,13 +145,17 @@
     :type/DateTime   "timestamp"
     "text"))
 
+(declare apply-binning)
+
 (defmethod sql.qp/->honeysql [:cube :field]
-  [driver [_ {:keys [temporal-unit]} _ :as clause]]
+  [driver [tag {:keys [temporal-unit binning] :as opts} id :as clause]]
   (let [parent   (get-method sql.qp/->honeysql [:postgres :field])
-        compiled (parent driver clause)
-        field    (stored-field clause)]
+        field    (stored-field clause)
+        compiled (binding [*bucketed-field* field]
+                   (parent driver (if binning [tag (dissoc opts :binning) id] clause)))
+        compiled (if binning (apply-binning binning compiled) compiled)]
     ;; The compiler uses the database type to choose casts. It must not see the cube.* marker.
-    (if (and field (contains? #{nil :default} temporal-unit))
+    (if (and field (not binning) (contains? #{nil :default} temporal-unit))
       (h2x/with-database-type-info compiled (physical-type field))
       compiled)))
 
@@ -152,29 +167,17 @@
     [:inline (if raw-value 1 0)]
     ((get-method sql.qp/->honeysql [:postgres :value]) driver clause)))
 
-(def ^:private extraction-units
-  "Temporal units that are not a Cube granularity. The SQL API runs them with SQL push-down."
-  #{:second-of-minute :minute-of-hour :hour-of-day :day-of-week :day-of-month :day-of-year
-    :week-of-year :week-of-year-iso :month-of-year :quarter-of-year :year-of-era})
+(defn- zero-when-empty
+  "Cube reads a rollup with SUM, so a count over no rows is NULL. SQL has 0 there. With a breakout there are no rows."
+  [compiled]
+  (if (seq (:breakout sql.qp/*inner-query*))
+    compiled
+    [:coalesce compiled [:inline 0]]))
 
-(defn- extraction-breakout?
-  []
-  (some (fn [clause]
-          (and (vector? clause)
-               (= :field (first clause))
-               (contains? extraction-units (:temporal-unit (second clause)))))
-        (:breakout sql.qp/*inner-query*)))
-
-(defn- push-down-measure
-  "SQL push-down rejects MEASURE(). It accepts the SQL aggregation of the measure type, for these types only."
-  [driver arg]
-  (let [compiled (sql.qp/->honeysql driver arg)]
-    (case (:database-type (stored-field arg))
-      "cube.measure/sum"   [:sum compiled]
-      "cube.measure/min"   [:min compiled]
-      "cube.measure/max"   [:max compiled]
-      "cube.measure/count" :%count.*
-      [:measure compiled])))
+(defn- count-measure?
+  [arg]
+  (contains? #{"cube.measure/count" "cube.measure/countDistinct" "cube.measure/countDistinctApprox"}
+             (str (:database-type (stored-field arg)))))
 
 (doseq [agg-type [:sum :avg :min :max :count :distinct]]
   (let [parent (get-method sql.qp/->honeysql [:postgres agg-type])]
@@ -183,17 +186,24 @@
       ;; A measure has its aggregation in the data model. Cube rejects a SQL aggregation of another type with
       ;; "Measure aggregation type doesn't match", and MEASURE() has no such check.
       (cond
-        (not= :measure (member-kind arg)) (parent driver clause)
-        (extraction-breakout?)            (push-down-measure driver arg)
-        :else                             [:measure (sql.qp/->honeysql driver arg)]))))
+        (and (= agg-type :count) (nil? arg)) (zero-when-empty (parent driver clause))
+        (not= :measure (member-kind arg))    (parent driver clause)
+        (count-measure? arg)                 (zero-when-empty [:measure (sql.qp/->honeysql driver arg)])
+        :else                                [:measure (sql.qp/->honeysql driver arg)]))))
+
+(def ^:private ^:dynamic *raw-measures*
+  "An atom from column alias to the compiled measure, for measures that a stage of this query selects as raw rows."
+  nil)
 
 (defn- raw-select-item
   "A measure has no value for one row, and a segment column on the SQL API is always NULL. Cube fails an ungrouped
   query that selects a measure with an aggregate in its SQL or a multi-stage measure, and one such measure would break
   the whole table view. So raw rows show NULL for these columns."
   [driver clause]
-  (let [[_compiled alias-form :as selected] (sql.qp/as driver clause)
+  (let [[compiled alias-form :as selected] (sql.qp/as driver clause)
         null-column (h2x/cast (physical-type (stored-field clause)) nil)]
+    (when (and *raw-measures* alias-form (= :measure (member-kind clause)))
+      (swap! *raw-measures* assoc alias-form compiled))
     (cond
       (not (#{:measure :segment} (member-kind clause))) selected
       alias-form                                        [null-column alias-form]
@@ -234,6 +244,28 @@
                (not-any? stage [:aggregation :breakout :filters :expressions :joins :order-by :limit]))
       source-table)))
 
+(defn- field-member
+  "[cube member] of a stored field."
+  [provider clause]
+  (when-let [field (stored-field clause)]
+    [(:name (driver-api/table provider (:table-id field))) (:name field)]))
+
+(defn- check-model-join
+  "Cube ignores the ON columns and takes the join from the data model. A condition on other columns would give the
+  numbers of the model join, so stop here."
+  [lhs rhs]
+  (let [provider (driver-api/metadata-provider)
+        left     (field-member provider lhs)
+        right    (field-member provider rhs)
+        pairs    (try
+                   (cube.meta/join-pairs (cube.meta/cached-meta (:details (driver-api/database provider))))
+                   (catch Exception _ nil))]
+    (when (and pairs left right (not (contains? pairs #{left right})))
+      (throw (ex-info (format (str "Cube joins only through the data model. It has no join on %s.%s = %s.%s, so Cube "
+                                   "would ignore this condition. Join on the columns of a join in the model.")
+                              (first left) (second left) (first right) (second right))
+                      {:type :invalid-query})))))
+
 (defmethod sql.qp/join->honeysql :cube
   [driver {:keys [conditions] :as join}]
   (let [[operator _ lhs rhs] (first conditions)
@@ -241,36 +273,266 @@
         left                 (when (= := operator) (join-field driver lhs))
         right                (when (= := operator) (join-field driver rhs))]
     (if (and table-id left right (= 1 (count conditions)))
-      [[(sql.qp/->honeysql driver (driver-api/table (driver-api/metadata-provider) table-id))
-        [(sql.qp/->honeysql driver (h2x/identifier :table-alias ((some-fn driver-api/qp.add.alias :alias) join)))]]
-       [:= left right]]
-      ((get-method sql.qp/join->honeysql :postgres) driver join))))
+      (do
+        (check-model-join lhs rhs)
+        [[(sql.qp/->honeysql driver (driver-api/table (driver-api/metadata-provider) table-id))
+          [(sql.qp/->honeysql driver (h2x/identifier :table-alias ((some-fn driver-api/qp.add.alias :alias) join)))]]
+         [:= left right]])
+      (throw (ex-info (str "Cube can join only a whole table with one equality of two columns, because it takes the join "
+                           "from the data model. Filter or aggregate after the join, or add a view to the model.")
+                      {:type :invalid-query})))))
+
+;; Cube joins are LEFT. An inner join is a left join that drops the rows with no match.
+(defmethod sql.qp/apply-top-level-clause [:cube :joins]
+  [driver clause honeysql-form {:keys [joins] :as query}]
+  (let [form (reduce (fn [form {:keys [strategy conditions]}]
+                       (if (= :inner-join strategy)
+                         (let [[_ _ lhs rhs] (first conditions)
+                               joined?     (fn [[_ opts]] (string? (driver-api/qp.add.source-table opts)))
+                               column      (sql.qp/->honeysql driver (if (joined? rhs) rhs lhs))]
+                           (update form :where (fn [where]
+                                                 (let [not-null [:is-not column nil]]
+                                                   (if where [:and where not-null] not-null)))))
+                         form))
+                     honeysql-form
+                     joins)]
+    ((get-method sql.qp/apply-top-level-clause [:postgres :joins]) driver clause form query)))
 
 ;; Cube turns DATE_TRUNC on a time dimension into a granularity of the CubeScan. A cast around the column or an
 ;; interval on it stops that rewrite.
 (defn- date-trunc
   [unit expr]
-  (h2x/with-database-type-info [:date_trunc (h2x/literal unit) expr] "timestamp"))
+  (h2x/with-database-type-info [:date_trunc (h2x/literal (name unit)) expr] "timestamp"))
 
-(doseq [unit [:minute :hour :day :week :month :quarter :year]]
+(doseq [unit [:minute :hour :day :month :quarter :year]]
   (defmethod sql.qp/date [:cube unit] [_driver _unit expr] (date-trunc unit expr)))
 
-;; SQL push-down accepts EXTRACT, but not the integer cast that the Postgres driver adds.
-(doseq [[unit part] {:second-of-minute :second
-                     :minute-of-hour   :minute
-                     :hour-of-day      :hour
-                     :day-of-month     :day
-                     :day-of-year      :doy
-                     :week-of-year-iso :week
-                     :month-of-year    :month
-                     :quarter-of-year  :quarter
-                     :year-of-era      :year}]
-  (defmethod sql.qp/date [:cube unit] [_driver _unit expr] [::h2x/extract part expr]))
+;;; Weeks. Cube weeks start on Monday, and Metabase has a setting for the first day. The Postgres driver shifts the
+;;; column by an interval, but Cube cannot generate SQL for an interval on ClickHouse (metabase/metabase#42255).
+;;; So Monday is a plain DATE_TRUNC, another day uses a custom granularity of the data model if one fits, and otherwise
+;;; Cube groups by a week number that the outer query turns back into a date. Only the first two can read a rollup.
 
-;; Metabase counts days from 1. EXTRACT(DOW) counts from Sunday as 0.
+(def ^:private week-days [:sunday :monday :tuesday :wednesday :thursday :friday :saturday])
+
+(defn- start-of-week-index
+  "The first day of the week in Metabase, where Sunday is 0."
+  ^long []
+  (let [index (.indexOf ^java.util.List week-days (driver-api/start-of-week))]
+    (if (neg? index) 0 (long index))))
+
+(defn- week-granularity
+  "The name of a custom granularity of `field` with weeks that start on day `start`, or nil."
+  [field ^long start]
+  (when-let [table-id (:table-id field)]
+    (let [provider (driver-api/metadata-provider)
+          details  (:details (driver-api/database provider))
+          table    (driver-api/table provider table-id)
+          ;; Cube weeks start on Monday, so Sunday is an offset of -1 day.
+          days     (long (mod (- start 1) 7))
+          wanted   (into #{(format "%d day" days) (format "%d days" days)
+                           (format "-%d day" (- 7 days)) (format "-%d days" (- 7 days))})]
+      (some (fn [{:keys [interval offset origin], granularity-name :name}]
+              (when (and (= interval "1 week") (nil? origin) (contains? wanted offset))
+                granularity-name))
+            (try
+              (cube.meta/time-granularities (cube.meta/cached-meta details) (:name table) (:name field))
+              (catch Exception _ nil))))))
+
+(def ^:private ^:dynamic *bucketed-field*
+  "The stored field that the compiler is bucketing now."
+  nil)
+
+(def ^:private ^:dynamic *week-numbers*
+  "An atom with the week numbers that this query selects. The outer query turns them into dates."
+  nil)
+
+(defn- first-week-day-number
+  "Days from 1970-01-01 to the first day `start` after it. ClickHouse has no DateTime before 1970, and it makes an
+  earlier value 1970-01-01, so the first week must be after that date."
+  ^long [^long start]
+  (+ 3 start))
+
+(defn- datediff
+  [unit x y]
+  [:datediff (h2x/literal (name unit)) x y])
+
+(defn- week-number
+  [start expr]
+  (let [origin   (.plusDays (java.time.LocalDate/of 1970 1 1) (first-week-day-number start))
+        compiled [:floor [:/
+                          (datediff :day [:raw (format "TIMESTAMP '%s 00:00:00'" origin)] expr)
+                          [:inline 7.0]]]]
+    (when *week-numbers*
+      (swap! *week-numbers* conj compiled))
+    compiled))
+
+(defn- week-date
+  "The first day of the week number in the column `identifier`, in the outer query."
+  [start identifier]
+  [:to_timestamp_millis
+   (h2x/cast "bigint"
+             [:+ [:* identifier [:inline (* 7 86400000)]]
+              [:inline (* 86400000 (first-week-day-number start))]])])
+
+(defmethod sql.qp/date [:cube :week]
+  [_driver _unit expr]
+  (let [start (start-of-week-index)]
+    (if (= 1 start)
+      (date-trunc :week expr)
+      (if-let [granularity (some-> *bucketed-field* (week-granularity start))]
+        (date-trunc granularity expr)
+        (week-number start expr)))))
+
+(defn- nest-week-numbers
+  "Move a query that groups by week number into a subquery, and turn the numbers into dates in the outer query."
+  [driver honeysql-form week-numbers]
+  (let [{:keys [select order-by limit offset]} honeysql-form
+        numbers     (set week-numbers)
+        expr->alias (into {} (map (juxt first second)) select)
+        start       (start-of-week-index)]
+    (when (not-any? numbers (map first select))
+      (throw (ex-info (format (str "Cube cannot use a week that starts on %s here, because it cannot add an interval to "
+                                   "a time on ClickHouse. Set the first day of the week to Monday in Metabase, or add "
+                                   "a custom granularity with `interval: 1 week` and the offset of that day to the "
+                                   "time dimension.")
+                              (name (driver-api/start-of-week)))
+                      {:type :invalid-query})))
+    (cond-> {:select (mapv (fn [[expr alias-form]]
+                             (if (contains? numbers expr)
+                               [(week-date start alias-form) alias-form]
+                               [alias-form alias-form]))
+                           select)
+             :from   [[(dissoc honeysql-form :order-by :limit :offset)
+                       [(sql.qp/->honeysql driver (h2x/identifier :table-alias "source"))]]]}
+      order-by (assoc :order-by (mapv (fn [[expr direction]] [(get expr->alias expr expr) direction]) order-by))
+      limit    (assoc :limit limit)
+      offset   (assoc :offset offset))))
+
+(defn- restore-nested-measures
+  "A measure is an empty column in raw rows, see raw-select-item. An outer stage aggregates the column of a subquery, and
+  Cube reads that as the measure, so a subquery must select the measure itself."
+  [honeysql-form raw-measures]
+  (if (and (map? honeysql-form) (seq raw-measures))
+    (update honeysql-form :from
+            (fn [from]
+              (walk/postwalk
+               (fn [form]
+                 (if (and (map? form) (:select form))
+                   (update form :select
+                           (fn [items]
+                             (mapv (fn [item]
+                                     (if-let [compiled (when (vector? item) (get raw-measures (second item)))]
+                                       [compiled (second item)]
+                                       item))
+                                   items)))
+                   form))
+               from)))
+    honeysql-form))
+
+(defmethod driver/mbql->native :cube
+  [driver query]
+  (binding [*week-numbers* (atom [])
+            *raw-measures* (atom {})]
+    (let [honeysql-form (-> (sql.qp/mbql->honeysql driver query)
+                            (restore-nested-measures @*raw-measures*))
+          honeysql-form (if (and (map? honeysql-form) (seq @*week-numbers*))
+                          (nest-week-numbers driver honeysql-form @*week-numbers*)
+                          honeysql-form)
+          [sql & args]  (sql.qp/format-honeysql driver honeysql-form)]
+      {:query sql, :params args})))
+
+;;; Parts of a date. Cube runs EXTRACT over a CubeScan as post-processing, which reads at most CUBEJS_DB_QUERY_LIMIT rows
+;;; of a smaller grain, and which fails in a filter or with a measure that is not additive. DATEDIFF goes to the
+;;; database as SQL push-down, with no such limits.
+
+(defn- since
+  "The units of `unit` from the start of the `period` to `expr`."
+  [unit period expr]
+  (datediff unit (date-trunc period expr) expr))
+
+(defmethod sql.qp/date [:cube :second-of-minute] [_ _ expr] (since :second :minute expr))
+(defmethod sql.qp/date [:cube :minute-of-hour]   [_ _ expr] (since :minute :hour expr))
+(defmethod sql.qp/date [:cube :hour-of-day]      [_ _ expr] (since :hour :day expr))
+(defmethod sql.qp/date [:cube :day-of-month]     [_ _ expr] [:+ (since :day :month expr) [:inline 1]])
+(defmethod sql.qp/date [:cube :day-of-year]      [_ _ expr] [:+ (since :day :year expr) [:inline 1]])
+(defmethod sql.qp/date [:cube :month-of-year]    [_ _ expr] [:+ (since :month :year expr) [:inline 1]])
+(defmethod sql.qp/date [:cube :quarter-of-year]  [_ _ expr] [:+ (since :quarter :year expr) [:inline 1]])
+
+(defmethod sql.qp/date [:cube :year-of-era]
+  [_ _ expr]
+  [:+ (datediff :year [:raw "TIMESTAMP '1970-01-01 00:00:00'"] expr) [:inline 1970]])
+
+(defn- weekday-from
+  "The day of the week, from 0 for the day `start`. DATE_TRUNC('week') gives Monday, which has index 1."
+  [start expr]
+  [:% [:+ (since :day :week expr) [:inline (mod (- 1 start) 7)]] [:inline 7]])
+
+;; Metabase counts days from 1, from the first day of the week in the setting.
 (defmethod sql.qp/date [:cube :day-of-week]
   [_driver _unit expr]
-  (h2x/+ [::h2x/extract :dow expr] [:inline 1]))
+  [:+ (weekday-from (start-of-week-index) expr) [:inline 1]])
+
+(defn- week-of-year-from
+  "Week 1 starts on 1 January and week 2 on the first day `start` after it."
+  [start expr]
+  (let [days-before (since :day :year expr)
+        first-day   [:% [:+ [:% [:- (weekday-from start expr) days-before] [:inline 7]] [:inline 7]] [:inline 7]]]
+    [:+ [:floor [:/ [:+ days-before first-day] [:inline 7.0]]] [:inline 1]]))
+
+(defmethod sql.qp/date [:cube :week-of-year]
+  [_driver _unit expr]
+  (week-of-year-from (start-of-week-index) expr))
+
+(defmethod sql.qp/date [:cube :week-of-year-instance]
+  [_driver _unit expr]
+  (week-of-year-from (start-of-week-index) expr))
+
+(defmethod sql.qp/date [:cube :week-of-year-us]
+  [_driver _unit expr]
+  (week-of-year-from 0 expr))
+
+;; The ISO week of the first and last days of a year needs the length of the year next to it, so this one part stays as
+;; EXTRACT. The SQL API runs it as post-processing over rows of one day.
+(defmethod sql.qp/date [:cube :week-of-year-iso] [_ _ expr] [::h2x/extract :week expr])
+
+;;; Numbers and times that the Postgres driver writes in a form that means something else on Cube.
+
+;; Postgres LOG(x) has base 10. Cube sends LOG(x) to ClickHouse, where it is the natural logarithm, and LOG(10, x) does
+;; not plan.
+(defmethod sql.qp/->honeysql [:cube :log]
+  [driver [_ _opts arg]]
+  [:/ [:ln (sql.qp/->honeysql driver arg)] [:ln [:inline 10]]])
+
+;; DATEDIFF counts the boundaries between two times. That is the Metabase result for days. For smaller units, Metabase
+;; counts whole units, so the driver divides the seconds. The Cube templates have no way to count whole months.
+(defn- whole-units
+  [x y seconds]
+  [:trunc [:/ (datediff :second x y) [:inline (double seconds)]]])
+
+(defmethod sql.qp/datetime-diff [:cube :second] [_driver _unit x y] (datediff :second x y))
+(defmethod sql.qp/datetime-diff [:cube :minute] [_driver _unit x y] (whole-units x y 60))
+(defmethod sql.qp/datetime-diff [:cube :hour]   [_driver _unit x y] (whole-units x y 3600))
+(defmethod sql.qp/datetime-diff [:cube :day]    [_driver _unit x y] (datediff :day x y))
+(defmethod sql.qp/datetime-diff [:cube :week]   [_driver _unit x y] [:trunc [:/ (datediff :day x y) [:inline 7.0]]])
+
+(doseq [unit [:month :quarter :year]]
+  (defmethod sql.qp/datetime-diff [:cube unit]
+    [_driver _unit _x _y]
+    (throw (ex-info (format "Cube cannot count whole %ss between two times. Use days, or a dimension in the data model."
+                            (name unit))
+                    {:type :invalid-query}))))
+
+;; Two equal literals in one expression make the SQL API fail with "Schema contains duplicate unqualified field name".
+;; A cast of a text has no such name, and Cube sends it to the database as it is.
+(defn- number-literal
+  [number]
+  (h2x/cast "double precision" (h2x/literal (str (double number)))))
+
+(defn- apply-binning
+  [{:keys [bin-width min-value]} expr]
+  (let [shifted (if (zero? min-value) expr [:- expr (number-literal min-value)])
+        binned  [:* [:floor [:/ shifted [:inline (double bin-width)]]] (number-literal bin-width)]]
+    (if (zero? min-value) binned [:+ binned [:inline (double min-value)]])))
 
 ;; These helpers in the util namespace have one branch for each driver and no branch for :cube.
 (defmethod sql.qp/current-datetime-honeysql-form :cube
@@ -280,3 +542,37 @@
 (defmethod sql.qp/add-interval-honeysql-form :cube
   [_driver hsql-form amount unit]
   (h2x/add-interval-honeysql-form :postgres hsql-form amount unit))
+
+;;; --------------------------------------------------- errors ----------------------------------------------------
+
+(def ^:private cube-errors
+  "Texts of Cube errors, and what they mean for a person who built a question."
+  [["Can't detect Cube query"
+    (str "Cube cannot plan this query. A filter on a part of a date, such as a day of the week or a month of the year, "
+         "and other expressions on a time dimension in a filter are the common cause. Add a dimension for that part to "
+         "the data model, and filter on the dimension.")]
+   ["Can't generate SQL for interval"
+    (str "Cube cannot add an interval to a time in an aggregated query on this data source. Remove the date arithmetic, "
+         "or add a dimension with that SQL to the data model.")]
+   ["required to be pushed down"
+    (str "Cube cannot run this query, because it needs MEASURE() and post-processing at the same time. Use a plain "
+         "aggregation in the first stage, or add a measure to the data model.")]
+   ["Measure aggregation type doesn't match"
+    (str "This measure has its aggregation in the data model. Use the measure, not another aggregation of its column.")]])
+
+(defn- clear-error
+  [^SQLException e]
+  (let [message (str (.getMessage e))]
+    (some (fn [[needle text]]
+            (when (str/includes? message needle)
+              (str text " Cube said: " message)))
+          cube-errors)))
+
+(defmethod driver/execute-reducible-query :cube
+  [driver query context respond]
+  (try
+    (sql-jdbc.execute/execute-reducible-query driver query context respond)
+    (catch SQLException e
+      (if-let [text (clear-error e)]
+        (throw (ex-info text {:type :invalid-query} e))
+        (throw e)))))
