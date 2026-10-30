@@ -3379,20 +3379,52 @@ C("compile.rolling.by_week_sunday", ORD, "SELECT w, sumIf(o.amount, o.created_at
   ordered=True, setting=SUN, agg=["m:orders.revenue_trailing_30d"], by=[WK], where=[["between", CRT, "2025-01-12", "2025-02-08"]], order=[["asc", WK]])
 
 
-@check("compile.tz.report_timezone_keeps_utc")
-def _(ctx):
+TOKYO = "Asia/Tokyo"
+
+
+def with_report_timezone(ctx, zone, fn):
     prev = ctx.mb.api("GET", "/api/setting/report-timezone")
-    ctx.mb.api("PUT", "/api/setting/report-timezone", {"value": "Asia/Tokyo"})
+    ctx.mb.api("PUT", "/api/setting/report-timezone", {"value": zone})
     try:
-        res = ctx.mb.dataset({"database": ctx.mb.need_db(), "type": "query", "query": ctx.mb.inner(ORD, agg=[["count"]], by=["d:orders.created_at@year"])})
+        fn()
     finally:
         ctx.mb.api("PUT", "/api/setting/report-timezone", {"value": prev if isinstance(prev, str) and prev else None})
-    assert_rows(res["data"]["rows"], ch("SELECT toStartOfYear(created_at), count() FROM orders GROUP BY 1"))
+
+
+def tokyo_bucket(fn):
+    """The bucket in Tokyo time, as an instant. Metabase returns it with the offset of the zone."""
+    return "toTimeZone(%s(toTimeZone(created_at, '%s')), 'UTC')" % (fn, TOKYO)
+
+
+@check("mb.report_timezone")
+def _(ctx):
+    """The driver sets the time zone of the SQL session. Cube makes each bucket in that zone and reads a time literal in it."""
+    grid = Grid(ctx)
+
+    def body():
+        for unit, fn in (("day", "toStartOfDay"), ("month", "toStartOfMonth"), ("year", "toStartOfYear")):
+            grid.add(unit, ctx.mb.inner(ORD, agg=["m:orders.revenue"], by=["d:orders.created_at@%s" % unit]),
+                     "SELECT %s AS b, sum(amount) FROM orders GROUP BY b" % tokyo_bucket(fn))
+        local = "toDateTime('2025-05-10 00:00:00', '%s')" % TOKYO
+        upper = "toDateTime('2025-05-20 00:00:00', '%s')" % TOKYO
+        grid.add("date filter", ctx.mb.inner(ORD, agg=["m:orders.count"], where=[[">=", CRT, "2025-05-10"], ["<", CRT, "2025-05-20"]]),
+                 "SELECT count() FROM orders WHERE created_at >= %s AND created_at < %s" % (local, upper))
+        grid.add("strict bound", ctx.mb.inner(ORD, agg=["m:orders.count"], where=[[">", CRT, "2025-05-10T00:00:00"], ["<=", CRT, "2025-05-20T00:00:00"]]),
+                 "SELECT count() FROM orders WHERE created_at > %s AND created_at <= %s" % (local, upper))
+        grid.add("hour of day", ctx.mb.inner(ORD, agg=["m:orders.count"], by=["d:orders.created_at@hour-of-day"]),
+                 "SELECT toHour(toTimeZone(created_at, '%s')) AS h, count() FROM orders GROUP BY h" % TOKYO)
+        grid.add("by a model", over(raw_model(ctx), aggregation=[["count"]], breakout=[named("created_at", "type/DateTime", **{"temporal-unit": "month"})]),
+                 "SELECT %s AS b, count() FROM orders GROUP BY b" % tokyo_bucket("toStartOfMonth"))
+    with_report_timezone(ctx, TOKYO, body)
+    # A connection from the pool goes back to UTC for the next query.
+    grid.add("back to UTC", ctx.mb.inner(ORD, agg=["m:orders.revenue"], by=["d:orders.created_at@day"]),
+             "SELECT toStartOfDay(created_at), sum(amount) FROM orders GROUP BY 1")
+    grid.done()
 
 
 @check("compile.tz.set_time_zone_error")
 def _(ctx):
-    # The driver has no :set-timezone. This records what the SQL API does with the session setting.
+    # The setting belongs to one session. This connection has it, and the next one stays in UTC.
     try:
         rows = cube_sql("SET TIME ZONE 'Asia/Tokyo'")
     except PgError as e:
@@ -4691,23 +4723,51 @@ def _(ctx):
                 monthly_window("2025-04-01"), "strict bound")
 
 
-@check("nested.measure_column.filter_refused")
+ROW_MEASURES = [("revenue", "amount"), ("avg_order_value", "amount"), ("max_amount", "amount"), ("count", "1")]
+
+
+@check("nested.measure_column.filter_gives_row_values")
 def _(ctx):
-    """Finding B4: a filter on a measure column of a model has no meaning for Cube, so the driver stops it."""
+    """Finding B4: a model with the primary key has one value for each row, so a filter on a measure column filters rows."""
     model = raw_model(ctx)
-    for measure in ("revenue", "count", "avg_order_value", "unique_customers"):
+    grid = Grid(ctx)
+    status = named("status", "type/Text")
+    for measure, row in ROW_MEASURES:
         col = named(measure)
-        for where in ([">", col, 150], ["between", col, 1, 150], ["not", [">", col, 150]], ["or", [">", col, 150], ["=", named("status", "type/Text"), "shipped"]]):
-            expect_clear_error(ctx, over(model, aggregation=[["sum", named("amount_dim")]], filter=where), "Cube cannot filter on the measure column")
-            expect_clear_error(ctx, over(model, aggregation=[["count"]], filter=where), "Cube cannot filter on the measure column")
+        for label, where, cond in (("> 50", [">", col, 50], "%s > 50" % row), ("between", ["between", col, 1, 150], "%s BETWEEN 1 AND 150" % row),
+                                   ("not", ["not", [">", col, 50]], "NOT (%s > 50)" % row),
+                                   ("and status", ["and", [">", col, 50], ["=", status, "shipped"]], "%s > 50 AND status = 'shipped'" % row),
+                                   ("or status", ["or", [">", col, 150], ["=", status, "shipped"]], "%s > 150 OR status = 'shipped'" % row)):
+            grid.add("%s %s sum" % (measure, label), over(model, aggregation=[["sum", named("amount_dim")]], filter=where),
+                     "SELECT sum(amount) FROM orders WHERE %s" % cond)
+            grid.add("%s %s count" % (measure, label), over(model, aggregation=[["count"]], filter=where), "SELECT count() FROM orders WHERE %s" % cond)
+    grid.add("sum of the same column", over(model, aggregation=[["sum", named("revenue")]], filter=[">", named("revenue"), 150]),
+             "SELECT sum(amount) FROM orders WHERE amount > 150")
+    grid.add("by status", over(model, aggregation=[["sum", named("amount_dim")]], breakout=[status], filter=[">", named("revenue"), 150]),
+             "SELECT status, sum(amount) FROM orders WHERE amount > 150 GROUP BY status")
+    grid.add("with date", over(model, aggregation=[["count"]], filter=["and", [">", named("revenue"), 150], [">=", named("created_at", "type/DateTime"), "2025-05-10"]]),
+             "SELECT count() FROM orders WHERE amount > 150 AND created_at >= '2025-05-10'")
+    grid.done()
+    # Raw rows with this filter have the value of each row.
+    expect_rows(ctx, over(model, fields=[named("id"), named("revenue")], filter=["and", [">", named("revenue"), 150], ["<", named("id"), 200]]),
+                "SELECT id, amount FROM orders WHERE amount > 150 AND id < 200", "raw rows")
 
 
-@check("nested.measure_column.breakout_refused")
+@check("nested.measure_column.filter_with_no_key_refused")
 def _(ctx):
-    """Finding B4: a breakout on a measure column of a model gives one total row, so the driver stops it."""
+    """With no primary key in the model, a group is more than one row, so the driver stops the query."""
+    model = card_of(ctx, "model with no key", ctx.mb.inner(ORD, fields=["d:orders.status", "d:orders.amount_dim", "d:orders.revenue"]), "model")
+    expect_clear_error(ctx, over(model, aggregation=[["count"]], filter=[">", named("revenue"), 150]), "Cube cannot filter on the measure column")
+    expect_clear_error(ctx, over(model, aggregation=[["count"]], breakout=[named("revenue")]), "Cube cannot group by the measure")
+    expect_clear_error(ctx, over(raw_model(ctx), aggregation=[["count"]], filter=[">", named("revenue_trailing_30d"), 150]), "Cube cannot filter on the measure column")
+
+
+@check("nested.measure_column.breakout_gives_row_values")
+def _(ctx):
+    """Finding B4: a breakout on a measure column of a model with the primary key groups by the value of each row."""
     model = raw_model(ctx)
-    for measure in ("revenue", "count", "avg_order_value"):
-        expect_clear_error(ctx, over(model, aggregation=[["count"]], breakout=[named(measure)]), "Cube cannot group by the measure")
+    expect_rows(ctx, over(model, aggregation=[["count"]], breakout=[named("revenue")]), "SELECT amount, count() FROM orders GROUP BY amount", "count")
+    expect_rows(ctx, over(model, aggregation=[["sum", named("amount_dim")]], breakout=[named("revenue")]), "SELECT amount, sum(amount) FROM orders GROUP BY amount", "sum")
 
 
 @check("compile.filter.hidden_measure_column_refused")
@@ -4755,6 +4815,8 @@ def _(ctx):
     upper = card_of(ctx, "model of model", over(model, fields=[named("status", "type/Text"), named("created_at", "type/DateTime"), named("revenue"), named("revenue_trailing_30d")]), "model")
     expect_clear_error(ctx, over(upper, aggregation=[["count"]], filter=[">", named("revenue"), 150]), "Cube cannot filter on the measure column")
     expect_clear_error(ctx, over(upper, aggregation=[["sum", named("revenue_trailing_30d")]]), "Group by a time bucket")
+    keyed = card_of(ctx, "keyed model of model", over(model, fields=[named("id"), named("status", "type/Text"), named("revenue")]), "model")
+    expect_rows(ctx, over(keyed, aggregation=[["count"]], filter=[">", named("revenue"), 150]), "SELECT count() FROM orders WHERE amount > 150", "filter")
     expect_rows(ctx, over(upper, aggregation=[["sum", named("revenue")]], breakout=[named("status", "type/Text")]), STATUS_REV, "sum")
 
 
@@ -5194,7 +5256,7 @@ def _(ctx):
     """An expression of a measure column gives the truth or a refusal, on a model and in a condition of an aggregation."""
     model = raw_model(ctx)
     revenue = named("revenue")
-    grid = Grid(ctx, refusal="ube")
+    grid = Grid(ctx, refusal="Cube cannot")
     grid.add("sum of an expression", over(model, aggregation=[["sum", ["+", revenue, 1]]]), "SELECT sum(amount + 1) FROM orders")
     grid.add("expression of the sum", over(model, aggregation=[["+", ["sum", revenue], 1]]), "SELECT sum(amount) + 1 FROM orders")
     grid.add("count where", over(model, aggregation=[["count-where", [">", revenue, 150]]]), "SELECT countIf(amount > 150) FROM orders")

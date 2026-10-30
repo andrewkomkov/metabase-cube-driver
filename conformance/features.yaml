@@ -1644,8 +1644,8 @@
 - id: mb.report_timezone
   area: metabase.settings
   title: "mb report timezone"
-  status: blocked
-  reason: "The Cube SQL API has no time zone for a query. The REST API has one, but the driver uses the SQL API. So all buckets stay in UTC whatever the report timezone is, and compile.tz.report_timezone_keeps_utc checks that. A bucket in another zone needs a dimension in the data model."
+  status: todo
+  check: mb.report_timezone
 - id: mb.other.actions
   area: metabase.other
   title: "mb other actions"
@@ -3101,11 +3101,6 @@
   title: "tz filter is utc"
   status: pass
   check: compile.tz.filter_is_utc
-- id: compile.tz.report_timezone_keeps_utc
-  area: mb.compile.tz
-  title: "tz report timezone keeps utc"
-  status: pass
-  check: compile.tz.report_timezone_keeps_utc
 - id: compile.tz.set_time_zone_error
   area: mb.compile.tz
   title: "tz set time zone error"
@@ -3555,16 +3550,16 @@
   title: "rolling measure with a strict bound on a boundary"
   status: todo
   check: measure.rolling.strict_bound_on_boundary
-- id: nested.measure_column.filter_refused
+- id: nested.measure_column.filter_gives_row_values
   area: mb.nested
-  title: "filter on a measure column of a model (B4)"
+  title: "filter on a measure column of a model with the primary key (B4)"
   status: todo
-  check: nested.measure_column.filter_refused
-- id: nested.measure_column.breakout_refused
+  check: nested.measure_column.filter_gives_row_values
+- id: nested.measure_column.breakout_gives_row_values
   area: mb.nested
-  title: "breakout on a measure column of a model (B4)"
+  title: "breakout on a measure column of a model with the primary key (B4)"
   status: todo
-  check: nested.measure_column.breakout_refused
+  check: nested.measure_column.breakout_gives_row_values
 - id: compile.filter.hidden_measure_column_refused
   area: mb.compile.filter
   title: "filter on a hidden measure column of a table (B4)"
@@ -3768,3 +3763,8 @@
   title: "three stages with date filters"
   status: todo
   check: nested.question_on_question.date_filter
+- id: nested.measure_column.filter_with_no_key_refused
+  area: mb.nested
+  title: "filter on a measure column of a model with no primary key"
+  status: todo
+  check: nested.measure_column.filter_with_no_key_refused
