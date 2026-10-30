@@ -2026,3 +2026,123 @@
   title: "generated model, second cube of asyncModule"
   status: pass
   check: cube.generated_async_second
+- id: semantic.measure.every_member
+  area: semantic.sync
+  title: "Each public Cube measure has one Metabase Measure, and it runs"
+  status: todo
+  check: semantic.measure.every_member
+- id: semantic.measure.in_summarize
+  area: semantic.sync
+  title: "Measures are in the table metadata that Summarize reads, and not plain columns"
+  status: todo
+  check: semantic.measure.in_summarize
+- id: semantic.measure.type_number
+  area: semantic.sync
+  title: "Measure of a number measure"
+  status: todo
+  check: semantic.measure.type_number
+- id: semantic.measure.type_string
+  area: semantic.sync
+  title: "Measure of a string measure"
+  status: todo
+  check: semantic.measure.type_string
+- id: semantic.measure.type_time
+  area: semantic.sync
+  title: "Measure of a time measure"
+  status: todo
+  check: semantic.measure.type_time
+- id: semantic.measure.type_boolean
+  area: semantic.sync
+  title: "Measure of a boolean measure"
+  status: todo
+  check: semantic.measure.type_boolean
+- id: semantic.segment.every_member
+  area: semantic.sync
+  title: "Each public Cube segment has one Metabase Segment, and it filters"
+  status: todo
+  check: semantic.segment.every_member
+- id: semantic.display_names
+  area: semantic.sync
+  title: "Titles become display names of tables, fields and measures"
+  status: todo
+  check: semantic.display_names
+- id: semantic.descriptions
+  area: semantic.sync
+  title: "Descriptions reach tables, fields, measures and segments"
+  status: todo
+  check: semantic.descriptions
+- id: semantic.format.currency
+  area: semantic.sync
+  title: "Format currency gives the semantic type Currency"
+  status: todo
+  check: semantic.format.currency
+- id: semantic.format.percent
+  area: semantic.sync
+  title: "Format percent gives the semantic type Percentage"
+  status: todo
+  check: semantic.format.percent
+- id: semantic.format.link
+  area: semantic.sync
+  title: "Format link gives the semantic type URL"
+  status: todo
+  check: semantic.format.link
+- id: semantic.fk.from_joins
+  area: semantic.sync
+  title: "Cube joins become foreign keys, and an implicit join runs"
+  status: todo
+  check: semantic.fk.from_joins
+- id: semantic.fk.join_removed
+  area: semantic.sync
+  title: "A foreign key goes away with its join"
+  status: todo
+  check: semantic.fk.join_removed
+- id: semantic.drill_members
+  area: semantic.sync
+  title: "Drill members are in the description of the Measure"
+  status: todo
+  check: semantic.drill_members
+- id: semantic.agent_reads_notes
+  area: semantic.sync
+  title: "An agent reads hierarchies, folders, view groups and meta through MCP"
+  status: todo
+  check: semantic.agent_reads_notes
+- id: semantic.resync_no_duplicates
+  area: semantic.sync
+  title: "A resync adds nothing and writes nothing"
+  status: todo
+  check: semantic.resync_no_duplicates
+- id: semantic.model_change_updates
+  area: semantic.sync
+  title: "A changed title and description update the same Measure"
+  status: todo
+  check: semantic.model_change_updates
+- id: semantic.removed_archived
+  area: semantic.sync
+  title: "A removed member and a removed cube archive their objects"
+  status: todo
+  check: semantic.removed_archived
+- id: semantic.restored_member
+  area: semantic.sync
+  title: "A member that comes back gets its archived object back"
+  status: todo
+  check: semantic.restored_member
+- id: semantic.user_edit_kept
+  area: semantic.sync
+  title: "A sync keeps the edits of a person on a Measure, a field and a table"
+  status: todo
+  check: semantic.user_edit_kept
+- id: semantic.user_edit_reset
+  area: semantic.sync
+  title: "A person gives an edited Measure back to Cube"
+  status: todo
+  check: semantic.user_edit_reset
+- id: semantic.drill_members_native
+  area: semantic.sync
+  title: "Drill members as a Metabase object"
+  status: unsupported
+  reason: "Metabase has no column that lists the drill columns of a measure. Its drill-through uses all visible fields. The text in the description is the only place, see semantic.drill_members."
+- id: semantic.measure.min_on_time_column
+  area: semantic.sync
+  title: "Measure of type min or max on a time column"
+  status: blocked
+  reason: "Cube REST returns the time, but /v1/meta types the measure as number and the SQL API returns NULL for MEASURE(). The driver reads only the SQL API, so the demo measure first_order_at gives NULL. Use a measure of type time, see semantic.measure.type_time."

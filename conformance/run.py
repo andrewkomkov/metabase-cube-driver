@@ -744,6 +744,18 @@ def expect_table_attr(table, key, want):
     return post
 
 
+def expect_description(table, want, member=None):
+    """The description starts with the text of the model. Notes about hierarchies, folders and meta can follow it."""
+    def post(ctx, data):
+        if member:
+            got = (ctx.mb.entity(ctx.mb.measures, table, member) or ctx.mb.field(table, member)).get("description")
+        else:
+            got = ctx.mb.table(table).get("description")
+        if not str(got).startswith(want):
+            raise Fail("%s.%s description=%r, want it to start with %r" % (table, member, got, want))
+    return post
+
+
 def expect_no_table(name):
     def post(ctx, data):
         t = ctx.mb.tables.get(name)
@@ -805,7 +817,7 @@ Q("measure.type.number_agg", ORD, "SELECT quantile(0.5)(amount) FROM orders", ag
 Q("measure.type.rank", ORD, "SELECT status, rank() OVER (ORDER BY sum(amount) DESC) FROM orders GROUP BY status",
   agg=["m:orders.revenue_rank"], by=["d:orders.status"])
 Q("measure.type.string", ORD, "SELECT arrayStringConcat(arraySort(groupUniqArray(status)), ',') FROM orders", agg=["m:orders.statuses"])
-Q("measure.type.time", ORD, "SELECT min(created_at) FROM orders", agg=["m:orders.first_order_at"])
+Q("measure.type.time", ORD, "SELECT min(created_at) FROM orders", agg=["m:orders.first_order_time"])
 Q("measure.type.boolean", ORD, "SELECT count() > 0 FROM orders", agg=["m:orders.has_orders"])
 
 # ----- measures: options
@@ -955,7 +967,7 @@ CNT_U = "SELECT count() FROM users"
 Q("cube.sql_table", "products", "SELECT count() FROM products", agg=["m:products.count"])
 Q("cube.sql", "payments", "SELECT 2 * count() FROM orders", agg=["m:payments.count"])
 Q("cube.title", "users", CNT_U, agg=["m:users.count"], post=expect_table_attr("users", "display_name", "Customers"))
-Q("cube.description", "users", CNT_U, agg=["m:users.count"], post=expect_table_attr("users", "description", "People who have an account in the shop."))
+Q("cube.description", "users", CNT_U, agg=["m:users.count"], post=expect_description("users", "People who have an account in the shop."))
 Q("cube.public_false", ORD, "SELECT count() FROM orders", agg=["m:orders.count"], post=expect_no_table("secret_audit"))
 Q("cube.meta", "users", CNT_U, agg=["m:users.count"], post=expect_text("users", "One row per customer account."))
 Q("cube.extends", "cheap_products", "SELECT count() FROM products WHERE price < 20", agg=["m:cheap_products.count"])
@@ -973,7 +985,7 @@ COMPLETED = "SELECT sum(amount) FROM orders WHERE status = 'completed'"
 Q("view.basic", "sales", "SELECT status, sum(amount) FROM orders GROUP BY status", agg=["m:sales.revenue"], by=["d:sales.status"])
 Q("view.title", "sales", CNT_O, agg=["m:sales.count"], post=expect_table_attr("sales", "display_name", "Sales"))
 Q("view.description", "paid_sales", "SELECT count() FROM orders WHERE status = 'completed'", agg=["m:paid_sales.count"],
-  post=expect_table_attr("paid_sales", "description", "Completed orders only. Default filters enforce this."))
+  post=expect_description("paid_sales", "Completed orders only. Default filters enforce this."))
 Q("view.meta", "sales", CNT_O, agg=["m:sales.count"], post=expect_text("sales", "Preferred entry point for agents."))
 Q("view.public_false", "sales", CNT_O, agg=["m:sales.count"], post=expect_no_table("hidden_sales"))
 Q("view.includes", "sales", CNT_O, agg=["m:sales.count"], post=expect_absent("sales", "min_amount"))
@@ -982,7 +994,7 @@ Q("view.excludes", "paid_sales", "SELECT u.city, uniqExact(o.user_id) FROM order
 Q("view.prefix", "sales", "SELECT category, count() FROM orders o JOIN products p ON o.product_id = p.id GROUP BY category", agg=["m:sales.count"], by=["d:sales.products_category"])
 Q("view.member_alias", "paid_sales", COMPLETED, agg=["m:paid_sales.net_sales"])
 Q("view.member_title", "paid_sales", COMPLETED, agg=["m:paid_sales.net_sales"], post=expect_title("paid_sales", "net_sales", "Net sales"))
-Q("view.member_description", "paid_sales", COMPLETED, agg=["m:paid_sales.net_sales"], post=expect_measure_attr("paid_sales", "net_sales", "description", "Revenue under another name."))
+Q("view.member_description", "paid_sales", COMPLETED, agg=["m:paid_sales.net_sales"], post=expect_description("paid_sales", "Revenue under another name.", "net_sales"))
 Q("view.member_format", "paid_sales", COMPLETED, agg=["m:paid_sales.net_sales"], post=expect_format("currency", semantic=("type/Currency",)))
 Q("view.member_meta", "paid_sales", COMPLETED, agg=["m:paid_sales.net_sales"], post=expect_text("paid_sales", "curated"))
 Q("view.derived_measure", "paid_sales", "SELECT avg(amount) FROM orders WHERE status = 'completed'", agg=["m:paid_sales.revenue_per_order"])
@@ -1448,11 +1460,11 @@ def _(ctx):
 @check("mb.search.measure")
 def _(ctx):
     res = search(ctx, "Revenue", "measure")
-    hit = [r for r in res if r.get("model") == "measure" and _slug(r["name"]) == "revenue"]
+    want = ctx.mb.entity(ctx.mb.measures, ORD, "revenue")
+    hit = [r for r in res if r.get("model") == "measure" and want and r["id"] == want["id"]]
     if not hit:
-        raise Fail("search has no measure Revenue. Found: %s" % [(r.get("model"), r["name"]) for r in res][:10])
-    tid = hit[0].get("table_id") or ctx.mb.table(ORD)["id"]
-    assert_rows(ctx.mb.raw({"source-table": tid, "aggregation": [["measure", hit[0]["id"]]]})["rows"], ch(REV))
+        raise Fail("search has no measure Revenue of orders. Found: %s" % [(r.get("model"), r["name"]) for r in res][:10])
+    assert_rows(ctx.mb.raw({"source-table": ctx.mb.table(ORD)["id"], "aggregation": [["measure", hit[0]["id"]]]})["rows"], ch(REV))
 
 
 @check("mb.search.segment")
@@ -1834,9 +1846,10 @@ def table_of_measure(ctx, measure_id):
 @check("mcp.search.measure")
 def _(ctx):
     res = ctx.mcp.call("search", term_queries=["Revenue"], type=["measure"])["data"]
-    hit = [r for r in res if _slug(r["name"]) == "revenue"]
+    want = ctx.mb.entity(ctx.mb.measures, ORD, "revenue")
+    hit = [r for r in res if want and r["id"] == want["id"]]
     if not hit:
-        raise Fail("search has no measure Revenue: %s" % [r["name"] for r in res][:8])
+        raise Fail("search has no measure Revenue of orders: %s" % [r["name"] for r in res][:8])
     query = mcp_stage(table_of_measure(ctx, hit[0]["id"]), aggregation=[["measure", {}, hit[0]["id"]]])
     assert_rows(ctx.mcp.call("execute_query", query=query)["rows"], ch(REV))
 
@@ -2049,6 +2062,429 @@ def _(ctx):
             assert_rows(ctx.mcp.call("execute_query", query=mcp_stage(tid, aggregation=[clause]))["rows"], ch(REV))
             return
     raise Fail("no table from the search lists a revenue measure")
+
+
+# ----- Cube semantics as Metabase objects. See docs/semantic-sync.md.
+
+PROBE_FILE = os.path.join(REPO, "dev", "cube", "model", "zz_conformance_probe.yml")
+PROBE_TRUTH = "SELECT sum(amount) FROM orders"
+PROBE_SEGMENT_TRUTH = "SELECT count() FROM orders WHERE status = 'completed'"
+
+
+def probe_model(cube_name, total_title="Probe total", total_description="First text.", field_title="Probe status", members=True):
+    """A cube that the checks change. It uses the demo table orders, so ClickHouse can give the truth."""
+    extra_measure = """
+      - { name: probe_total, sql: amount, type: sum, title: "%s", description: "%s" }""" % (total_title, total_description) if members else ""
+    extra_segment = """
+    segments:
+      - { name: probe_completed, sql: "{CUBE}.status = 'completed'", title: Probe completed }""" if members else ""
+    join = """
+    joins:
+      - { name: users, relationship: many_to_one, sql: "{CUBE}.user_id = {users.id}" }""" if members else ""
+    return """cubes:
+  - name: %s
+    sql_table: orders
+    title: Probe cube
+    description: Probe cube text.%s
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string, title: "%s", description: Probe status text. }
+      - { name: user_id, sql: user_id, type: number }
+    measures:
+      - { name: probe_count, type: count, title: Probe count, description: Probe count text. }
+      - { name: probe_edited, type: count, title: Probe edited, description: Cube text. }
+      - { name: probe_user_archived, type: count, title: Probe user archived }%s%s
+""" % (cube_name, join, field_title, extra_measure, extra_segment)
+
+
+class Probe:
+    """Runs one model through its life once and keeps what it saw. Each check reads one part of this."""
+
+    def __init__(self, ctx):
+        self.mb = ctx.mb
+        self.db = ctx.mb.need_db()
+        self.seen = {}
+        # A new name for each run: Metabase keeps the edits of a person for a table that comes back.
+        self.name = "conformance_probe_%d" % int(time.time())
+
+    def write(self, **kw):
+        with open(PROBE_FILE, "w", encoding="utf-8") as f:
+            f.write(probe_model(self.name, **kw))
+
+    def cube_shows(self, pred, seconds=90):
+        deadline = time.time() + seconds
+        while time.time() < deadline:
+            _, text, _ = http("GET", CUBE + "/cubejs-api/v1/meta?extended=true")
+            cube = [c for c in json.loads(text).get("cubes", []) if c["name"] == self.name]
+            if pred(cube[0] if cube else None):
+                return
+            time.sleep(2)
+        raise Fail("Cube did not reload the probe model in %d s" % seconds)
+
+    def resync(self, pred, label, seconds=120):
+        """Sync until `pred` is true. A sync is asynchronous, and a second sync can run after the first."""
+        deadline = time.time() + seconds
+        while True:
+            self.mb.api("POST", "/api/database/%d/sync_schema" % self.db)
+            time.sleep(4)
+            state = self.state()
+            if pred(state):
+                return state
+            if time.time() > deadline:
+                raise Fail("%s: not seen after %d s. State: %s" % (label, seconds, json.dumps(state, default=str)[:600]))
+
+    def state(self):
+        meta = self.mb.api("GET", "/api/database/%d/metadata?include_hidden=true" % self.db)
+        table = next((t for t in meta["tables"] if t["name"] == self.name), None)
+        out = {"table": table, "measures": {}, "segments": {}, "fields": {}}
+        all_tables = self.mb.api("GET", "/api/table")
+        tid = table["id"] if table else next((t["id"] for t in all_tables if t["name"] == self.name), None)
+        out["tid"] = tid or self.seen.get("tid")
+        if table:
+            out["fields"] = {f["name"]: f for f in table["fields"]}
+        # /api/measure lists only unarchived objects, so read each known id too.
+        for kind in ("measure", "segment"):
+            listed = self.mb.api("GET", "/api/%s" % kind)
+            listed = listed.get("data", []) if isinstance(listed, dict) else listed
+            items = [m for m in listed if m.get("table_id") == out["tid"]]
+            known = {m["id"] for m in items}
+            for mid in self.seen.get(kind + "_ids", ()):
+                if mid not in known:
+                    items.append(self.mb.api("GET", "/api/%s/%d" % (kind, mid)))
+            out[kind + "s"] = items
+        return out
+
+    def by_name(self, state, kind, name):
+        return next((m for m in state[kind] if m["name"] == name and not m["archived"]), None)
+
+    def remember(self, state):
+        self.seen["tid"] = state["tid"]
+        self.seen["measure_ids"] = {m["id"] for m in state["measures"]}
+        self.seen["segment_ids"] = {m["id"] for m in state["segments"]}
+
+    def run(self):
+        mb = self.mb
+        try:
+            # 1. A new cube.
+            self.write()
+            self.cube_shows(lambda c: bool(c))
+            s = self.resync(lambda st: self.by_name(st, "measures", "Probe total") and self.by_name(st, "segments", "Probe completed")
+                            and st["fields"].get("user_id", {}).get("fk_target_field_id"), "new cube")
+            self.remember(s)
+            self.seen["created"] = s
+            total = self.by_name(s, "measures", "Probe total")
+            self.seen["created_rows"] = mb.raw({"source-table": s["tid"], "aggregation": [["measure", total["id"]]]})["rows"]
+            seg = self.by_name(s, "segments", "Probe completed")
+            self.seen["segment_rows"] = mb.raw({"source-table": s["tid"], "aggregation": [["count"]], "filter": ["segment", seg["id"]]})["rows"]
+
+            # 2. Two more syncs change nothing.
+            for _ in range(2):
+                mb.api("POST", "/api/database/%d/sync_schema" % self.db)
+                time.sleep(6)
+            again = self.state()
+            self.seen["resynced"] = again
+
+            # 3. A person edits a measure, a field and the table, and archives a measure.
+            edited = self.by_name(s, "measures", "Probe edited")
+            mb.api("PUT", "/api/measure/%d" % edited["id"], {"name": "My measure", "description": "My text.", "revision_message": "conformance"})
+            archived = self.by_name(s, "measures", "Probe user archived")
+            mb.api("PUT", "/api/measure/%d" % archived["id"], {"archived": True, "revision_message": "conformance"})
+            mb.api("PUT", "/api/field/%d" % s["fields"]["status"]["id"], {"display_name": "My field", "description": "My field text."})
+            mb.api("PUT", "/api/table/%d" % s["tid"], {"display_name": "My table", "description": "My table text."})
+            self.seen["edited_id"], self.seen["user_archived_id"] = edited["id"], archived["id"]
+
+            # 4. The model changes.
+            self.write(total_title="Probe total two", total_description="Second text.", field_title="Probe status two")
+            self.cube_shows(lambda c: c and any(m.get("title") == "Probe total two" or m.get("shortTitle") == "Probe total two" for m in c["measures"]))
+            s = self.resync(lambda st: self.by_name(st, "measures", "Probe total two"), "changed title")
+            self.seen["changed"] = s
+
+            # A person gives the edited Measure back.
+            mb.api("PUT", "/api/measure/%d" % edited["id"], {"description": "Give it back.", "revision_message": "cube-sync:reset"})
+            self.seen["reset"] = self.resync(lambda st: any(m["id"] == edited["id"] and m["name"] == "Probe edited" for m in st["measures"]), "reset of an edit")
+
+            # 5. Members and the join go away.
+            self.write(members=False)
+            self.cube_shows(lambda c: c and not c["segments"])
+            s = self.resync(lambda st: not self.by_name(st, "measures", "Probe total two") and not self.by_name(st, "segments", "Probe completed"), "removed members")
+            self.seen["removed"] = s
+
+            # 6. The members come back.
+            self.write(total_title="Probe total two", total_description="Second text.", field_title="Probe status two")
+            self.cube_shows(lambda c: c and c["segments"])
+            s = self.resync(lambda st: self.by_name(st, "measures", "Probe total two") and self.by_name(st, "segments", "Probe completed")
+                            and st["fields"].get("user_id", {}).get("fk_target_field_id"), "restored members")
+            self.seen["restored"] = s
+            total = self.by_name(s, "measures", "Probe total two")
+            self.seen["restored_rows"] = mb.raw({"source-table": s["tid"], "aggregation": [["measure", total["id"]]]})["rows"]
+        finally:
+            # 7. The cube goes away. This also removes the file, so a failed run leaves no model behind.
+            if os.path.exists(PROBE_FILE):
+                os.remove(PROBE_FILE)
+        self.cube_shows(lambda c: not c)
+        self.seen["dropped"] = self.resync(lambda st: not st["table"] and not [m for m in st["measures"] if not m["archived"]], "dropped cube")
+
+
+def probe(ctx, step):
+    if not hasattr(ctx, "probe"):
+        ctx.probe = Probe(ctx)
+        try:
+            ctx.probe.run()
+        except Fail as e:
+            ctx.probe.error = str(e)
+    if step not in ctx.probe.seen:
+        raise Fail("the probe did not reach %s: %s" % (step, getattr(ctx.probe, "error", "unknown")))
+    return ctx.probe.seen[step]
+
+
+def only_active(items):
+    return [m for m in items if not m["archived"]]
+
+
+def measure_rows(ctx, table, name):
+    entity = ctx.mb.entity(ctx.mb.measures, table, name)
+    if not entity:
+        raise Fail("no Measure for %s.%s" % (table, name))
+    if entity.get("creator_id") != 13371338:
+        raise Fail("the Measure of %s.%s has creator %s, not the sync user" % (table, name, entity.get("creator_id")))
+    return ctx.mb.raw({"source-table": ctx.mb.table(table)["id"], "aggregation": [["measure", entity["id"]]]})
+
+
+def cube_members(kind):
+    status, text, _ = http("GET", CUBE + "/cubejs-api/v1/meta?extended=true")
+    if status != 200:
+        raise Fail("Cube meta: HTTP %s" % status)
+    return [(c["name"], m["name"].split(".")[-1])
+            for c in json.loads(text)["cubes"] if c.get("public") is not False
+            for m in c[kind] if m.get("public") is not False]
+
+
+def expect_one_entity_each(ctx, kind, entities):
+    missing, doubled = [], []
+    for table, name in cube_members(kind):
+        tid = ctx.mb.table(table)["id"]
+        entity = ctx.mb.entity(entities, table, name)
+        if not entity:
+            missing.append("%s.%s" % (table, name))
+        elif len([e for e in entities if e["table_id"] == tid and e["name"] == entity["name"] and not e["archived"] and e["creator_id"] == 13371338]) != 1:
+            doubled.append("%s.%s" % (table, name))
+    if missing or doubled:
+        raise Fail("missing: %s; duplicated: %s" % (missing[:10], doubled[:10]))
+
+
+@check("semantic.measure.every_member")
+def _(ctx):
+    expect_one_entity_each(ctx, "measures", ctx.mb.measures)
+    assert_rows(measure_rows(ctx, ORD, "revenue")["rows"], ch(REV))
+
+
+@check("semantic.measure.in_summarize")
+def _(ctx):
+    meta = ctx.mb.api("GET", "/api/table/%d/query_metadata" % ctx.mb.table(ORD)["id"])
+    measures = {m["name"]: m for m in meta.get("measures") or []}
+    if "Revenue" not in measures:
+        raise Fail("query_metadata has no Measure Revenue: %s" % sorted(measures)[:10])
+    if any(f["name"] == "revenue" for f in meta["fields"]):
+        raise Fail("the measure is also a plain column of the table")
+    res = ctx.mb.raw({"source-table": ctx.mb.table(ORD)["id"], "aggregation": [["measure", measures["Revenue"]["id"]]]})
+    assert_rows(res["rows"], ch(REV))
+    if res["cols"][0]["display_name"] != "Revenue":
+        raise Fail("the result column is %r" % res["cols"][0]["display_name"])
+
+
+@check("semantic.measure.type_number")
+def _(ctx):
+    assert_rows(measure_rows(ctx, ORD, "paid_share")["rows"],
+                ch("SELECT sumIf(toFloat64(amount), %s) / sum(toFloat64(amount)) FROM orders" % PAID), tol=1e-9)
+
+
+@check("semantic.measure.type_string")
+def _(ctx):
+    assert_rows(measure_rows(ctx, ORD, "statuses")["rows"], ch("SELECT arrayStringConcat(arraySort(groupUniqArray(status)), ',') FROM orders"))
+
+
+@check("semantic.measure.type_time")
+def _(ctx):
+    assert_rows(measure_rows(ctx, ORD, "first_order_time")["rows"], ch("SELECT min(created_at) FROM orders"))
+
+
+@check("semantic.measure.type_boolean")
+def _(ctx):
+    got = measure_rows(ctx, ORD, "has_orders")["rows"]
+    want = ch("SELECT count() > 0 FROM orders")
+    if bool(got[0][0]) != bool(want[0][0]):
+        raise Fail("got %s, truth %s" % (got, want))
+
+
+@check("semantic.segment.every_member")
+def _(ctx):
+    expect_one_entity_each(ctx, "segments", ctx.mb.segments)
+    e = ctx.mb.entity(ctx.mb.segments, ORD, "paid")
+    if e.get("creator_id") != 13371338:
+        raise Fail("the Segment has creator %s" % e.get("creator_id"))
+    assert_rows(ctx.mb.raw({"source-table": ctx.mb.table(ORD)["id"], "aggregation": [["count"]], "filter": ["segment", e["id"]]})["rows"],
+                ch("SELECT count() FROM orders WHERE %s" % PAID))
+
+
+@check("semantic.display_names")
+def _(ctx):
+    if ctx.mb.table("users")["display_name"] != "Customers":
+        raise Fail("users is %r" % ctx.mb.table("users")["display_name"])
+    if ctx.mb.field(ORD, "id")["display_name"] != "Order ID":
+        raise Fail("orders.id is %r" % ctx.mb.field(ORD, "id")["display_name"])
+    if not ctx.mb.entity(ctx.mb.measures, ORD, "avg_order_value")["name"] == "AOV":
+        raise Fail("avg_order_value has another name")
+    assert_rows(ctx.mb.mbql("users", agg=["m:users.count"])["rows"], ch(CNT_U))
+
+
+@check("semantic.descriptions")
+def _(ctx):
+    expect_description("users", "People who have an account in the shop.")(ctx, None)
+    if ctx.mb.field(ORD, "user_id")["description"] != "Customer who placed the order.":
+        raise Fail("orders.user_id: %r" % ctx.mb.field(ORD, "user_id")["description"])
+    expect_description(ORD, "Total order amount in USD.", "revenue")(ctx, None)
+    if ctx.mb.entity(ctx.mb.segments, ORD, "paid")["description"] != "Completed or shipped orders.":
+        raise Fail("the Segment paid has another description")
+    assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.count"])["rows"], ch(CNT_O))
+
+
+def semantic_type_check(check_id, field, want, truth, *measure):
+    @check(check_id)
+    def _(ctx):
+        got = ctx.mb.field(ORD, field).get("semantic_type")
+        if got != want:
+            raise Fail("orders.%s semantic_type %s, want %s" % (field, got, want))
+        assert_rows(ctx.mb.mbql(ORD, fields=["d:orders.%s" % field], where=ID7)["rows"], ch(truth))
+        for name in measure:
+            data = measure_rows(ctx, ORD, name)
+            if data["cols"][0].get("semantic_type") != want:
+                raise Fail("the result of Measure %s has semantic type %s" % (name, data["cols"][0].get("semantic_type")))
+
+
+semantic_type_check("semantic.format.currency", "amount_dim", "type/Currency", "SELECT amount FROM orders WHERE id = 7", "revenue")
+semantic_type_check("semantic.format.percent", "amount_pct", "type/Percentage", "SELECT amount / 1000 FROM orders WHERE id = 7", "paid_share")
+semantic_type_check("semantic.format.link", "invoice_url", "type/URL", _INV)
+
+
+@check("semantic.fk.from_joins")
+def _(ctx):
+    pairs = {("orders", "user_id", "users", "id"), ("orders", "product_id", "products", "id"),
+             ("payments", "order_id", "orders", "id"), ("level_two", "product_id", "products", "id")}
+    for source, column, target, key in pairs:
+        got = ctx.mb.field(source, column)
+        if got.get("fk_target_field_id") != ctx.mb.field(target, key)["id"] or got.get("semantic_type") != "type/FK":
+            raise Fail("%s.%s has target %s and type %s" % (source, column, got.get("fk_target_field_id"), got.get("semantic_type")))
+    # orders joins promos with an expression on id, so that column holds no key.
+    if ctx.mb.field(ORD, "id").get("fk_target_field_id"):
+        raise Fail("an expression join became a foreign key")
+    assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.count"], by=["d:orders>users.city"])["rows"],
+                ch("SELECT u.city, count() FROM orders o JOIN users u ON o.user_id = u.id GROUP BY u.city"))
+
+
+@check("semantic.fk.join_removed")
+def _(ctx):
+    if not probe(ctx, "created")["fields"]["user_id"].get("fk_target_field_id"):
+        raise Fail("the probe join gave no foreign key")
+    f = probe(ctx, "removed")["fields"]["user_id"]
+    if f.get("fk_target_field_id") or f.get("semantic_type") == "type/FK":
+        raise Fail("the foreign key stays after the join went away: %s" % f.get("fk_target_field_id"))
+    assert_rows(probe(ctx, "created_rows"), ch(PROBE_TRUTH))
+
+
+@check("semantic.drill_members")
+def _(ctx):
+    text = ctx.mb.entity(ctx.mb.measures, ORD, "count").get("description") or ""
+    if "drill into this measure, use: id, status, created_at" not in text:
+        raise Fail("the Measure count has the description %r" % text)
+    assert_rows(ctx.mb.mbql(ORD, fields=["d:orders.id", "d:orders.status"], order=[["asc", "d:orders.id"]], limit=2)["rows"],
+                ch("SELECT id, status FROM orders ORDER BY id LIMIT 2"))
+
+
+@check("semantic.agent_reads_notes")
+def _(ctx):
+    """An agent reads this through the MCP server, with no knowledge of Cube."""
+    wanted = {ORD: ["Hierarchies: Fulfilment: status > size", '"ai_hint":"Revenue questions start here."'],
+              "paid_sales": ["Folders: Money: net_sales, [Ratios: count]", "View groups: Revenue views"]}
+    for table, texts in wanted.items():
+        reply = json.dumps(get_fields_table(ctx, ctx.mb.table(table)["id"]))
+        for text in texts:
+            if text.replace('"', '\\"') not in reply and text not in reply:
+                raise Fail("get_fields of %s has no text %r" % (table, text))
+    mcp_rows(ctx, ORD, CNT_O, agg=["m:orders.count"])
+
+
+@check("semantic.resync_no_duplicates")
+def _(ctx):
+    first, again = probe(ctx, "created"), probe(ctx, "resynced")
+    key = lambda items: sorted((m["id"], m["entity_id"], m["name"], m["archived"]) for m in items)
+    for kind in ("measures", "segments"):
+        if key(first[kind]) != key(again[kind]):
+            raise Fail("%s changed on resync: %s -> %s" % (kind, key(first[kind]), key(again[kind])))
+    if [m["updated_at"] for m in sorted(first["measures"], key=lambda m: m["id"])] != [m["updated_at"] for m in sorted(again["measures"], key=lambda m: m["id"])]:
+        raise Fail("a resync wrote to a Measure that did not change")
+    assert_rows(probe(ctx, "created_rows"), ch(PROBE_TRUTH))
+    assert_rows(probe(ctx, "segment_rows"), ch(PROBE_SEGMENT_TRUTH))
+
+
+@check("semantic.model_change_updates")
+def _(ctx):
+    changed = probe(ctx, "changed")
+    m = next((x for x in only_active(changed["measures"]) if x["name"] == "Probe total two"), None)
+    if not m or m["description"] != "Second text.":
+        raise Fail("the Measure did not follow the model: %s" % m)
+    if m["id"] not in {x["id"] for x in probe(ctx, "created")["measures"]}:
+        raise Fail("the change made a new Measure")
+    assert_rows(probe(ctx, "created_rows"), ch(PROBE_TRUTH))
+
+
+@check("semantic.removed_archived")
+def _(ctx):
+    removed = probe(ctx, "removed")
+    created = probe(ctx, "created")
+    for kind, title in (("measures", "Probe total two"), ("segments", "Probe completed")):
+        ids = {m["id"] for m in created[kind]}
+        gone = [m for m in removed[kind] if m["id"] in ids and m["name"] == title]
+        if not gone or not gone[0]["archived"]:
+            raise Fail("%s is not archived: %s" % (title, gone))
+    dropped = probe(ctx, "dropped")
+    if only_active(dropped["measures"]) or only_active(dropped["segments"]):
+        raise Fail("objects of a dropped cube stay active: %s" % [m["name"] for m in only_active(dropped["measures"])])
+    assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.count"])["rows"], ch(CNT_O))
+
+
+@check("semantic.restored_member")
+def _(ctx):
+    created, restored = probe(ctx, "created"), probe(ctx, "restored")
+    active = [m for m in restored["measures"] if m["name"] == "Probe total two" and not m["archived"]]
+    if len(active) != 1 or active[0]["id"] not in {m["id"] for m in created["measures"]}:
+        raise Fail("the member did not get its object back: %s" % active)
+    assert_rows(probe(ctx, "restored_rows"), ch(PROBE_TRUTH))
+
+
+@check("semantic.user_edit_reset")
+def _(ctx):
+    edited = next(m for m in probe(ctx, "reset")["measures"] if m["id"] == ctx.probe.seen["edited_id"])
+    if edited["name"] != "Probe edited" or edited["description"] != "Cube text.":
+        raise Fail("the Measure did not take the Cube values: %s, %s" % (edited["name"], edited["description"]))
+    assert_rows(probe(ctx, "created_rows"), ch(PROBE_TRUTH))
+
+
+@check("semantic.user_edit_kept")
+def _(ctx):
+    ctx_changed = probe(ctx, "changed")
+    edited = next(m for m in ctx_changed["measures"] if m["id"] == ctx.probe.seen["edited_id"])
+    if edited["name"] != "My measure" or edited["description"] != "My text.":
+        raise Fail("a sync replaced the edit of a Measure: %s, %s" % (edited["name"], edited["description"]))
+    archived = next(m for m in ctx_changed["measures"] if m["id"] == ctx.probe.seen["user_archived_id"])
+    if not archived["archived"]:
+        raise Fail("a sync restored a Measure that a person archived")
+    field = ctx_changed["fields"]["status"]
+    if field["display_name"] != "My field" or field["description"] != "My field text.":
+        raise Fail("a sync replaced the edit of a field: %s, %s" % (field["display_name"], field["description"]))
+    table = ctx_changed["table"]
+    if table["display_name"] != "My table" or table["description"] != "My table text.":
+        raise Fail("a sync replaced the edit of a table: %s, %s" % (table["display_name"], table["description"]))
+    assert_rows(probe(ctx, "created_rows"), ch(PROBE_TRUTH))
 
 
 # ----------------------------------------------------------------- main

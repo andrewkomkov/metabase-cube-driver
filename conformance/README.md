@@ -42,6 +42,10 @@ The runner prints one line per feature and then `coverage: N/M pass`. `M` counts
 | `blocked` | The entry has no check. The `reason` tells what is necessary. |
 | `unsupported` | The feature has no meaning in Metabase. The `reason` tells why. |
 
+## Probe model
+
+The `semantic.*` checks for model changes write `dev/cube/model/zz_conformance_probe.yml`, sync, change the file, sync again and delete the file. They need write access to that directory and a Cube in dev mode, which reloads the model. Each run uses a new cube name, because Metabase keeps the edits of a person for a table that comes back. Inactive tables and archived objects of old runs stay in the Metabase app DB.
+
 ## Truth
 
 Each check compares a value from Metabase with direct SQL on the demo ClickHouse. The runner reads the Cube REST API for two facts only: the aggregation type of a measure, and the pre-aggregation that served a query.
