@@ -4,137 +4,137 @@
 - id: measure.format.abbr
   area: cube.measures
   title: "measure format abbr"
-  status: todo
+  status: fail
   check: measure.format.abbr
 - id: measure.format.accounting
   area: cube.measures
   title: "measure format accounting"
-  status: todo
+  status: fail
   check: measure.format.accounting
 - id: measure.format.currency
   area: cube.measures
   title: "measure format currency"
-  status: todo
+  status: pass
   check: measure.format.currency
 - id: measure.format.currency_code
   area: cube.measures
   title: "measure format currency code"
-  status: todo
+  status: fail
   check: measure.format.currency_code
 - id: measure.format.d3
   area: cube.measures
   title: "measure format d3"
-  status: todo
+  status: fail
   check: measure.format.d3
 - id: measure.format.number_n
   area: cube.measures
   title: "measure format number n"
-  status: todo
+  status: fail
   check: measure.format.number_n
 - id: measure.format.percent
   area: cube.measures
   title: "measure format percent"
-  status: todo
+  status: pass
   check: measure.format.percent
 - id: measure.format.percent_n
   area: cube.measures
   title: "measure format percent n"
-  status: todo
+  status: fail
   check: measure.format.percent_n
 - id: measure.multi_stage.case_switch
   area: cube.measures
   title: "measure multi stage case switch"
-  status: todo
+  status: pass
   check: measure.multi_stage.case_switch
 - id: measure.multi_stage.filter_exclude
   area: cube.measures
   title: "measure multi stage filter exclude"
-  status: todo
+  status: pass
   check: measure.multi_stage.filter_exclude
 - id: measure.multi_stage.grain_exclude
   area: cube.measures
   title: "measure multi stage grain exclude"
-  status: todo
+  status: pass
   check: measure.multi_stage.grain_exclude
 - id: measure.multi_stage.grain_include
   area: cube.measures
   title: "measure multi stage grain include"
-  status: todo
+  status: pass
   check: measure.multi_stage.grain_include
 - id: measure.multi_stage.grain_keep_only
   area: cube.measures
   title: "measure multi stage grain keep only"
-  status: todo
+  status: pass
   check: measure.multi_stage.grain_keep_only
 - id: measure.multi_stage.group_by_legacy
   area: cube.measures
   title: "measure multi stage group by legacy"
-  status: todo
+  status: pass
   check: measure.multi_stage.group_by_legacy
 - id: measure.multi_stage.share_of_total
   area: cube.measures
   title: "measure multi stage share of total"
-  status: todo
+  status: pass
   check: measure.multi_stage.share_of_total
 - id: measure.multi_stage.time_shift_named_calendar
   area: cube.measures
   title: "measure multi stage time shift named calendar"
-  status: todo
+  status: pass
   check: measure.multi_stage.time_shift_named_calendar
 - id: measure.multi_stage.time_shift_next
   area: cube.measures
   title: "measure multi stage time shift next"
-  status: todo
+  status: pass
   check: measure.multi_stage.time_shift_next
 - id: measure.multi_stage.time_shift_prior
   area: cube.measures
   title: "measure multi stage time shift prior"
-  status: todo
+  status: pass
   check: measure.multi_stage.time_shift_prior
 - id: measure.opt.cross_cube_reference
   area: cube.measures
   title: "measure opt cross cube reference"
-  status: todo
+  status: pass
   check: measure.opt.cross_cube_reference
 - id: measure.opt.description
   area: cube.measures
   title: "measure opt description"
-  status: todo
+  status: pass
   check: measure.opt.description
 - id: measure.opt.drill_members
   area: cube.measures
   title: "measure opt drill members"
-  status: todo
+  status: fail
   check: measure.opt.drill_members
 - id: measure.opt.filters
   area: cube.measures
   title: "measure opt filters"
-  status: todo
+  status: pass
   check: measure.opt.filters
 - id: measure.opt.filters_on_count
   area: cube.measures
   title: "measure opt filters on count"
-  status: todo
+  status: pass
   check: measure.opt.filters_on_count
 - id: measure.opt.mask
   area: cube.measures
   title: "measure opt mask"
-  status: todo
+  status: pass
   check: measure.opt.mask
 - id: measure.opt.meta
   area: cube.measures
   title: "measure opt meta"
-  status: todo
+  status: fail
   check: measure.opt.meta
 - id: measure.opt.multi_stage
   area: cube.measures
   title: "measure opt multi stage"
-  status: todo
+  status: pass
   check: measure.multi_stage.share_of_total
 - id: measure.opt.public_false
   area: cube.measures
   title: "measure opt public false"
-  status: todo
+  status: pass
   check: measure.opt.public_false
 - id: measure.opt.rolling_type_deprecated
   area: cube.measures
@@ -144,182 +144,182 @@
 - id: measure.opt.time_shift
   area: cube.measures
   title: "measure opt time shift"
-  status: todo
+  status: pass
   check: measure.multi_stage.time_shift_prior
 - id: measure.opt.title
   area: cube.measures
   title: "measure opt title"
-  status: todo
+  status: pass
   check: measure.opt.title
 - id: measure.rolling.leading_offset
   area: cube.measures
   title: "measure rolling leading offset"
-  status: todo
+  status: pass
   check: measure.rolling.leading_offset
 - id: measure.rolling.to_date_month
   area: cube.measures
   title: "measure rolling to date month"
-  status: todo
+  status: pass
   check: measure.rolling.to_date_month
 - id: measure.rolling.to_date_year
   area: cube.measures
   title: "measure rolling to date year"
-  status: todo
+  status: pass
   check: measure.rolling.to_date_year
 - id: measure.rolling.trailing
   area: cube.measures
   title: "measure rolling trailing"
-  status: todo
+  status: pass
   check: measure.rolling.trailing
 - id: measure.rolling.unbounded
   area: cube.measures
   title: "measure rolling unbounded"
-  status: todo
+  status: fail
   check: measure.rolling.unbounded
 - id: measure.type.avg
   area: cube.measures
   title: "measure type avg"
-  status: todo
+  status: pass
   check: measure.type.avg
 - id: measure.type.boolean
   area: cube.measures
   title: "measure type boolean"
-  status: todo
+  status: pass
   check: measure.type.boolean
 - id: measure.type.count
   area: cube.measures
   title: "measure type count"
-  status: todo
+  status: pass
   check: measure.type.count
 - id: measure.type.count_distinct
   area: cube.measures
   title: "measure type count distinct"
-  status: todo
+  status: pass
   check: measure.type.count_distinct
 - id: measure.type.count_distinct_approx
   area: cube.measures
   title: "measure type count distinct approx"
-  status: todo
+  status: pass
   check: measure.type.count_distinct_approx
 - id: measure.type.max
   area: cube.measures
   title: "measure type max"
-  status: todo
+  status: pass
   check: measure.type.max
 - id: measure.type.min
   area: cube.measures
   title: "measure type min"
-  status: todo
+  status: pass
   check: measure.type.min
 - id: measure.type.number
   area: cube.measures
   title: "measure type number"
-  status: todo
+  status: pass
   check: measure.type.number
 - id: measure.type.number_agg
   area: cube.measures
   title: "measure type number agg"
-  status: todo
+  status: pass
   check: measure.type.number_agg
 - id: measure.type.rank
   area: cube.measures
   title: "measure type rank"
-  status: todo
+  status: pass
   check: measure.type.rank
 - id: measure.type.string
   area: cube.measures
   title: "measure type string"
-  status: todo
+  status: pass
   check: measure.type.string
 - id: measure.type.sum
   area: cube.measures
   title: "measure type sum"
-  status: todo
+  status: pass
   check: measure.type.sum
 - id: measure.type.time
   area: cube.measures
   title: "measure type time"
-  status: todo
+  status: fail
   check: measure.type.time
 - id: dimension.format.abbr
   area: cube.dimensions
   title: "dimension format abbr"
-  status: todo
+  status: fail
   check: dimension.format.abbr
 - id: dimension.format.currency
   area: cube.dimensions
   title: "dimension format currency"
-  status: todo
+  status: pass
   check: dimension.format.currency
 - id: dimension.format.currency_code
   area: cube.dimensions
   title: "dimension format currency code"
-  status: todo
+  status: fail
   check: dimension.format.currency_code
 - id: dimension.format.id
   area: cube.dimensions
   title: "dimension format id"
-  status: todo
+  status: fail
   check: dimension.format.id
 - id: dimension.format.image_url
   area: cube.dimensions
   title: "dimension format image url"
-  status: todo
+  status: pass
   check: dimension.format.image_url
 - id: dimension.format.link
   area: cube.dimensions
   title: "dimension format link"
-  status: todo
+  status: pass
   check: dimension.format.link
 - id: dimension.format.link_label
   area: cube.dimensions
   title: "dimension format link label"
-  status: todo
+  status: fail
   check: dimension.format.link_label
 - id: dimension.format.percent
   area: cube.dimensions
   title: "dimension format percent"
-  status: todo
+  status: fail
   check: dimension.format.percent
 - id: dimension.format.time
   area: cube.dimensions
   title: "dimension format time"
-  status: todo
+  status: fail
   check: dimension.format.time
 - id: dimension.opt.case_label_sql
   area: cube.dimensions
   title: "dimension opt case label sql"
-  status: todo
+  status: pass
   check: dimension.opt.case_label_sql
 - id: dimension.opt.case_sql
   area: cube.dimensions
   title: "dimension opt case sql"
-  status: todo
+  status: pass
   check: dimension.opt.case_sql
 - id: dimension.opt.description
   area: cube.dimensions
   title: "dimension opt description"
-  status: todo
+  status: pass
   check: dimension.opt.description
 - id: dimension.opt.links
   area: cube.dimensions
   title: "dimension opt links"
-  status: todo
+  status: fail
   check: dimension.opt.links
 - id: dimension.opt.mask_sql
   area: cube.dimensions
   title: "dimension opt mask sql"
-  status: todo
+  status: pass
   check: dimension.opt.mask_sql
 - id: dimension.opt.mask_static
   area: cube.dimensions
   title: "dimension opt mask static"
-  status: todo
+  status: pass
   check: dimension.opt.mask_static
 - id: dimension.opt.meta
   area: cube.dimensions
   title: "dimension opt meta"
-  status: todo
+  status: fail
   check: dimension.opt.meta
 - id: dimension.opt.order
   area: cube.dimensions
@@ -329,172 +329,172 @@
 - id: dimension.opt.primary_key
   area: cube.dimensions
   title: "dimension opt primary key"
-  status: todo
+  status: pass
   check: dimension.opt.primary_key
 - id: dimension.opt.propagate_filters
   area: cube.dimensions
   title: "dimension opt propagate filters"
-  status: todo
+  status: pass
   check: dimension.opt.propagate_filters
 - id: dimension.opt.public_false
   area: cube.dimensions
   title: "dimension opt public false"
-  status: todo
+  status: pass
   check: dimension.opt.public_false
 - id: dimension.opt.sub_query
   area: cube.dimensions
   title: "dimension opt sub query"
-  status: todo
+  status: pass
   check: dimension.opt.sub_query
 - id: dimension.opt.synthetic_hidden
   area: cube.dimensions
   title: "dimension opt synthetic hidden"
-  status: todo
+  status: fail
   check: dimension.opt.synthetic_hidden
 - id: dimension.opt.time_shift_calendar
   area: cube.dimensions
   title: "dimension opt time shift calendar"
-  status: todo
+  status: pass
   check: measure.multi_stage.time_shift_named_calendar
 - id: dimension.opt.title
   area: cube.dimensions
   title: "dimension opt title"
-  status: todo
+  status: pass
   check: dimension.opt.title
 - id: dimension.type.boolean
   area: cube.dimensions
   title: "dimension type boolean"
-  status: todo
+  status: pass
   check: dimension.type.boolean
 - id: dimension.type.geo
   area: cube.dimensions
   title: "dimension type geo"
-  status: todo
+  status: fail
   check: dimension.type.geo
 - id: dimension.type.number
   area: cube.dimensions
   title: "dimension type number"
-  status: todo
+  status: pass
   check: dimension.type.number
 - id: dimension.type.string
   area: cube.dimensions
   title: "dimension type string"
-  status: todo
+  status: pass
   check: dimension.type.string
 - id: dimension.type.switch
   area: cube.dimensions
   title: "dimension type switch"
-  status: todo
+  status: pass
   check: dimension.type.switch
 - id: dimension.type.time
   area: cube.dimensions
   title: "dimension type time"
-  status: todo
+  status: pass
   check: dimension.type.time
 - id: granularity.custom.interval_hours
   area: cube.dimensions
   title: "granularity custom interval hours"
-  status: todo
+  status: fail
   check: granularity.custom.interval_hours
 - id: granularity.custom.negative_offset
   area: cube.dimensions
   title: "granularity custom negative offset"
-  status: todo
+  status: pass
   check: granularity.custom.negative_offset
 - id: granularity.custom.offset
   area: cube.dimensions
   title: "granularity custom offset"
-  status: todo
+  status: fail
   check: granularity.custom.offset
 - id: granularity.custom.origin
   area: cube.dimensions
   title: "granularity custom origin"
-  status: todo
+  status: pass
   check: granularity.custom.origin
 - id: granularity.custom.title
   area: cube.dimensions
   title: "granularity custom title"
-  status: todo
+  status: pass
   check: granularity.custom.title
 - id: granularity.proxy_default
   area: cube.dimensions
   title: "granularity proxy default"
-  status: todo
+  status: pass
   check: granularity.proxy_default
 - id: segment.combined
   area: cube.segments
   title: "segment combined"
-  status: todo
+  status: pass
   check: segment.combined
 - id: segment.description
   area: cube.segments
   title: "segment description"
-  status: todo
+  status: pass
   check: segment.description
 - id: segment.filter
   area: cube.segments
   title: "segment filter"
-  status: todo
+  status: pass
   check: segment.filter
 - id: segment.second
   area: cube.segments
   title: "segment second"
-  status: todo
+  status: pass
   check: segment.second
 - id: segment.title
   area: cube.segments
   title: "segment title"
-  status: todo
+  status: pass
   check: segment.title
 - id: segment.with_breakout
   area: cube.segments
   title: "segment with breakout"
-  status: todo
+  status: pass
   check: segment.with_breakout
 - id: join.alias
   area: cube.joins
   title: "join alias"
-  status: todo
+  status: pass
   check: join.alias
 - id: join.fan_trap_avg
   area: cube.joins
   title: "join fan trap avg"
-  status: todo
+  status: pass
   check: join.fan_trap_avg
 - id: join.many_to_one
   area: cube.joins
   title: "join many to one"
-  status: todo
+  status: pass
   check: join.many_to_one
 - id: join.one_to_many_child_measure
   area: cube.joins
   title: "join one to many child measure"
-  status: todo
+  status: pass
   check: join.one_to_many_child_measure
 - id: join.one_to_many_no_fanout
   area: cube.joins
   title: "join one to many no fanout"
-  status: todo
+  status: pass
   check: join.one_to_many_no_fanout
 - id: join.one_to_one
   area: cube.joins
   title: "join one to one"
-  status: todo
+  status: pass
   check: join.one_to_one
 - id: join.sql_cube_join_field
   area: cube.joins
   title: "join sql cube join field"
-  status: todo
+  status: pass
   check: join.sql_cube_join_field
 - id: join.transitive
   area: cube.joins
   title: "join transitive"
-  status: todo
+  status: pass
   check: join.transitive
 - id: cube.calendar
   area: cube.cubes
   title: "cube calendar"
-  status: todo
+  status: pass
   check: cube.calendar
 - id: cube.calendar_granularity_sql
   area: cube.cubes
@@ -509,47 +509,47 @@
 - id: cube.description
   area: cube.cubes
   title: "cube description"
-  status: todo
+  status: pass
   check: cube.description
 - id: cube.extends
   area: cube.cubes
   title: "cube extends"
-  status: todo
+  status: pass
   check: cube.extends
 - id: cube.meta
   area: cube.cubes
   title: "cube meta"
-  status: todo
+  status: fail
   check: cube.meta
 - id: cube.public_false
   area: cube.cubes
   title: "cube public false"
-  status: todo
+  status: pass
   check: cube.public_false
 - id: cube.refresh_key
   area: cube.cubes
   title: "cube refresh key"
-  status: todo
+  status: pass
   check: cube.refresh_key
 - id: cube.sql
   area: cube.cubes
   title: "cube sql"
-  status: todo
+  status: pass
   check: cube.sql
 - id: cube.sql_alias
   area: cube.cubes
   title: "cube sql alias"
-  status: todo
+  status: pass
   check: cube.sql_alias
 - id: cube.sql_table
   area: cube.cubes
   title: "cube sql table"
-  status: todo
+  status: pass
   check: cube.sql_table
 - id: cube.title
   area: cube.cubes
   title: "cube title"
-  status: todo
+  status: pass
   check: cube.title
 - id: context.compile_context
   area: cube.context
@@ -564,12 +564,12 @@
 - id: context.filter_params
   area: cube.context
   title: "context filter params"
-  status: todo
+  status: pass
   check: context.filter_params
 - id: context.sql_utils_convert_tz
   area: cube.context
   title: "context sql utils convert tz"
-  status: todo
+  status: pass
   check: context.sql_utils_convert_tz
 - id: security.access_policy_groups
   area: cube.security
@@ -594,92 +594,92 @@
 - id: view.access_member_level
   area: cube.views
   title: "view access member level"
-  status: todo
+  status: pass
   check: view.access_member_level
 - id: view.access_row_level
   area: cube.views
   title: "view access row level"
-  status: todo
+  status: pass
   check: view.access_row_level
 - id: view.basic
   area: cube.views
   title: "view basic"
-  status: todo
+  status: pass
   check: view.basic
 - id: view.default_filters
   area: cube.views
   title: "view default filters"
-  status: todo
+  status: pass
   check: view.default_filters
 - id: view.derived_measure
   area: cube.views
   title: "view derived measure"
-  status: todo
+  status: pass
   check: view.derived_measure
 - id: view.description
   area: cube.views
   title: "view description"
-  status: todo
+  status: pass
   check: view.description
 - id: view.excludes
   area: cube.views
   title: "view excludes"
-  status: todo
+  status: pass
   check: view.excludes
 - id: view.extends
   area: cube.views
   title: "view extends"
-  status: todo
+  status: pass
   check: view.extends
 - id: view.folders
   area: cube.views
   title: "view folders"
-  status: todo
+  status: fail
   check: view.folders
 - id: view.folders_nested
   area: cube.views
   title: "view folders nested"
-  status: todo
+  status: fail
   check: view.folders_nested
 - id: view.group
   area: cube.views
   title: "view group"
-  status: todo
+  status: fail
   check: view.group
 - id: view.includes
   area: cube.views
   title: "view includes"
-  status: todo
+  status: pass
   check: view.includes
 - id: view.member_alias
   area: cube.views
   title: "view member alias"
-  status: todo
+  status: pass
   check: view.member_alias
 - id: view.member_description
   area: cube.views
   title: "view member description"
-  status: todo
+  status: pass
   check: view.member_description
 - id: view.member_format
   area: cube.views
   title: "view member format"
-  status: todo
+  status: pass
   check: view.member_format
 - id: view.member_meta
   area: cube.views
   title: "view member meta"
-  status: todo
+  status: fail
   check: view.member_meta
 - id: view.member_title
   area: cube.views
   title: "view member title"
-  status: todo
+  status: pass
   check: view.member_title
 - id: view.meta
   area: cube.views
   title: "view meta"
-  status: todo
+  status: fail
   check: view.meta
 - id: view.meta_auto_run
   area: cube.views
@@ -694,47 +694,47 @@
 - id: view.prefix
   area: cube.views
   title: "view prefix"
-  status: todo
+  status: pass
   check: view.prefix
 - id: view.public_false
   area: cube.views
   title: "view public false"
-  status: todo
+  status: pass
   check: view.public_false
 - id: view.title
   area: cube.views
   title: "view title"
-  status: todo
+  status: pass
   check: view.title
 - id: hierarchy.levels
   area: cube.hierarchies
   title: "hierarchy levels"
-  status: todo
+  status: fail
   check: hierarchy.levels
 - id: hierarchy.public_false
   area: cube.hierarchies
   title: "hierarchy public false"
-  status: todo
+  status: pass
   check: hierarchy.public_false
 - id: preagg.indexes
   area: cube.pre_aggregations
   title: "preagg indexes"
-  status: todo
+  status: pass
   check: preagg.indexes
 - id: preagg.original_sql
   area: cube.pre_aggregations
   title: "preagg original sql"
-  status: todo
+  status: fail
   check: preagg.original_sql
 - id: preagg.partitioned
   area: cube.pre_aggregations
   title: "preagg partitioned"
-  status: todo
+  status: pass
   check: preagg.partitioned
 - id: preagg.rollup
   area: cube.pre_aggregations
   title: "preagg rollup"
-  status: todo
+  status: pass
   check: preagg.rollup
 - id: preagg.rollup_join
   area: cube.pre_aggregations
@@ -749,72 +749,72 @@
 - id: sqlapi.aggregate_function
   area: cube.sql_api
   title: "sqlapi aggregate function"
-  status: todo
+  status: pass
   check: sqlapi.aggregate_function
 - id: sqlapi.date_trunc
   area: cube.sql_api
   title: "sqlapi date trunc"
-  status: todo
+  status: pass
   check: sqlapi.date_trunc
 - id: sqlapi.having
   area: cube.sql_api
   title: "sqlapi having"
-  status: todo
+  status: pass
   check: sqlapi.having
 - id: sqlapi.measure_function
   area: cube.sql_api
   title: "sqlapi measure function"
-  status: todo
+  status: pass
   check: sqlapi.measure_function
 - id: sqlapi.order_limit
   area: cube.sql_api
   title: "sqlapi order limit"
-  status: todo
+  status: pass
   check: sqlapi.order_limit
 - id: sqlapi.post_processing
   area: cube.sql_api
   title: "sqlapi post processing"
-  status: todo
+  status: pass
   check: sqlapi.post_processing
 - id: sqlapi.pushdown_window
   area: cube.sql_api
   title: "sqlapi pushdown window"
-  status: todo
+  status: pass
   check: sqlapi.pushdown_window
 - id: sqlapi.segment_in_where
   area: cube.sql_api
   title: "sqlapi segment in where"
-  status: todo
+  status: pass
   check: sqlapi.segment_in_where
 - id: sqlapi.ungrouped
   area: cube.sql_api
   title: "sqlapi ungrouped"
-  status: todo
+  status: pass
   check: sqlapi.ungrouped
 - id: sqlapi.union
   area: cube.sql_api
   title: "sqlapi union"
-  status: todo
+  status: pass
   check: sqlapi.union
 - id: sqlapi.where_between
   area: cube.sql_api
   title: "sqlapi where between"
-  status: todo
+  status: pass
   check: sqlapi.where_between
 - id: sqlapi.where_in
   area: cube.sql_api
   title: "sqlapi where in"
-  status: todo
+  status: pass
   check: sqlapi.where_in
 - id: sqlapi.where_is_null
   area: cube.sql_api
   title: "sqlapi where is null"
-  status: todo
+  status: pass
   check: sqlapi.where_is_null
 - id: sqlapi.where_like
   area: cube.sql_api
   title: "sqlapi where like"
-  status: todo
+  status: pass
   check: sqlapi.where_like
 - id: restapi.compare_date_range
   area: cube.rest_api
@@ -829,767 +829,767 @@
 - id: clickhouse.bool
   area: clickhouse
   title: "clickhouse bool"
-  status: todo
+  status: pass
   check: clickhouse.bool
 - id: clickhouse.datetime_utc
   area: clickhouse
   title: "clickhouse datetime utc"
-  status: todo
+  status: pass
   check: clickhouse.datetime_utc
 - id: clickhouse.decimal
   area: clickhouse
   title: "clickhouse decimal"
-  status: todo
+  status: pass
   check: clickhouse.decimal
 - id: clickhouse.function_in_measure
   area: clickhouse
   title: "clickhouse function in measure"
-  status: todo
+  status: pass
   check: clickhouse.function_in_measure
 - id: clickhouse.large_result
   area: clickhouse
   title: "clickhouse large result"
-  status: todo
+  status: pass
   check: clickhouse.large_result
 - id: clickhouse.low_cardinality
   area: clickhouse
   title: "clickhouse low cardinality"
-  status: todo
+  status: pass
   check: clickhouse.low_cardinality
 - id: clickhouse.nullable_expression
   area: clickhouse
   title: "clickhouse nullable expression"
-  status: todo
+  status: pass
   check: clickhouse.nullable_expression
 - id: meta.base_types
   area: metabase.sync
   title: "meta base types"
-  status: todo
+  status: pass
   check: meta.base_types
 - id: meta.fingerprint_distinct_count
   area: metabase.sync
   title: "meta fingerprint distinct count"
-  status: todo
+  status: fail
   check: meta.fingerprint_distinct_count
 - id: meta.fk_implicit_target
   area: metabase.sync
   title: "meta fk implicit target"
-  status: todo
+  status: fail
   check: meta.fk_implicit_target
 - id: meta.measure_is_marked
   area: metabase.sync
   title: "meta measure is marked"
-  status: todo
+  status: pass
   check: meta.measure_is_marked
 - id: meta.no_internal_columns
   area: metabase.sync
   title: "meta no internal columns"
-  status: todo
+  status: pass
   check: meta.no_internal_columns
 - id: meta.resync_keeps_metadata
   area: metabase.sync
   title: "meta resync keeps metadata"
-  status: todo
+  status: pass
   check: meta.resync_keeps_metadata
 - id: meta.semantic_types
   area: metabase.sync
   title: "meta semantic types"
-  status: todo
+  status: fail
   check: meta.semantic_types
 - id: meta.tables_match_public_members
   area: metabase.sync
   title: "meta tables match public members"
-  status: todo
+  status: pass
   check: meta.tables_match_public_members
 - id: mb.agg.avg_field
   area: metabase.aggregation
   title: "mb agg avg field"
-  status: todo
+  status: pass
   check: mb.agg.avg_field
 - id: mb.agg.count_rows
   area: metabase.aggregation
   title: "mb agg count rows"
-  status: todo
+  status: pass
   check: mb.agg.count_rows
 - id: mb.agg.count_where
   area: metabase.aggregation
   title: "mb agg count where"
-  status: todo
+  status: pass
   check: mb.agg.count_where
 - id: mb.agg.cum_count
   area: metabase.aggregation
   title: "mb agg cum count"
-  status: todo
+  status: pass
   check: mb.agg.cum_count
 - id: mb.agg.cum_sum
   area: metabase.aggregation
   title: "mb agg cum sum"
-  status: todo
+  status: pass
   check: mb.agg.cum_sum
 - id: mb.agg.custom_expression
   area: metabase.aggregation
   title: "mb agg custom expression"
-  status: todo
+  status: pass
   check: mb.agg.custom_expression
 - id: mb.agg.distinct
   area: metabase.aggregation
   title: "mb agg distinct"
-  status: todo
+  status: pass
   check: mb.agg.distinct
 - id: mb.agg.max_field
   area: metabase.aggregation
   title: "mb agg max field"
-  status: todo
+  status: pass
   check: mb.agg.max_field
 - id: mb.agg.median
   area: metabase.aggregation
   title: "mb agg median"
-  status: todo
+  status: fail
   check: mb.agg.median
 - id: mb.agg.min_field
   area: metabase.aggregation
   title: "mb agg min field"
-  status: todo
+  status: pass
   check: mb.agg.min_field
 - id: mb.agg.offset_window
   area: metabase.aggregation
   title: "mb agg offset window"
-  status: todo
+  status: fail
   check: mb.agg.offset_window
 - id: mb.agg.percentile
   area: metabase.aggregation
   title: "mb agg percentile"
-  status: todo
+  status: fail
   check: mb.agg.percentile
 - id: mb.agg.share
   area: metabase.aggregation
   title: "mb agg share"
-  status: todo
+  status: pass
   check: mb.agg.share
 - id: mb.agg.stddev
   area: metabase.aggregation
   title: "mb agg stddev"
-  status: todo
+  status: pass
   check: mb.agg.stddev
 - id: mb.agg.sum_field
   area: metabase.aggregation
   title: "mb agg sum field"
-  status: todo
+  status: pass
   check: mb.agg.sum_field
 - id: mb.agg.sum_where
   area: metabase.aggregation
   title: "mb agg sum where"
-  status: todo
+  status: pass
   check: mb.agg.sum_where
 - id: mb.agg.two_measures
   area: metabase.aggregation
   title: "mb agg two measures"
-  status: todo
+  status: pass
   check: mb.agg.two_measures
 - id: mb.agg.variance
   area: metabase.aggregation
   title: "mb agg variance"
-  status: todo
+  status: pass
   check: mb.agg.variance
 - id: mb.bucket.day
   area: metabase.date_buckets
   title: "mb bucket day"
-  status: todo
+  status: pass
   check: mb.bucket.day
 - id: mb.bucket.day-of-month
   area: metabase.date_buckets
   title: "mb bucket day-of-month"
-  status: todo
+  status: pass
   check: mb.bucket.day-of-month
 - id: mb.bucket.day-of-week
   area: metabase.date_buckets
   title: "mb bucket day-of-week"
-  status: todo
+  status: pass
   check: mb.bucket.day-of-week
 - id: mb.bucket.day-of-year
   area: metabase.date_buckets
   title: "mb bucket day-of-year"
-  status: todo
+  status: pass
   check: mb.bucket.day-of-year
 - id: mb.bucket.hour
   area: metabase.date_buckets
   title: "mb bucket hour"
-  status: todo
+  status: pass
   check: mb.bucket.hour
 - id: mb.bucket.hour-of-day
   area: metabase.date_buckets
   title: "mb bucket hour-of-day"
-  status: todo
+  status: pass
   check: mb.bucket.hour-of-day
 - id: mb.bucket.minute
   area: metabase.date_buckets
   title: "mb bucket minute"
-  status: todo
+  status: pass
   check: mb.bucket.minute
 - id: mb.bucket.minute-of-hour
   area: metabase.date_buckets
   title: "mb bucket minute-of-hour"
-  status: todo
+  status: pass
   check: mb.bucket.minute-of-hour
 - id: mb.bucket.month
   area: metabase.date_buckets
   title: "mb bucket month"
-  status: todo
+  status: pass
   check: mb.bucket.month
 - id: mb.bucket.month-of-year
   area: metabase.date_buckets
   title: "mb bucket month-of-year"
-  status: todo
+  status: pass
   check: mb.bucket.month-of-year
 - id: mb.bucket.quarter
   area: metabase.date_buckets
   title: "mb bucket quarter"
-  status: todo
+  status: pass
   check: mb.bucket.quarter
 - id: mb.bucket.quarter-of-year
   area: metabase.date_buckets
   title: "mb bucket quarter-of-year"
-  status: todo
+  status: pass
   check: mb.bucket.quarter-of-year
 - id: mb.bucket.week
   area: metabase.date_buckets
   title: "mb bucket week"
-  status: todo
+  status: fail
   check: mb.bucket.week
 - id: mb.bucket.week-of-year
   area: metabase.date_buckets
   title: "mb bucket week-of-year"
-  status: todo
+  status: fail
   check: mb.bucket.week-of-year
 - id: mb.bucket.year
   area: metabase.date_buckets
   title: "mb bucket year"
-  status: todo
+  status: pass
   check: mb.bucket.year
 - id: mb.breakout.bin_count
   area: metabase.breakout
   title: "mb breakout bin count"
-  status: todo
+  status: fail
   check: mb.breakout.bin_count
 - id: mb.breakout.bin_width
   area: metabase.breakout
   title: "mb breakout bin width"
-  status: todo
+  status: fail
   check: mb.breakout.bin_width
 - id: mb.breakout.boolean
   area: metabase.breakout
   title: "mb breakout boolean"
-  status: todo
+  status: pass
   check: mb.breakout.boolean
 - id: mb.breakout.limit
   area: metabase.breakout
   title: "mb breakout limit"
-  status: todo
+  status: pass
   check: mb.breakout.limit
 - id: mb.breakout.sorted_by_measure
   area: metabase.breakout
   title: "mb breakout sorted by measure"
-  status: todo
+  status: pass
   check: mb.breakout.sorted_by_measure
 - id: mb.breakout.two
   area: metabase.breakout
   title: "mb breakout two"
-  status: todo
+  status: pass
   check: mb.breakout.two
 - id: mb.filter.and
   area: metabase.filters
   title: "mb filter and"
-  status: todo
+  status: pass
   check: mb.filter.and
 - id: mb.filter.between_number
   area: metabase.filters
   title: "mb filter between number"
-  status: todo
+  status: pass
   check: mb.filter.between_number
 - id: mb.filter.boolean_false
   area: metabase.filters
   title: "mb filter boolean false"
-  status: todo
+  status: pass
   check: mb.filter.boolean_false
 - id: mb.filter.boolean_true
   area: metabase.filters
   title: "mb filter boolean true"
-  status: todo
+  status: pass
   check: mb.filter.boolean_true
 - id: mb.filter.contains
   area: metabase.filters
   title: "mb filter contains"
-  status: todo
+  status: pass
   check: mb.filter.contains
 - id: mb.filter.contains_ci
   area: metabase.filters
   title: "mb filter contains ci"
-  status: todo
+  status: pass
   check: mb.filter.contains_ci
 - id: mb.filter.date_after
   area: metabase.filters
   title: "mb filter date after"
-  status: todo
+  status: pass
   check: mb.filter.date_after
 - id: mb.filter.date_before
   area: metabase.filters
   title: "mb filter date before"
-  status: todo
+  status: pass
   check: mb.filter.date_before
 - id: mb.filter.date_between
   area: metabase.filters
   title: "mb filter date between"
-  status: todo
+  status: pass
   check: mb.filter.date_between
 - id: mb.filter.date_month
   area: metabase.filters
   title: "mb filter date month"
-  status: todo
+  status: pass
   check: mb.filter.date_month
 - id: mb.filter.date_on
   area: metabase.filters
   title: "mb filter date on"
-  status: todo
+  status: fail
   check: mb.filter.date_on
 - id: mb.filter.ends_with
   area: metabase.filters
   title: "mb filter ends with"
-  status: todo
+  status: pass
   check: mb.filter.ends_with
 - id: mb.filter.eq_multi
   area: metabase.filters
   title: "mb filter eq multi"
-  status: todo
+  status: pass
   check: mb.filter.eq_multi
 - id: mb.filter.eq_number
   area: metabase.filters
   title: "mb filter eq number"
-  status: todo
+  status: pass
   check: mb.filter.eq_number
 - id: mb.filter.eq_string
   area: metabase.filters
   title: "mb filter eq string"
-  status: todo
+  status: pass
   check: mb.filter.eq_string
 - id: mb.filter.exclude_day_of_week
   area: metabase.filters
   title: "mb filter exclude day of week"
-  status: todo
+  status: fail
   check: mb.filter.exclude_day_of_week
 - id: mb.filter.exclude_month_of_year
   area: metabase.filters
   title: "mb filter exclude month of year"
-  status: todo
+  status: fail
   check: mb.filter.exclude_month_of_year
 - id: mb.filter.gt
   area: metabase.filters
   title: "mb filter gt"
-  status: todo
+  status: pass
   check: mb.filter.gt
 - id: mb.filter.gte
   area: metabase.filters
   title: "mb filter gte"
-  status: todo
+  status: pass
   check: mb.filter.gte
 - id: mb.filter.is_empty
   area: metabase.filters
   title: "mb filter is empty"
-  status: todo
+  status: pass
   check: mb.filter.is_empty
 - id: mb.filter.is_null
   area: metabase.filters
   title: "mb filter is null"
-  status: todo
+  status: pass
   check: mb.filter.is_null
 - id: mb.filter.lt
   area: metabase.filters
   title: "mb filter lt"
-  status: todo
+  status: pass
   check: mb.filter.lt
 - id: mb.filter.lte
   area: metabase.filters
   title: "mb filter lte"
-  status: todo
+  status: pass
   check: mb.filter.lte
 - id: mb.filter.neq_number
   area: metabase.filters
   title: "mb filter neq number"
-  status: todo
+  status: pass
   check: mb.filter.neq_number
 - id: mb.filter.neq_string
   area: metabase.filters
   title: "mb filter neq string"
-  status: todo
+  status: pass
   check: mb.filter.neq_string
 - id: mb.filter.not
   area: metabase.filters
   title: "mb filter not"
-  status: todo
+  status: pass
   check: mb.filter.not
 - id: mb.filter.not_contains
   area: metabase.filters
   title: "mb filter not contains"
-  status: todo
+  status: pass
   check: mb.filter.not_contains
 - id: mb.filter.not_empty
   area: metabase.filters
   title: "mb filter not empty"
-  status: todo
+  status: pass
   check: mb.filter.not_empty
 - id: mb.filter.not_null
   area: metabase.filters
   title: "mb filter not null"
-  status: todo
+  status: pass
   check: mb.filter.not_null
 - id: mb.filter.or
   area: metabase.filters
   title: "mb filter or"
-  status: todo
+  status: pass
   check: mb.filter.or
 - id: mb.filter.relative_current
   area: metabase.filters
   title: "mb filter relative current"
-  status: todo
+  status: fail
   check: mb.filter.relative_current
 - id: mb.filter.relative_past
   area: metabase.filters
   title: "mb filter relative past"
-  status: todo
+  status: pass
   check: mb.filter.relative_past
 - id: mb.filter.starts_with
   area: metabase.filters
   title: "mb filter starts with"
-  status: todo
+  status: pass
   check: mb.filter.starts_with
 - id: mb.filter.starts_with_ci
   area: metabase.filters
   title: "mb filter starts with ci"
-  status: todo
+  status: pass
   check: mb.filter.starts_with_ci
 - id: mb.raw.fields_sorted
   area: metabase.raw_rows
   title: "mb raw fields sorted"
-  status: todo
+  status: pass
   check: mb.raw.fields_sorted
 - id: mb.raw.sort_desc
   area: metabase.raw_rows
   title: "mb raw sort desc"
-  status: todo
+  status: pass
   check: mb.raw.sort_desc
 - id: mb.expr.abs
   area: metabase.expressions
   title: "mb expr abs"
-  status: todo
+  status: pass
   check: mb.expr.abs
 - id: mb.expr.add
   area: metabase.expressions
   title: "mb expr add"
-  status: todo
+  status: pass
   check: mb.expr.add
 - id: mb.expr.case
   area: metabase.expressions
   title: "mb expr case"
-  status: todo
+  status: pass
   check: mb.expr.case
 - id: mb.expr.ceil
   area: metabase.expressions
   title: "mb expr ceil"
-  status: todo
+  status: pass
   check: mb.expr.ceil
 - id: mb.expr.coalesce
   area: metabase.expressions
   title: "mb expr coalesce"
-  status: todo
+  status: pass
   check: mb.expr.coalesce
 - id: mb.expr.concat
   area: metabase.expressions
   title: "mb expr concat"
-  status: todo
+  status: pass
   check: mb.expr.concat
 - id: mb.expr.datetime_add
   area: metabase.expressions
   title: "mb expr datetime add"
-  status: todo
+  status: pass
   check: mb.expr.datetime_add
 - id: mb.expr.datetime_diff
   area: metabase.expressions
   title: "mb expr datetime diff"
-  status: todo
+  status: fail
   check: mb.expr.datetime_diff
 - id: mb.expr.div
   area: metabase.expressions
   title: "mb expr div"
-  status: todo
+  status: pass
   check: mb.expr.div
 - id: mb.expr.floor
   area: metabase.expressions
   title: "mb expr floor"
-  status: todo
+  status: pass
   check: mb.expr.floor
 - id: mb.expr.get_month
   area: metabase.expressions
   title: "mb expr get month"
-  status: todo
+  status: pass
   check: mb.expr.get_month
 - id: mb.expr.get_year
   area: metabase.expressions
   title: "mb expr get year"
-  status: todo
+  status: pass
   check: mb.expr.get_year
 - id: mb.expr.length
   area: metabase.expressions
   title: "mb expr length"
-  status: todo
+  status: pass
   check: mb.expr.length
 - id: mb.expr.log
   area: metabase.expressions
   title: "mb expr log"
-  status: todo
+  status: fail
   check: mb.expr.log
 - id: mb.expr.lower
   area: metabase.expressions
   title: "mb expr lower"
-  status: todo
+  status: pass
   check: mb.expr.lower
 - id: mb.expr.mul
   area: metabase.expressions
   title: "mb expr mul"
-  status: todo
+  status: pass
   check: mb.expr.mul
 - id: mb.expr.power
   area: metabase.expressions
   title: "mb expr power"
-  status: todo
+  status: pass
   check: mb.expr.power
 - id: mb.expr.replace
   area: metabase.expressions
   title: "mb expr replace"
-  status: todo
+  status: pass
   check: mb.expr.replace
 - id: mb.expr.round
   area: metabase.expressions
   title: "mb expr round"
-  status: todo
+  status: pass
   check: mb.expr.round
 - id: mb.expr.sqrt
   area: metabase.expressions
   title: "mb expr sqrt"
-  status: todo
+  status: pass
   check: mb.expr.sqrt
 - id: mb.expr.substring
   area: metabase.expressions
   title: "mb expr substring"
-  status: todo
+  status: pass
   check: mb.expr.substring
 - id: mb.expr.upper
   area: metabase.expressions
   title: "mb expr upper"
-  status: todo
+  status: pass
   check: mb.expr.upper
 - id: mb.join.explicit_inner
   area: metabase.joins
   title: "mb join explicit inner"
-  status: todo
+  status: fail
   check: mb.join.explicit_inner
 - id: mb.join.explicit_left
   area: metabase.joins
   title: "mb join explicit left"
-  status: todo
+  status: fail
   check: mb.join.explicit_left
 - id: mb.join.implicit
   area: metabase.joins
   title: "mb join implicit"
-  status: todo
+  status: fail
   check: mb.join.implicit
 - id: mb.join.implicit_filter
   area: metabase.joins
   title: "mb join implicit filter"
-  status: todo
+  status: fail
   check: mb.join.implicit_filter
 - id: mb.join.measure_across_cubes
   area: metabase.joins
   title: "mb join measure across cubes"
-  status: todo
+  status: fail
   check: mb.join.measure_across_cubes
 - id: mb.nested.filter_on_aggregation
   area: metabase.nested
   title: "mb nested filter on aggregation"
-  status: todo
+  status: pass
   check: mb.nested.filter_on_aggregation
 - id: mb.nested.question_as_source
   area: metabase.nested
   title: "mb nested question as source"
-  status: todo
+  status: pass
   check: mb.nested.question_as_source
 - id: mb.card.metric
   area: metabase.cards
   title: "mb card metric"
-  status: todo
+  status: pass
   check: mb.card.metric
 - id: mb.card.metric_with_breakout
   area: metabase.cards
   title: "mb card metric with breakout"
-  status: todo
+  status: fail
   check: mb.card.metric_with_breakout
 - id: mb.card.model
   area: metabase.cards
   title: "mb card model"
-  status: todo
+  status: pass
   check: mb.card.model
 - id: mb.card.saved_question
   area: metabase.cards
   title: "mb card saved question"
-  status: todo
+  status: pass
   check: mb.card.saved_question
 - id: mb.entity.measure_custom
   area: metabase.entities
   title: "mb entity measure custom"
-  status: todo
+  status: pass
   check: mb.entity.measure_custom
 - id: mb.entity.segment_custom
   area: metabase.entities
   title: "mb entity segment custom"
-  status: todo
+  status: pass
   check: mb.entity.segment_custom
 - id: mb.export.csv
   area: metabase.export
   title: "mb export csv"
-  status: todo
+  status: pass
   check: mb.export.csv
 - id: mb.export.json
   area: metabase.export
   title: "mb export json"
-  status: todo
+  status: pass
   check: mb.export.json
 - id: mb.native.field_filter
   area: metabase.native
   title: "mb native field filter"
-  status: todo
+  status: pass
   check: mb.native.field_filter
 - id: mb.native.field_filter_date
   area: metabase.native
   title: "mb native field filter date"
-  status: todo
+  status: pass
   check: mb.native.field_filter_date
 - id: mb.native.optional_clause
   area: metabase.native
   title: "mb native optional clause"
-  status: todo
+  status: pass
   check: mb.native.optional_clause
 - id: mb.native.param_date
   area: metabase.native
   title: "mb native param date"
-  status: todo
+  status: pass
   check: mb.native.param_date
 - id: mb.native.param_number
   area: metabase.native
   title: "mb native param number"
-  status: todo
+  status: pass
   check: mb.native.param_number
 - id: mb.native.param_text
   area: metabase.native
   title: "mb native param text"
-  status: todo
+  status: pass
   check: mb.native.param_text
 - id: mb.native.plain
   area: metabase.native
   title: "mb native plain"
-  status: todo
+  status: pass
   check: mb.native.plain
 - id: mb.native.saved_card_param
   area: metabase.native
   title: "mb native saved card param"
-  status: todo
+  status: pass
   check: mb.native.saved_card_param
 - id: mb.dashboard.filter_date
   area: metabase.dashboards
   title: "mb dashboard filter date"
-  status: todo
+  status: pass
   check: mb.dashboard.filter_date
 - id: mb.dashboard.filter_number
   area: metabase.dashboards
   title: "mb dashboard filter number"
-  status: todo
+  status: pass
   check: mb.dashboard.filter_number
 - id: mb.dashboard.filter_search
   area: metabase.dashboards
   title: "mb dashboard filter search"
-  status: todo
+  status: pass
   check: mb.dashboard.filter_search
 - id: mb.dashboard.filter_string
   area: metabase.dashboards
   title: "mb dashboard filter string"
-  status: todo
+  status: pass
   check: mb.dashboard.filter_string
 - id: mb.dashboard.filter_values
   area: metabase.dashboards
   title: "mb dashboard filter values"
-  status: todo
+  status: pass
   check: mb.dashboard.filter_values
 - id: mb.dashboard.linked_filter
   area: metabase.dashboards
   title: "mb dashboard linked filter"
-  status: todo
+  status: pass
   check: mb.dashboard.linked_filter
 - id: mb.dashboard.native_field_filter
   area: metabase.dashboards
   title: "mb dashboard native field filter"
-  status: todo
+  status: pass
   check: mb.dashboard.native_field_filter
 - id: mb.field_values.boolean
   area: metabase.field_values
   title: "mb field values boolean"
-  status: todo
+  status: pass
   check: mb.field_values.boolean
 - id: mb.field_values.list
   area: metabase.field_values
   title: "mb field values list"
-  status: todo
+  status: pass
   check: mb.field_values.list
 - id: mb.field_values.search
   area: metabase.field_values
   title: "mb field values search"
-  status: todo
+  status: pass
   check: mb.field_values.search
 - id: mb.search.by_description
   area: metabase.search
   title: "mb search by description"
-  status: todo
+  status: pass
   check: mb.search.by_description
 - id: mb.search.measure
   area: metabase.search
   title: "mb search measure"
-  status: todo
+  status: fail
   check: mb.search.measure
 - id: mb.search.segment
   area: metabase.search
   title: "mb search segment"
-  status: todo
+  status: fail
   check: mb.search.segment
 - id: mb.search.table
   area: metabase.search
   title: "mb search table"
-  status: todo
+  status: pass
   check: mb.search.table
 - id: mb.xray.candidates
   area: metabase.xrays
   title: "mb xray candidates"
-  status: todo
+  status: pass
   check: mb.xray.candidates
 - id: mb.xray.table
   area: metabase.xrays
   title: "mb xray table"
-  status: todo
+  status: pass
   check: mb.xray.table
 - id: mb.xray.view
   area: metabase.xrays
   title: "mb xray view"
-  status: todo
+  status: pass
   check: mb.xray.view
 - id: mb.report_timezone
   area: metabase.settings
   title: "mb report timezone"
-  status: todo
+  status: fail
   check: mb.report_timezone
 - id: mb.other.actions
   area: metabase.other
@@ -1614,7 +1614,7 @@
 - id: mcp.agent_journey_no_cube_knowledge
   area: mcp
   title: "mcp agent journey no cube knowledge"
-  status: todo
+  status: fail
   check: mcp.agent_journey_no_cube_knowledge
 - id: mcp.alert_write
   area: mcp
@@ -1629,32 +1629,32 @@
 - id: mcp.browse.descriptions_in_get_fields
   area: mcp
   title: "mcp browse descriptions in get fields"
-  status: todo
+  status: fail
   check: mcp.browse.descriptions_in_get_fields
 - id: mcp.browse.get_fields_dimensions
   area: mcp
   title: "mcp browse get fields dimensions"
-  status: todo
+  status: pass
   check: mcp.browse.get_fields_dimensions
 - id: mcp.browse.get_fields_measures
   area: mcp
   title: "mcp browse get fields measures"
-  status: todo
+  status: pass
   check: mcp.browse.get_fields_measures
 - id: mcp.browse.get_fields_segments
   area: mcp
   title: "mcp browse get fields segments"
-  status: todo
+  status: fail
   check: mcp.browse.get_fields_segments
 - id: mcp.browse.list_databases
   area: mcp
   title: "mcp browse list databases"
-  status: todo
+  status: pass
   check: mcp.browse.list_databases
 - id: mcp.browse.list_tables
   area: mcp
   title: "mcp browse list tables"
-  status: todo
+  status: pass
   check: mcp.browse.list_tables
 - id: mcp.collection_write
   area: mcp
@@ -1664,17 +1664,17 @@
 - id: mcp.connect_oauth
   area: mcp
   title: "mcp connect oauth"
-  status: todo
+  status: pass
   check: mcp.connect_oauth
 - id: mcp.dashboard_write
   area: mcp
   title: "mcp dashboard write"
-  status: todo
+  status: pass
   check: mcp.dashboard_write.create_and_filter
 - id: mcp.dashboard_write.create_and_filter
   area: mcp
   title: "mcp dashboard write create and filter"
-  status: todo
+  status: pass
   check: mcp.dashboard_write.create_and_filter
 - id: mcp.document_write
   area: mcp
@@ -1684,87 +1684,87 @@
 - id: mcp.duplicate_content
   area: mcp
   title: "mcp duplicate content"
-  status: todo
+  status: pass
   check: mcp.duplicate_content
 - id: mcp.execute_query
   area: mcp
   title: "mcp execute query"
-  status: todo
+  status: pass
   check: mcp.execute_query.measure
 - id: mcp.execute_query.breakout
   area: mcp
   title: "mcp execute query breakout"
-  status: todo
+  status: pass
   check: mcp.execute_query.breakout
 - id: mcp.execute_query.date_bucket
   area: mcp
   title: "mcp execute query date bucket"
-  status: todo
+  status: pass
   check: mcp.execute_query.date_bucket
 - id: mcp.execute_query.filter
   area: mcp
   title: "mcp execute query filter"
-  status: todo
+  status: pass
   check: mcp.execute_query.filter
 - id: mcp.execute_query.implicit_join
   area: mcp
   title: "mcp execute query implicit join"
-  status: todo
+  status: fail
   check: mcp.execute_query.implicit_join
 - id: mcp.execute_query.measure
   area: mcp
   title: "mcp execute query measure"
-  status: todo
+  status: pass
   check: mcp.execute_query.measure
 - id: mcp.execute_query.paging
   area: mcp
   title: "mcp execute query paging"
-  status: todo
+  status: fail
   check: mcp.execute_query.paging
 - id: mcp.execute_query.segment
   area: mcp
   title: "mcp execute query segment"
-  status: todo
+  status: pass
   check: mcp.execute_query.segment
 - id: mcp.execute_query.view
   area: mcp
   title: "mcp execute query view"
-  status: todo
+  status: pass
   check: mcp.execute_query.view
 - id: mcp.execute_sql
   area: mcp
   title: "mcp execute sql"
-  status: todo
+  status: pass
   check: mcp.execute_sql
 - id: mcp.get_content
   area: mcp
   title: "mcp get content"
-  status: todo
+  status: pass
   check: mcp.get_content.question
 - id: mcp.get_content.question
   area: mcp
   title: "mcp get content question"
-  status: todo
+  status: pass
   check: mcp.get_content.question
 - id: mcp.get_parameter_values
   area: mcp
   title: "mcp get parameter values"
-  status: todo
+  status: pass
   check: mcp.get_parameter_values.dashboard
 - id: mcp.get_parameter_values.dashboard
   area: mcp
   title: "mcp get parameter values dashboard"
-  status: todo
+  status: pass
   check: mcp.get_parameter_values.dashboard
 - id: mcp.get_parameter_values.question
   area: mcp
   title: "mcp get parameter values question"
-  status: todo
+  status: pass
   check: mcp.get_parameter_values.question
 - id: mcp.get_parameter_values.search
   area: mcp
   title: "mcp get parameter values search"
-  status: todo
+  status: pass
   check: mcp.get_parameter_values.search
 - id: mcp.glossary
   area: mcp
@@ -1779,32 +1779,32 @@
 - id: mcp.measure_write
   area: mcp
   title: "mcp measure write"
-  status: todo
+  status: pass
   check: mcp.measure_write
 - id: mcp.metric_write
   area: mcp
   title: "mcp metric write"
-  status: todo
+  status: pass
   check: mcp.metric_write
 - id: mcp.question_write
   area: mcp
   title: "mcp question write"
-  status: todo
+  status: pass
   check: mcp.question_write.query
 - id: mcp.question_write.native
   area: mcp
   title: "mcp question write native"
-  status: todo
+  status: pass
   check: mcp.question_write.native
 - id: mcp.question_write.query
   area: mcp
   title: "mcp question write query"
-  status: todo
+  status: pass
   check: mcp.question_write.query
 - id: mcp.question_write.query_handle
   area: mcp
   title: "mcp question write query handle"
-  status: todo
+  status: pass
   check: mcp.question_write.query_handle
 - id: mcp.render_drill_through
   area: mcp
@@ -1814,37 +1814,37 @@
 - id: mcp.run_saved_question
   area: mcp
   title: "mcp run saved question"
-  status: todo
+  status: pass
   check: mcp.run_saved_question
 - id: mcp.search
   area: mcp
   title: "mcp search"
-  status: todo
+  status: pass
   check: mcp.search.table_by_description
 - id: mcp.search.measure
   area: mcp
   title: "mcp search measure"
-  status: todo
+  status: fail
   check: mcp.search.measure
 - id: mcp.search.segment
   area: mcp
   title: "mcp search segment"
-  status: todo
+  status: fail
   check: mcp.search.segment
 - id: mcp.search.table_by_description
   area: mcp
   title: "mcp search table by description"
-  status: todo
+  status: pass
   check: mcp.search.table_by_description
 - id: mcp.search.view_description
   area: mcp
   title: "mcp search view description"
-  status: todo
+  status: pass
   check: mcp.search.view_description
 - id: mcp.segment_write
   area: mcp
   title: "mcp segment write"
-  status: todo
+  status: pass
   check: mcp.segment_write
 - id: mcp.subscription_write
   area: mcp
@@ -1859,170 +1859,170 @@
 - id: inherit.cube.members
   area: cube.inheritance
   title: "child cube inherits members"
-  status: todo
+  status: pass
   check: inherit.cube.members
 - id: inherit.cube.override_measure
   area: cube.inheritance
   title: "child cube overrides a measure"
-  status: todo
+  status: pass
   check: inherit.cube.override_measure
 - id: inherit.cube.override_dimension
   area: cube.inheritance
   title: "child cube overrides a dimension"
-  status: todo
+  status: pass
   check: inherit.cube.override_dimension
 - id: inherit.cube.add_measure
   area: cube.inheritance
   title: "child cube adds a measure"
-  status: todo
+  status: pass
   check: inherit.cube.add_measure
 - id: inherit.cube.add_dimension
   area: cube.inheritance
   title: "child cube adds a dimension"
-  status: todo
+  status: pass
   check: inherit.cube.add_dimension
 - id: inherit.multi_level.rows
   area: cube.inheritance
   title: "second level of extends narrows the rows"
-  status: todo
+  status: pass
   check: inherit.multi_level.rows
 - id: inherit.multi_level.add_measure
   area: cube.inheritance
   title: "second level of extends adds a measure"
-  status: todo
+  status: pass
   check: inherit.multi_level.add_measure
 - id: inherit.multi_level.override
   area: cube.inheritance
   title: "second level of extends keeps the override of the first level"
-  status: todo
+  status: pass
   check: inherit.multi_level.override
 - id: inherit.abstract_base
   area: cube.inheritance
   title: "abstract base with public false stays hidden"
-  status: todo
+  status: pass
   check: inherit.abstract_base
 - id: inherit.join
   area: cube.inheritance
   title: "child cube inherits a join"
-  status: todo
+  status: pass
   check: inherit.join
 - id: inherit.segment
   area: cube.inheritance
   title: "child cube inherits a segment"
-  status: todo
+  status: pass
   check: inherit.segment
 - id: inherit.pre_aggregation
   area: cube.inheritance
   title: "child cube inherits a pre-aggregation"
-  status: todo
+  status: pass
   check: inherit.pre_aggregation
 - id: inherit.view.members
   area: cube.inheritance
   title: "view extends a view and inherits members"
-  status: todo
+  status: pass
   check: inherit.view.members
 - id: inherit.view.adds
   area: cube.inheritance
   title: "view extends a view and adds members"
-  status: todo
+  status: pass
   check: inherit.view.adds
 - id: inherit.view.multi_level
   area: cube.inheritance
   title: "second level of view extends"
-  status: todo
+  status: pass
   check: inherit.view.multi_level
 - id: view.includes_star
   area: cube.views
   title: "view includes star"
-  status: todo
+  status: pass
   check: view.includes_star
 - id: view.excludes_star
   area: cube.views
   title: "view includes star with excludes"
-  status: todo
+  status: pass
   check: view.excludes_star
 - id: view.public_true
   area: cube.views
   title: "view with public true"
-  status: todo
+  status: pass
   check: view.public_true
 - id: view.join_path_transitive
   area: cube.views
   title: "view with a transitive join_path"
-  status: todo
+  status: pass
   check: view.join_path_transitive
 - id: view.several_paths
   area: cube.views
   title: "view reaches one cube through several paths"
-  status: todo
+  status: pass
   check: view.several_paths
 - id: view.same_name_two_cubes
   area: cube.views
   title: "view has a member of the same name from two cubes"
-  status: todo
+  status: pass
   check: view.same_name_two_cubes
 - id: view.on_extended_cube
   area: cube.views
   title: "view on an extended cube"
-  status: todo
+  status: pass
   check: view.on_extended_cube
 - id: view.prefix_sync
   area: cube.views
   title: "view prefix in synced fields"
-  status: todo
+  status: pass
   check: view.prefix_sync
 - id: view.member_alias_sync
   area: cube.views
   title: "view member alias in synced fields"
-  status: todo
+  status: pass
   check: view.member_alias_sync
 - id: cube.sql_sync
   area: cube.cubes
   title: "cube sql instead of sql_table in synced fields"
-  status: todo
+  status: pass
   check: cube.sql_sync
 - id: cube.sql_alias_sync
   area: cube.cubes
   title: "cube sql_alias in generated SQL and synced fields"
-  status: todo
+  status: pass
   check: cube.sql_alias_sync
 - id: cube.data_source_default
   area: cube.cubes
   title: "cube with data_source default"
-  status: todo
+  status: pass
   check: cube.data_source_default
 - id: cube.polymorphic_first
   area: cube.cubes
   title: "polymorphic cube, first child"
-  status: todo
+  status: pass
   check: cube.polymorphic_first
 - id: cube.polymorphic_second
   area: cube.cubes
   title: "polymorphic cube, second child"
-  status: todo
+  status: pass
   check: cube.polymorphic_second
 - id: cube.polymorphic_base
   area: cube.cubes
   title: "polymorphic base stays hidden"
-  status: todo
+  status: pass
   check: cube.polymorphic_base
 - id: cube.generated_jinja
   area: cube.cubes
   title: "generated model, YAML with Jinja"
-  status: todo
+  status: pass
   check: cube.generated_jinja
 - id: cube.generated_jinja_second
   area: cube.cubes
   title: "generated model, second cube of the Jinja loop"
-  status: todo
+  status: pass
   check: cube.generated_jinja_second
 - id: cube.generated_async
   area: cube.cubes
   title: "generated model, JavaScript asyncModule"
-  status: todo
+  status: pass
   check: cube.generated_async
 - id: cube.generated_async_second
   area: cube.cubes
   title: "generated model, second cube of asyncModule"
-  status: todo
+  status: pass
   check: cube.generated_async_second
