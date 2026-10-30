@@ -138,7 +138,8 @@ def coverage_files(cells, out):
         (out / "coverage.md").write_text("# Coverage\n\nThe last run did not produce a result.\n")
         return
     color = "brightgreen" if cell_ok(cell) else "red"
-    write_json(out / "badges" / "coverage.json", badge("coverage", result["coverage"], color))
+    message = result["coverage"].removeprefix("coverage: ")
+    write_json(out / "badges" / "coverage.json", badge("coverage", message, color))
     write_json(out / "conformance.json", result)
     lines = [
         "# Coverage",

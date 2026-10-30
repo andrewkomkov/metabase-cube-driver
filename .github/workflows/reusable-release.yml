@@ -97,17 +97,16 @@ jobs:
         run: |
           docker run -d --name demo -p 127.0.0.1:3301:3000 demo:local
           for _ in $(seq 1 100); do
-            engines=$(curl -fsS http://127.0.0.1:3301/api/session/properties 2>/dev/null | jq -c '.engines | keys' || true)
-            if [ -n "$engines" ]; then
-              echo "$engines" | jq -e 'index("cube")' && exit 0
-              echo "::error::the demo image has no cube engine: $engines"
-              docker logs demo | tail -50
+            if curl -fsS http://127.0.0.1:3301/api/health >/dev/null 2>&1; then
+              docker logs demo 2>&1 | grep -q 'Registered driver :cube' && exit 0
+              echo "::error::the demo image did not register the cube driver"
+              docker logs demo 2>&1 | tail -50
               exit 1
             fi
             sleep 3
           done
           echo "::error::the demo image did not start"
-          docker logs demo | tail -50
+          docker logs demo 2>&1 | tail -50
           exit 1
       - name: Save the image
         run: |

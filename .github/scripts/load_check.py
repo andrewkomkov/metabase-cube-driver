@@ -56,10 +56,6 @@ def wait_for_health():
 def main():
     wait_for_health()
     _, properties = call("GET", "/api/session/properties")
-    engines = properties.get("engines", {})
-    if "cube" not in engines:
-        sys.exit(f"the plugin did not register: engines are {sorted(engines)}")
-    print("registered: engine cube is in the list of engines")
 
     status, setup = call("POST", "/api/setup", {
         "token": properties["setup-token"],
@@ -73,6 +69,13 @@ def main():
     })
     if status != 200:
         sys.exit(f"setup failed with {status}: {setup}")
+
+    # Newer versions show the engines only to a signed-in user.
+    _, properties = call("GET", "/api/session/properties", session=setup["id"])
+    engines = properties.get("engines", {})
+    if "cube" not in engines:
+        sys.exit(f"the plugin did not register: engines are {sorted(engines)}")
+    print("registered: engine cube is in the list of engines")
 
     status, result = call(
         "POST",
