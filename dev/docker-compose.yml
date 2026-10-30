@@ -33,6 +33,8 @@ services:
       CUBEJS_TELEMETRY: "false"
       # Without this, a query with a date range that does not align with a rollup reads the rollup and returns a wrong number.
       CUBEJS_PRE_AGGREGATIONS_ALLOW_NON_STRICT_DATE_RANGE_MATCH: "false"
+      # Post-processing reads at most this many rows and then computes from a part of the data with no error. The default is 50000.
+      CUBEJS_DB_QUERY_LIMIT: "2000000"
     volumes: ["./cube/model:/cube/conf/model:ro"]
     ports: ["127.0.0.1:4400:4000", "127.0.0.1:15433:15432"]
     restart: unless-stopped
