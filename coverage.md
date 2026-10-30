@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 581/626 pass** (581 pass, 0 partial, 27 blocked, 9 unsupported, 9 fail of 626)
+**coverage: 594/637 pass** (594 pass, 0 partial, 30 blocked, 9 unsupported, 4 fail of 637)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `346664ae125b`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41083550326), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `50aa312425b9`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41084882174), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -42,7 +42,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `346664a
 | `measure.rolling.to_date_month` | pass |  |
 | `measure.rolling.to_date_year` | pass |  |
 | `measure.rolling.trailing` | pass |  |
-| `measure.rolling.unbounded` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:52:03.916298672Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual |
+| `measure.rolling.unbounded` | blocked | Cube writes the window as a join with only an inequality, and ClickHouse 26.8 rejects it: Cannot determine join keys in JOIN ON expression lessOrEquals(__table10.ord__created_at_month, __table2.date_to). allow_experimental_join_condition=1 does not change this. Bounded windows work, see measure.rolling.trailing. |
 | `measure.type.avg` | pass |  |
 | `measure.type.boolean` | pass |  |
 | `measure.type.count` | pass |  |
@@ -88,7 +88,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `346664a
 | `dimension.type.time` | pass |  |
 | `granularity.custom.interval_hours` | pass |  |
 | `granularity.custom.negative_offset` | pass |  |
-| `granularity.custom.offset` | fail | rows: got ['2025-02-01T00:00:00', 825.0], truth ['2024-11-01T00:00:00', 433.0] |
+| `granularity.custom.offset` | blocked | Wrong number from Cube Store. A custom granularity with an offset in months, on a measure that a rollup of months serves, gets DATE_BIN(INTERVAL '3 MONTH', month, to_timestamp('2026-02-01')). Cube gives 2025-02-01 825 and 2025-05-01 1288. The truth is 2024-11-01 433 and 2025-02-01 1246. A measure that the rollup does not serve is right, see compile.granularity.native_offset_no_rollup. The driver cannot see this. Do not put such a measure in a rollup of months. |
 | `granularity.custom.origin` | pass |  |
 | `granularity.custom.title` | pass |  |
 | `granularity.proxy_default` | pass |  |
@@ -152,7 +152,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `346664a
 | `hierarchy.levels` | pass |  |
 | `hierarchy.public_false` | pass |  |
 | `preagg.indexes` | pass |  |
-| `preagg.original_sql` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:52:33.325108016Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing: |
+| `preagg.original_sql` | blocked | Cube fails to build the rollup on an original_sql pre-aggregation on ClickHouse: Missing columns: 'lambda_orders__status'. |
 | `preagg.partitioned` | pass |  |
 | `preagg.rollup` | pass |  |
 | `preagg.rollup_join` | blocked | rollup_join needs two data sources. The demo stack has one. |
@@ -243,7 +243,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `346664a
 | `mb.filter.eq_number` | pass |  |
 | `mb.filter.eq_string` | pass |  |
 | `mb.filter.exclude_day_of_week` | pass |  |
-| `mb.filter.exclude_month_of_year` | fail | rows: got [4567.0], truth [4608.0] |
+| `mb.filter.exclude_month_of_year` | pass |  |
 | `mb.filter.gt` | pass |  |
 | `mb.filter.gte` | pass |  |
 | `mb.filter.is_empty` | pass |  |
@@ -270,7 +270,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `346664a
 | `mb.expr.coalesce` | pass |  |
 | `mb.expr.concat` | pass |  |
 | `mb.expr.datetime_add` | pass |  |
-| `mb.expr.datetime_diff` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:53:12.038306187Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"lib/type":"mbql/query","stages":[{"lib/type":"mbql.stage/mbql","source-table":27,"fields":[["expression",{"lib |
+| `mb.expr.datetime_diff` | pass |  |
 | `mb.expr.div` | pass |  |
 | `mb.expr.floor` | pass |  |
 | `mb.expr.get_month` | pass |  |
@@ -351,7 +351,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `346664a
 | `mcp.execute_query.filter` | pass |  |
 | `mcp.execute_query.implicit_join` | pass |  |
 | `mcp.execute_query.measure` | pass |  |
-| `mcp.execute_query.paging` | fail | no next_cursor: {'query_handle': '67968218-7a9e-4ea7-a449-94bb9e222ef0', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float' |
+| `mcp.execute_query.paging` | fail | no next_cursor: {'query_handle': '6d8e4f77-766f-468c-8b19-c22fc58696ff', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float' |
 | `mcp.execute_query.segment` | pass |  |
 | `mcp.execute_query.view` | pass |  |
 | `mcp.execute_sql` | pass |  |
@@ -634,3 +634,14 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `346664a
 | `compile.week.week_of_year_monday` | pass |  |
 | `compile.join.explicit_measure_regular` | pass |  |
 | `compile.ch.integer_within_double` | pass |  |
+| `compile.xray.table_all_cards_run` | pass |  |
+| `compile.xray.field_all_cards_run` | pass |  |
+| `compile.xray.time_field_all_cards_run` | pass |  |
+| `compile.xray.typed_table_all_cards_run` | pass |  |
+| `compile.granularity.native_offset_no_rollup` | pass |  |
+| `compile.filter.quote_in_value` | pass |  |
+| `compile.filter.backslash_quote_in_value` | pass |  |
+| `compile.filter.quote_in_contains` | pass |  |
+| `compile.filter.backslash_in_case` | pass |  |
+| `compile.native.cross_join` | pass |  |
+| `compile.native.join_field` | pass |  |

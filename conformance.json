@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 581,
+    "pass": 594,
     "partial": 0,
-    "blocked": 27,
+    "blocked": 30,
     "unsupported": 9,
-    "fail": 9,
-    "total": 626
+    "fail": 4,
+    "total": 637
   },
-  "coverage": "coverage: 581/626 pass",
+  "coverage": "coverage: 594/637 pass",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -182,8 +182,8 @@
     },
     {
       "id": "measure.rolling.unbounded",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:52:03.916298672Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual"
+      "status": "blocked",
+      "reason": "Cube writes the window as a join with only an inequality, and ClickHouse 26.8 rejects it: Cannot determine join keys in JOIN ON expression lessOrEquals(__table10.ord__created_at_month, __table2.date_to). allow_experimental_join_condition=1 does not change this. Bounded windows work, see measure.rolling.trailing."
     },
     {
       "id": "measure.type.avg",
@@ -412,8 +412,8 @@
     },
     {
       "id": "granularity.custom.offset",
-      "status": "fail",
-      "reason": "rows: got ['2025-02-01T00:00:00', 825.0], truth ['2024-11-01T00:00:00', 433.0]"
+      "status": "blocked",
+      "reason": "Wrong number from Cube Store. A custom granularity with an offset in months, on a measure that a rollup of months serves, gets DATE_BIN(INTERVAL '3 MONTH', month, to_timestamp('2026-02-01')). Cube gives 2025-02-01 825 and 2025-05-01 1288. The truth is 2024-11-01 433 and 2025-02-01 1246. A measure that the rollup does not serve is right, see compile.granularity.native_offset_no_rollup. The driver cannot see this. Do not put such a measure in a rollup of months."
     },
     {
       "id": "granularity.custom.origin",
@@ -732,8 +732,8 @@
     },
     {
       "id": "preagg.original_sql",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:52:33.325108016Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing:"
+      "status": "blocked",
+      "reason": "Cube fails to build the rollup on an original_sql pre-aggregation on ClickHouse: Missing columns: 'lambda_orders__status'."
     },
     {
       "id": "preagg.partitioned",
@@ -1187,8 +1187,8 @@
     },
     {
       "id": "mb.filter.exclude_month_of_year",
-      "status": "fail",
-      "reason": "rows: got [4567.0], truth [4608.0]"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.filter.gt",
@@ -1322,8 +1322,8 @@
     },
     {
       "id": "mb.expr.datetime_diff",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:53:12.038306187Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/mbql\",\"source-table\":27,\"fields\":[[\"expression\",{\"lib"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.expr.div",
@@ -1728,7 +1728,7 @@
     {
       "id": "mcp.execute_query.paging",
       "status": "fail",
-      "reason": "no next_cursor: {'query_handle': '67968218-7a9e-4ea7-a449-94bb9e222ef0', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
+      "reason": "no next_cursor: {'query_handle': '6d8e4f77-766f-468c-8b19-c22fc58696ff', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
     },
     {
       "id": "mcp.execute_query.segment",
@@ -3137,6 +3137,61 @@
     },
     {
       "id": "compile.ch.integer_within_double",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.xray.table_all_cards_run",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.xray.field_all_cards_run",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.xray.time_field_all_cards_run",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.xray.typed_table_all_cards_run",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.granularity.native_offset_no_rollup",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.quote_in_value",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.backslash_quote_in_value",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.quote_in_contains",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.backslash_in_case",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.native.cross_join",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.native.join_field",
       "status": "pass",
       "reason": ""
     }
