@@ -4,7 +4,7 @@ CI generates this page from `conformance/run.py`. Do not edit it.
 
 **coverage: 314/405 pass** (314 pass, 0 partial, 23 blocked, 6 unsupported, 62 fail of 405)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `af323d5c0dda`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41071914873), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `8d17b5b514b4`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41072541403), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -42,7 +42,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `af323d5
 | `measure.rolling.to_date_month` | pass |  |
 | `measure.rolling.to_date_year` | pass |  |
 | `measure.rolling.trailing` | pass |  |
-| `measure.rolling.unbounded` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:31:58.974672749Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual |
+| `measure.rolling.unbounded` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:36:12.510228091Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual |
 | `measure.type.avg` | pass |  |
 | `measure.type.boolean` | pass |  |
 | `measure.type.count` | pass |  |
@@ -152,7 +152,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `af323d5
 | `hierarchy.levels` | fail | metadata of orders has no text 'Fulfilment' |
 | `hierarchy.public_false` | pass |  |
 | `preagg.indexes` | pass |  |
-| `preagg.original_sql` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:32:27.812769296Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing: |
+| `preagg.original_sql` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:36:47.302890698Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing: |
 | `preagg.partitioned` | pass |  |
 | `preagg.rollup` | pass |  |
 | `preagg.rollup_join` | blocked | rollup_join needs two data sources. The demo stack has one. |
@@ -196,10 +196,10 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `af323d5
 | `mb.agg.custom_expression` | pass |  |
 | `mb.agg.distinct` | pass |  |
 | `mb.agg.max_field` | pass |  |
-| `mb.agg.median` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:32:43.602293527Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
+| `mb.agg.median` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:37:05.50807092Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional inf |
 | `mb.agg.min_field` | pass |  |
 | `mb.agg.offset_window` | fail | rows: got ['2025-01-01T00:00:00', 0.0], truth ['2025-01-01T00:00:00', None] |
-| `mb.agg.percentile` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:32:44.484063754Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
+| `mb.agg.percentile` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:37:06.503747003Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
 | `mb.agg.share` | pass |  |
 | `mb.agg.stddev` | pass |  |
 | `mb.agg.sum_field` | pass |  |
@@ -221,8 +221,8 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `af323d5
 | `mb.bucket.week` | fail | rows: got ['2024-12-30T00:00:00', 69.0], truth ['2024-12-29T00:00:00', 55.0] |
 | `mb.bucket.week-of-year` | fail | rows: got [1.0, 98.0], truth [1.0, 55.0] |
 | `mb.bucket.year` | pass |  |
-| `mb.breakout.bin_count` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:32:50.833500415Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(20)'. Please check logs for additi |
-| `mb.breakout.bin_width` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:32:51.075247197Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(100)'. Please check logs for addit |
+| `mb.breakout.bin_count` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:37:14.291263249Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(20)'. Please check logs for additi |
+| `mb.breakout.bin_width` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:37:14.556960225Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(100)'. Please check logs for addit |
 | `mb.breakout.boolean` | pass |  |
 | `mb.breakout.limit` | pass |  |
 | `mb.breakout.sorted_by_measure` | pass |  |
@@ -242,8 +242,8 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `af323d5
 | `mb.filter.eq_multi` | pass |  |
 | `mb.filter.eq_number` | pass |  |
 | `mb.filter.eq_string` | pass |  |
-| `mb.filter.exclude_day_of_week` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:32:57.350792204Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
-| `mb.filter.exclude_month_of_year` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:32:57.585747235Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
+| `mb.filter.exclude_day_of_week` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:37:22.103398105Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
+| `mb.filter.exclude_month_of_year` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:37:22.367793427Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
 | `mb.filter.gt` | pass |  |
 | `mb.filter.gte` | pass |  |
 | `mb.filter.is_empty` | pass |  |
@@ -270,13 +270,13 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `af323d5
 | `mb.expr.coalesce` | pass |  |
 | `mb.expr.concat` | pass |  |
 | `mb.expr.datetime_add` | pass |  |
-| `mb.expr.datetime_diff` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:33:06.117484535Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_ |
+| `mb.expr.datetime_diff` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:37:32.564939088Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_ |
 | `mb.expr.div` | pass |  |
 | `mb.expr.floor` | pass |  |
 | `mb.expr.get_month` | pass |  |
 | `mb.expr.get_year` | pass |  |
 | `mb.expr.length` | pass |  |
-| `mb.expr.log` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:33:07.884549818Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Planning Error: Initial planning error: Error during planning: Coercion from [Int64, Float64] to the signat |
+| `mb.expr.log` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:37:34.619821684Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Planning Error: Initial planning error: Error during planning: Coercion from [Int64, Float64] to the signat |
 | `mb.expr.lower` | pass |  |
 | `mb.expr.mul` | pass |  |
 | `mb.expr.power` | pass |  |
@@ -285,11 +285,11 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `af323d5
 | `mb.expr.sqrt` | pass |  |
 | `mb.expr.substring` | pass |  |
 | `mb.expr.upper` | pass |  |
-| `mb.join.explicit_inner` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:33:10.646404317Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
-| `mb.join.explicit_left` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:33:10.891326256Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
+| `mb.join.explicit_inner` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:37:37.879975005Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
+| `mb.join.explicit_left` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:37:38.166033526Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
 | `mb.join.implicit` | fail | no foreign key from orders to users |
 | `mb.join.implicit_filter` | fail | no foreign key from orders to users |
-| `mb.join.measure_across_cubes` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:33:11.131696304Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
+| `mb.join.measure_across_cubes` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:37:38.431311817Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
 | `mb.nested.filter_on_aggregation` | pass |  |
 | `mb.nested.question_as_source` | pass |  |
 | `mb.card.metric` | pass |  |
@@ -351,7 +351,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `af323d5
 | `mcp.execute_query.filter` | pass |  |
 | `mcp.execute_query.implicit_join` | fail | no foreign key from orders to users |
 | `mcp.execute_query.measure` | pass |  |
-| `mcp.execute_query.paging` | fail | no next_cursor: {'query_handle': '807412ab-c54c-49d5-9d69-a811fa17ea06', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float' |
+| `mcp.execute_query.paging` | fail | no next_cursor: {'query_handle': '872e7b03-8133-4b10-b202-fa379b3318d5', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float' |
 | `mcp.execute_query.segment` | pass |  |
 | `mcp.execute_query.view` | pass |  |
 | `mcp.execute_sql` | pass |  |
