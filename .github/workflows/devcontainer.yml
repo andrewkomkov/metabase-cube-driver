@@ -1,0 +1,33 @@
+# Proves that the devcontainer builds.
+name: devcontainer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .devcontainer/**
+      - .github/workflows/devcontainer.yml
+  pull_request:
+    paths:
+      - .devcontainer/**
+      - .github/workflows/devcontainer.yml
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: devcontainer-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build the devcontainer
+        run: npx --yes @devcontainers/cli@0.87.0 build --workspace-folder .

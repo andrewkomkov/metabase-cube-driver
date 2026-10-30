@@ -1,0 +1,56 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+# A pull request cancels its older runs. On main a run finishes and the newest push waits, because
+# frequent pushes would otherwise cancel every run and main would have no result.
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    uses: ./.github/workflows/reusable-lint.yml
+    permissions:
+      contents: read
+
+  build:
+    uses: ./.github/workflows/reusable-build.yml
+    permissions:
+      contents: read
+
+  load-check:
+    needs: build
+    uses: ./.github/workflows/reusable-stack.yml
+    permissions:
+      contents: read
+    with:
+      name: jar load check
+      artifact-name: load-pinned
+      jar-artifact: cube.metabase-driver
+      conformance: false
+
+  conformance:
+    needs: build
+    uses: ./.github/workflows/reusable-stack.yml
+    permissions:
+      contents: read
+    with:
+      name: conformance on the pinned pair
+      artifact-name: conformance-pinned
+      jar-artifact: cube.metabase-driver
+      load-check: false
+
+  status:
+    needs: conformance
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    uses: ./.github/workflows/reusable-status.yml
+    permissions:
+      actions: write
+      contents: write

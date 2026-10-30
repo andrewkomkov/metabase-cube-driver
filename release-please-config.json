@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": false,
+  "include-component-in-tag": false,
+  "include-v-in-tag": true,
+  "initial-version": "0.1.0",
+  "draft": true,
+  "force-tag-creation": true,
+  "changelog-sections": [
+    {"type": "feat", "section": "Features"},
+    {"type": "fix", "section": "Bug fixes"},
+    {"type": "perf", "section": "Performance"},
+    {"type": "docs", "section": "Documentation"},
+    {"type": "build", "section": "Build"},
+    {"type": "ci", "section": "CI", "hidden": true},
+    {"type": "chore", "section": "Chores", "hidden": true},
+    {"type": "test", "section": "Tests", "hidden": true},
+    {"type": "refactor", "section": "Refactoring", "hidden": true},
+    {"type": "style", "section": "Style", "hidden": true}
+  ],
+  "packages": {
+    ".": {
+      "package-name": "metabase-cube-driver",
+      "extra-files": [
+        {"type": "yaml", "path": "resources/metabase-plugin.yaml", "jsonpath": "$.info.version"}
+      ]
+    }
+  }
+}

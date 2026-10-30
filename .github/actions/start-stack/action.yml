@@ -1,0 +1,59 @@
+name: Start the demo stack
+description: Starts ClickHouse, Cube and Metabase from dev/docker-compose.yml. The jar must be in dev/plugins.
+inputs:
+  metabase-version:
+    description: Metabase image tag. Empty means the pin in the compose file.
+    required: false
+    default: ""
+  cube-version:
+    description: Cube image tag. Empty means the pin in the compose file.
+    required: false
+    default: ""
+  clickhouse-version:
+    description: ClickHouse image tag. Empty means the pin in the compose file.
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Export the versions
+      shell: bash
+      env:
+        METABASE: ${{ inputs.metabase-version }}
+        CUBE: ${{ inputs.cube-version }}
+        CLICKHOUSE: ${{ inputs.clickhouse-version }}
+      run: |
+        [ -z "$METABASE" ] || echo "METABASE_VERSION=$METABASE" >> "$GITHUB_ENV"
+        [ -z "$CUBE" ] || echo "CUBE_VERSION=$CUBE" >> "$GITHUB_ENV"
+        [ -z "$CLICKHOUSE" ] || echo "CLICKHOUSE_VERSION=$CLICKHOUSE" >> "$GITHUB_ENV"
+    - name: Start ClickHouse and Cube
+      shell: bash
+      working-directory: dev
+      run: docker compose up -d --wait clickhouse cube
+    - name: Check that Cube agrees with ClickHouse
+      shell: bash
+      working-directory: dev
+      run: |
+        truth=$(docker compose exec -T clickhouse clickhouse-client -u shop --password shop-dev-only \
+          -q 'SELECT count() FROM shop.orders' </dev/null)
+        got=
+        for _ in $(seq 1 60); do
+          got=$(curl -sS -G http://127.0.0.1:4400/cubejs-api/v1/load \
+            --data-urlencode 'query={"measures":["orders.count"]}' \
+            | jq -r '.data[0]["orders.count"] // empty' || true)
+          [ -n "$got" ] && break
+          sleep 3
+        done
+        echo "clickhouse=$truth cube=$got"
+        [ "$truth" = "$got" ]
+    - name: Start Metabase
+      shell: bash
+      working-directory: dev
+      run: |
+        docker compose up -d metabase
+        for _ in $(seq 1 100); do
+          curl -fsS http://127.0.0.1:3300/api/health && exit 0
+          sleep 3
+        done
+        echo "::error::Metabase did not become healthy"
+        exit 1

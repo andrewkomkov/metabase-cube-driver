@@ -1,0 +1,196 @@
+# Builds, verifies and publishes a release. The release stays a draft until the gates are green.
+# A dry run makes the same files, and pushes only the image tag "dry-run". It changes no release.
+name: reusable-release
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Tag of the draft release. Empty for a dry run.
+        type: string
+        default: ""
+      dry-run:
+        description: Skip all release changes.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  JAR: cube.metabase-driver.jar
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      ref: ${{ inputs.tag }}
+      expect-tag: ${{ inputs.tag }}
+
+  load-check:
+    needs: build
+    uses: ./.github/workflows/reusable-stack.yml
+    with:
+      name: jar load check
+      artifact-name: load-release
+      ref: ${{ inputs.tag }}
+      jar-artifact: cube.metabase-driver
+      conformance: false
+
+  conformance:
+    needs: build
+    uses: ./.github/workflows/reusable-stack.yml
+    with:
+      name: conformance on the pinned pair
+      artifact-name: conformance-release
+      ref: ${{ inputs.tag }}
+      jar-artifact: cube.metabase-driver
+      load-check: false
+
+  package:
+    name: checksum, SBOM, attestations and image
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+    outputs:
+      metabase: ${{ steps.pins.outputs.metabase }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: cube.metabase-driver
+          path: bundle
+      - name: Write the checksum
+        working-directory: bundle
+        run: sha256sum "$JAR" | tee "$JAR.sha256"
+      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          file: bundle/cube.metabase-driver.jar
+          format: spdx-json
+          output-file: bundle/cube.metabase-driver.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: bundle/cube.metabase-driver.jar
+      - uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: bundle/cube.metabase-driver.jar
+          sbom-path: bundle/cube.metabase-driver.spdx.json
+      - name: Read the Metabase pin
+        id: pins
+        run: echo "metabase=$(python3 .github/scripts/pins.py read | jq -r .metabase)" >> "$GITHUB_OUTPUT"
+      - name: Build the demo image
+        env:
+          METABASE_VERSION: ${{ steps.pins.outputs.metabase }}
+        run: |
+          cp "bundle/$JAR" .github/docker/demo/
+          docker build --build-arg METABASE_VERSION="$METABASE_VERSION" -t demo:local .github/docker/demo
+      - name: Check that the demo image registers the driver
+        run: |
+          docker run -d --name demo -p 127.0.0.1:3301:3000 demo:local
+          for _ in $(seq 1 100); do
+            engines=$(curl -fsS http://127.0.0.1:3301/api/session/properties 2>/dev/null | jq -c '.engines | keys' || true)
+            if [ -n "$engines" ]; then
+              echo "$engines" | jq -e 'index("cube")' && exit 0
+              echo "::error::the demo image has no cube engine: $engines"
+              docker logs demo | tail -50
+              exit 1
+            fi
+            sleep 3
+          done
+          echo "::error::the demo image did not start"
+          docker logs demo | tail -50
+          exit 1
+      - name: Save the image
+        run: |
+          docker rm -f demo
+          docker save demo:local | gzip > image.tar.gz
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-bundle
+          path: |
+            bundle
+            image.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: publish
+    needs: [build, load-check, conformance, package]
+    # The gates block a real release. A dry run continues so that it can test the steps below.
+    if: >-
+      ${{ !cancelled() && needs.package.result == 'success'
+      && (inputs.dry-run || (needs.load-check.result == 'success' && needs.conformance.result == 'success')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-bundle
+          path: release-bundle
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: conformance-release
+          path: conformance-release
+      - name: Attach the files and add the coverage to the notes
+        if: ${{ !inputs.dry-run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber release-bundle/bundle/*
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body > notes.md
+          python3 .github/scripts/report.py notes conformance-release >> notes.md
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.md
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Push the demo image
+        id: image
+        env:
+          TAG: ${{ inputs.tag }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          image="ghcr.io/$GITHUB_REPOSITORY/demo"
+          gzip -dc release-bundle/image.tar.gz | docker load
+          if [ "$DRY_RUN" = true ]; then
+            tags="dry-run"
+          else
+            tags="$TAG latest"
+          fi
+          for tag in $tags; do
+            docker tag demo:local "$image:$tag"
+            docker push "$image:$tag"
+          done
+          digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$image:${tags%% *}" | cut -d@ -f2)
+          echo "name=$image" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ steps.image.outputs.name }}
+          subject-digest: ${{ steps.image.outputs.digest }}
+          push-to-registry: true
+      - name: Publish the release
+        if: ${{ !inputs.dry-run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest

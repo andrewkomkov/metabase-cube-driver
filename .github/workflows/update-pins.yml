@@ -1,0 +1,40 @@
+# Finds new tags of metabase/metabase, cubejs/cube, clickhouse/clickhouse-server and the CI tools.
+# Dependabot cannot read the ${VAR:-default} pins in the compose file, so this workflow owns the images.
+name: update-pins
+
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+    inputs:
+      only:
+        description: Update only this name, for example metabase. Empty means all.
+        type: string
+        default: ""
+
+permissions: {}
+
+concurrency:
+  group: update-pins
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: open pull requests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Open or refresh the pull requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ONLY: ${{ inputs.only }}
+        run: .github/scripts/update_pins.sh "$ONLY"

@@ -1,0 +1,45 @@
+# Keeps the release pull request up to date. A merge of that pull request creates a draft release and a
+# tag. Tags from GITHUB_TOKEN start no workflows, so the release job runs here, in the same workflow.
+name: release-please
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        id: release
+        with:
+          token: ${{ github.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  release:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/reusable-release.yml
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+      packages: write
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}

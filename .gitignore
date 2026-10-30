@@ -4,3 +4,10 @@
 /.nrepl-port
 __pycache__/
 .env
+/site/
+/ci-out/
+/docs/coverage.md
+/docs/compatibility.md
+/.clj-kondo/.cache/
+/.clj-kondo/.lsp/
+/.lsp/

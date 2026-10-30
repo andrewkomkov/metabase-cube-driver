@@ -1,0 +1,61 @@
+# Version matrix. Only the pinned pair can fail this workflow. The other pairs report only.
+name: nightly
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: nightly
+  cancel-in-progress: true
+
+jobs:
+  resolve:
+    name: resolve versions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Find the versions
+        id: matrix
+        run: |
+          matrix=$(python3 .github/scripts/pins.py matrix)
+          echo "$matrix" | jq .
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  cell:
+    needs: resolve
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix: ${{ fromJSON(needs.resolve.outputs.matrix) }}
+    uses: ./.github/workflows/reusable-stack.yml
+    permissions:
+      contents: read
+    with:
+      name: Metabase ${{ matrix.metabase }} and Cube ${{ matrix.cube }}
+      artifact-name: conformance-${{ matrix.id }}
+      metabase-version: ${{ matrix.metabase }}
+      cube-version: ${{ matrix.cube }}
+      clickhouse-version: ${{ matrix.clickhouse }}
+      required: ${{ matrix.required }}
+      report-only: ${{ !matrix.required }}
+
+  status:
+    needs: cell
+    if: ${{ !cancelled() }}
+    uses: ./.github/workflows/reusable-status.yml
+    permissions:
+      actions: write
+      contents: write
+    with:
+      compat: true

@@ -1,0 +1,17 @@
+extends: default
+
+ignore: |
+  site/
+  .clj-kondo/.cache/
+
+rules:
+  braces:
+    max-spaces-inside: 1
+  brackets:
+    max-spaces-inside: 1
+  comments:
+    min-spaces-from-content: 1
+  document-start: disable
+  line-length: disable
+  truthy:
+    check-keys: false

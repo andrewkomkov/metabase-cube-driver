@@ -1,0 +1,166 @@
+# Starts the demo stack, then runs the jar load check, the conformance suite, or both.
+# Uses no secrets: the demo stack has fixed throwaway credentials for fake data.
+name: reusable-stack
+
+on:
+  workflow_call:
+    inputs:
+      name:
+        description: Name of the job.
+        type: string
+        required: true
+      artifact-name:
+        description: Name of the artifact with cell.json, result.json and the stack logs.
+        type: string
+        required: true
+      ref:
+        description: Git ref to test. Empty means the ref of the run.
+        type: string
+        default: ""
+      metabase-version:
+        description: Metabase image tag. Empty means the pin.
+        type: string
+        default: ""
+      cube-version:
+        description: Cube image tag. Empty means the pin.
+        type: string
+        default: ""
+      clickhouse-version:
+        description: ClickHouse image tag. Empty means the pin.
+        type: string
+        default: ""
+      jar-artifact:
+        description: Artifact with the jar. Empty means build the jar from the ref.
+        type: string
+        default: ""
+      load-check:
+        description: Run the jar load check.
+        type: boolean
+        default: true
+      conformance:
+        description: Run the conformance suite.
+        type: boolean
+        default: true
+      required:
+        description: This is the pinned pair, so its coverage is the coverage of the project.
+        type: boolean
+        default: true
+      report-only:
+        description: A failure does not fail the workflow.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  stack:
+    name: ${{ inputs.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    continue-on-error: ${{ inputs.report-only }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - uses: ./.github/actions/build-jar
+        if: inputs.jar-artifact == ''
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: inputs.jar-artifact != ''
+        with:
+          name: ${{ inputs.jar-artifact }}
+          path: dev/plugins
+
+      - name: Make the plugins directory usable by the Metabase container
+        run: |
+          chmod 777 dev/plugins
+          chmod 644 dev/plugins/cube.metabase-driver.jar
+
+      - uses: ./.github/actions/start-stack
+        id: stack
+        continue-on-error: true
+        with:
+          metabase-version: ${{ inputs.metabase-version }}
+          cube-version: ${{ inputs.cube-version }}
+          clickhouse-version: ${{ inputs.clickhouse-version }}
+
+      - name: Check that Metabase loads the jar
+        id: load
+        if: inputs.load-check && steps.stack.outcome == 'success'
+        continue-on-error: true
+        run: python3 .github/scripts/load_check.py
+
+      - name: Give the suite a fresh Metabase
+        if: inputs.load-check && inputs.conformance && steps.load.outcome == 'success'
+        working-directory: dev
+        run: |
+          docker compose rm -sfv metabase
+          docker volume rm metabase-cube-driver_metabase-data
+          docker compose up -d metabase
+          for _ in $(seq 1 100); do
+            curl -fsS http://127.0.0.1:3300/api/health && exit 0
+            sleep 3
+          done
+          echo "::error::Metabase did not become healthy"
+          exit 1
+
+      - uses: ./.github/actions/run-conformance
+        id: conformance
+        if: inputs.conformance && steps.stack.outcome == 'success' && steps.load.outcome != 'failure'
+        continue-on-error: true
+        with:
+          result-path: ci-out/result.json
+
+      - name: Record the result of this run
+        if: always()
+        env:
+          STACK: ${{ steps.stack.outcome }}
+          LOAD: ${{ steps.load.outcome }}
+          CONFORMANCE: ${{ steps.conformance.outcome }}
+          REQUIRED: ${{ inputs.required }}
+          NAME: ${{ inputs.name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          mkdir -p ci-out
+          docker compose -f dev/docker-compose.yml logs --no-color > ci-out/stack.log 2>&1 || true
+          pins=$(python3 .github/scripts/pins.py read)
+          [ "$STACK" = success ] || LOAD=stack-failed
+          jq -n --argjson pins "$pins" --arg name "$NAME" --arg load "$LOAD" --arg conformance "$CONFORMANCE" \
+            --argjson required "$REQUIRED" --arg sha "$(git rev-parse HEAD)" --arg run_url "$RUN_URL" --arg date "$(date -u +%F)" \
+            --arg metabase "${METABASE_VERSION:-}" --arg cube "${CUBE_VERSION:-}" --arg clickhouse "${CLICKHOUSE_VERSION:-}" \
+            '{name: $name, load: $load, conformance: $conformance, required: $required, sha: $sha, run_url: $run_url, date: $date,
+              metabase: (if $metabase == "" then $pins.metabase else $metabase end),
+              cube: (if $cube == "" then $pins.cube else $cube end),
+              clickhouse: (if $clickhouse == "" then $pins.clickhouse else $clickhouse end)}' \
+            > ci-out/cell.json
+          cat ci-out/cell.json
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ci-out
+          retention-days: 14
+
+      - name: Stop the stack
+        if: always()
+        working-directory: dev
+        run: docker compose down -v
+
+      - name: Give the verdict
+        if: always()
+        env:
+          STACK: ${{ steps.stack.outcome }}
+          LOAD: ${{ steps.load.outcome }}
+          CONFORMANCE: ${{ steps.conformance.outcome }}
+        run: |
+          echo "stack=$STACK load=$LOAD conformance=$CONFORMANCE"
+          {
+            echo "| Stack | Jar loads | Conformance |"
+            echo "| --- | --- | --- |"
+            echo "| $STACK | $LOAD | $CONFORMANCE |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$STACK" = success ] && [ "$LOAD" != failure ] && [ "$CONFORMANCE" != failure ]

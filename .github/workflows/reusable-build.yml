@@ -1,0 +1,56 @@
+# Builds the jar and uploads it as the artifact cube.metabase-driver.
+name: reusable-build
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to build. Empty means the ref of the run.
+        type: string
+        default: ""
+      expect-tag:
+        description: If given, the manifest version must be this tag without its v.
+        type: string
+        default: ""
+    outputs:
+      sha256:
+        description: SHA-256 of the jar.
+        value: ${{ jobs.build.outputs.sha256 }}
+      version:
+        description: Version from the plugin manifest.
+        value: ${{ jobs.build.outputs.version }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: jar
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      sha256: ${{ steps.jar.outputs.sha256 }}
+      version: ${{ steps.jar.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: ./.github/actions/build-jar
+        id: jar
+      - name: Compare the version with the tag
+        if: inputs.expect-tag != ''
+        env:
+          TAG: ${{ inputs.expect-tag }}
+          VERSION: ${{ steps.jar.outputs.version }}
+        run: |
+          if [ "v$VERSION" != "$TAG" ]; then
+            echo "::error::the manifest version is $VERSION but the tag is $TAG"
+            exit 1
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cube.metabase-driver
+          path: dev/plugins/cube.metabase-driver.jar
+          if-no-files-found: error
+          retention-days: 14

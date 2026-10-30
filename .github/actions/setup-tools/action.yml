@@ -1,0 +1,19 @@
+name: Set up CI tools
+description: Installs the checksum-verified binaries from .github/tools/tools.json, from a cache when possible.
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      id: cache
+      with:
+        path: ~/.cache/ci-tools
+        key: ci-tools-${{ runner.os }}-${{ hashFiles('.github/tools/tools.json') }}
+    - name: Install the tools
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: python3 .github/scripts/install_tools.py ~/.cache/ci-tools
+    - name: Link the tools into a directory on the path
+      shell: bash
+      run: |
+        mkdir -p ~/.local/bin
+        ln -sf ~/.cache/ci-tools/* ~/.local/bin/

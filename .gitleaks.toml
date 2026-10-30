@@ -1,0 +1,7 @@
+[extend]
+useDefault = true
+
+# The demo stack has fixed throwaway credentials for fake data. All of them contain "dev-only".
+[[allowlists]]
+description = "Throwaway credentials of the demo stack"
+regexes = ['''[A-Za-z0-9-]*dev-only[A-Za-z0-9-]*''']

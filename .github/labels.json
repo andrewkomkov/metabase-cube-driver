@@ -1,0 +1,12 @@
+[
+  {"name": "bug", "color": "d73a4a", "description": "Something does not work"},
+  {"name": "feature", "color": "a2eeef", "description": "A new Cube or Metabase feature"},
+  {"name": "conformance", "color": "5319e7", "description": "The feature matrix or a check"},
+  {"name": "compatibility", "color": "fbca04", "description": "A Metabase, Cube or ClickHouse version"},
+  {"name": "dependencies", "color": "0366d6", "description": "A version update"},
+  {"name": "pin-regression", "color": "b60205", "description": "A pin update lowered the conformance pass count"},
+  {"name": "ci", "color": "ededed", "description": "Workflows and tools"},
+  {"name": "docs", "color": "0075ca", "description": "Documentation"},
+  {"name": "security", "color": "ee0701", "description": "A security topic"},
+  {"name": "good first issue", "color": "7057ff", "description": "A good start for a new contributor"}
+]

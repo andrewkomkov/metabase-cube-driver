@@ -1,0 +1,20 @@
+{
+  "clj-kondo": {
+    "repo": "clj-kondo/clj-kondo",
+    "tag": "v2026.10.26",
+    "asset": "clj-kondo-{version}-linux-static-amd64.zip",
+    "sha256": "cb56971158407311d469e2a639347efb19b9cc34f07ed9d9b3013fb975cba0a3"
+  },
+  "cljfmt": {
+    "repo": "weavejester/cljfmt",
+    "tag": "0.16.6",
+    "asset": "cljfmt-{version}-linux-amd64-static.tar.gz",
+    "sha256": "a01efb0e42a10d0f448f0dfd6740d62ced058d6649487c608710c6378b73f1cb"
+  },
+  "gitleaks": {
+    "repo": "gitleaks/gitleaks",
+    "tag": "v8.30.1",
+    "asset": "gitleaks_{version}_linux_x64.tar.gz",
+    "sha256": "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+  }
+}

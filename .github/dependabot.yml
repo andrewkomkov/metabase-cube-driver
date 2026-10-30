@@ -1,0 +1,43 @@
+# update-pins.yml owns the Metabase, Cube and ClickHouse images and the CI tool binaries.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/*
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [dependencies]
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: pip
+    directories:
+      - /.github/tools
+      - /docs
+    schedule:
+      interval: weekly
+    groups:
+      python-tools:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [dependencies]
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: devcontainers
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [dependencies]

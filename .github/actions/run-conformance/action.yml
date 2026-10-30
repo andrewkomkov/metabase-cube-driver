@@ -1,0 +1,52 @@
+name: Run conformance
+description: Runs conformance/run.py against the running stack and checks that it wrote its JSON result.
+inputs:
+  result-path:
+    description: Path of the result JSON.
+    required: true
+outputs:
+  passed:
+    description: Pass count from the result.
+    value: ${{ steps.summary.outputs.passed }}
+  total:
+    description: Total count from the result.
+    value: ${{ steps.summary.outputs.total }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      if: ${{ hashFiles('conformance/requirements.txt') != '' }}
+      with:
+        path: ~/.cache/pip
+        key: pip-conformance-${{ runner.os }}-${{ hashFiles('conformance/requirements.txt') }}
+    - name: Install requirements
+      shell: bash
+      run: |
+        if [ -f conformance/requirements.txt ]; then
+          python3 -m pip install --user --break-system-packages -r conformance/requirements.txt
+        fi
+    - name: Run the suite
+      id: suite
+      shell: bash
+      env:
+        RESULT_PATH: ${{ inputs.result-path }}
+      run: |
+        if [ ! -f conformance/run.py ]; then
+          echo "::error::conformance/run.py is not in the repository, so no coverage exists"
+          exit 1
+        fi
+        mkdir -p "$(dirname "$RESULT_PATH")"
+        python3 conformance/run.py --no-write --json "$RESULT_PATH"
+    - name: Summarize the result
+      id: summary
+      if: ${{ !cancelled() }}
+      shell: bash
+      env:
+        RESULT_PATH: ${{ inputs.result-path }}
+        SUITE: ${{ steps.suite.outcome }}
+      run: |
+        python3 .github/scripts/report.py summary "$RESULT_PATH" | tee -a "$GITHUB_STEP_SUMMARY"
+        if [ "$SUITE" = success ] && ! grep -q '^valid=true$' "$GITHUB_OUTPUT"; then
+          echo "::error::conformance/run.py exited 0 but its JSON result does not exist or does not follow the contract"
+          exit 1
+        fi

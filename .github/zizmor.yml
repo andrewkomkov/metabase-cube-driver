@@ -1,0 +1,4 @@
+rules:
+  # A hint for syntax that actionlint rejects. Local paths are correct here.
+  self-repository:
+    disable: true

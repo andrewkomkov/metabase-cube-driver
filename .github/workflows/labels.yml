@@ -1,0 +1,32 @@
+# Creates and updates the labels in .github/labels.json. It deletes no labels.
+name: labels
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/labels.json
+      - .github/workflows/labels.yml
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Sync the labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          jq -r '.[] | [.name, .color, .description] | @tsv' .github/labels.json |
+            while IFS="$(printf '\t')" read -r name color description; do
+              gh label create "$name" --repo "$GITHUB_REPOSITORY" --force --color "$color" --description "$description"
+            done

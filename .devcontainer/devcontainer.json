@@ -1,0 +1,18 @@
+{
+  "name": "metabase-cube-driver",
+  "image": "mcr.microsoft.com/devcontainers/java:21",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/python:1": {"version": "3.12"},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "forwardPorts": [3300, 4400, 15433],
+  "portsAttributes": {
+    "3300": {"label": "Metabase"},
+    "4400": {"label": "Cube REST API"},
+    "15433": {"label": "Cube SQL API"}
+  },
+  "postCreateCommand": "python -m pip install -r .github/tools/requirements.txt && python .github/scripts/install_tools.py ~/.local/bin",
+  "containerEnv": {"PATH": "${containerEnv:PATH}:/home/vscode/.local/bin"},
+  "remoteUser": "vscode"
+}

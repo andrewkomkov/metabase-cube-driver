@@ -1,0 +1,78 @@
+# Static checks. No check here needs the stack.
+name: reusable-lint
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  clojure:
+    name: clj-kondo and cljfmt
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-tools
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .clj-kondo/.cache
+          key: clj-kondo-${{ hashFiles('.github/tools/tools.json', '.clj-kondo/config.edn', 'src/**') }}
+          restore-keys: clj-kondo-
+      - name: clj-kondo
+        run: clj-kondo --lint src
+      - name: cljfmt
+        run: cljfmt check src
+
+  workflows:
+    name: actionlint, zizmor and yamllint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: .github/tools/requirements.txt
+      - name: Install the tools
+        run: python -m pip install -r .github/tools/requirements.txt
+      - name: actionlint
+        run: actionlint
+      - name: zizmor
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: zizmor .github
+      - name: yamllint
+        run: yamllint --strict .
+
+  secrets:
+    name: gitleaks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-tools
+      - name: gitleaks
+        run: gitleaks git --redact --no-banner .
+
+  compose:
+    name: compose config
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check the compose file
+        run: docker compose -f dev/docker-compose.yml config -q
+      - name: Check that the pins can be read
+        run: python3 .github/scripts/pins.py read
