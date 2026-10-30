@@ -174,8 +174,8 @@
 - id: measure.rolling.unbounded
   area: cube.measures
   title: "measure rolling unbounded"
-  status: fail
-  check: measure.rolling.unbounded
+  status: blocked
+  reason: "Cube writes the window as a join with only an inequality, and ClickHouse 26.8 rejects it: Cannot determine join keys in JOIN ON expression lessOrEquals(__table10.ord__created_at_month, __table2.date_to). allow_experimental_join_condition=1 does not change this. Bounded windows work, see measure.rolling.trailing."
 - id: measure.type.avg
   area: cube.measures
   title: "measure type avg"
@@ -404,8 +404,8 @@
 - id: granularity.custom.offset
   area: cube.dimensions
   title: "granularity custom offset"
-  status: fail
-  check: granularity.custom.offset
+  status: blocked
+  reason: "Wrong number from Cube Store. A custom granularity with an offset in months, on a measure that a rollup of months serves, gets DATE_BIN(INTERVAL '3 MONTH', month, to_timestamp('2026-02-01')). Cube gives 2025-02-01 825 and 2025-05-01 1288. The truth is 2024-11-01 433 and 2025-02-01 1246. A measure that the rollup does not serve is right, see compile.granularity.native_offset_no_rollup. The driver cannot see this. Do not put such a measure in a rollup of months."
 - id: granularity.custom.origin
   area: cube.dimensions
   title: "granularity custom origin"
@@ -724,8 +724,8 @@
 - id: preagg.original_sql
   area: cube.pre_aggregations
   title: "preagg original sql"
-  status: fail
-  check: preagg.original_sql
+  status: blocked
+  reason: "Cube fails to build the rollup on an original_sql pre-aggregation on ClickHouse: Missing columns: 'lambda_orders__status'."
 - id: preagg.partitioned
   area: cube.pre_aggregations
   title: "preagg partitioned"
@@ -3131,3 +3131,28 @@
   title: "ch integer within double"
   status: todo
   check: compile.ch.integer_within_double
+- id: compile.xray.table_all_cards_run
+  area: mb.compile.xray
+  title: "xray table all cards run"
+  status: todo
+  check: compile.xray.table_all_cards_run
+- id: compile.xray.field_all_cards_run
+  area: mb.compile.xray
+  title: "xray field all cards run"
+  status: todo
+  check: compile.xray.field_all_cards_run
+- id: compile.xray.time_field_all_cards_run
+  area: mb.compile.xray
+  title: "xray time field all cards run"
+  status: todo
+  check: compile.xray.time_field_all_cards_run
+- id: compile.xray.typed_table_all_cards_run
+  area: mb.compile.xray
+  title: "xray typed table all cards run"
+  status: todo
+  check: compile.xray.typed_table_all_cards_run
+- id: compile.granularity.native_offset_no_rollup
+  area: mb.compile.granularity
+  title: "granularity native offset no rollup"
+  status: todo
+  check: compile.granularity.native_offset_no_rollup

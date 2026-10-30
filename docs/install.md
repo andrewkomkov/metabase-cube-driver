@@ -32,6 +32,10 @@ In Metabase, go to **Admin > Databases > Add database** and select **Cube**.
 | Cube REST URL | The base URL of the Cube REST API. The driver reads the data model from it. |
 | Cube API secret | The value of `CUBEJS_API_SECRET`. The driver signs a short-lived JWT with it. |
 
+## Required Cube settings
+
+Set `CUBEJS_PRE_AGGREGATIONS_ALLOW_NON_STRICT_DATE_RANGE_MATCH=false` and raise `CUBEJS_DB_QUERY_LIMIT` on Cube. With the defaults, Cube returns wrong numbers with no error. See [How queries reach Cube](query-compilation.md).
+
 ## Demo stack
 
 Start the demo stack with `make up`. These are fixed throwaway values for fake data, and each port binds

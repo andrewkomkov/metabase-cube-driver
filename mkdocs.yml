@@ -13,6 +13,7 @@ nav:
   - Install and connect: install.md
   - Use with an AI agent: ai-agents.md
   - Cube objects in Metabase: semantic-sync.md
+  - How queries reach Cube: query-compilation.md
   - Coverage: coverage.md
   - Compatibility: compatibility.md
   - CI and releases: ci-and-releases.md

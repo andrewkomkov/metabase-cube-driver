@@ -1293,7 +1293,7 @@ for _fid, _clause, _sql in [
     ("relative_past", ["time-interval", CRT, -1000, "day"], "toDate(created_at) >= today() - 1000 AND toDate(created_at) < today()"),
     ("relative_current", ["time-interval", CRT, "current", "year"], "toYear(created_at) = toYear(today())"),
     ("exclude_day_of_week", ["!=", CRT + "@day-of-week", 2], "toDayOfWeek(created_at, 3) != 2"),
-    ("exclude_month_of_year", ["!=", CRT + "@month-of-year", 2], "toMonth(created_at) != 2"),
+    ("exclude_month_of_year", ["!=", CRT + "@month-of-year", "2025-02-01"], "toMonth(created_at) != 2"),
     ("and", ["and", ["=", STA, "completed"], [">", QTY, 2]], "status = 'completed' AND quantity > 2"),
     ("or", ["or", ["=", STA, "shipped"], [">", QTY, 3]], "status = 'shipped' OR quantity > 3"),
     ("not", ["not", ["=", STA, "shipped"]], "NOT status = 'shipped'"),
@@ -1328,7 +1328,7 @@ for _name, _clause, _sql in [
     ("get_year", ["get-year", CRT], "toYear(created_at)"),
     ("get_month", ["get-month", CRT], "toMonth(created_at)"),
     ("datetime_add", ["datetime-add", CRT, 1, "day"], "created_at + INTERVAL 1 DAY"),
-    ("datetime_diff", ["datetime-diff", CRT, ["datetime-add", CRT, 3, "day"], "day"], "3"),
+    ("datetime_diff", ["datetime-diff", "d:orders.created_fiscal_quarter", CRT, "day"], "dateDiff('day', addMonths(toStartOfQuarter(addMonths(created_at, -1)), 1), created_at)"),
 ]:
     Q("mb.expr.%s" % _name, ORD, "SELECT %s FROM orders WHERE id = 7" % _sql, fields=[["expression", _name]], exprs={_name: _clause}, where=ID7)
 
@@ -2680,6 +2680,8 @@ C("compile.granularity.proxy_no_bin", ORD, "SELECT %s, count() FROM orders GROUP
 N("compile.granularity.native", "SELECT DATE_TRUNC('half_day', created_at) AS d, MEASURE(count) AS n FROM orders GROUP BY 1", "SELECT %s, count() FROM orders GROUP BY 1" % _HALF)
 N("compile.granularity.native_fiscal_year", "SELECT DATE_TRUNC('fiscal_year_april', created_at) AS d, MEASURE(count) AS n FROM orders GROUP BY 1",
   "SELECT addMonths(toStartOfYear(addMonths(created_at, -3)), 3), count() FROM orders GROUP BY 1")
+N("compile.granularity.native_offset_no_rollup", "SELECT DATE_TRUNC('fiscal_quarter', created_at) AS d, MEASURE(unique_customers) AS n, MEASURE(avg_order_value) AS a FROM orders GROUP BY 1",
+  "SELECT addMonths(toStartOfQuarter(addMonths(created_at, -1)), 1), uniqExact(user_id), avg(amount) FROM orders GROUP BY 1")
 N("compile.granularity.native_sunday", "SELECT DATE_TRUNC('week_from_sunday', created_at) AS d, MEASURE(count) AS n FROM orders GROUP BY 1", "SELECT toStartOfWeek(created_at, 0), count() FROM orders GROUP BY 1")
 
 # filters on the demo types, with the NULL rule of Metabase: != keeps the NULL rows
@@ -3181,6 +3183,47 @@ C("compile.tz.dst_day_in_new_york_column", TE, "SELECT toStartOfDay(ts_ny, 'UTC'
   by=["d:typed_events.ts_ny@day"], where=[["between", "d:typed_events.ts_ny@day", "2025-03-08", "2025-03-10"]])
 
 
+# X-rays run the queries of the generated dashboard
+
+
+def xray_cards(ctx, path):
+    dash = ctx.mb.api("GET", "/api/automagic-dashboards/" + path)
+    cards = [dc["card"] for dc in dash.get("dashcards", []) if dc.get("card") and dc["card"].get("dataset_query")]
+    if not cards:
+        raise Fail("the X-ray has no cards")
+    failed = []
+    for card in cards:
+        query = card["dataset_query"]
+        try:
+            ctx.mb.dataset(query)
+        except Fail as e:
+            failed.append((card.get("name"), str(e)[:160]))
+    if failed:
+        raise Fail("%d of %d cards failed: %s" % (len(failed), len(cards), failed[:3]))
+    return cards
+
+
+@check("compile.xray.table_all_cards_run")
+def _(ctx):
+    xray_cards(ctx, "table/%d" % ctx.mb.table(ORD)["id"])
+
+
+@check("compile.xray.field_all_cards_run")
+def _(ctx):
+    xray_cards(ctx, "field/%d" % ctx.mb.field(ORD, "status")["id"])
+
+
+@check("compile.xray.time_field_all_cards_run")
+def _(ctx):
+    xray_cards(ctx, "field/%d" % ctx.mb.field(ORD, "created_at")["id"])
+
+
+@check("compile.xray.typed_table_all_cards_run")
+def _(ctx):
+    ensure_table(ctx, TE)
+    xray_cards(ctx, "table/%d" % ctx.mb.table(TE)["id"])
+
+
 # which queries read a rollup
 
 
@@ -3288,7 +3331,17 @@ def _(ctx):
     for i in range(5):
         run(BIGR)(i)
     without = sorted(times)[2]
-    print("         latency over 10000000 rows, median of 5, with truth check: with rollup %.3f s, without rollup %.3f s" % (with_rollup, without))
+    print("         latency over 10000000 rows through Metabase, median of 5: with rollup %.3f s, without rollup %.3f s" % (with_rollup, without))
+
+    def direct(table):
+        times = []
+        for i in range(5):
+            started = time.time()
+            cube_sql("SELECT status, DATE_TRUNC('day', created_at) AS d, MEASURE(revenue) AS r FROM %s WHERE created_at >= timestamp '2024-01-%02d 00:00:00' AND created_at < timestamp '2025-12-%02d 00:00:00' GROUP BY 1, 2" % (table, 1 + i, 28 - i))
+            times.append(time.time() - started)
+        return sorted(times)[2]
+
+    print("         latency over 10000000 rows on the Cube SQL API, by day and status, median of 5: with rollup %.3f s, without rollup %.3f s" % (direct(BIG), direct(BIGR)))
     query = ctx.mb.inner(BIG, agg=["m:big_orders.revenue"], by=["d:big_orders.status"], where=[["between", BCT, "2024-01-01", "2024-08-28"]])
     load_used(request_of(compile_query(ctx, query)), "daily")
 
