@@ -1,0 +1,51 @@
+# A small model for the row-level rule in ../cube.js. The rule filters on users.city.
+cubes:
+  - name: orders
+    title: Orders
+    description: Customer orders. One row per order.
+    sql_table: shop.orders
+    joins:
+      - { name: users, relationship: many_to_one, sql: "{CUBE}.user_id = {users.id}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: user_id, sql: user_id, type: number }
+      - { name: status, sql: status, type: string, description: "One of completed, shipped, processing, cancelled." }
+      - { name: created_at, sql: created_at, type: time }
+      - { name: amount_dim, sql: amount, type: number }
+    measures:
+      - { name: count, type: count }
+      - { name: revenue, sql: amount, type: sum, description: Sum of order amounts. }
+      - { name: avg_amount, sql: amount, type: avg }
+      - { name: buyers, sql: user_id, type: count_distinct }
+    segments:
+      - { name: paid, sql: "{CUBE}.status IN ('completed','shipped')" }
+
+  - name: users
+    title: Customers
+    sql_table: shop.users
+    joins:
+      - { name: orders, relationship: one_to_many, sql: "{CUBE}.id = {orders.user_id}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: city, sql: city, type: string, description: Billing city. The row-level rule uses it. }
+      # COMPILE_CONTEXT: only people with all rows see the address.
+      - name: email
+        sql: "{{ 'email' if COMPILE_CONTEXT.securityContext.all else \"'hidden'\" }}"
+        type: string
+    measures:
+      - { name: count, type: count }
+
+views:
+  - name: sales
+    description: Orders with the customer city.
+    cubes:
+      - { join_path: orders, includes: [status, count, revenue] }
+      - { join_path: orders.users, prefix: true, includes: [city] }
+  # A view that only the group `analyst` can read.
+  - name: analyst_sales
+    description: Revenue for analysts.
+    cubes:
+      - { join_path: orders, includes: [status, revenue] }
+      - { join_path: orders.users, prefix: true, includes: [city] }
+    access_policy:
+      - { group: analyst, member_level: { includes: "*" } }

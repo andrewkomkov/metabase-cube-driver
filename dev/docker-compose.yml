@@ -38,6 +38,27 @@ services:
     volumes: ["./cube/model:/cube/conf/model:ro"]
     ports: ["127.0.0.1:4400:4000", "127.0.0.1:15433:15432"]
     restart: unless-stopped
+  # A second Cube for per-user data. It has a row-level rule. See docs/security.md.
+  cube-secure:
+    image: cubejs/cube:${CUBE_VERSION:-v1.8.15}
+    depends_on: { clickhouse: { condition: service_healthy } }
+    environment:
+      CUBEJS_DEV_MODE: "true"
+      CUBEJS_API_SECRET: cube-secure-dev-only-secret-0123456789
+      CUBEJS_DB_TYPE: clickhouse
+      CUBEJS_DB_HOST: clickhouse
+      CUBEJS_DB_PORT: "8123"
+      CUBEJS_DB_NAME: shop
+      CUBEJS_DB_USER: shop
+      CUBEJS_DB_PASS: shop-dev-only
+      CUBEJS_PG_SQL_PORT: "15432"
+      CUBEJS_SQL_PASSWORD: cube-secure-dev-only
+      CUBEJS_TELEMETRY: "false"
+      CUBEJS_PRE_AGGREGATIONS_ALLOW_NON_STRICT_DATE_RANGE_MATCH: "false"
+      CUBEJS_DB_QUERY_LIMIT: "2000000"
+    volumes: ["./cube-secure/cube.js:/cube/conf/cube.js:ro", "./cube-secure/model:/cube/conf/model:ro"]
+    ports: ["127.0.0.1:4401:4000", "127.0.0.1:15434:15432"]
+    restart: unless-stopped
   metabase:
     image: metabase/metabase:${METABASE_VERSION:-v0.64.3}
     depends_on: [cube]
