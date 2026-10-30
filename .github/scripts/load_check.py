@@ -70,11 +70,10 @@ def main():
     if status != 200:
         sys.exit(f"setup failed with {status}: {setup}")
 
-    # Newer versions show the engines only to a signed-in user.
-    _, properties = call("GET", "/api/session/properties", session=setup["id"])
-    engines = properties.get("engines", {})
-    if "cube" not in engines:
-        sys.exit(f"the plugin did not register: engines are {sorted(engines)}")
+    # Metabase 0.65 removed the engines from the session properties.
+    status, engines = call("GET", "/api/setting/engines", session=setup["id"])
+    if status != 200 or "cube" not in engines:
+        sys.exit(f"the plugin did not register: {status}: {engines}")
     print("registered: engine cube is in the list of engines")
 
     status, result = call(
