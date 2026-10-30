@@ -35,6 +35,7 @@ cubes:
       FROM shop.orders
     joins:
       - { name: regions, relationship: many_to_one, sql: "{CUBE}.dest_state = {regions.state}" }
+      - { name: regions, alias: destination_regions, relationship: many_to_one, sql: "{CUBE}.dest_state = {destination_regions.state}" }
     dimensions:
       - { name: order_id, sql: order_id, type: number, primary_key: true, public: false }
       - { name: carrier_mode, sql: carrier_mode, type: string, description: Shipping mode. }
@@ -61,7 +62,9 @@ cubes:
     measures:
       - { name: count, type: count, description: Orders that pass the pushed filter. }
 
+  # Each query on this cube fails, see preagg.original_sql in conformance/features.yaml. So it is not public.
   - name: lambda_orders
+    public: false
     title: Lambda orders
     description: Cube with original_sql, rollup and lambda pre-aggregations.
     sql: "SELECT id, status, amount, created_at FROM shop.orders"
