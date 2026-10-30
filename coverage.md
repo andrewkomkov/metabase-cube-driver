@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 681/747 pass** (681 pass, 16 partial, 22 blocked, 10 unsupported, 18 fail of 747)
+**coverage: 694/748 pass** (694 pass, 17 partial, 22 blocked, 10 unsupported, 5 fail of 748)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e8f39a530ee4`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41135238035), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f30b45dd144b`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41136536734), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -160,7 +160,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e8f39a5
 | `preagg.original_sql` | blocked | Any original_sql pre-aggregation with an index fails on ClickHouse, also with no rollup on it: Missing columns: 'lambda_orders__status'. With no index, Cube refuses it. So the ClickHouse dialect has no working form. A subclass of ClickHouseQuery can drop the index, see docs/cube-findings.md. |
 | `preagg.partitioned` | pass |  |
 | `preagg.rollup` | pass |  |
-| `preagg.rollup_join` | fail | Cube did not serve the query from joined: {"dev_pre_aggregations.join_customers_customers_rollup": {"targetTableName": "dev_pre_aggregations.join_customers_customers_rollup_y5a5xwmx_omm3k11t_1lea4vr", "refreshKeyValues": [], "lastUpdatedAt": 1793397755000, "preAggregationId": "join_customers.customers_rollup", "type": "rollup"}, "dev_pre_ag |
+| `preagg.rollup_join` | fail | Cube did not serve the query from joined: {"dev_pre_aggregations.join_customers_customers_rollup": {"targetTableName": "dev_pre_aggregations.join_customers_customers_rollup_y5a5xwmx_omm3k11t_1lea5rs", "refreshKeyValues": [], "lastUpdatedAt": 1793398652000, "preAggregationId": "join_customers.customers_rollup", "type": "rollup"}, "dev_pre_ag |
 | `preagg.rollup_lambda` | pass |  |
 | `sqlapi.aggregate_function` | pass |  |
 | `sqlapi.date_trunc` | pass |  |
@@ -298,7 +298,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e8f39a5
 | `mb.nested.filter_on_aggregation` | pass |  |
 | `mb.nested.question_as_source` | pass |  |
 | `mb.card.metric` | pass |  |
-| `mb.card.metric_with_breakout` | fail | POST /api/dataset: HTTP 500: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T22:05:42.130182024Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: null","stacktrace":["--> query_processor.compile$compile_preprocessed$fn__99596.invoke(compile.clj:60)","query_pro |
+| `mb.card.metric_with_breakout` | pass |  |
 | `mb.card.model` | pass |  |
 | `mb.card.saved_question` | pass |  |
 | `mb.entity.measure_custom` | pass |  |
@@ -330,7 +330,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e8f39a5
 | `mb.xray.candidates` | pass |  |
 | `mb.xray.table` | pass |  |
 | `mb.xray.view` | pass |  |
-| `mb.report_timezone` | fail | 3 of 8 differ. truth SQL failed: SELECT toTimeZone(toStartOfMonth(toTimeZone(created_at, 'Asia/Tokyo')), 'UTC') AS b, sum(amount) FROM orders GROUP BY b: Received exception from server (version 26.8.36): Code: 43. DB::Exception: Received from localhost:9000. DB::Exception: I \| truth SQL failed: SELECT toTimeZone(toStartOfYear(toTimeZone(created_at, 'Asia/Tokyo')), 'UTC') AS b, sum(amount) FROM orders GROUP BY b: Received exception from server (version 26.8.36): Code: 43. DB::Exception: Received from localhost:9000. DB::Exception: Il \| truth SQL failed: SELECT toTimeZone(toStartOfMonth(toTimeZone(created_at, 'Asia/Tokyo')), 'UTC') AS b, count() FROM orders GROUP BY b: Received exception from server (version 26.8.36): Code: 43. DB::Exception: Received from localhost:9000. DB::Exception: Illeg |
+| `mb.report_timezone` | pass |  |
 | `mb.other.actions` | unsupported | Metabase actions write data. The Cube SQL API is read only. |
 | `mb.other.drill_through_ui` | blocked | Drill-through runs in the browser. The suite has no browser check yet. |
 | `mb.other.model_persistence` | unsupported | Model persistence needs CREATE TABLE. The Cube SQL API is read only. |
@@ -443,7 +443,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e8f39a5
 | `semantic.drill_members_native` | unsupported | Metabase has no column that lists the drill columns of a measure. Its drill-through uses all visible fields. The text in the description is the only place, see semantic.drill_members. |
 | `semantic.measure.min_on_time_column` | pass |  |
 | `compile.agg.median_gives_error` | pass |  |
-| `compile.agg.offset_measure` | fail | POST /api/dataset: HTTP 500: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T22:07:31.812014502Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: null","stacktrace":["--> query_processor.compile$compile_preprocessed$fn__99596.invoke(compile.clj:60)","query_pro |
+| `compile.agg.offset_measure` | pass |  |
 | `compile.bucket.day` | pass |  |
 | `compile.bucket.hour` | pass |  |
 | `compile.bucket.minute` | pass |  |
@@ -503,7 +503,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e8f39a5
 | `compile.expr.get_quarter` | pass |  |
 | `compile.expr.get_second` | pass |  |
 | `compile.expr.in_aggregation` | pass |  |
-| `compile.expr.in_breakout` | fail | POST /api/dataset/native: HTTP 500: {"via":[{"type":"clojure.lang.ExceptionInfo","message":"Error compiling query: null","at":["metabase.query_processor.compile$compile_preprocessed$fn__99596","invoke","compile.clj",60]},{"type":"java.lang.IndexOutOfBoundsException","at":["clojure.lang.PersistentVector","arrayFor","PersistentVector.ja |
+| `compile.expr.in_breakout` | pass |  |
 | `compile.expr.in_filter` | pass |  |
 | `compile.expr.in_filter_measure` | pass |  |
 | `compile.expr.integer_division` | pass |  |
@@ -676,28 +676,28 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e8f39a5
 | `compile.bound.grid_date_types` | pass |  |
 | `compile.bound.grid_boundary_values` | pass |  |
 | `compile.bound.grid_view_and_join` | pass |  |
-| `compile.bound.grid_model_by_name` | fail | 15 of 45 differ. measure >: ERROR Error running query \| measure >=: ERROR Error running query \| measure <: ERROR Error running query \| measure <=: ERROR Error running query \| measure > and <=: ERROR Error running query \| measure > and <: ERROR Error running query |
-| `compile.bound.grid_mcp` | fail | 2 differ. table between: got [2234.0], truth [1111.0] \| model between: got [2234.0], truth [1111.0] |
+| `compile.bound.grid_model_by_name` | pass |  |
+| `compile.bound.grid_mcp` | pass |  |
 | `compile.bound.fraction_of_a_second` | pass |  |
 | `native.bound.strict_lower_refused` | pass |  |
 | `nested.outer_date_filter.keeps_inner_rows` | pass |  |
 | `nested.outer_date_filter.rolling` | pass |  |
 | `nested.outer_date_filter.grid` | pass |  |
 | `nested.outer_filter.multi_stage_measure` | pass |  |
-| `nested.outer_stage.grid_breakout_and_aggregation` | fail | 3 of 20 differ. avg_order_value sum: ERROR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube \| avg_order_value max: ERROR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube \| avg_order_value by year: ERROR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube |
+| `nested.outer_stage.grid_breakout_and_aggregation` | pass |  |
 | `nested.outer_date_filter.native_source` | pass |  |
 | `nested.outer_date_filter.week_numbers` | pass |  |
 | `mb.dashboard.date_filter_on_question` | pass |  |
 | `measure.rolling.through_model` | pass |  |
-| `measure.rolling.through_model_whole_buckets` | fail | whole months: query failed: Error running query |
+| `measure.rolling.through_model_whole_buckets` | fail | whole months: got 1 rows, truth has 2. got=[['2025-05-01T00:00:00', 26498.0]] truth=[['2025-04-01T00:00:00', 27332.0], ['2025-05-01T00:00:00', 26498.0]] |
 | `measure.rolling.filter_in_the_model` | pass |  |
 | `measure.rolling.strict_bound_on_boundary` | pass |  |
-| `nested.measure_column.filter_gives_row_values` | fail | 43 of 43 differ. revenue > 50 sum: ERROR Error running query \| revenue > 50 count: ERROR Error running query \| revenue between sum: ERROR Error running query \| revenue between count: ERROR Error running query \| revenue not sum: ERROR Error running query \| revenue not count: ERROR Error running query |
-| `nested.measure_column.breakout_gives_row_values` | fail | count: query failed: Error running query |
+| `nested.measure_column.filter_gives_row_values` | fail | 2 of 43 differ. count > 50 sum: got [None], truth [0.0] \| count and status sum: got [None], truth [0.0] |
+| `nested.measure_column.breakout_gives_row_values` | pass |  |
 | `compile.filter.hidden_measure_column_refused` | pass |  |
-| `nested.measure_column.right_shapes_stay` | fail | 23 of 23 differ. revenue: ERROR Error running query \| revenue by status: ERROR Error running query \| revenue with date: ERROR Error running query \| revenue with status: ERROR Error running query \| revenue by month: ERROR Error running query \| count: ERROR Error running query |
-| `nested.measure_column.other_aggregation` | fail | 3 of 3 differ. max of a sum: ERROR Error running query \| min of a sum: ERROR Error running query \| avg of a sum: ERROR Error running query |
-| `nested.model_of_model.measure_column` | fail | filter: query failed: Error running query |
+| `nested.measure_column.right_shapes_stay` | fail | 6 of 23 differ. unique_customers: got [5000.0], truth [199.0] \| unique_customers by status: got ['cancelled', 1000.0], truth ['cancelled', 199.0] \| unique_customers with date: got [3195.0], truth [199.0] \| unique_customers with status: got [1000.0], truth [199.0] \| unique_customers by month: got ['2025-01-01T00:00:00', 433.0], truth ['2025-01-01T00:00:00', 199.0] \| paid_revenue by status: got ['cancelled', None], truth ['cancelled', 0.0] |
+| `nested.measure_column.other_aggregation` | pass |  |
+| `nested.model_of_model.measure_column` | pass |  |
 | `nested.model.raw_rows_of_a_measure_are_null` | pass |  |
 | `view.two_paths_in_one_query_refused` | pass |  |
 | `view.two_paths_one_column_stays` | pass |  |
@@ -705,7 +705,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e8f39a5
 | `measure.rolling.native_refused` | pass |  |
 | `measure.rolling.native_whole_buckets` | pass |  |
 | `native.between_date_text_refused` | pass |  |
-| `native.between_date_parameter` | fail | unexpected KeyError: 'data' |
+| `native.between_date_parameter` | pass |  |
 | `docs.install.plugins_directory_writable` | pass |  |
 | `docs.known_wrong_numbers` | pass |  |
 | `nested.model_date_filter` | pass |  |
@@ -722,16 +722,17 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e8f39a5
 | `docs.query_compilation_agrees_with_code` | pass |  |
 | `compile.bound.datetime64_whole_seconds_limit` | partial | The ClickHouse dialect of Cube reads a time as whole seconds in a filter, so a row in the first second after a bound of > is out of the result. /v1/meta does not show the column type, so the driver cannot avoid this. A dimension with sql: toString(column) keeps the text. A subclass of ClickHouseQuery can fix this, see docs/cube-findings.md. |
 | `native.count_on_no_rows_limit` | partial | Limit of Cube: native COUNT(*) on no rows gives NULL where SQL gives 0 (m3). The driver does not change native text, and it cannot know that a NULL column is a count. MBQL gives 0. |
-| `nested.model.multi_stage_measure_column` | fail | 5 of 5 differ. share by status: ERROR Error running query \| rank by status: ERROR Error running query \| all statuses: ERROR Error running query \| prior month: ERROR Error running query \| paid share: ERROR Error running query |
+| `nested.model.multi_stage_measure_column` | fail | 1 of 5 differ. rank by status: got ['cancelled', 4751.0], truth ['cancelled', 2.0] |
 | `nested.question.multi_stage_outer_date_filter` | pass |  |
-| `nested.model.measure_column_bounds` | fail | 15 of 15 differ. >: ERROR Error running query \| >=: ERROR Error running query \| <: ERROR Error running query \| <=: ERROR Error running query \| > and <=: ERROR Error running query \| > and <: ERROR Error running query |
+| `nested.model.measure_column_bounds` | pass |  |
 | `nested.model.relative_and_bucket_filters` | pass |  |
 | `compile.bound.relative_strict` | pass |  |
 | `compile.case.date_bounds_in_an_aggregation` | pass |  |
-| `nested.measure_column.expression` | fail | 4 of 5 differ. sum of an expression: got [None], truth [324790.0] \| expression of the sum: ERROR Error running query \| count where: got [0.0], truth [166.0] \| sum where: got [0.0], truth [25896.0] |
+| `nested.measure_column.expression` | pass |  |
 | `nested.model.segment_column` | pass |  |
 | `nested.question_on_question.date_filter` | pass |  |
 | `nested.measure_column.filter_with_no_key_refused` | pass |  |
+| `mcp.query.between_is_whole_days` | partial | Limit of Metabase: MCP execute_query makes between with a time part into whole days before the driver, so the driver cannot see the time part. In the demo, 15 rows have that range, and MCP gives 28. The query API /api/dataset keeps the time part. Use >= and <= in MCP for a range with a time part. |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |
 | `security.security_context_row_filter` | pass |  |

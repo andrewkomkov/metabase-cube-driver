@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 681,
-    "partial": 16,
+    "pass": 694,
+    "partial": 17,
     "blocked": 22,
     "unsupported": 10,
-    "fail": 18,
-    "total": 747
+    "fail": 5,
+    "total": 748
   },
-  "coverage": "coverage: 681/747 pass",
+  "coverage": "coverage: 694/748 pass",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -773,7 +773,7 @@
     {
       "id": "preagg.rollup_join",
       "status": "fail",
-      "reason": "Cube did not serve the query from joined: {\"dev_pre_aggregations.join_customers_customers_rollup\": {\"targetTableName\": \"dev_pre_aggregations.join_customers_customers_rollup_y5a5xwmx_omm3k11t_1lea4vr\", \"refreshKeyValues\": [], \"lastUpdatedAt\": 1793397755000, \"preAggregationId\": \"join_customers.customers_rollup\", \"type\": \"rollup\"}, \"dev_pre_ag"
+      "reason": "Cube did not serve the query from joined: {\"dev_pre_aggregations.join_customers_customers_rollup\": {\"targetTableName\": \"dev_pre_aggregations.join_customers_customers_rollup_y5a5xwmx_omm3k11t_1lea5rs\", \"refreshKeyValues\": [], \"lastUpdatedAt\": 1793398652000, \"preAggregationId\": \"join_customers.customers_rollup\", \"type\": \"rollup\"}, \"dev_pre_ag"
     },
     {
       "id": "preagg.rollup_lambda",
@@ -1462,8 +1462,8 @@
     },
     {
       "id": "mb.card.metric_with_breakout",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 500: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T22:05:42.130182024Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: null\",\"stacktrace\":[\"--> query_processor.compile$compile_preprocessed$fn__99596.invoke(compile.clj:60)\",\"query_pro"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.card.model",
@@ -1622,8 +1622,8 @@
     },
     {
       "id": "mb.report_timezone",
-      "status": "fail",
-      "reason": "3 of 8 differ. truth SQL failed: SELECT toTimeZone(toStartOfMonth(toTimeZone(created_at, 'Asia/Tokyo')), 'UTC') AS b, sum(amount) FROM orders GROUP BY b: Received exception from server (version 26.8.36):\nCode: 43. DB::Exception: Received from localhost:9000. DB::Exception: I | truth SQL failed: SELECT toTimeZone(toStartOfYear(toTimeZone(created_at, 'Asia/Tokyo')), 'UTC') AS b, sum(amount) FROM orders GROUP BY b: Received exception from server (version 26.8.36):\nCode: 43. DB::Exception: Received from localhost:9000. DB::Exception: Il | truth SQL failed: SELECT toTimeZone(toStartOfMonth(toTimeZone(created_at, 'Asia/Tokyo')), 'UTC') AS b, count() FROM orders GROUP BY b: Received exception from server (version 26.8.36):\nCode: 43. DB::Exception: Received from localhost:9000. DB::Exception: Illeg"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.other.actions",
@@ -2187,8 +2187,8 @@
     },
     {
       "id": "compile.agg.offset_measure",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 500: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T22:07:31.812014502Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: null\",\"stacktrace\":[\"--> query_processor.compile$compile_preprocessed$fn__99596.invoke(compile.clj:60)\",\"query_pro"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.bucket.day",
@@ -2487,8 +2487,8 @@
     },
     {
       "id": "compile.expr.in_breakout",
-      "status": "fail",
-      "reason": "POST /api/dataset/native: HTTP 500: {\"via\":[{\"type\":\"clojure.lang.ExceptionInfo\",\"message\":\"Error compiling query: null\",\"at\":[\"metabase.query_processor.compile$compile_preprocessed$fn__99596\",\"invoke\",\"compile.clj\",60]},{\"type\":\"java.lang.IndexOutOfBoundsException\",\"at\":[\"clojure.lang.PersistentVector\",\"arrayFor\",\"PersistentVector.ja"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.expr.in_filter",
@@ -3352,13 +3352,13 @@
     },
     {
       "id": "compile.bound.grid_model_by_name",
-      "status": "fail",
-      "reason": "15 of 45 differ. measure >: ERROR Error running query | measure >=: ERROR Error running query | measure <: ERROR Error running query | measure <=: ERROR Error running query | measure > and <=: ERROR Error running query | measure > and <: ERROR Error running query"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.bound.grid_mcp",
-      "status": "fail",
-      "reason": "2 differ. table between: got [2234.0], truth [1111.0] | model between: got [2234.0], truth [1111.0]"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.bound.fraction_of_a_second",
@@ -3392,8 +3392,8 @@
     },
     {
       "id": "nested.outer_stage.grid_breakout_and_aggregation",
-      "status": "fail",
-      "reason": "3 of 20 differ. avg_order_value sum: ERROR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube | avg_order_value max: ERROR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube | avg_order_value by year: ERROR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "nested.outer_date_filter.native_source",
@@ -3418,7 +3418,7 @@
     {
       "id": "measure.rolling.through_model_whole_buckets",
       "status": "fail",
-      "reason": "whole months: query failed: Error running query"
+      "reason": "whole months: got 1 rows, truth has 2. got=[['2025-05-01T00:00:00', 26498.0]] truth=[['2025-04-01T00:00:00', 27332.0], ['2025-05-01T00:00:00', 26498.0]]"
     },
     {
       "id": "measure.rolling.filter_in_the_model",
@@ -3433,12 +3433,12 @@
     {
       "id": "nested.measure_column.filter_gives_row_values",
       "status": "fail",
-      "reason": "43 of 43 differ. revenue > 50 sum: ERROR Error running query | revenue > 50 count: ERROR Error running query | revenue between sum: ERROR Error running query | revenue between count: ERROR Error running query | revenue not sum: ERROR Error running query | revenue not count: ERROR Error running query"
+      "reason": "2 of 43 differ. count > 50 sum: got [None], truth [0.0] | count and status sum: got [None], truth [0.0]"
     },
     {
       "id": "nested.measure_column.breakout_gives_row_values",
-      "status": "fail",
-      "reason": "count: query failed: Error running query"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.filter.hidden_measure_column_refused",
@@ -3448,17 +3448,17 @@
     {
       "id": "nested.measure_column.right_shapes_stay",
       "status": "fail",
-      "reason": "23 of 23 differ. revenue: ERROR Error running query | revenue by status: ERROR Error running query | revenue with date: ERROR Error running query | revenue with status: ERROR Error running query | revenue by month: ERROR Error running query | count: ERROR Error running query"
+      "reason": "6 of 23 differ. unique_customers: got [5000.0], truth [199.0] | unique_customers by status: got ['cancelled', 1000.0], truth ['cancelled', 199.0] | unique_customers with date: got [3195.0], truth [199.0] | unique_customers with status: got [1000.0], truth [199.0] | unique_customers by month: got ['2025-01-01T00:00:00', 433.0], truth ['2025-01-01T00:00:00', 199.0] | paid_revenue by status: got ['cancelled', None], truth ['cancelled', 0.0]"
     },
     {
       "id": "nested.measure_column.other_aggregation",
-      "status": "fail",
-      "reason": "3 of 3 differ. max of a sum: ERROR Error running query | min of a sum: ERROR Error running query | avg of a sum: ERROR Error running query"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "nested.model_of_model.measure_column",
-      "status": "fail",
-      "reason": "filter: query failed: Error running query"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "nested.model.raw_rows_of_a_measure_are_null",
@@ -3497,8 +3497,8 @@
     },
     {
       "id": "native.between_date_parameter",
-      "status": "fail",
-      "reason": "unexpected KeyError: 'data'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "docs.install.plugins_directory_writable",
@@ -3583,7 +3583,7 @@
     {
       "id": "nested.model.multi_stage_measure_column",
       "status": "fail",
-      "reason": "5 of 5 differ. share by status: ERROR Error running query | rank by status: ERROR Error running query | all statuses: ERROR Error running query | prior month: ERROR Error running query | paid share: ERROR Error running query"
+      "reason": "1 of 5 differ. rank by status: got ['cancelled', 4751.0], truth ['cancelled', 2.0]"
     },
     {
       "id": "nested.question.multi_stage_outer_date_filter",
@@ -3592,8 +3592,8 @@
     },
     {
       "id": "nested.model.measure_column_bounds",
-      "status": "fail",
-      "reason": "15 of 15 differ. >: ERROR Error running query | >=: ERROR Error running query | <: ERROR Error running query | <=: ERROR Error running query | > and <=: ERROR Error running query | > and <: ERROR Error running query"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "nested.model.relative_and_bucket_filters",
@@ -3612,8 +3612,8 @@
     },
     {
       "id": "nested.measure_column.expression",
-      "status": "fail",
-      "reason": "4 of 5 differ. sum of an expression: got [None], truth [324790.0] | expression of the sum: ERROR Error running query | count where: got [0.0], truth [166.0] | sum where: got [0.0], truth [25896.0]"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "nested.model.segment_column",
@@ -3629,6 +3629,11 @@
       "id": "nested.measure_column.filter_with_no_key_refused",
       "status": "pass",
       "reason": ""
+    },
+    {
+      "id": "mcp.query.between_is_whole_days",
+      "status": "partial",
+      "reason": "Limit of Metabase: MCP execute_query makes between with a time part into whole days before the driver, so the driver cannot see the time part. In the demo, 15 rows have that range, and MCP gives 28. The query API /api/dataset keeps the time part. Use >= and <= in MCP for a range with a time part."
     },
     {
       "id": "security.access_policy_groups",
