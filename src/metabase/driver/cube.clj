@@ -91,8 +91,8 @@
 
 (defn- apply-model-metadata!
   "Sync has no input for a field title, so this step writes titles to the app DB after sync. A display name that an
-  admin changed is not the humanized name, and stays. Measures get no field values, because a list of raw values of
-  a measure has no meaning."
+  admin changed is not the humanized name, and stays. Measures and segments get no field values, because the SQL API
+  has no list of values for them."
   [database]
   (let [cubes      (cube.meta/public-cubes (cube.meta/fetch-meta (:details database)))
         name->cube (into {} (map (juxt :name identity)) cubes)
@@ -105,14 +105,16 @@
       (when (and (humanized? table) (seq (:title cube)) (not= (:title cube) (:display_name table)))
         (t2/update! :model/Table table-id {:display_name (:title cube)}))
       (doseq [{field-id :id, field-name :name, :as field} (t2/select :model/Field :table_id table-id, :active true)
-              :let  [title    (::cube.meta/title (name->member field-name))
-                     measure? (str/starts-with? (str (:database_type field)) "cube.measure/")
-                     changes  (cond-> {}
-                                (and title (humanized? field) (not= title (:display_name field)))
-                                (assoc :display_name title)
+              :let  [title         (::cube.meta/title (name->member field-name))
+                     database-type (str (:database_type field))
+                     no-values?    (or (str/starts-with? database-type "cube.measure/")
+                                       (= database-type "cube.segment"))
+                     changes       (cond-> {}
+                                     (and title (humanized? field) (not= title (:display_name field)))
+                                     (assoc :display_name title)
 
-                                (and measure? (not= :none (:has_field_values field)))
-                                (assoc :has_field_values :none))]
+                                     (and no-values? (not= :none (:has_field_values field)))
+                                     (assoc :has_field_values :none))]
               :when (seq changes)]
         (t2/update! :model/Field field-id changes)))))
 
@@ -141,17 +143,6 @@
       (= database-type "cube.segment")                   :segment
       (str/starts-with? database-type "cube.dimension/") :dimension)))
 
-(def ^:private row-level-measure-types
-  "Cube can compute these measures for each row in an ungrouped query. Measures of type number, string, boolean and
-  time can hold any SQL, for example COUNT(*) > 0. The database then rejects an ungrouped query."
-  #{"cube.measure/count"
-    "cube.measure/countDistinct"
-    "cube.measure/countDistinctApprox"
-    "cube.measure/sum"
-    "cube.measure/avg"
-    "cube.measure/min"
-    "cube.measure/max"})
-
 (defn- physical-type
   "The SQL type of a field on the SQL API."
   [{base-type :base-type}]
@@ -172,29 +163,60 @@
       (h2x/with-database-type-info compiled (physical-type field))
       compiled)))
 
+;; ClickHouse rejects the filter that Cube makes from `= TRUE` when the dimension SQL is an expression:
+;; "Cannot convert string 'true' to type UInt8". Cube accepts 1 and 0 for boolean members on all columns.
+(defmethod sql.qp/->honeysql [:cube :value]
+  [driver [_ {:keys [database-type]} raw-value :as clause]]
+  (if (and (boolean? raw-value) (str/starts-with? (str database-type) "cube."))
+    [:inline (if raw-value 1 0)]
+    ((get-method sql.qp/->honeysql [:postgres :value]) driver clause)))
+
+(def ^:private extraction-units
+  "Temporal units that are not a Cube granularity. The SQL API runs them with SQL push-down."
+  #{:second-of-minute :minute-of-hour :hour-of-day :day-of-week :day-of-month :day-of-year
+    :week-of-year :week-of-year-iso :month-of-year :quarter-of-year :year-of-era})
+
+(defn- extraction-breakout?
+  []
+  (some (fn [clause]
+          (and (vector? clause)
+               (= :field (first clause))
+               (contains? extraction-units (:temporal-unit (second clause)))))
+        (:breakout sql.qp/*inner-query*)))
+
+(defn- push-down-measure
+  "SQL push-down rejects MEASURE(). It accepts the SQL aggregation of the measure type, for these types only."
+  [driver arg]
+  (let [compiled (sql.qp/->honeysql driver arg)]
+    (case (:database-type (stored-field arg))
+      "cube.measure/sum"   [:sum compiled]
+      "cube.measure/min"   [:min compiled]
+      "cube.measure/max"   [:max compiled]
+      "cube.measure/count" :%count.*
+      [:measure compiled])))
+
 (doseq [agg-type [:sum :avg :min :max :count :distinct]]
   (let [parent (get-method sql.qp/->honeysql [:postgres agg-type])]
     (defmethod sql.qp/->honeysql [:cube agg-type]
       [driver [_ _opts arg :as clause]]
       ;; A measure has its aggregation in the data model. Cube rejects a SQL aggregation of another type with
       ;; "Measure aggregation type doesn't match", and MEASURE() has no such check.
-      (if (= :measure (member-kind arg))
-        [:measure (sql.qp/->honeysql driver arg)]
-        (parent driver clause)))))
+      (cond
+        (not= :measure (member-kind arg)) (parent driver clause)
+        (extraction-breakout?)            (push-down-measure driver arg)
+        :else                             [:measure (sql.qp/->honeysql driver arg)]))))
 
 (defn- raw-select-item
+  "A measure has no value for one row, and a segment column on the SQL API is always NULL. Cube fails an ungrouped
+  query that selects a measure with an aggregate in its SQL or a multi-stage measure, and one such measure would break
+  the whole table view. So raw rows show NULL for these columns."
   [driver clause]
   (let [[_compiled alias-form :as selected] (sql.qp/as driver clause)
-        field (stored-field clause)
-        keep? (case (member-kind clause)
-                :measure (contains? row-level-measure-types (:database-type field))
-                ;; Cube accepts a segment column and returns NULL for it.
-                :segment false
-                true)]
+        null-column (h2x/cast (physical-type (stored-field clause)) nil)]
     (cond
-      keep?      selected
-      alias-form [(h2x/cast (physical-type field) nil) alias-form]
-      :else      [(h2x/cast (physical-type field) nil)])))
+      (not (#{:measure :segment} (member-kind clause))) selected
+      alias-form                                        [null-column alias-form]
+      :else                                             [null-column])))
 
 (defmethod sql.qp/apply-top-level-clause [:cube :fields]
   [driver _ honeysql-form {fields :fields}]
@@ -221,3 +243,29 @@
 
 (doseq [unit [:minute :hour :day :week :month :quarter :year]]
   (defmethod sql.qp/date [:cube unit] [_driver _unit expr] (date-trunc unit expr)))
+
+;; SQL push-down accepts EXTRACT, but not the integer cast that the Postgres driver adds.
+(doseq [[unit part] {:second-of-minute :second
+                     :minute-of-hour   :minute
+                     :hour-of-day      :hour
+                     :day-of-month     :day
+                     :day-of-year      :doy
+                     :week-of-year-iso :week
+                     :month-of-year    :month
+                     :quarter-of-year  :quarter
+                     :year-of-era      :year}]
+  (defmethod sql.qp/date [:cube unit] [_driver _unit expr] [::h2x/extract part expr]))
+
+;; Metabase counts days from 1. EXTRACT(DOW) counts from Sunday as 0.
+(defmethod sql.qp/date [:cube :day-of-week]
+  [_driver _unit expr]
+  (h2x/+ [::h2x/extract :dow expr] [:inline 1]))
+
+;; These helpers in the util namespace have one branch for each driver and no branch for :cube.
+(defmethod sql.qp/current-datetime-honeysql-form :cube
+  [_driver]
+  (h2x/current-datetime-honeysql-form :postgres))
+
+(defmethod sql.qp/add-interval-honeysql-form :cube
+  [_driver hsql-form amount unit]
+  (h2x/add-interval-honeysql-form :postgres hsql-form amount unit))
