@@ -102,3 +102,11 @@ SELECT i, toInt32(1 + i % 100000),
        toDateTime('2024-01-01 00:00:00', 'UTC') + toIntervalSecond(i * 6)
 FROM (SELECT toInt64(number + 1) AS i FROM numbers(10000000))
 WHERE (SELECT count() FROM shop.big_orders) = 0;
+
+-- appended: orders with no customer, so that an inner join and a left join give different rows.
+CREATE TABLE IF NOT EXISTS shop.orphan_customers (id Int32, name String) ENGINE = MergeTree ORDER BY id;
+CREATE TABLE IF NOT EXISTS shop.orphan_orders (id Int32, customer_id Int32, amount Decimal(12, 2)) ENGINE = MergeTree ORDER BY id;
+INSERT INTO shop.orphan_customers SELECT i, concat('C', toString(i)) FROM (SELECT toInt32(number + 1) AS i FROM numbers(3))
+WHERE (SELECT count() FROM shop.orphan_customers) = 0;
+INSERT INTO shop.orphan_orders SELECT i, 1 + i % 5, toDecimal64(i, 2) FROM (SELECT toInt32(number + 1) AS i FROM numbers(10))
+WHERE (SELECT count() FROM shop.orphan_orders) = 0;
