@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 594,
+    "pass": 588,
     "partial": 0,
     "blocked": 30,
     "unsupported": 9,
-    "fail": 4,
+    "fail": 10,
     "total": 637
   },
-  "coverage": "coverage: 594/637 pass",
+  "coverage": "coverage: 588/637 pass",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -107,8 +107,8 @@
     },
     {
       "id": "measure.opt.description",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "orders.revenue description='Total order amount in USD.\\n\\nTable: Orders (orders, id 27).', want 'Total order amount in USD.'"
     },
     {
       "id": "measure.opt.drill_members",
@@ -1077,13 +1077,13 @@
     },
     {
       "id": "mb.breakout.bin_count",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T16:27:13.035124254Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error preprocessing query in #'metabase.query-processor.middleware.binning/update-binning-strategy: Unable to bin Field without a min/max"
     },
     {
       "id": "mb.breakout.bin_width",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T16:27:13.081304763Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error preprocessing query in #'metabase.query-processor.middleware.binning/update-binning-strategy: Unable to bin Field without a min/max"
     },
     {
       "id": "mb.breakout.boolean",
@@ -1728,7 +1728,7 @@
     {
       "id": "mcp.execute_query.paging",
       "status": "fail",
-      "reason": "no next_cursor: {'query_handle': '2416e87c-3928-4464-a857-35194b134c9d', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
+      "reason": "no next_cursor: {'query_handle': 'd8611411-6776-4f7a-908b-32bc5b3e3168', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
     },
     {
       "id": "mcp.execute_query.segment",
@@ -2077,8 +2077,8 @@
     },
     {
       "id": "semantic.descriptions",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "the Segment paid has another description"
     },
     {
       "id": "semantic.format.currency",
@@ -2122,8 +2122,8 @@
     },
     {
       "id": "semantic.model_change_updates",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "the Measure did not follow the model: {'description': 'Second text.\\n\\nTable: Probe cube (conformance_probe_1793377704, id 45).', 'archived': False, 'table_id': 45, 'definition': {'lib/type': 'mbql/query', 'database': 2, 'stages': [{'source-table': 45, 'lib/type': 'mbql.stage/mbql', 'aggregation': [['sum', {'lib/uuid': '921b881c-9cb7-422b-a990-06412768241b', 'display-name': 'Probe total two'}, ['field', {'lib/uuid': '02ce39e1-b03f-4bad-b64d-1fa6f030f6b9'}, 396]]]}], 'lib/metadata': None}, 'creator': {'email': 'internal@metabase.com', 'first_name': 'Metabase', 'is_data_analyst': False, 'last_login': None, 'is_qbnewb': True, 'is_superuser': False, 'id': 13371338, 'last_name': 'Internal', 'tenant_id': None, 'date_joined': '2026-10-30T16:25:44.604039Z', 'common_name': 'Metabase Internal'}, 'definition_description': 'Probe total two', 'name': 'Probe total two', 'dimensions': None, 'creator_id': 13371338, 'updated_at': '2026-10-30T16:28:46.313306Z', 'dimension_mappings': None, 'id': 144, 'entity_id': 'KYUrBp9_a2n9v3nQUnEBb', 'created_at': '2026-10-30T16:28:27.281529Z'}"
     },
     {
       "id": "semantic.removed_archived",
@@ -2142,8 +2142,8 @@
     },
     {
       "id": "semantic.user_edit_reset",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "the Measure did not take the Cube values: Probe edited, Cube text.\n\nTable: Probe cube (conformance_probe_1793377704, id 45)."
     },
     {
       "id": "semantic.drill_members_native",
