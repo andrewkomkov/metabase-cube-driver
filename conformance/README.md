@@ -25,6 +25,7 @@ METABASE_ADMIN_PASSWORD=... python3 conformance/run.py
 | `CUBE_REST_URL` | `http://127.0.0.1:4400` |
 | `CUBE_SQL_HOST`, `CUBE_SQL_PORT` | `cube`, `15432`. Metabase uses this address. |
 | `CUBE_REST_INTERNAL_URL` | `http://cube:4000`. Metabase uses this address. |
+| `CUBE_SQL_API_HOST`, `CUBE_SQL_API_PORT` | `127.0.0.1`, `15433`. The runner uses this address for `EXPLAIN`. |
 
 If Metabase has no admin, the runner creates one and connects the Cube database. It generates a random password if `METABASE_ADMIN_PASSWORD` is not set.
 
@@ -45,6 +46,10 @@ The runner prints one line per feature and then `coverage: N/M pass`. `M` counts
 ## Probe model
 
 The `semantic.*` checks for model changes write `dev/cube/model/zz_conformance_probe.yml`, sync, change the file, sync again and delete the file. They need write access to that directory and a Cube in dev mode, which reloads the model. Each run uses a new cube name, because Metabase keeps the edits of a person for a table that comes back. Inactive tables and archived objects of old runs stay in the Metabase app DB.
+
+## Query compilation
+
+The `compile.*` checks compare each number with ClickHouse. They also run `EXPLAIN` on the Cube SQL API and check how Cube runs the query, and they send the request from the plan to the REST API to read `usedPreAggregations`. They need the `big_orders` table, which is 10 million rows. They change the `start-of-week` setting and set it back. See `docs/query-compilation.md`.
 
 ## Truth
 

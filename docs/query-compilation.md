@@ -4,7 +4,7 @@ The driver writes SQL for the Cube SQL API. Cube runs that SQL in one of three w
 
 | Way | `EXPLAIN` shows | A rollup can serve it | Row limit |
 | --- | --- | --- | --- |
-| Regular | Only a `CubeScan` | Yes | No limit for the result of the group |
+| Regular | Only a `CubeScan` | Yes | The result has at most `CUBEJS_DB_QUERY_LIMIT` rows |
 | Post-processing | A plan above a `CubeScan` | Yes | Cube reads at most `CUBEJS_DB_QUERY_LIMIT` rows from the `CubeScan` |
 | SQL push-down | `CubeScanWrapper` or `WrappedSelect` | Rarely | No limit |
 
@@ -66,6 +66,17 @@ These queries fail with a message that tells what to do. The message includes th
 | `datetime-diff` in months, quarters, years | Cube has no form for whole months. Its `DATEDIFF` counts boundaries. |
 | `datetime-add` in an aggregated query | Cube cannot generate SQL for an interval on ClickHouse. It works on raw rows. |
 | `EXTRACT` in native SQL next to a measure that is not additive | Cube cannot plan it. |
+
+## Latency
+
+`compile.latency.ten_million_rows` measures this on the demo stack, with 10 million rows and a date range that changes on each run, so that the result cache of Cube cannot answer. It prints the values on each run. One run gave these medians of five:
+
+| Query | With rollup | Without rollup |
+| --- | --- | --- |
+| Revenue by status, through Metabase | 0.301 s | 0.321 s |
+| Revenue by day and status, on the Cube SQL API | 0.240 s | 0.447 s |
+
+ClickHouse is fast on this table, and Metabase adds most of the time to a small result. The rollup gains more when a query has more rows to scan.
 
 ## Limits of Cube that the driver cannot change
 

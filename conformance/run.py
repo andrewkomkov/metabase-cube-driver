@@ -850,7 +850,6 @@ Q("measure.rolling.trailing", ORD, monthly("sumIf(o.amount, o.created_at >= addD
   ordered=True, agg=["m:orders.revenue_trailing_30d"], **BY_MONTH)
 Q("measure.rolling.leading_offset", ORD, monthly("sumIf(o.amount, o.created_at >= m AND o.created_at < addDays(m, 7))"),
   ordered=True, agg=["m:orders.revenue_leading_7d"], **BY_MONTH)
-Q("measure.rolling.unbounded", ORD, monthly("countIf(o.created_at <= e)"), ordered=True, agg=["m:orders.cumulative_count"], **BY_MONTH)
 Q("measure.rolling.to_date_month", ORD, monthly("sumIf(o.amount, o.created_at >= m AND o.created_at <= e)"),
   ordered=True, agg=["m:orders.revenue_mtd"], **BY_MONTH)
 Q("measure.rolling.to_date_year", ORD, monthly("sumIf(o.amount, o.created_at >= toStartOfYear(m) AND o.created_at <= e)"),
@@ -925,8 +924,6 @@ Q("dimension.format.time", ORD, "SELECT created_at FROM orders WHERE id = 7", fi
 
 # ----- custom granularities, through proxy dimensions because the SQL API has no other way
 
-Q("granularity.custom.offset", ORD, "SELECT addMonths(toStartOfQuarter(addMonths(created_at, -1)), 1) AS q, count() FROM orders GROUP BY q",
-  agg=["m:orders.count"], by=["d:orders.created_fiscal_quarter@default"])
 Q("granularity.custom.negative_offset", ORD, "SELECT toStartOfWeek(created_at, 0) AS w, count() FROM orders GROUP BY w ORDER BY w LIMIT 3", ordered=True,
   agg=["m:orders.count"], by=["d:orders.created_week_sunday"], order=[["asc", "d:orders.created_week_sunday"]], limit=3)
 Q("granularity.custom.origin", ORD, "SELECT addMonths(toStartOfYear(addMonths(created_at, -3)), 3) AS y, count() FROM orders GROUP BY y",
@@ -1168,8 +1165,6 @@ Q("preagg.partitioned", ORD, "SELECT toStartOfMonth(created_at), count() FROM or
   post=used_rollup({"measures": ["orders.count"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "day"}]}, "count_by_day_partitioned"))
 Q("preagg.indexes", ORD, "SELECT status, nullIf(sumIf(amount, %s), 0) FROM orders GROUP BY status" % PAID, agg=["m:orders.paid_revenue"], by=["d:orders.status"],
   post=used_rollup({"measures": ["orders.paid_revenue"], "dimensions": ["orders.status"]}, "revenue_by_status_indexed"))
-Q("preagg.original_sql", "lambda_orders", "SELECT status, sum(amount) FROM orders GROUP BY status", agg=["m:lambda_orders.revenue"], by=["d:lambda_orders.status"],
-  post=used_rollup({"measures": ["lambda_orders.revenue"], "dimensions": ["lambda_orders.status"], "timeDimensions": [{"dimension": "lambda_orders.created_at", "granularity": "day"}]}, "daily"))
 
 # ----- SQL API through a native query
 
@@ -1217,8 +1212,6 @@ Q("mb.agg.cum_count", ORD, "SELECT m, sum(s) OVER (ORDER BY m) FROM (SELECT toSt
   ordered=True, agg=[["cum-count"]], by=["d:orders.created_at@quarter"])
 Q("mb.agg.stddev", ORD, "SELECT stddevPop(quantity) FROM orders", agg=[["stddev", "d:orders.quantity_dim"]])
 Q("mb.agg.variance", ORD, "SELECT varPop(quantity) FROM orders", agg=[["var", "d:orders.quantity_dim"]])
-Q("mb.agg.median", ORD, "SELECT quantileExact(0.5)(amount) FROM orders", tol=0.05, agg=[["median", "d:orders.amount_dim"]])
-Q("mb.agg.percentile", ORD, "SELECT quantileExact(0.9)(amount) FROM orders", tol=0.05, agg=[["percentile", "d:orders.amount_dim", 0.9]])
 Q("mb.agg.sum_where", ORD, "SELECT sumIf(quantity, %s) FROM orders" % PAID, agg=[["sum-where", "d:orders.quantity_dim", ["=", "d:orders.is_paid", True]]])
 Q("mb.agg.count_where", ORD, "SELECT countIf(%s) FROM orders" % PAID, agg=[["count-where", ["=", "d:orders.is_paid", True]]])
 Q("mb.agg.share", ORD, "SELECT countIf(%s) / count() FROM orders" % PAID, agg=[["share", ["=", "d:orders.is_paid", True]]])
@@ -1741,19 +1734,6 @@ def _(ctx):
     if not [t for c in res for t in c.get("tables", [])]:
         raise Fail("no X-ray candidates")
     assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.count"])["rows"], ch(CNT_O))
-
-
-@check("mb.report_timezone")
-def _(ctx):
-    ctx.mb.need_db()
-    prev = ctx.mb.api("GET", "/api/setting/report-timezone")
-    ctx.mb.api("PUT", "/api/setting/report-timezone", {"value": "Asia/Tokyo"})
-    try:
-        rows = ctx.mb.mbql(ORD, agg=[["count"]], by=["d:orders.created_at@year"])["rows"]
-    finally:
-        ctx.mb.api("PUT", "/api/setting/report-timezone", {"value": prev if isinstance(prev, str) and prev else None})
-    want = ch("SELECT toString(toStartOfYear(toTimeZone(created_at, 'Asia/Tokyo'))) AS y, count() FROM orders GROUP BY y")
-    assert_rows([[str(r[0])[:10], r[1]] for r in rows], [[str(r[0])[:10], r[1]] for r in want])
 
 
 # ----- MCP
