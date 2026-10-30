@@ -16,7 +16,8 @@ database.
 ## Find data
 
 1. Call `search` with one keyword per entry in `term_queries`, for example `["revenue", "city"]`, and `type: ["table"]`.
-   A whole sentence such as `revenue by city` can match nothing on the default search engine, because each word must match.
+   A live test on a Metabase with a Postgres app database finds `sales` first for `revenue by city`. On an H2 app database,
+   the same text finds nothing, because each word must match, also `by`. Keywords work on both.
 2. Read the description of each table. It lists `Measures:`, `Dimensions:`, `Segments:` and `Joins:`. Fields have no entry
    in the search index, so this text is how a search finds a dimension.
 3. A search with `type: ["measure"]` shows `Table: Sales (sales, id 40).` in the description. Many tables can have a

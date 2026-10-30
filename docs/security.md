@@ -34,7 +34,7 @@ The `security.*` entries in `conformance/features.yaml` test this against `dev/c
 
 ## What happens
 
-- A query opens its own connection with the person as the user name, so there is one connection per query.
+- A query opens its own connection with the person as the user name, so there is one connection per query. A live test of one query gave a median of 199 ms, against 115 ms with the connection pool.
 - A person with no attribute value gets an error. A person that `checkSqlAuth` refuses gets an error. The query stops there.
 - MCP calls run as the person of the OAuth token.
 
@@ -54,11 +54,11 @@ The `security.*` entries in `conformance/features.yaml` test this against `dev/c
 
 Metabase v0.64.3 has a defect, and a live test shows it. After you delete a database that has Measures, each search for a Measure gives HTTP 500, in the
 REST API and in the MCP tool `search`. The cause is a Measure in the search index with no table. To prevent it, archive the Measures of the
-database before you delete the database.
+database, wait some seconds for the search index, and then delete the database.
 
 ## Secrets
 
 - The API returns `**MetabasePass**` in place of the SQL password, and it hides the API secret. The check `security.secret.not_in_api` reads the admin and non-admin API and MCP.
 - The check `security.secret.not_in_logs` forces wrong connections and reads the Metabase log at the default log level. It looks for the secret, the sent password and a JWT, and it finds none.
-- Post the API secret as `cube-api-secret-value`, as the Metabase UI does. A client that posts another key name has its value stored as plain connection details.
+- Post the API secret as `cube-api-secret-value`, as the Metabase UI does. The driver does not read a value in the key `cube-api-secret`. A live test shows that Cube then refuses the connection with HTTP 403, if dev mode is off.
 - Dev mode of Cube accepts each JWT, also one with a wrong signature. A live test confirmed this. To protect the REST API with the API secret, run Cube with `CUBEJS_DEV_MODE=false`.
