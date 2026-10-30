@@ -1,0 +1,59 @@
+cubes:
+  - name: payments
+    title: Payments
+    description: Two payment rows per order, from a SQL query.
+    sql: >
+      SELECT id AS id, id AS order_id, 'card' AS method, amount AS amount
+      FROM shop.orders
+      UNION ALL
+      SELECT id + 100000 AS id, id AS order_id, 'fee' AS method, toDecimal64(1, 2) AS amount
+      FROM shop.orders
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: false }
+      - { name: order_id, sql: order_id, type: number, description: Paid order. }
+      - { name: method, sql: method, type: string, description: Payment method. }
+    measures:
+      - { name: count, type: count, description: Number of payments. }
+      - { name: total, sql: amount, type: sum, format: currency, description: Total paid. }
+
+  - name: shipments
+    title: Shipments
+    description: One shipment per order. Joined one to one.
+    sql: "SELECT id AS order_id, ['air','ground','sea'][1 + id % 3] AS carrier_mode FROM shop.orders"
+    dimensions:
+      - { name: order_id, sql: order_id, type: number, primary_key: true, public: false }
+      - { name: carrier_mode, sql: carrier_mode, type: string, description: Shipping mode. }
+    measures:
+      - { name: count, type: count, description: Number of shipments. }
+
+  - name: cheap_products
+    title: Cheap products
+    description: Cube that extends products and keeps cheap products only.
+    extends: products
+    sql: "SELECT * FROM shop.products WHERE price < 20"
+
+  - name: secret_audit
+    public: false
+    title: Secret audit
+    description: Hidden cube. It must not appear in Metabase.
+    sql_table: shop.orders
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+    measures:
+      - { name: count, type: count }
+
+  - name: fiscal_calendar
+    calendar: true
+    title: Fiscal calendar
+    description: Calendar cube with a custom time shift.
+    sql: >
+      SELECT toDateTime('2024-01-01 00:00:00', 'UTC') + toIntervalDay(number) AS date_key,
+      toDateTime('2024-01-01 00:00:00', 'UTC') + toIntervalDay(number) - toIntervalDay(28) AS prior_fiscal_date
+      FROM numbers(1200)
+    dimensions:
+      - { name: date_key, sql: date_key, type: time, primary_key: true }
+      - name: date
+        sql: date_key
+        type: time
+        time_shift:
+          - { name: prior_fiscal_month, sql: "{CUBE}.prior_fiscal_date" }

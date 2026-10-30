@@ -14,3 +14,86 @@ views:
       - join_path: orders.products
         prefix: true
         includes: [category, name]
+
+  - name: paid_sales
+    title: Paid sales
+    description: Completed orders only. Default filters enforce this.
+    meta: { ai_hint: "Only completed orders." }
+    default_filters:
+      - { member: status, operator: equals, values: [completed] }
+    cubes:
+      - join_path: orders
+        includes:
+          - status
+          - created_at
+          - count
+          - name: revenue
+            alias: net_sales
+            title: Net sales
+            description: Revenue under another name.
+            format: currency_0
+            meta: { source: orders.revenue }
+      - join_path: orders.users
+        prefix: true
+        includes: "*"
+        excludes:
+          - email
+          - email_masked
+          - lifetime_orders
+          - lifetime_paid_orders
+          - signup_cohort
+          - location
+          - created_at
+          - name
+    measures:
+      - name: revenue_per_order
+        type: number
+        multi_stage: true
+        sql: "{CUBE.net_sales} / NULLIF({CUBE.count}, 0)"
+        description: Derived measure of the view.
+    folders:
+      - name: Money
+        includes:
+          - net_sales
+          - name: Ratios
+            includes: [revenue_per_order]
+      - name: Customers
+        includes:
+          - join_path: orders.users
+
+  - name: hidden_sales
+    public: false
+    cubes:
+      - { join_path: orders, includes: [status, count] }
+
+  - name: extended_sales
+    extends: sales
+    title: Extended sales
+    description: Sales view with payment rows.
+    cubes:
+      - { join_path: orders.payments, prefix: true, includes: [method, count, total] }
+
+  - name: restricted_sales
+    title: Restricted sales
+    description: Row and member policies apply to every user.
+    cubes:
+      - { join_path: orders, includes: [status, count, revenue, created_at] }
+    access_policy:
+      - group: "*"
+        member_level: { excludes: [created_at] }
+        row_level:
+          filters:
+            - { member: status, operator: equals, values: [shipped] }
+
+  - name: masked_sales
+    title: Masked sales
+    description: Revenue is masked. Status stays visible.
+    cubes:
+      - { join_path: orders, includes: [masked_status, status, count, revenue_masked] }
+    access_policy:
+      - group: "*"
+        member_level: { includes: [status, count] }
+        member_masking: { includes: [masked_status, revenue_masked] }
+
+view_groups:
+  - { name: revenue_views, title: Revenue views, description: Views for revenue analysis., includes: [sales, paid_sales] }

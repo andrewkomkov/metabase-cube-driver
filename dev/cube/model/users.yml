@@ -4,7 +4,8 @@ cubes:
     description: People who have an account in the shop.
     sql_table: shop.users
     meta: { owner: growth, ai_hint: "One row per customer account." }
-    joins: []
+    joins:
+      - { name: orders, relationship: one_to_many, sql: "{CUBE}.id = {orders.user_id}" }
     dimensions:
       - { name: id, sql: id, type: number, primary_key: true, public: true, title: Customer ID }
       - { name: name, sql: name, type: string, title: Full name, description: Display name of the customer. }
@@ -18,6 +19,26 @@ cubes:
         longitude: { sql: longitude }
       - { name: is_vip, sql: is_vip, type: boolean, description: VIP program member. }
       - { name: created_at, sql: created_at, type: time, description: Signup time. }
+      - { name: lifetime_orders, sql: "{orders.count}", type: number, sub_query: true, description: Orders of the customer. }
+      - name: lifetime_paid_orders
+        sql: "{orders.count}"
+        type: number
+        sub_query: true
+        propagate_filters_to_sub_query: true
+        description: Orders of the customer, query filters apply.
+      - name: email_masked
+        sql: email
+        type: string
+        mask: { sql: "concat('***', right({CUBE}.email, 11))" }
+        description: Email with a SQL mask.
+      - name: signup_cohort
+        type: string
+        description: Signup period, from SQL case labels.
+        case:
+          when:
+            - { sql: "{CUBE}.created_at < toDateTime('2024-04-01 00:00:00', 'UTC')", label: Q1 }
+            - { sql: "{CUBE}.created_at < toDateTime('2024-07-01 00:00:00', 'UTC')", label: { sql: "'Q2'" } }
+          else: { label: { sql: "'later'" } }
     measures:
       - { name: count, type: count, title: Customer count, description: Number of customers., drill_members: [id, name, city] }
       - { name: vip_count, type: count, filters: [{ sql: "{CUBE}.is_vip" }], description: Number of VIP customers. }

@@ -3,10 +3,16 @@ cubes:
     title: Orders
     description: Customer orders. One row per order.
     sql_table: shop.orders
+    sql_alias: ord
+    refresh_key: { every: 1 hour }
     meta: { owner: finance, ai_hint: "Revenue questions start here." }
     joins:
       - { name: users, relationship: many_to_one, sql: "{CUBE}.user_id = {users.id}" }
       - { name: products, relationship: many_to_one, sql: "{CUBE}.product_id = {products.id}" }
+      - { name: payments, relationship: one_to_many, sql: "{CUBE}.id = {payments.order_id}" }
+      - { name: shipments, relationship: one_to_one, sql: "{CUBE}.id = {shipments.order_id}" }
+      - { name: users, alias: referrer, relationship: many_to_one, sql: "{CUBE}.user_id % 200 + 1 = {referrer.id}" }
+      - { name: fiscal_calendar, relationship: many_to_one, sql: "toDate({CUBE}.created_at) = toDate({fiscal_calendar.date_key})" }
     dimensions:
       - { name: id, sql: id, type: number, primary_key: true, public: true, title: Order ID }
       - { name: user_id, sql: user_id, type: number, description: Customer who placed the order. }
@@ -28,7 +34,45 @@ cubes:
         description: When the order was placed.
         granularities:
           - { name: fiscal_quarter, interval: 3 months, offset: 1 month, title: Fiscal quarter }
+          - { name: week_from_sunday, interval: 1 week, offset: -1 day, title: Week from Sunday }
+          - { name: fiscal_year_april, interval: 1 year, origin: "2024-04-01", title: Fiscal year from April }
+          - { name: half_day, interval: 12 hours }
       - { name: internal_note, sql: "'x'", type: string, public: false }
+      - { name: created_fiscal_quarter, sql: "{created_at.fiscal_quarter}", type: time, title: Fiscal quarter start, description: Proxy for fiscal_quarter. }
+      - { name: created_week_sunday, sql: "{created_at.week_from_sunday}", type: time, description: Proxy for week_from_sunday. }
+      - { name: created_month_proxy, sql: "{created_at.month}", type: time, description: Proxy for month. }
+      - { name: cancel_status, sql: "nullIf(status, 'completed')", type: string, description: Status or NULL. }
+      - { name: amount_pct, sql: "amount / 1000", type: number, format: percent_1, description: Amount per mille. }
+      - { name: amount_eur, sql: amount, type: number, format: currency, currency: EUR, description: Amount in euros. }
+      - { name: amount_abbr, sql: amount, type: number, format: abbr, description: Amount with SI prefix. }
+      - { name: order_ref, sql: id, type: number, format: id, description: Raw order number. }
+      - { name: invoice_url, sql: "concat('https://example.com/invoice/', toString(id))", type: string, format: link, description: Invoice link. }
+      - name: invoice_labeled
+        sql: "concat('https://example.com/invoice/', toString(id))"
+        type: string
+        format: { type: link, label: Open invoice }
+        description: Invoice link with a label.
+      - { name: thumb_url, sql: "concat('https://example.com/thumb/', toString(id), '.png')", type: string, format: imageUrl, description: Order thumbnail. }
+      - { name: created_label, sql: created_at, type: time, format: "%Y-%m-%d %H:%M:%S", description: Creation time with a format. }
+      - { name: status_sorted, sql: status, type: string, order: desc, description: Status in descending order. }
+      - name: status_linked
+        sql: status
+        type: string
+        description: Status with a link.
+        links:
+          - name: search
+            label: Search status
+            url: "concat('https://example.com/search?q=', {CUBE}.status)"
+            icon: external-link
+            target: blank
+            primary: true
+      - name: status_meta
+        sql: status
+        type: string
+        description: Status with member meta.
+        meta: { pii: false, ai_hint: "Use for order lifecycle questions." }
+      - { name: masked_status, sql: status, type: string, mask: "hidden", description: Status with a mask. }
+      - { name: display_currency, type: switch, values: [USD, EUR] }
     measures:
       - { name: count, type: count, title: Order count, description: Number of orders., drill_members: [id, status, created_at] }
       - { name: unique_customers, sql: user_id, type: count_distinct, description: Distinct customers. }
@@ -44,11 +88,111 @@ cubes:
       - { name: has_orders, sql: "COUNT(*) > 0", type: boolean, description: At least one order exists. }
       - { name: statuses, sql: "arrayStringConcat(arraySort(groupUniqArray(status)), ',')", type: string, description: Distinct statuses in the group. }
       - { name: public_false_measure, sql: amount, type: sum, public: false }
+      - { name: p50_amount, sql: "quantile(0.5)(amount)", type: number_agg, description: Median order amount. }
+      - name: revenue_trailing_30d
+        sql: amount
+        type: sum
+        rolling_window: { trailing: 30 day }
+        description: Revenue over 30 days before each point.
+      - name: revenue_leading_7d
+        sql: amount
+        type: sum
+        rolling_window: { leading: 7 day, offset: start }
+        description: Revenue over 7 days after each point.
+      - { name: cumulative_count, type: count, rolling_window: { trailing: unbounded }, description: Running count. }
+      - { name: revenue_mtd, sql: amount, type: sum, rolling_window: { type: to_date, granularity: month }, description: Month to date. }
+      - { name: revenue_ytd, sql: amount, type: sum, rolling_window: { type: to_date, granularity: year }, description: Year to date. }
+      - name: revenue_prior_month
+        multi_stage: true
+        sql: "{revenue}"
+        type: number
+        time_shift:
+          - { time_dimension: created_at, interval: 1 month, type: prior }
+        description: Revenue one month earlier.
+      - name: revenue_next_month
+        multi_stage: true
+        sql: "{revenue}"
+        type: number
+        time_shift:
+          - { time_dimension: created_at, interval: 1 month, type: next }
+        description: Revenue one month later.
+      - name: revenue_prior_fiscal
+        multi_stage: true
+        sql: "{revenue}"
+        type: number
+        time_shift:
+          - { name: prior_fiscal_month }
+        description: Revenue shifted by the fiscal calendar.
+      - name: revenue_all_statuses
+        multi_stage: true
+        sql: "{revenue}"
+        type: number
+        filter: { exclude: [status] }
+        description: Revenue that ignores a status filter.
+      - name: revenue_keep_status
+        multi_stage: true
+        sql: "{revenue}"
+        type: sum
+        grain: { keep_only: [status] }
+        description: Revenue at status grain only.
+      - name: revenue_excl_size
+        multi_stage: true
+        sql: "{revenue}"
+        type: sum
+        grain: { exclude: [size] }
+        description: Revenue without the size grain.
+      - name: revenue_incl_size_max
+        multi_stage: true
+        sql: "{revenue}"
+        type: max
+        grain: { include: [size] }
+        description: Largest size bucket revenue per group.
+      - name: revenue_group_by_legacy
+        multi_stage: true
+        sql: "{revenue}"
+        type: sum
+        group_by: [status]
+        description: Legacy group_by.
+      - name: revenue_grand_total
+        multi_stage: true
+        sql: "{revenue}"
+        type: sum
+        grain: { keep_only: [] }
+        description: Grand total revenue.
+      - name: revenue_share_of_total
+        multi_stage: true
+        sql: "1.0 * {revenue} / NULLIF({revenue_grand_total}, 0)"
+        type: number
+        format: percent
+        description: Share of grand total.
+      - name: revenue_in_currency
+        multi_stage: true
+        type: number
+        description: Revenue in the selected currency.
+        case:
+          switch: "{CUBE.display_currency}"
+          when:
+            - { value: EUR, sql: "{CUBE.revenue} * 0.5" }
+          else: { sql: "{CUBE.revenue}" }
+      - { name: revenue_abbr, sql: amount, type: sum, format: abbr, description: Revenue with SI prefix. }
+      - { name: revenue_accounting, sql: amount, type: sum, format: accounting_2, description: Revenue in accounting format. }
+      - { name: revenue_number, sql: amount, type: sum, format: number_0, description: Revenue as a plain number. }
+      - { name: revenue_eur, sql: amount, type: sum, format: currency, currency: EUR, description: Revenue in euros. }
+      - { name: revenue_d3, sql: amount, type: sum, format: "$,.2f", description: Revenue with a d3 format. }
+      - { name: paid_share_1, sql: "1.0 * {paid_revenue} / NULLIF({revenue}, 0)", type: number, format: percent_1, description: Paid share rounded. }
+      - name: revenue_meta
+        sql: amount
+        type: sum
+        description: Revenue with member meta.
+        meta: { unit: USD, ai_hint: "Sum of order amount." }
+      - { name: revenue_masked, sql: amount, type: sum, mask: -1, description: Revenue with a mask. }
+      - { name: payments_per_order, sql: "1.0 * {payments.count} / NULLIF({count}, 0)", type: number, description: Mean payments per order. }
     segments:
       - { name: paid, sql: "{CUBE}.status IN ('completed','shipped')", title: Paid, description: Completed or shipped orders. }
       - { name: large, sql: "{CUBE}.quantity >= 3", title: Large orders, description: Three units or more. }
     hierarchies:
       - { name: fulfilment, title: Fulfilment, levels: [status, size] }
+      - { name: internal_levels, levels: [status], public: false }
     pre_aggregations:
       - name: revenue_by_status_month
         measures: [count, revenue]
@@ -56,5 +200,18 @@ cubes:
         time_dimension: created_at
         granularity: month
         refresh_key: { every: 1 hour }
+      - name: count_by_day_partitioned
+        measures: [count]
+        time_dimension: created_at
+        granularity: day
+        partition_granularity: month
+        build_range_start: { sql: "SELECT toDateTime('2025-01-01 00:00:00', 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime('2026-01-01 00:00:00', 'UTC')" }
+        refresh_key: { every: 1 hour }
+      - name: revenue_by_status_indexed
+        measures: [paid_revenue]
+        dimensions: [status]
+        indexes:
+          - { name: status_idx, columns: [status] }
         indexes:
           - { name: status_idx, columns: [status] }
