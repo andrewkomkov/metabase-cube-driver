@@ -30,7 +30,7 @@ description: Deploy the committed state of this repository to the demo stack on 
 4. Start or update ClickHouse and Cube. The compose file sets the project name.
 
    ```sh
-   ssh nettop.local 'cd ~/metabase-cube-driver/dev && docker compose up -d clickhouse cube'
+   ssh nettop.local 'cd ~/metabase-cube-driver/dev && docker compose up -d clickhouse cube cube-secure'
    ```
 
 5. Check that Cube is ready and that it agrees with ClickHouse. Both commands must show the same

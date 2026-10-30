@@ -2,8 +2,8 @@
 
 ## Short answer
 
-Per-person data in Cube works on Metabase OSS, through this driver. It does not use a paid Metabase feature. It does not use
-a Metabase feature at all: the driver opens a connection to the Cube SQL API with the name of the person as the user name.
+Per-person data in Cube works on Metabase OSS, through this driver. It uses no Metabase permission feature, paid or free.
+The driver opens a connection to the Cube SQL API, with the name of the person as the user name.
 
 The `security.*` entries in `conformance/features.yaml` test this against `dev/cube-secure`, with a row-level rule.
 
@@ -35,24 +35,24 @@ The `security.*` entries in `conformance/features.yaml` test this against `dev/c
 ## What happens
 
 - A query opens its own connection with the person as the user name, so there is one connection per query.
-- A person with no attribute value gets an error. A person that `checkSqlAuth` refuses gets an error. The query does not run as somebody else.
+- A person with no attribute value gets an error. A person that `checkSqlAuth` refuses gets an error. The query stops there.
 - MCP calls run as the person of the OAuth token.
 
 ## Limits
 
-- **The shared password.** Each client that has it can sign in as any person on the Cube SQL API. Keep that port on a private network. Cube cannot check the person in another way, because Metabase has no password for that person.
+- **The shared password.** Each client that has it can sign in as any person on the Cube SQL API. Keep that port on a private network. Metabase has no separate password for each person, so Cube trusts the name.
 - **Public links and static embeds fail.** They have no person, and the account of the connection would show all rows.
-- **The Metabase result cache is off for this connection.** The cache key has no person, and a live test showed the rows of one person to another. A Metabase driver has no hook for this, so the driver wraps the internal var `maybe-return-cached-results`. The check `security.metabase_cache` guards it on the pinned version.
+- **The Metabase result cache is off for this connection.** The cache key has no person, and a live test showed the rows of one person to another. Metabase gives a driver no hook for this, so the driver wraps the internal var `maybe-return-cached-results`. The check `security.metabase_cache` guards it on the pinned version.
 - **Filter lists are search boxes.** Metabase keeps one list of values per field, so the driver sets each dimension to `search`, and the person's own query gives the values.
-- **Sync reads no rows, so fields have no real fingerprint.** Metabase keeps one fingerprint per field. Automatic numeric binning can be poorer. This is not tested.
-- **All people see one model.** Metabase keeps one set of tables, fields and measures per database. It comes from the connection user. A member that `access_policy` hides from a person stays visible in Metabase, and a query on it gives no rows or an error. `COMPILE_CONTEXT` changes values for each person, but not the list of members.
-- **Scheduled deliveries run as their creator.** This is how Metabase works. Recipients get the rows of the creator. This is not tested, because the demo has no email or Slack channel.
+- **Sync reads no rows, so the fingerprint of a field is empty.** Metabase keeps one fingerprint per field. Automatic numeric binning has less data. The tests do not cover this.
+- **All people see one model.** Metabase keeps one set of tables, fields and measures per database. It comes from the connection user. A member that `access_policy` hides from a person stays visible in Metabase. A query on it gives an error, or an empty result. `COMPILE_CONTEXT` changes values for each person. The list of members stays the same.
+- **Scheduled deliveries run as their creator.** This is how Metabase works. Recipients get the rows of the creator. The tests do not cover this, because the demo has no email or Slack channel.
 - **Metabase permissions still apply on top.** This feature only limits what Cube returns.
-- **Other Cube data sources.** The live tests use ClickHouse.
+- **Other Cube data sources.** The live tests use ClickHouse only.
 
 ## Secrets
 
-- The API returns `**MetabasePass**` in place of the SQL password, and nothing for the API secret. The check `security.secret.not_in_api` reads the admin and non-admin API and MCP.
-- The check `security.secret.not_in_logs` forces wrong connections and reads the Metabase log. The log has no secret, no password that was sent, and no JWT. It reads the default log level only.
+- The API returns `**MetabasePass**` in place of the SQL password, and it hides the API secret. The check `security.secret.not_in_api` reads the admin and non-admin API and MCP.
+- The check `security.secret.not_in_logs` forces wrong connections and reads the Metabase log at the default log level. It looks for the secret, the sent password and a JWT, and it finds none.
 - Post the API secret as `cube-api-secret-value`, as the Metabase UI does. A client that posts another key name has its value stored as plain connection details.
-- Dev mode of Cube accepts each JWT, also one with a wrong signature. A live test confirmed this. Run Cube with `CUBEJS_DEV_MODE=false`, or the API secret protects nothing.
+- Dev mode of Cube accepts each JWT, also one with a wrong signature. A live test confirmed this. To protect the REST API with the API secret, run Cube with `CUBEJS_DEV_MODE=false`.

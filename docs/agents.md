@@ -74,6 +74,6 @@ A join with `ON` fails. Cube takes the join condition from the data model.
 
 ## Numbers that you must not trust
 
-Cube returns numbers through JavaScript, so a value above 2^53 can be rounded. See [How queries reach Cube](query-compilation.md).
+Cube returns numbers through JavaScript, so Cube rounds a value above 2^53. See [How queries reach Cube](query-compilation.md).
 
 On a connection with per-person data, each person sees different rows. Do not compare a number with the number of another person.

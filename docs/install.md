@@ -31,6 +31,7 @@ In Metabase, go to **Admin > Databases > Add database** and select **Cube**.
 | Database name, user and password | The values of the Cube SQL API. |
 | Cube REST URL | The base URL of the Cube REST API. The driver reads the data model from it. |
 | Cube API secret | The value of `CUBEJS_API_SECRET`. The driver signs a short-lived JWT with it. |
+| Cube SQL user for each person | Empty, or `email`, or the name of a user attribute. See [Security](security.md). |
 
 ## Required Cube settings
 
