@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 628,
+    "pass": 636,
     "partial": 12,
     "blocked": 26,
     "unsupported": 10,
-    "fail": 1,
-    "total": 677
+    "fail": 2,
+    "total": 686
   },
-  "coverage": "coverage: 628/677 pass",
+  "coverage": "coverage: 636/686 pass",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -272,8 +272,8 @@
     },
     {
       "id": "dimension.format.image_url",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "orders.thumb_url semantic_type='type/URL', want 'type/ImageURL'"
     },
     {
       "id": "dimension.format.link",
@@ -377,8 +377,53 @@
     },
     {
       "id": "dimension.type.geo",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.type.geo.map_points",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.type.geo.map_grid",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.type.geo.raw_rows",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.type.geo.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.type.geo.implicit_join",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.type.geo.view",
       "status": "fail",
-      "reason": "users has no fields with Latitude and Longitude semantic types"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T18:44:41.997914539Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Internal Error: TypeError: Cannot read properties of undefined (reading 'sql')\\nQUERY: SELECT CAST(SUBSTR(\\"
+    },
+    {
+      "id": "dimension.type.geo.auto_bin",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.type.geo.second_stage",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.type.geo.fingerprint",
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.type.number",
