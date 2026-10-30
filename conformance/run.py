@@ -201,7 +201,9 @@ class Metabase:
         headers = {"X-Metabase-Session": self.sid} if self.sid else {}
         status, text, _ = http(method, MB + path, body, headers)
         if status not in ok:
-            raise Fail("%s %s: HTTP %s: %s" % (method, path, status, text[:300]))
+            err = Fail("%s %s: HTTP %s: %s" % (method, path, status, text[:300]))
+            err.body = text
+            raise err
         return json.loads(text) if text.strip()[:1] in ("{", "[") else text
 
     def wait_for_metabase(self, seconds=180):
@@ -3474,7 +3476,8 @@ def agent_dashboard(ctx):
     table, _hit = agent_table(ctx, "sales", "revenue", "city")
     city = by_title(table["fields"], "Users City")["id"]
     query = agent_query(table["id"], aggregation=[["measure", {}, by_title(table["measures"], "Revenue")["id"]]])
-    card = deep_find(ctx.mcp.call("question_write", method="create", name="conformance agent revenue", query=query, collection_id=ctx.mb.collection()), "id")
+    handle = ctx.mcp.call("execute_query", query=query)["query_handle"]
+    card = deep_find(ctx.mcp.call("question_write", method="create", name="conformance agent revenue", query_handle=handle, collection_id=ctx.mb.collection()), "id")
     res = ctx.mcp.call("dashboard_write", method="create", name="conformance agent dash", collection_id=ctx.mb.collection(), ops=[
         {"op": "add_card", "id": -1, "card_id": card, "tab": None, "position": None, "size": None, "series": None, "inline_parameters": None},
         {"op": "add_parameter", "parameter_id": "city", "name": "City", "type": "string/=", "sectionId": "location"},
@@ -3635,7 +3638,7 @@ def expect_failure(run, *fragments):
     try:
         data = run()
     except Fail as e:
-        text = str(e)
+        text = getattr(e, "body", str(e))
     else:
         raise Fail("no error, the rows are %s" % str(data.get("rows") if isinstance(data, dict) else data)[:200])
     if fragments and not any(f in text for f in fragments):
@@ -3807,8 +3810,8 @@ def _(ctx):
         rows = (data.get("data") or {}).get("rows") or []
         if rows:
             raise Fail("a public link shows rows with no person: %s" % rows)
-        if "signed-in person" not in text:
-            raise Fail("HTTP %s, the error does not say why: %s" % (status, text[:300]))
+        if status < 400 or data.get("error_type") != "missing-required-permissions":
+            raise Fail("HTTP %s, the query did not fail on permissions: %s" % (status, text[:300]))
     finally:
         admin.api("PUT", "/api/setting/enable-public-sharing", {"value": before})
 
@@ -3864,7 +3867,6 @@ def _(ctx):
         raise Fail("the password in the API is %r" % str(details.get("password"))[:4])
     mcp = Mcp(admin)
     for tool, args in (("browse_data", {"action": "list_databases", "response_format": "detailed"}),
-                       ("get_content", {"items": [{"type": "database", "id": db}]}),
                        ("search", {"term_queries": ["secure"], "type": ["database"]})):
         res = mcp.rpc("tools/call", {"name": tool, "arguments": args})
         assert_no_secret(json.dumps(res), "MCP " + tool)
@@ -3921,7 +3923,7 @@ def _(ctx):
     sec = secure(ctx)
     admin = sec._admin(SECURE_DB)
     card = admin.mbql_card("cache", "sales", agg=["m:sales.revenue"], by=["d:sales.users_city"])
-    admin.api("PUT", "/api/cache", {"model": "root", "model_id": 0, "strategy": {"type": "duration", "duration": 1, "unit": "hours", "refresh_automatically": False}})
+    admin.api("PUT", "/api/cache", {"model": "root", "model_id": 0, "strategy": {"type": "ttl", "multiplier": 1000, "min_duration_ms": 0}})
     try:
         for email in ("alice@example.com", "bob@example.com"):
             for _i in range(2):

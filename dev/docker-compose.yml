@@ -43,7 +43,9 @@ services:
     image: cubejs/cube:${CUBE_VERSION:-v1.8.15}
     depends_on: { clickhouse: { condition: service_healthy } }
     environment:
-      CUBEJS_DEV_MODE: "true"
+      # Dev mode accepts each JWT, also one with a wrong signature, so it cannot test the API secret.
+      CUBEJS_DEV_MODE: "false"
+      CUBEJS_CACHE_AND_QUEUE_DRIVER: memory
       CUBEJS_API_SECRET: cube-secure-dev-only-secret-0123456789
       CUBEJS_DB_TYPE: clickhouse
       CUBEJS_DB_HOST: clickhouse

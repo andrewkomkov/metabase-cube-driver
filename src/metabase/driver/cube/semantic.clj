@@ -26,10 +26,11 @@
 (set! *warn-on-reflection* true)
 
 (defn- member-entity-id
-  "A fixed entity_id: 21 URL-safe characters from a hash of the database and the member name."
+  "A fixed entity_id: 21 URL-safe characters from a hash of the database id and the member name. A Metabase Database has
+  no entity_id of its own, and two Cube databases can have the same member name."
   [database member-name]
   (let [digest (.digest (MessageDigest/getInstance "SHA-256")
-                        (.getBytes (str "cube/" (:entity_id database) "/" member-name) StandardCharsets/UTF_8))]
+                        (.getBytes (str "cube/" (:id database) "/" member-name) StandardCharsets/UTF_8))]
     (subs (.encodeToString (.withoutPadding (Base64/getUrlEncoder)) digest) 0 21)))
 
 ;;; --------------------------------------------------- tables and fields ---------------------------------------------------
