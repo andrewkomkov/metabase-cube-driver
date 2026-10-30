@@ -71,7 +71,7 @@ cubes:
         type: string
         description: Status with member meta.
         meta: { pii: false, ai_hint: "Use for order lifecycle questions." }
-      - { name: masked_status, sql: status, type: string, mask: "hidden", description: Status with a mask. }
+      - { name: masked_status, sql: status, type: string, mask: { sql: "'hidden'" }, description: Status with a mask. }
       - { name: display_currency, type: switch, values: [USD, EUR] }
     measures:
       - { name: count, type: count, title: Order count, description: Number of orders., drill_members: [id, status, created_at] }

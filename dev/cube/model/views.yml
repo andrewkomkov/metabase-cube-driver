@@ -31,8 +31,8 @@ views:
             alias: net_sales
             title: Net sales
             description: Revenue under another name.
-            format: currency_0
-            meta: { source: orders.revenue }
+            format: currency
+            meta: { curated: true }
       - join_path: orders.users
         prefix: true
         includes: "*"
