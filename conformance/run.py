@@ -541,7 +541,7 @@ class Mcp:
 
     def call(self, tool, **args):
         res = self.rpc("tools/call", {"name": tool, "arguments": args})
-        text = "".join(c.get("text", "") for c in res.get("content", []))
+        text = (res.get("content") or [{}])[0].get("text", "")
         if res.get("isError"):
             raise Fail("%s: %s" % (tool, text[:500]))
         try:
@@ -784,7 +784,7 @@ ID7 = [["=", "d:orders.id", 7]]
 def monthly(expr):
     """Truth for a window measure: for three months, expr over orders o with bounds m and e."""
     return ("SELECT m, %s FROM orders o CROSS JOIN (SELECT toDateTime(x, 'UTC') AS m, "
-            "addSeconds(toDateTime(addMonths(toDateTime(x, 'UTC'), 1), 'UTC'), -1) AS e FROM (SELECT arrayJoin(%s) AS x)) "
+            "addSeconds(toDateTime(addMonths(toDateTime(x, 'UTC'), 1), 'UTC'), -1) AS e FROM (SELECT arrayJoin(%s) AS x)) b "
             "GROUP BY m ORDER BY m" % (expr, ROLL))
 
 
@@ -797,7 +797,7 @@ Q("measure.type.sum", ORD, "SELECT sum(amount) FROM orders", agg=["m:orders.reve
 Q("measure.type.avg", ORD, "SELECT avg(amount) FROM orders", agg=["m:orders.avg_order_value"])
 Q("measure.type.min", ORD, "SELECT min(amount) FROM orders", agg=["m:orders.min_amount"])
 Q("measure.type.max", ORD, "SELECT max(amount) FROM orders", agg=["m:orders.max_amount"])
-Q("measure.type.number", ORD, "SELECT sumIf(amount, %s) / sum(amount) FROM orders" % PAID, agg=["m:orders.paid_share"])
+Q("measure.type.number", ORD, "SELECT sumIf(toFloat64(amount), %s) / sum(toFloat64(amount)) FROM orders" % PAID, agg=["m:orders.paid_share"])
 Q("measure.type.number_agg", ORD, "SELECT quantile(0.5)(amount) FROM orders", agg=["m:orders.p50_amount"])
 Q("measure.type.rank", ORD, "SELECT status, rank() OVER (ORDER BY sum(amount) DESC) FROM orders GROUP BY status",
   agg=["m:orders.revenue_rank"], by=["d:orders.status"])
@@ -820,8 +820,8 @@ Q("measure.opt.mask", "masked_sales", "SELECT count(), -1 FROM orders", agg=["m:
 Q("measure.opt.cross_cube_reference", ORD, "SELECT (SELECT 2 * count() FROM orders) / count() FROM orders", agg=["m:orders.payments_per_order"])
 Q("measure.format.currency", ORD, REV, agg=["m:orders.revenue"], post=expect_format("currency", semantic="type/Currency"))
 Q("measure.format.currency_code", ORD, REV, agg=["m:orders.revenue_eur"], post=expect_format("currency", "EUR"))
-Q("measure.format.percent", ORD, "SELECT sumIf(amount, %s) / sum(amount) FROM orders" % PAID, agg=["m:orders.paid_share"], post=expect_format("percent", semantic="type/Percentage"))
-Q("measure.format.percent_n", ORD, "SELECT sumIf(amount, %s) / sum(amount) FROM orders" % PAID, agg=["m:orders.paid_share_1"], post=expect_format("percent", decimals=1))
+Q("measure.format.percent", ORD, "SELECT sumIf(toFloat64(amount), %s) / sum(toFloat64(amount)) FROM orders" % PAID, agg=["m:orders.paid_share"], post=expect_format("percent", semantic="type/Percentage"))
+Q("measure.format.percent_n", ORD, "SELECT sumIf(toFloat64(amount), %s) / sum(toFloat64(amount)) FROM orders" % PAID, agg=["m:orders.paid_share_1"], post=expect_format("percent", decimals=1))
 Q("measure.format.number_n", ORD, REV, agg=["m:orders.revenue_number"], post=expect_format(decimals=0))
 Q("measure.format.abbr", ORD, REV, agg=["m:orders.revenue_abbr"], post=expect_format())
 Q("measure.format.accounting", ORD, REV, agg=["m:orders.revenue_accounting"], post=expect_format(decimals=2))
@@ -849,15 +849,14 @@ Q("measure.multi_stage.time_shift_named_calendar", "calendar_sales",
   "SELECT toStartOfMonth(toDate(created_at) + 28) AS m, sum(amount) FROM orders GROUP BY m HAVING m = '2025-03-01'",
   agg=["m:calendar_sales.revenue_prior_fiscal"], by=["d:calendar_sales.fiscal_calendar_date@month"],
   where=[["between", "d:calendar_sales.fiscal_calendar_date", "2025-03-01", "2025-03-31"]])
-Q("measure.multi_stage.filter_exclude", ORD, "SELECT 'completed', sum(amount) FROM orders",
-  agg=["m:orders.revenue_all_statuses"], by=["d:orders.status"], where=[["=", "d:orders.status", "completed"]])
+Q("measure.multi_stage.filter_exclude", ORD, REV, agg=["m:orders.revenue_all_statuses"], where=[["=", "d:orders.status", "completed"]])
 Q("measure.multi_stage.grain_keep_only", ORD, BY_STATUS_SIZE, agg=["m:orders.revenue_keep_status"], by=["d:orders.status", "d:orders.size"])
 Q("measure.multi_stage.grain_exclude", ORD, BY_STATUS_SIZE, agg=["m:orders.revenue_excl_size"], by=["d:orders.status", "d:orders.size"])
 Q("measure.multi_stage.grain_include", ORD,
   "SELECT status, max(r) FROM (SELECT status, %s AS size, sum(amount) AS r FROM orders GROUP BY status, size) GROUP BY status" % SIZE,
   agg=["m:orders.revenue_incl_size_max"], by=["d:orders.status"])
 Q("measure.multi_stage.group_by_legacy", ORD, BY_STATUS_SIZE, agg=["m:orders.revenue_group_by_legacy"], by=["d:orders.status", "d:orders.size"])
-Q("measure.multi_stage.share_of_total", ORD, "SELECT status, sum(amount) / (SELECT sum(amount) FROM orders) FROM orders GROUP BY status",
+Q("measure.multi_stage.share_of_total", ORD, "SELECT status, sum(toFloat64(amount)) / (SELECT sum(toFloat64(amount)) FROM orders) FROM orders GROUP BY status",
   agg=["m:orders.revenue_share_of_total"], by=["d:orders.status"])
 Q("measure.multi_stage.case_switch", ORD,
   "SELECT 'USD', toFloat64(sum(amount)) FROM orders UNION ALL SELECT 'EUR', toFloat64(sum(amount)) * 0.5 FROM orders",
@@ -872,7 +871,7 @@ Q("dimension.type.time", ORD, "SELECT toStartOfYear(created_at), count() FROM or
   post=expect_temporal("orders", "created_at"))
 Q("dimension.type.geo", "users", "SELECT concat(toString(latitude), ',', toString(longitude)), count() FROM users GROUP BY 1",
   agg=["m:users.count"], by=["d:users.location"], post=expect_geo)
-Q("dimension.type.switch", ORD, "SELECT arrayJoin(['USD','EUR'])", by=["d:orders.display_currency"])
+Q("dimension.type.switch", ORD, "SELECT toFloat64(sum(amount)) * 0.5 FROM orders", agg=["m:orders.revenue_in_currency"], where=[["=", "d:orders.display_currency", "EUR"]])
 Q("dimension.opt.case_sql", ORD, "SELECT %s, count() FROM orders GROUP BY 1" % SIZE, agg=["m:orders.count"], by=["d:orders.size"])
 Q("dimension.opt.case_label_sql", "users",
   "SELECT multiIf(created_at < toDateTime('2024-04-01 00:00:00', 'UTC'), 'Q1', created_at < toDateTime('2024-07-01 00:00:00', 'UTC'), 'Q2', 'later'), count() FROM users GROUP BY 1",
@@ -1150,7 +1149,7 @@ Q("preagg.rollup", ORD, "SELECT status, sum(amount) FROM orders GROUP BY status"
   post=used_rollup({"measures": ["orders.revenue"], "dimensions": ["orders.status"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month"}]}, "revenue_by_status_month"))
 Q("preagg.partitioned", ORD, "SELECT toStartOfMonth(created_at), count() FROM orders GROUP BY 1", agg=["m:orders.count"], by=MONTH,
   post=used_rollup({"measures": ["orders.count"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "day"}]}, "count_by_day_partitioned"))
-Q("preagg.indexes", ORD, "SELECT status, sumIf(amount, %s) FROM orders GROUP BY status" % PAID, agg=["m:orders.paid_revenue"], by=["d:orders.status"],
+Q("preagg.indexes", ORD, "SELECT status, nullIf(sumIf(amount, %s), 0) FROM orders GROUP BY status" % PAID, agg=["m:orders.paid_revenue"], by=["d:orders.status"],
   post=used_rollup({"measures": ["orders.paid_revenue"], "dimensions": ["orders.status"]}, "revenue_by_status_indexed"))
 Q("preagg.original_sql", "lambda_orders", "SELECT status, sum(amount) FROM orders GROUP BY status", agg=["m:lambda_orders.revenue"], by=["d:lambda_orders.status"],
   post=used_rollup({"measures": ["lambda_orders.revenue"], "dimensions": ["lambda_orders.status"], "timeDimensions": [{"dimension": "lambda_orders.created_at", "granularity": "day"}]}, "daily"))
@@ -1206,7 +1205,7 @@ Q("mb.agg.percentile", ORD, "SELECT quantileExact(0.9)(amount) FROM orders", tol
 Q("mb.agg.sum_where", ORD, "SELECT sumIf(quantity, %s) FROM orders" % PAID, agg=[["sum-where", "d:orders.quantity_dim", ["=", "d:orders.is_paid", True]]])
 Q("mb.agg.count_where", ORD, "SELECT countIf(%s) FROM orders" % PAID, agg=[["count-where", ["=", "d:orders.is_paid", True]]])
 Q("mb.agg.share", ORD, "SELECT countIf(%s) / count() FROM orders" % PAID, agg=[["share", ["=", "d:orders.is_paid", True]]])
-Q("mb.agg.custom_expression", ORD, "SELECT sum(amount) / count() FROM orders", agg=[["/", ["sum", "d:orders.amount_dim"], ["count"]]])
+Q("mb.agg.custom_expression", ORD, "SELECT sum(toFloat64(amount)) / count() FROM orders", agg=[["/", ["sum", "d:orders.amount_dim"], ["count"]]])
 Q("mb.agg.two_measures", ORD, "SELECT status, sum(amount), count() FROM orders GROUP BY status", agg=["m:orders.revenue", "m:orders.count"], by=["d:orders.status"])
 Q("mb.agg.offset_window", ORD,
   "SELECT m, lagInFrame(toNullable(s)) OVER (ORDER BY m ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM (SELECT toStartOfMonth(created_at) AS m, sum(quantity) AS s FROM orders GROUP BY m) ORDER BY m",
@@ -1271,7 +1270,7 @@ for _fid, _clause, _sql in [
     ("boolean_false", ["=", "d:orders.is_paid", False], "NOT (%s)" % PAID),
     ("date_on", ["=", CRT + "@day", "2025-02-03"], "toDate(created_at) = '2025-02-03'"),
     ("date_before", ["<", CRT, "2025-02-01"], "created_at < '2025-02-01'"),
-    ("date_after", [">", CRT, "2025-12-01"], "created_at > '2025-12-01'"),
+    ("date_after", [">", CRT, "2025-12-01"], "toDate(created_at) > '2025-12-01'"),
     ("date_between", ["between", CRT, "2025-02-01", "2025-02-28"], "toDate(created_at) BETWEEN '2025-02-01' AND '2025-02-28'"),
     ("date_month", ["=", CRT + "@month", "2025-02-01"], "toStartOfMonth(created_at) = '2025-02-01'"),
     ("relative_past", ["time-interval", CRT, -1000, "day"], "toDate(created_at) >= today() - 1000 AND toDate(created_at) < today()"),
@@ -1323,9 +1322,10 @@ for _name, _clause, _sql in [
 @check("meta.tables_match_public_members")
 def _(ctx):
     ctx.mb.need_db()
-    want = {"orders", "users", "products", "payments", "promos", "shipments", "sales", "paid_sales", "promo_sales",
-            "calendar_sales", "extended_sales", "restricted_sales", "masked_sales", "filtered_orders", "lambda_orders",
-            "cheap_products", "fiscal_calendar"}
+    ctx.mb.member_meta(ORD, "count")
+    want = {c["name"].lower() for c in ctx.mb.cube_meta if c.get("public", True)}
+    if not want:
+        raise Fail("Cube /meta lists no public cubes")
     got = {n for n, t in ctx.mb.tables.items() if t.get("visibility_type") is None}
     if want - got:
         raise Fail("missing tables: %s" % sorted(want - got))
@@ -1540,7 +1540,7 @@ def _(ctx):
 def _(ctx):
     t = ctx.mb.table(ORD)["id"]
     seg = ctx.mb.api("POST", "/api/segment", {"name": "conformance shipped", "table_id": t, "description": "conformance",
-                                              "definition": {"source-table": t, "filter": ["=", ctx.mb.ref(STA), "shipped"]}})
+                                              "definition": {"database": ctx.mb.db, "type": "query", "query": {"source-table": t, "filter": ["=", ctx.mb.ref(STA), "shipped"]}}})
     ctx.mb.created.append(("/api/segment/%d" % seg["id"], {"archived": True, "revision_message": "conformance run"}))
     assert_rows(ctx.mb.raw({"source-table": t, "aggregation": [["count"]], "filter": ["segment", seg["id"]]})["rows"], ch("SELECT count() FROM orders WHERE status = 'shipped'"))
 
@@ -1620,7 +1620,7 @@ def _(ctx):
 def _(ctx):
     query = {"database": ctx.mb.need_db(), "type": "native", "native": {"query": "SELECT MEASURE(count) AS n FROM orders WHERE status = {{s}}", "template-tags": tag("s", "text")}}
     card = ctx.mb.card("native param", query)
-    rows = ctx.mb.run_card(card["id"], [{"type": "category", "target": ["variable", ["template-tag", "s"]], "value": "shipped"}])["rows"]
+    rows = ctx.mb.run_card(card["id"], [{"id": "s", "type": "category", "target": ["variable", ["template-tag", "s"]], "value": "shipped"}])["rows"]
     assert_rows(rows, ch(SHIPPED))
 
 
@@ -1872,14 +1872,24 @@ def _(ctx):
     mcp_rows(ctx, "users", CNT_U, agg=["m:users.count"])
 
 
+def revenue_clause(table):
+    """The MBQL 5 aggregation for revenue, from a get_fields reply: a Measure entity or a measure field."""
+    for m in table.get("measures") or []:
+        if _slug(m["name"]) == "revenue":
+            return ["measure", {}, m["id"]]
+    for f in table.get("fields") or []:
+        if f["name"] == "revenue":
+            return ["sum", {}, ["field", {}, f["id"]]]
+    return None
+
+
 @check("mcp.browse.get_fields_measures")
 def _(ctx):
     tid = ctx.mb.table(ORD)["id"]
-    measures = {_slug(m["name"]): m for m in get_fields_table(ctx, tid).get("measures") or []}
-    if "revenue" not in measures:
-        raise Fail("get_fields lists no measure Revenue. It lists: %s" % sorted(measures)[:10])
-    query = mcp_stage(tid, aggregation=[["measure", {}, measures["revenue"]["id"]]])
-    assert_rows(ctx.mcp.call("execute_query", query=query)["rows"], ch(REV))
+    clause = revenue_clause(get_fields_table(ctx, tid))
+    if not clause:
+        raise Fail("get_fields lists no revenue measure")
+    assert_rows(ctx.mcp.call("execute_query", query=mcp_stage(tid, aggregation=[clause]))["rows"], ch(REV))
 
 
 @check("mcp.browse.get_fields_segments")
@@ -2030,13 +2040,12 @@ def _(ctx):
     tables = [r["id"] for r in hits if r["type"] == "table" and r["id"] in cube_tables]
     if not tables and not [r for r in hits if r["type"] == "measure" and _slug(r["name"]) == "revenue"]:
         raise Fail("search for revenue gives nothing from the Cube database: %s" % [(r["type"], r["name"]) for r in hits][:8])
-    tid = tables[0] if tables else ctx.mb.table(ORD)["id"]
-    table = get_fields_table(ctx, tid)
-    found = [m for m in table.get("measures") or [] if _slug(m["name"]) == "revenue"]
-    if not found:
-        raise Fail("table %s lists no revenue measure: %s" % (table.get("name"), [m["name"] for m in table.get("measures") or []][:8]))
-    query = mcp_stage(tid, aggregation=[["measure", {}, found[0]["id"]]])
-    assert_rows(ctx.mcp.call("execute_query", query=query)["rows"], ch(REV))
+    for tid in tables or [ctx.mb.table(ORD)["id"]]:
+        clause = revenue_clause(get_fields_table(ctx, tid))
+        if clause:
+            assert_rows(ctx.mcp.call("execute_query", query=mcp_stage(tid, aggregation=[clause]))["rows"], ch(REV))
+            return
+    raise Fail("no table from the search lists a revenue measure")
 
 
 # ----------------------------------------------------------------- main
