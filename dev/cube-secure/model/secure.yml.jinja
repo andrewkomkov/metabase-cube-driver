@@ -1,4 +1,4 @@
-{% set email_sql = "email" if COMPILE_CONTEXT.securityContext.all else "'hidden'" %}
+# A small model for the row-level rule in ../cube.js. The rule filters on users.city.
 cubes:
   - name: orders
     title: Orders
