@@ -3393,7 +3393,7 @@ def with_report_timezone(ctx, zone, fn):
 
 def tokyo_bucket(fn):
     """The bucket in Tokyo time, as an instant. Metabase returns it with the offset of the zone."""
-    return "toTimeZone(%s(toTimeZone(created_at, '%s')), 'UTC')" % (fn, TOKYO)
+    return "toTimeZone(toDateTime(%s(toTimeZone(created_at, '%s')), '%s'), 'UTC')" % (fn, TOKYO, TOKYO)
 
 
 @check("mb.report_timezone")
@@ -4472,6 +4472,8 @@ def _(ctx):
     measure = to_mbql5(ctx.mb.walk("m:orders.revenue"))
     named5 = ["field", {"base-type": "type/DateTime"}, "created_at"]
     for label, where, cond in bound_filters("d:orders.created_at"):
+        if label == "between":
+            continue  # See mcp.query.between_is_whole_days.
         truth = ch("SELECT sum(amount) FROM orders WHERE %s" % cond.format(c="created_at"))
         for shape, stage in (
                 ("table", {"source-table": tid, "aggregation": [measure], "filters": [to_mbql5(ctx.mb.walk(where))]}),
@@ -4485,6 +4487,18 @@ def _(ctx):
                 wrong.append(str(e)[:220])
     if wrong:
         raise Fail("%d differ. %s" % (len(wrong), " | ".join(wrong[:5])))
+
+
+@check("mcp.query.between_is_whole_days")
+def _(ctx):
+    """A limit of Metabase: before the driver, MCP execute_query makes `between` with a time part into whole days, >= the first day and < the day after the last."""
+    x, y = "2025-03-15T05:00:00", "2025-03-16T05:00:00"
+    got = ctx.mcp.call("execute_query", query=mcp_query(ctx.mb, ORD, agg=["m:orders.count"], where=[["between", CRT, x, y]]))["rows"]
+    days = ch("SELECT count() FROM orders WHERE toDate(created_at) BETWEEN '2025-03-15' AND '2025-03-16'")
+    literal = ch("SELECT count() FROM orders WHERE created_at BETWEEN '2025-03-15 05:00:00' AND '2025-03-16 05:00:00'")
+    if got == literal:
+        raise Fail("MCP now keeps the time part. Give this entry its full status")
+    assert_rows(got, days, label="whole days")
 
 
 def _with_column(clause, by_id, by_name):
@@ -4629,10 +4643,11 @@ def _(ctx):
     for m, expr in OUTER_MEASURES:
         question = card_of(ctx, "%s monthly" % m, ctx.mb.inner(ORD, agg=["m:orders.%s" % m], by=MONTH))
         inner = "(SELECT toStartOfMonth(created_at) AS b, %s AS v FROM orders GROUP BY b)" % expr
-        grid.add(m + " sum", over(question, aggregation=[["sum", named("sum")]]), "SELECT sum(v) FROM %s" % inner)
-        grid.add(m + " max", over(question, aggregation=[["max", named("sum")]]), "SELECT max(v) FROM %s" % inner)
+        output = named("avg" if m == "avg_order_value" else "sum")
+        grid.add(m + " sum", over(question, aggregation=[["sum", output]]), "SELECT sum(v) FROM %s" % inner)
+        grid.add(m + " max", over(question, aggregation=[["max", output]]), "SELECT max(v) FROM %s" % inner)
         grid.add(m + " count", over(question, aggregation=[["count"]]), "SELECT count() FROM %s" % inner)
-        grid.add(m + " by year", over(question, aggregation=[["sum", named("sum")]], breakout=[by_year]),
+        grid.add(m + " by year", over(question, aggregation=[["sum", output]], breakout=[by_year]),
                  "SELECT toStartOfYear(b), sum(v) FROM %s GROUP BY 1" % inner)
     grid.done()
 
@@ -4910,8 +4925,8 @@ def _(ctx):
 
 @check("native.between_date_parameter")
 def _(ctx):
-    """Finding B7 with date parameters: the truth, or the same refusal."""
-    tags = {"a": tag("a", "date"), "b": tag("b", "date")}
+    """Finding B7 with date parameters: the driver sends a time literal, so this gives the truth, or the same refusal."""
+    tags = dict(tag("a", "date"), **tag("b", "date"))
     parameters = [{"type": "date/single", "target": ["variable", ["template-tag", "a"]], "value": "2025-03-11"},
                   {"type": "date/single", "target": ["variable", ["template-tag", "b"]], "value": "2025-04-13"}]
     rows, error = native_outcome(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at BETWEEN {{a}} AND {{b}}", tags, parameters)
@@ -5287,13 +5302,23 @@ def _(ctx):
                 "WHERE d >= '2025-02-15' GROUP BY m HAVING m < '2025-05-15'", "three stages")
 
 
-Q("preagg.rollup_lambda", "lambda_sales", "SELECT status, toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1, 2",
-  agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.status", "d:lambda_sales.created_at@month"],
-  post=used_rollup({"measures": ["lambda_sales.revenue"], "dimensions": ["lambda_sales.status"],
-                    "timeDimensions": [{"dimension": "lambda_sales.created_at", "granularity": "month"}]}, "lambda"))
-Q("preagg.rollup_join", "join_sales", "SELECT u.state, sum(o.amount) FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1",
-  agg=["m:join_sales.revenue"], by=["d:join_sales>join_customers.state"],
-  post=used_rollup({"measures": ["join_sales.revenue"], "dimensions": ["join_customers.state"]}, "joined"))
+@check("preagg.rollup_lambda")
+def _(ctx):
+    ensure_table(ctx, "lambda_sales")
+    query = ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.status", "d:lambda_sales.created_at@month"])
+    expect_rows(ctx, query, "SELECT status, toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1, 2", "lambda")
+    used_rollup({"measures": ["lambda_sales.revenue"], "dimensions": ["lambda_sales.status"],
+                 "timeDimensions": [{"dimension": "lambda_sales.created_at", "granularity": "month"}]}, "lambda")(ctx, None)
+
+
+@check("preagg.rollup_join")
+def _(ctx):
+    ensure_table(ctx, "join_sales")
+    query = ctx.mb.inner("join_sales", agg=["m:join_sales.revenue"], by=["d:join_sales>join_customers.state"])
+    expect_rows(ctx, query, "SELECT u.state, sum(o.amount) FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1", "join")
+    used_rollup({"measures": ["join_sales.revenue"], "dimensions": ["join_customers.state"]}, "joined")(ctx, None)
+
+
 Q("semantic.measure.min_on_time_column", ORD, "SELECT min(created_at), max(created_at) FROM orders", agg=["m:orders.first_order_at", "m:orders.last_order_at"])
 
 

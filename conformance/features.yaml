@@ -3768,3 +3768,10 @@
   title: "filter on a measure column of a model with no primary key"
   status: todo
   check: nested.measure_column.filter_with_no_key_refused
+- id: mcp.query.between_is_whole_days
+  area: mcp
+  title: "between with a time part in MCP execute_query"
+  status: todo
+  check: mcp.query.between_is_whole_days
+  cap: partial
+  reason: "Limit of Metabase: MCP execute_query makes between with a time part into whole days before the driver, so the driver cannot see the time part. In the demo, 15 rows have that range, and MCP gives 28. The query API /api/dataset keeps the time part. Use >= and <= in MCP for a range with a time part."

@@ -497,6 +497,28 @@
   [earlier field]
   (and (selects-primary-key? earlier) (not (rolling-field? field))))
 
+(def ^:private aggregation-tags #{:sum :avg :min :max :count :distinct})
+
+(defn- own-aggregation-of-column?
+  [form]
+  (and (vector? form)
+       (aggregation-tags (first form))
+       (let [arg (nth form 2 nil)]
+         (and (vector? arg) (= :field (first arg))))))
+
+(defn- columns-inside-aggregation
+  "The columns of an aggregation that are not its direct argument, such as `x` in `sum(x + 1)` or in `count-where(x > 1)`."
+  [form]
+  (cond
+    (own-aggregation-of-column? form)              nil
+    (and (vector? form) (= :field (first form)))   [form]
+    (coll? form)                                   (mapcat columns-inside-aggregation form)))
+
+(defn- row-value-clauses
+  "The columns of a stage where a measure needs the value of each row."
+  [{:keys [filters expressions aggregation]}]
+  (concat (field-clauses filters) (field-clauses expressions) (columns-inside-aggregation aggregation)))
+
 (defn- check-no-group-by-member!
   "Cube accepts these, ignores the grouping and returns one total row, so stop here and tell the user."
   [earlier {:keys [breakout]}]
@@ -514,8 +536,8 @@
 (defn- check-no-filter-on-measure!
   "On a table, Cube reads a filter on a measure column as a filter on the aggregate of the groups, so it does not filter rows.
   On a model it is a filter on rows, if each row has its value. See row-measure?."
-  [earlier {:keys [filters]}]
-  (doseq [clause (field-clauses filters)
+  [earlier stage]
+  (doseq [clause (row-value-clauses stage)
           :let   [field (column-field earlier clause)]
           :when  (and (= :measure (field-kind field))
                       (not (row-measure? earlier field)))]
@@ -586,8 +608,6 @@
                                 measure-name (name unit) (name unit) (name unit))
                         {:type :invalid-query}))))))
 
-(def ^:private aggregation-tags #{:sum :avg :min :max :count :distinct})
-
 (defn- aggregated-fields
   "[agg-type field] for each aggregation in this stage of a column with a stored field."
   [earlier {:keys [aggregation]}]
@@ -634,11 +654,11 @@
   (into #{}
         (mapcat (fn [i]
                   (let [earlier (subvec stages 0 i)
-                        {:keys [filters breakout]} (nth stages i)]
+                        stage   (nth stages i)]
                     (keep (fn [clause]
                             (let [field (column-field earlier clause)]
                               (when (= :measure (field-kind field)) (:name field))))
-                          (concat (field-clauses filters) breakout)))))
+                          (concat (row-value-clauses stage) (:breakout stage))))))
         (range 1 (count stages))))
 
 ;;; Cube pushes a filter of an outer stage below the aggregation of a subquery, also into a multi-stage measure, so the rows
@@ -690,6 +710,14 @@
   "The names of the measures that a later stage of this query aggregates, filters or groups by."
   #{})
 
+(def ^:private ^:dynamic *row-measures*
+  "The names of the measures that a later stage filters or groups by."
+  #{})
+
+(def ^:private ^:dynamic *row-measure-aliases*
+  "An atom with the aliases of the measures in `*row-measures*` that a stage of raw rows selects."
+  nil)
+
 (def ^:private ^:dynamic *null-columns*
   "An atom with the aliases of the columns that a stage of raw rows selects as NULL."
   nil)
@@ -706,7 +734,9 @@
         null-column (h2x/cast (physical-type field) nil)]
     (when (and *raw-measures* alias-form (= :measure (member-kind clause))
                (contains? *aggregated-measures* (:name field)))
-      (swap! *raw-measures* assoc alias-form compiled))
+      (swap! *raw-measures* assoc alias-form compiled)
+      (when (contains? *row-measures* (:name field))
+        (swap! *row-measure-aliases* conj alias-form)))
     (cond
       (not (or (#{:measure :segment} (member-kind clause))
                (= "cube.dimension/geo-in-view" (:database-type field))
@@ -969,11 +999,6 @@
                       {:type :invalid-query})))
     form))
 
-(defn- raw-measure-name
-  "The column name in a compiled alias."
-  [alias-form]
-  (last (nth (h2x/unwrap-typed-honeysql-form alias-form) 2)))
-
 (defn- from-a-table?
   "True if this stage reads a table. A later stage reads the column of a subquery, with its own name."
   [{:keys [from]}]
@@ -1047,15 +1072,13 @@
   [driver query]
   (binding [*week-numbers* (atom [])
             *raw-measures* (atom {})
-            *null-columns* (atom #{})]
+            *null-columns* (atom #{})
+            *row-measure-aliases* (atom #{})]
     (let [[query aggregated row-measures] (query-with-stages driver query)
-          honeysql-form (binding [*aggregated-measures* (into aggregated row-measures)]
+          honeysql-form (binding [*aggregated-measures* (into aggregated row-measures)
+                                  *row-measures*        row-measures]
                           (sql.qp/mbql->honeysql driver query))
-          row-aliases   (into #{}
-                              (keep (fn [[alias-form]]
-                                      (when (row-measures (raw-measure-name alias-form)) alias-form)))
-                              @*raw-measures*)
-          honeysql-form (restore-nested-measures honeysql-form @*raw-measures* row-aliases @*null-columns*)
+          honeysql-form (restore-nested-measures honeysql-form @*raw-measures* @*row-measure-aliases* @*null-columns*)
           honeysql-form (if (and (map? honeysql-form) (seq @*week-numbers*))
                           (nest-all-week-numbers driver honeysql-form @*week-numbers*)
                           honeysql-form)

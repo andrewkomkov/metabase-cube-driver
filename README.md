@@ -74,6 +74,7 @@ Most shapes where Cube gives a wrong number now stop with a clear message. See t
 - A filter on a `DateTime64` column reads whole seconds, so a row in the first second after a bound of `>` is out.
 - A number above 2^53 loses digits.
 - A `propagate_filters_to_sub_query` dimension next to a second `sub_query` dimension with equal SQL reads the first subquery.
+- `between` with a time part in the MCP tool `execute_query` is whole days, because Metabase changes it before the driver.
 - Native SQL in a shape that the scan of the text does not read. See [Known wrong numbers](docs/query-compilation.md#known-wrong-numbers).
 
 ## Use with an AI agent
