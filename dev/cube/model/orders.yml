@@ -55,17 +55,6 @@ cubes:
       - { name: thumb_url, sql: "concat('https://example.com/thumb/', toString(id), '.png')", type: string, format: imageUrl, description: Order thumbnail. }
       - { name: created_label, sql: created_at, type: time, format: "%Y-%m-%d %H:%M:%S", description: Creation time with a format. }
       - { name: status_sorted, sql: status, type: string, order: desc, description: Status in descending order. }
-      - name: status_linked
-        sql: status
-        type: string
-        description: Status with a link.
-        links:
-          - name: search
-            label: Search status
-            url: "concat('https://example.com/search?q=', {CUBE}.status)"
-            icon: external-link
-            target: blank
-            primary: true
       - name: status_meta
         sql: status
         type: string
