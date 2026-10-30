@@ -1019,7 +1019,8 @@ N("join.one_to_one", "SELECT s.carrier_mode AS m, MEASURE(o.count) AS n FROM ord
   "SELECT ['air','ground','sea'][1 + id % 3], count() FROM orders GROUP BY 1")
 N("join.transitive", "SELECT p.category AS c, MEASURE(u.count) AS n FROM users u CROSS JOIN orders o CROSS JOIN products p "
   "WHERE u.__cubeJoinField = o.__cubeJoinField AND o.__cubeJoinField = p.__cubeJoinField GROUP BY 1",
-  "SELECT p.category, uniqExact(o.user_id) FROM orders o JOIN products p ON o.product_id = p.id GROUP BY 1")
+  # Cube joins are LEFT from users, so a customer with no orders is a row with no category.
+  "SELECT nullIf(p.category, ''), uniqExact(u.id) FROM users u LEFT JOIN orders o ON o.user_id = u.id LEFT JOIN products p ON o.product_id = p.id GROUP BY 1")
 
 # ----- cubes
 
