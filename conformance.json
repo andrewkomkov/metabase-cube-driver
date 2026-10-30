@@ -2,10 +2,10 @@
   "schema": 1,
   "counts": {
     "pass": 637,
-    "partial": 12,
+    "partial": 13,
     "blocked": 26,
     "unsupported": 10,
-    "fail": 1,
+    "fail": 0,
     "total": 686
   },
   "coverage": "coverage: 637/686 pass",
@@ -407,8 +407,8 @@
     },
     {
       "id": "dimension.type.geo.view",
-      "status": "fail",
-      "reason": "the sample of the view failed: customer_locations.id has no fingerprint"
+      "status": "partial",
+      "reason": "Cube v1.8.15 fails each query on a geo dimension of a view, also on the REST API: Cannot read properties of undefined (reading 'sql'). No map can work on a view. The driver hides this column and shows it as NULL, so the view stays usable. A map works on the cube of the dimension."
     },
     {
       "id": "dimension.type.geo.auto_bin",

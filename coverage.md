@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 637/686 pass** (637 pass, 12 partial, 26 blocked, 10 unsupported, 1 fail of 686)
+**coverage: 637/686 pass** (637 pass, 13 partial, 26 blocked, 10 unsupported, 0 fail of 686)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `fd5e22f6006b`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41109516566), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `ee56e0405020`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41110933026), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -87,7 +87,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `fd5e22f
 | `dimension.type.geo.raw_rows` | pass |  |
 | `dimension.type.geo.filter` | pass |  |
 | `dimension.type.geo.implicit_join` | pass |  |
-| `dimension.type.geo.view` | fail | the sample of the view failed: customer_locations.id has no fingerprint |
+| `dimension.type.geo.view` | partial | Cube v1.8.15 fails each query on a geo dimension of a view, also on the REST API: Cannot read properties of undefined (reading 'sql'). No map can work on a view. The driver hides this column and shows it as NULL, so the view stays usable. A map works on the cube of the dimension. |
 | `dimension.type.geo.auto_bin` | pass |  |
 | `dimension.type.geo.second_stage` | pass |  |
 | `dimension.type.geo.fingerprint` | pass |  |
