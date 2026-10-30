@@ -9,7 +9,7 @@ services:
     healthcheck: { test: [CMD-SHELL, pg_isready -U shop -d shop], interval: 3s, retries: 30 }
     restart: unless-stopped
   cube:
-    image: cubejs/cube:${CUBE_VERSION:-v1.6.76}
+    image: cubejs/cube:${CUBE_VERSION:-v1.8.15}
     depends_on: { postgres: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
