@@ -1,5 +1,6 @@
 (ns metabase.driver.cube.semantic
-  "Makes the Cube data model into Metabase objects. It runs after each metadata sync, on `:event/sync-metadata-end`.
+  "Makes the Cube data model into Metabase objects. It runs after each metadata sync, on `:event/sync-metadata-end`, and
+  again after the analysis, on `:event/sync-end`.
 
   Tables and fields: this namespace writes titles, descriptions, semantic types and format settings to `metabase_table`
   and `metabase_field`. Metabase keeps edits of a user in the user-settings tables and shows them over these columns, so
@@ -88,18 +89,6 @@
 
 ;;; --------------------------------------------------- measures and segments ---------------------------------------------------
 
-(def ^:private aggregation-of-measure
-  "The aggregation clause that holds a measure. The driver compiles each of them to MEASURE(), so this clause sets only
-  the text that Metabase shows and the type of the result. `:max` accepts every column type."
-  {"sum"                 :sum
-   "count"               :sum
-   "countDistinct"       :sum
-   "countDistinctApprox" :sum
-   "runningTotal"        :sum
-   "avg"                 :avg
-   "min"                 :min
-   "max"                 :max})
-
 (defn- mbql-query
   [database table-id stage]
   {:lib/type :mbql/query
@@ -114,7 +103,7 @@
   "The display name is the measure title. Without it, the column in a result is \"Sum of Revenue\"."
   [database table-id field-id title member]
   (mbql-query database table-id
-              {:aggregation [[(aggregation-of-measure (:aggType member) :max)
+              {:aggregation [[(cube.meta/aggregation-of-measure (:aggType member) :max)
                               {:lib/uuid (str (random-uuid)), :display-name title}
                               (field-ref field-id)]]}))
 

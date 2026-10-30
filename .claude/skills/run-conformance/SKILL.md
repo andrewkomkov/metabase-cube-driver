@@ -8,28 +8,22 @@ description: Run the conformance suite against the live demo stack and read the 
 `AGENTS.md` has the definition of done. `conformance/features.yaml` is the only source of truth for
 coverage, and you report only the number that `conformance/run.py` prints.
 
-## Status: planned
-
-`conformance/run.py` and `conformance/features.yaml` were not in the repository when this skill was
-written. Before you continue:
-
-```sh
-git pull --ff-only
-ls conformance/run.py conformance/features.yaml
-```
-
-If they are missing, say so and stop. Do not report coverage from any other source. If they are
-present, read `conformance/run.py` for its arguments and correct this skill.
-
 ## Steps
 
 1. Deploy the state you want to test. Use the `deploy-nettop` skill.
 
 2. Run the suite on nettop.
 
+   The runner needs the admin password of the demo Metabase. Send it on stdin, so that it stays out of the command line
+   on nettop. The name is `METABASE_CUBE_DRIVER_ADMIN_PASSWORD`.
+
    ```sh
-   ssh nettop.local 'cd ~/metabase-cube-driver && python3 conformance/run.py'
+   secret run --mask P=METABASE_CUBE_DRIVER_ADMIN_PASSWORD -- sh -c 'printf "%s\n" "$P" | ssh nettop.local "read -r METABASE_ADMIN_PASSWORD; export METABASE_ADMIN_PASSWORD; cd ~/metabase-cube-driver && python3 conformance/run.py"'
    ```
+
+   If Metabase has no admin, the runner makes one and connects Cube. The run rewrites the status lines in
+   `conformance/features.yaml` on nettop. Do not commit there: copy the file to the Mac, commit it there, and run
+   `git checkout conformance/features.yaml` on nettop before the next `git pull`.
 
 3. Read the failures. For each failure, find the layer: driver, Cube, Metabase, or the check itself.
 
@@ -39,7 +33,8 @@ present, read `conformance/run.py` for its arguments and correct this skill.
    ```
 
 4. Record the real status in `conformance/features.yaml`. Do not narrow a feature or weaken a check to
-   make it pass. Give a reason for each `partial`, `blocked` or `unsupported`.
+   make it pass. Give a reason for each `partial`, `blocked` or `unsupported`. An entry with a check that cannot prove
+   the whole feature has `cap: partial` and a reason.
 
 5. Report the number that `conformance/run.py` printed, and the failures. Do not round it and do not
    add your own estimate.

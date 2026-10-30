@@ -7,6 +7,7 @@ import argparse
 import base64
 import datetime as dt
 import hashlib
+import hmac
 import html.parser
 import json
 import os
@@ -149,7 +150,7 @@ def norm(v):
             return v
         if d.tzinfo:
             d = d.astimezone(dt.timezone.utc).replace(tzinfo=None)
-        return d.replace(microsecond=0).isoformat()
+        return d.isoformat()
     return v
 
 
@@ -158,8 +159,9 @@ def sort_key(row):
 
 
 def _same(a, b, tol):
+    """With tol=0, two numbers differ only by the rounding of a double. A check that has a real tolerance names it."""
     if isinstance(a, float) and isinstance(b, float):
-        return abs(a - b) <= max(abs(b) * max(tol, 1e-6), 1e-6)
+        return abs(a - b) <= max(abs(b) * max(tol, 1e-12), 1e-9)
     return a == b
 
 
@@ -667,8 +669,20 @@ def expect_format(style=None, currency=None, decimals=None, semantic=None):
             raise Fail("column settings %s: want currency %s" % (settings, currency))
         if decimals is not None and settings.get("decimals") != decimals:
             raise Fail("column settings %s: want decimals %s" % (settings, decimals))
-        if not settings:
-            raise Fail("column has no format settings")
+    if not (style or currency or decimals is not None):
+        raise ValueError("expect_format needs a value to compare")
+    return post
+
+
+def expect_format_as_text(table, member, style, decimals, text):
+    """Metabase has no setting for this format. The value is right, the column has the nearest format, and the description
+    keeps the text of Cube. So this check can prove only a partial feature."""
+    def post(ctx, data):
+        expect = expect_format(style, decimals=decimals)
+        expect(ctx, data)
+        obj = ctx.mb.entity(ctx.mb.measures, table, member) or ctx.mb.field(table, member)
+        if text not in (obj.get("description") or ""):
+            raise Fail("%s.%s description %r has no %r" % (table, member, obj.get("description"), text))
     return post
 
 
@@ -849,9 +863,9 @@ Q("measure.format.currency_code", ORD, REV, agg=["m:orders.revenue_eur"], post=e
 Q("measure.format.percent", ORD, "SELECT sumIf(toFloat64(amount), %s) / sum(toFloat64(amount)) FROM orders" % PAID, agg=["m:orders.paid_share"], post=expect_format("percent", semantic=PERCENT_TYPES))
 Q("measure.format.percent_n", ORD, "SELECT sumIf(toFloat64(amount), %s) / sum(toFloat64(amount)) FROM orders" % PAID, agg=["m:orders.paid_share_1"], post=expect_format("percent", decimals=1))
 Q("measure.format.number_n", ORD, REV, agg=["m:orders.revenue_number"], post=expect_format(decimals=0))
-Q("measure.format.abbr", ORD, REV, agg=["m:orders.revenue_abbr"], post=expect_format())
-Q("measure.format.accounting", ORD, REV, agg=["m:orders.revenue_accounting"], post=expect_format(decimals=2))
-Q("measure.format.d3", ORD, REV, agg=["m:orders.revenue_d3"], post=expect_format())
+Q("measure.format.abbr", ORD, REV, agg=["m:orders.revenue_abbr"], post=expect_format_as_text("orders", "revenue_abbr", "decimal", 2, "Number format: .2~s."))
+Q("measure.format.accounting", ORD, REV, agg=["m:orders.revenue_accounting"], post=expect_format_as_text("orders", "revenue_accounting", "decimal", 2, "Number format: (,.2~f."))
+Q("measure.format.d3", ORD, REV, agg=["m:orders.revenue_d3"], post=expect_format("currency", decimals=2))
 
 # ----- measures: rolling_window
 
@@ -903,8 +917,46 @@ Q("dimension.opt.case_label_sql", "users",
   agg=["m:users.count"], by=["d:users.signup_cohort"])
 Q("dimension.opt.sub_query", "users", "SELECT u.id, count() FROM users u JOIN orders o ON o.user_id = u.id WHERE u.id <= 3 GROUP BY u.id",
   fields=["d:users.id", "d:users.lifetime_orders"], where=[["<=", "d:users.id", 3]])
-Q("dimension.opt.propagate_filters", "users", "SELECT u.id, count() FROM users u JOIN orders o ON o.user_id = u.id WHERE u.id <= 3 GROUP BY u.id",
-  fields=["d:users.id", "d:users.lifetime_paid_orders"], where=[["<=", "d:users.id", 3]])
+
+def _lifetime(column, order_filter):
+    return ("SELECT u.id, u.%s FROM users u CROSS JOIN orders o WHERE u.__cubeJoinField = o.__cubeJoinField AND %s AND u.id <= 3 "
+            "GROUP BY 1, 2" % (column, order_filter))
+
+
+_EARLY = "o.created_at >= '2025-01-01' AND o.created_at < '2025-01-15'"
+_EARLY_TRUTH = "created_at >= '2025-01-01' AND created_at < '2025-01-15'"
+
+
+def _orders_of_user(where=None):
+    return "SELECT user_id, count() FROM orders WHERE user_id <= 3%s GROUP BY user_id" % (" AND " + where if where else "")
+
+
+@check("dimension.opt.propagate_filters")
+def _(ctx):
+    """The filter on orders reaches the subquery of this dimension, and it does not reach a dimension with no such option."""
+    if ch(_orders_of_user(_EARLY_TRUTH)) == ch(_orders_of_user()):
+        raise Fail("this filter excludes no order, so the check shows nothing")
+    assert_rows(ctx.mb.native(_lifetime("lifetime_paid_orders", _EARLY))["rows"], ch(_orders_of_user(_EARLY_TRUTH)), label="date filter")
+    assert_rows(ctx.mb.native(_lifetime("lifetime_paid_orders", "o.status = 'shipped'"))["rows"], ch(_orders_of_user("status = 'shipped'")), label="status filter")
+    assert_rows(ctx.mb.native(_lifetime("lifetime_orders", _EARLY))["rows"], ch(_orders_of_user()), label="no propagation")
+
+
+@check("dimension.opt.propagate_filters_next_to_another_sub_query")
+def _(ctx):
+    """A limit of Cube: in one query with a second sub_query dimension, the filter does not reach this one."""
+    sql = ("SELECT u.id, u.lifetime_orders, u.lifetime_paid_orders FROM users u CROSS JOIN orders o WHERE u.__cubeJoinField = o.__cubeJoinField "
+           "AND %s AND u.id <= 3 GROUP BY 1, 2, 3" % _EARLY)
+    rows = ctx.mb.native(sql)["rows"]
+    all_orders = {r[0]: r[1] for r in ch(_orders_of_user())}
+    filtered = {r[0]: r[1] for r in ch(_orders_of_user(_EARLY_TRUTH))}
+    assert_rows([[r[0], r[1]] for r in rows], [[k, v] for k, v in all_orders.items()], label="lifetime_orders")
+    got = {r[0]: r[2] for r in rows}
+    if got == filtered:
+        raise Fail("Cube now applies the filter to this column. Give this entry its full status")
+    if got != all_orders:
+        raise Fail("lifetime_paid_orders has another wrong value: %s, filtered truth %s" % (got, filtered))
+
+
 Q("dimension.opt.primary_key", ORD, "SELECT status FROM orders WHERE id = 7", fields=["d:orders.status"], where=ID7,
   post=expect_field("orders", "id", semantic_type="type/PK"))
 Q("dimension.opt.title", ORD, "SELECT quantity, count() FROM orders GROUP BY quantity", agg=["m:orders.count"], by=["d:orders.quantity_dim"],
@@ -922,7 +974,7 @@ Q("dimension.opt.synthetic_hidden", ORD, "SELECT count() FROM orders", agg=["m:o
 Q("dimension.format.currency", ORD, "SELECT amount FROM orders WHERE id = 7", fields=["d:orders.amount_dim"], where=ID7, post=expect_field_format("orders", "amount_dim", "currency"))
 Q("dimension.format.currency_code", ORD, "SELECT amount FROM orders WHERE id = 7", fields=["d:orders.amount_eur"], where=ID7, post=expect_field_format("orders", "amount_eur", "currency", "EUR"))
 Q("dimension.format.percent", ORD, "SELECT amount / 1000 FROM orders WHERE id = 7", fields=["d:orders.amount_pct"], where=ID7, post=expect_field_format("orders", "amount_pct", "percent"))
-Q("dimension.format.abbr", ORD, "SELECT amount FROM orders WHERE id = 7", fields=["d:orders.amount_abbr"], where=ID7, post=expect_field_format("orders", "amount_abbr"))
+Q("dimension.format.abbr", ORD, "SELECT amount FROM orders WHERE id = 7", fields=["d:orders.amount_abbr"], where=ID7, post=expect_format_as_text("orders", "amount_abbr", "decimal", 2, "Number format: .2~s."))
 Q("dimension.format.id", ORD, "SELECT id FROM orders WHERE id = 7", fields=["d:orders.order_ref"], where=ID7, post=expect_field_format("orders", "order_ref"))
 _INV = "SELECT concat('https://example.com/invoice/', toString(id)) FROM orders WHERE id = 7"
 Q("dimension.format.link", ORD, _INV, fields=["d:orders.invoice_url"], where=ID7, post=expect_field("orders", "invoice_url", semantic_type="type/URL"))
@@ -980,7 +1032,18 @@ Q("cube.public_false", ORD, "SELECT count() FROM orders", agg=["m:orders.count"]
 Q("cube.meta", "users", CNT_U, agg=["m:users.count"], post=expect_text("users", "One row per customer account."))
 Q("cube.extends", "cheap_products", "SELECT count() FROM products WHERE price < 20", agg=["m:cheap_products.count"])
 Q("cube.sql_alias", ORD, "SELECT status, count() FROM orders GROUP BY status", agg=["m:orders.count"], by=["d:orders.status"])
-Q("cube.refresh_key", ORD, REV, agg=["m:orders.revenue"])
+
+
+def expect_refresh_key(ctx, data):
+    """Cube has this refresh key in its cache key. No data changes here, so this does not prove a refresh."""
+    query = urllib.parse.quote(json.dumps({"measures": ["orders.unique_customers"]}))
+    _s, text, _h = http("GET", CUBE + "/cubejs-api/v1/sql?query=" + query)
+    keys = json.dumps(json.loads(text)["sql"].get("cacheKeyQueries"))
+    if "3600" not in keys:
+        raise Fail("the cache key of orders does not use 1 hour: %s" % keys[:300])
+
+
+Q("cube.refresh_key", ORD, REV, agg=["m:orders.revenue"], post=expect_refresh_key)
 Q("cube.calendar", "calendar_sales", "SELECT toDate('2025-03-01'), sum(amount) FROM orders WHERE toStartOfMonth(created_at) = '2025-03-01'",
   agg=["m:calendar_sales.revenue"], by=["d:calendar_sales.fiscal_calendar_date@month"], where=[["between", "d:calendar_sales.fiscal_calendar_date", "2025-03-01", "2025-03-31"]])
 Q("context.filter_params", "filtered_orders", "SELECT count() FROM orders WHERE status = 'shipped'", agg=["m:filtered_orders.count"], where=[["=", "d:filtered_orders.status", "shipped"]])
@@ -1172,7 +1235,7 @@ Q("preagg.rollup", ORD, "SELECT status, sum(amount) FROM orders GROUP BY status"
   post=used_rollup({"measures": ["orders.revenue"], "dimensions": ["orders.status"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month"}]}, "revenue_by_status_month"))
 Q("preagg.partitioned", ORD, "SELECT toStartOfMonth(created_at), count() FROM orders GROUP BY 1", agg=["m:orders.count"], by=MONTH,
   post=used_rollup({"measures": ["orders.count"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "day"}]}, "count_by_day_partitioned"))
-Q("preagg.indexes", ORD, "SELECT status, nullIf(sumIf(amount, %s), 0) FROM orders GROUP BY status" % PAID, agg=["m:orders.paid_revenue"], by=["d:orders.status"],
+Q("preagg.indexes", ORD, "SELECT status, sumIfOrNull(amount, %s) FROM orders GROUP BY status" % PAID, agg=["m:orders.paid_revenue"], by=["d:orders.status"],
   post=used_rollup({"measures": ["orders.paid_revenue"], "dimensions": ["orders.status"]}, "revenue_by_status_indexed"))
 
 # ----- SQL API through a native query
@@ -1253,10 +1316,14 @@ Q("mb.breakout.limit", ORD, "SELECT status, sum(amount) AS r FROM orders GROUP B
 
 @check("mb.breakout.bin_count")
 def _(ctx):
-    rows = ctx.mb.mbql(ORD, agg=[["count"]], by=["d:orders.amount_dim#bins=8"])["rows"]
-    if len(rows) < 2:
-        raise Fail("binning returned %d rows" % len(rows))
-    assert_rows([[sum(r[1] for r in rows)]], ch(CNT_O))
+    """Metabase chooses the edges from the fingerprint and reports them. The truth puts each row in a bin with those edges."""
+    data = ctx.mb.mbql(ORD, agg=[["count"]], by=["d:orders.amount_dim#bins=8"])
+    info = data["cols"][0].get("binning_info") or {}
+    width, low = info.get("bin_width"), info.get("min_value")
+    if not width or low is None or len(data["rows"]) < 2:
+        raise Fail("binning returned %d rows, with binning_info %s" % (len(data["rows"]), info))
+    sql = "SELECT %r + floor((toFloat64(amount) - %r) / %r) * %r AS b, count() FROM orders GROUP BY b" % (low, low, width, width)
+    assert_rows(data["rows"], ch(sql))
 
 
 # ----- Metabase: filters
@@ -1292,7 +1359,6 @@ for _fid, _clause, _sql in [
     ("date_after", [">", CRT, "2025-12-01"], "toDate(created_at) > '2025-12-01'"),
     ("date_between", ["between", CRT, "2025-02-01", "2025-02-28"], "toDate(created_at) BETWEEN '2025-02-01' AND '2025-02-28'"),
     ("date_month", ["=", CRT + "@month", "2025-02-01"], "toStartOfMonth(created_at) = '2025-02-01'"),
-    ("relative_past", ["time-interval", CRT, -1000, "day"], "toDate(created_at) >= today() - 1000 AND toDate(created_at) < today()"),
     ("relative_current", ["time-interval", CRT, "current", "year"], "toYear(created_at) = toYear(today())"),
     ("exclude_day_of_week", ["!=", CRT + "@day-of-week", 2], "toDayOfWeek(created_at, 3) != 2"),
     ("exclude_month_of_year", ["!=", CRT + "@month-of-year", "2025-02-01"], "toMonth(created_at) != 2"),
@@ -1301,6 +1367,24 @@ for _fid, _clause, _sql in [
     ("not", ["not", ["=", STA, "shipped"]], "NOT status = 'shipped'"),
 ]:
     Q("mb.filter.%s" % _fid, ORD, "SELECT count() FROM orders WHERE %s" % _sql, agg=["m:orders.count"], where=[_clause])
+
+# The demo data ends in 2025, so the number of days moves with today. With this many days, the filter drops the first half
+# of the year.
+PAST_DAYS = (dt.date.today() - dt.date(2025, 7, 1)).days
+PAST_TRUTH = "SELECT count() FROM orders WHERE toDate(created_at) >= today() - %d AND toDate(created_at) < today()" % PAST_DAYS
+
+
+def past_truth():
+    want = ch(PAST_TRUTH)
+    if want[0][0] in (0, ch(CNT_O)[0][0]):
+        raise Fail("the relative date filter keeps %s rows, so the check shows nothing" % want[0][0])
+    return want
+
+
+@check("mb.filter.relative_past")
+def _(ctx):
+    assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.count"], where=[["time-interval", CRT, -PAST_DAYS, "day"]])["rows"], past_truth())
+
 
 # ----- Metabase: raw rows and expressions
 
@@ -2889,6 +2973,15 @@ def _(ctx):
     expect_clear_error(ctx, ctx.mb.inner(ORD, agg=[["median", _AMT]]), "Cube cannot")
 
 
+C("compile.agg.other_aggregation_of_measure", ORD, "SELECT max(amount) FROM orders", agg=[["max", "d:orders.revenue"]], sql_has="MAX(")
+C("compile.agg.count_of_measure", ORD, "SELECT count(amount) FROM orders", agg=[["count", "d:orders.revenue"]], sql_has="COUNT(")
+
+
+@check("compile.agg.other_aggregation_can_give_error")
+def _(ctx):
+    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=[["max", "d:orders.count"]]), "Use the measure")
+
+
 @check("compile.agg.offset_measure")
 def _(ctx):
     month = ctx.mb.ref("d:orders.created_at@month")
@@ -2981,8 +3074,8 @@ def _(ctx):
 def _(ctx):
     tags = field_tag(ctx, "f", CRT, "date/all-options")
     data = ctx.mb.native("SELECT MEASURE(count) AS n FROM orders WHERE {{f}}", tags=tags,
-                         parameters=[{"type": "date/all-options", "target": ["dimension", ["template-tag", "f"]], "value": "2025-02-01~2025-02-28"}])
-    assert_rows(data["rows"], ch(FEB))
+                         parameters=[{"type": "date/all-options", "target": ["dimension", ["template-tag", "f"]], "value": "past%ddays" % PAST_DAYS}])
+    assert_rows(data["rows"], past_truth())
 
 
 @check("compile.native.field_filter_empty_is_all_rows")
@@ -3120,6 +3213,24 @@ C("compile.ch.date32_week", TE, "SELECT toStartOfWeek(day32, 1), count() FROM ty
 C("compile.ch.date_part_on_ny", TE, "SELECT toHour(ts_ny, 'UTC'), count() FROM typed_events GROUP BY 1", kind="pushdown", agg=[["count"]], by=["d:typed_events.ts_ny@hour-of-day"])
 
 
+@check("clickhouse.datetime64_millis")
+def _(ctx):
+    """A limit of Cube: it reads a time as whole seconds. A raw value has no milliseconds, and a filter on them finds nothing."""
+    ensure_table(ctx, TE)
+    truth = ch("SELECT toString(toTimeZone(ts64_berlin, 'UTC')) FROM typed_events WHERE id = 7")[0][0]
+    if not truth.endswith(".007"):
+        raise Fail("the seed has no milliseconds here: %s" % truth)
+    got = ctx.mb.mbql(TE, fields=["d:typed_events.ts64_berlin"], where=[["=", "d:typed_events.id", 7]])["rows"]
+    if norm(got[0][0]) == norm(truth + "Z"):
+        raise Fail("Cube now keeps milliseconds. Give this entry its full status")
+    assert_rows(got, [[truth[:-4] + "Z"]], label="whole seconds")
+    rows = ctx.mb.native("SELECT MEASURE(count) AS n FROM typed_events WHERE ts64_berlin >= '%s' AND ts64_berlin < '%s8'" % (truth, truth[:-1]))["rows"]
+    if rows != [[0]]:
+        raise Fail("a filter on milliseconds gave %s" % rows)
+    assert_rows(ctx.mb.mbql(TE, agg=["m:typed_events.count"], by=["d:typed_events.ts64_berlin@hour"], where=[["=", "d:typed_events.id", 7]])["rows"],
+                ch("SELECT toStartOfHour(ts64_berlin, 'UTC'), count() FROM typed_events WHERE id = 7 GROUP BY 1"), label="hour bucket")
+
+
 @check("compile.ch.integer_within_double")
 def _(ctx):
     ensure_table(ctx, TE)
@@ -3157,6 +3268,52 @@ def assert_approx(ctx, measure, column):
 
 
 # rolling windows and time zones
+
+# A window that ends on each day. The bounds of the filter are boundaries of a day.
+C("compile.rolling.by_day_on_boundaries", ORD,
+  "SELECT m, sumIf(o.amount, o.created_at >= addDays(e, -30) AND o.created_at <= e) FROM orders o CROSS JOIN "
+  "(SELECT toDateTime(x, 'UTC') AS m, addSeconds(toDateTime(x, 'UTC'), 86399) AS e FROM (SELECT arrayJoin(['2025-03-01','2025-03-02']) AS x)) b GROUP BY m ORDER BY m",
+  ordered=True, agg=["m:orders.revenue_trailing_30d"], by=["d:orders.created_at@day"],
+  where=[["between", CRT, "2025-03-01", "2025-03-02"]], order=[["asc", "d:orders.created_at@day"]])
+
+
+@check("compile.rolling.no_time_bucket_gives_error")
+def _(ctx):
+    for agg, by in ((["m:orders.revenue_trailing_30d"], None), (["m:orders.revenue_mtd"], [STA]), (["m:orders.cumulative_count"], None)):
+        expect_clear_error(ctx, ctx.mb.inner(ORD, agg=agg, by=by), "Group by a time bucket")
+    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.revenue_mtd"], where=RANGE_WHERE), "Group by a time bucket")
+
+
+@check("compile.rolling.filter_inside_bucket_gives_error")
+def _(ctx):
+    inside = [["between", CRT, "2025-02-15", "2025-03-10"]]
+    for where in (inside, [[">=", CRT, "2025-02-15"]], [["<", CRT, "2025-03-11"]], [["time-interval", CRT, -PAST_DAYS, "day"]]):
+        expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.revenue_mtd"], by=MONTH, where=where), "Use a filter on whole months")
+    # A plain measure with the same filter has no such limit.
+    assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.revenue"], by=MONTH, where=inside)["rows"],
+                ch("SELECT toStartOfMonth(created_at), sum(amount) FROM orders WHERE toDate(created_at) BETWEEN '2025-02-15' AND '2025-03-10' GROUP BY 1"))
+
+
+@check("compile.rolling.no_date_filter_gives_clear_error")
+def _(ctx):
+    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.revenue_trailing_30d"], by=MONTH), "Add a date filter")
+
+
+@check("measure.rolling.native_sql_limit")
+def _(ctx):
+    """A limit of Cube: the driver cannot read native SQL, so these numbers reach the person. See docs/query-compilation.md."""
+    total = ch(REV)
+    assert_rows(ctx.mb.native("SELECT MEASURE(revenue_trailing_30d) AS r FROM orders")["rows"], total, label="no bucket")
+    rows = ctx.mb.native("SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue_mtd) AS r FROM orders "
+                         "WHERE created_at >= '2025-02-15' AND created_at < '2025-03-11' GROUP BY 1")["rows"]
+    assert_rows(rows, ch("SELECT toStartOfMonth(created_at) AS m, sum(amount) FROM orders WHERE m IN ('2025-02-01', '2025-03-01') GROUP BY m"), label="filter inside a month")
+
+
+@check("measure.multi_stage.time_shift_no_bucket_limit")
+def _(ctx):
+    """A limit of Cube: /v1/meta does not tell which measure has a time shift, so the driver cannot stop this."""
+    assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.revenue_prior_month"])["rows"], ch(REV))
+
 
 C("compile.rolling.with_status_filter", ORD, monthly("sumIf(o.amount, o.created_at >= addDays(e, -30) AND o.created_at <= e AND o.status = 'shipped')"), ordered=True,
   agg=["m:orders.revenue_trailing_30d"], by=MONTH, where=RANGE_WHERE + [["=", STA, "shipped"]], order=[["asc", MONTH[0]]])
@@ -3873,6 +4030,15 @@ def secret_values():
     return [SECURE_API_SECRET, SECURE_PASSWORD]
 
 
+JWT = re.compile(r"eyJhbGciOi[\w-]+\.[\w-]+\.[\w-]+")
+
+
+def signed_with(token, secret):
+    head, payload, signature = token.split(".")
+    want = base64.urlsafe_b64encode(hmac.new(secret.encode(), ("%s.%s" % (head, payload)).encode(), hashlib.sha256).digest()).rstrip(b"=").decode()
+    return hmac.compare_digest(want, signature)
+
+
 def assert_no_secret(text, where):
     for value in secret_values():
         if value in text:
@@ -3940,8 +4106,18 @@ def _(ctx):
     assert_no_secret(log, "the Metabase log")
     if "wrong-sql-password-for-log-check" in log:
         raise Fail("the Metabase log shows a password that was sent")
-    if re.search(r"eyJhbGciOi[\w-]+\.[\w-]+\.[\w-]+", log):
+    if JWT.search(log):
         raise Fail("the Metabase log shows a JWT")
+    # Cube writes the token of a request that it refuses to its own log. See docs/security.md. Such a token must be useless.
+    cube_container = os.environ.get("CUBE_SECURE_CONTAINER", "metabase-cube-driver-cube-secure-1")
+    out = subprocess.run(["docker", "logs", cube_container], capture_output=True, text=True, timeout=120)
+    if out.returncode != 0:
+        raise Fail("docker logs %s: %s" % (cube_container, out.stderr[:200]))
+    cube_log = out.stdout + out.stderr
+    assert_no_secret(cube_log, "the Cube log")
+    for token in JWT.findall(cube_log):
+        if signed_with(token, SECURE_API_SECRET):
+            raise Fail("the Cube log shows a JWT with a valid signature")
     assert_rows(sec.person("alice@example.com").mbql("orders", agg=["m:orders.count"])["rows"], city_scalar("count()", "Austin"))
 
 
@@ -4017,11 +4193,16 @@ def run_suite(args):
             if args.verbose:
                 traceback.print_exc()
         else:
-            final[fid] = "pass"
-        if final[fid] == "pass":
+            # `cap` is the best status of an entry whose check cannot prove the whole feature. The reason tells why.
+            final[fid] = f.get("cap", "pass")
+            if final[fid] != "pass":
+                reasons[fid] = f["reason"]
+        if final[fid] == "fail":
+            print("fail     %s: %s" % (fid, reasons[fid]))
+        elif final[fid] == "pass":
             print("pass     %s" % fid)
         else:
-            print("fail     %s: %s" % (fid, reasons[fid]))
+            print("%-8s %s: %s" % (final[fid], fid, reasons[fid]))
 
     if not setup_error:
         if getattr(ctx, "secure", None):

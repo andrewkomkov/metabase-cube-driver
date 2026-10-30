@@ -66,6 +66,16 @@ These queries fail with a message that tells what to do. The message includes th
 | `datetime-diff` in months, quarters, years | Cube has no form for whole months. Its `DATEDIFF` counts boundaries. |
 | `datetime-add` in an aggregated query | Cube cannot generate SQL for an interval on ClickHouse. It works on raw rows. |
 | `EXTRACT` in native SQL next to a measure that is not additive | Cube cannot plan it. |
+| Rolling window measure with no time bucket | Cube returns the total of all rows, with no error. |
+| Rolling window measure with a date filter that starts or ends inside a bucket | Cube computes the whole bucket and does not apply that part of the filter, with no error. Use whole buckets, or a smaller bucket. |
+| Rolling window measure by a time bucket with no date filter | Cube fails with `Date range is required for time series`. |
+| Another aggregation of a measure column that Cube rejects, such as `max` of a count | Cube fails with `Measure aggregation type doesn't match`. |
+
+The first two checks read the database type of the field, so they work on the query builder and on the MCP tool `execute_query`. They cannot read native SQL. See the limits below.
+
+### Another aggregation of a measure column
+
+A measure column has one clause that holds the measure: `sum` for sums and counts, `avg`, `min`, `max`, and `max` for other types. This clause compiles to `MEASURE()`. Another clause stays a SQL aggregation, and Cube computes it from the rows: `max` of `revenue` is the largest order, not the revenue. Sync hides these columns, so only the query API and MCP can name them.
 
 ## Latency
 
@@ -83,6 +93,10 @@ ClickHouse is fast on this table, and Metabase adds most of the time to a small 
 - A number above 2^53 or with more than 15 digits loses digits, because Cube returns numbers through JavaScript. `SELECT ui64` gave 9007199254740996 where the truth is 9007199254740995. A dimension with `sql: toString(column)` keeps the digits.
 - All times are in UTC. The Cube SQL API has no time zone for a query, and `SET TIME ZONE` has no effect. The report time zone of Metabase does not move a bucket.
 - A custom granularity with an offset in months is wrong on a measure that a rollup of months serves, see `granularity.custom.offset` in `conformance/features.yaml`.
+- In native SQL, a rolling window measure with no time bucket gives the total of all rows, and a filter inside a bucket gives the value of the whole bucket. See `measure.rolling.native_sql_limit`.
+- A time shift measure with no time bucket gives the total of all rows. `/v1/meta` does not tell which measure has a time shift, so the driver cannot stop this. See `measure.multi_stage.time_shift_no_bucket_limit`.
+- A `DateTime64` loses its milliseconds, because Cube reads a time as whole seconds. A filter on milliseconds finds no row. A dimension with `sql: toString(column)` keeps the text. See `clickhouse.datetime64_millis`.
+- In one query, a `propagate_filters_to_sub_query` dimension next to a second `sub_query` dimension ignores the filter. See `dimension.opt.propagate_filters_next_to_another_sub_query`.
 - A rolling window with `trailing: unbounded` fails on ClickHouse: `Cannot determine join keys in JOIN ON expression`.
 - `count_distinct_approx` is `uniq()` on ClickHouse. A rollup cannot store it on ClickHouse, so these queries read the table.
 - A left join starts at the cube that the data model starts at. A left join from `products` to `orders` drops products with no orders if the model has only the join from `orders` to `products`.

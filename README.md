@@ -19,7 +19,8 @@ has no green result.
 Coverage is not written by hand in this file. The only source of truth is
 [`conformance/features.yaml`](conformance/features.yaml). Each entry there names a feature, a status
 and an executable check, and a `pass` requires a check that ran against a live stack and compared the
-results with a direct SQL query on ClickHouse. See the [coverage page](https://andrewkomkov.github.io/metabase-cube-driver/coverage/).
+results with a direct SQL query on ClickHouse. A check of a refusal compares the error text. A check that cannot
+prove the whole feature has the status `partial` and a reason. See the [coverage page](https://andrewkomkov.github.io/metabase-cube-driver/coverage/).
 
 ## Compatibility
 

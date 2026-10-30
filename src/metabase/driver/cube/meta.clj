@@ -147,6 +147,20 @@
 
 (def ^:private count-agg-types #{"count" "countDistinct" "countDistinctApprox"})
 
+;; The driver compiles this clause on a measure column to MEASURE(). It compiles another aggregation of that column to the
+;; same SQL function, and Cube then computes it from the rows or gives an error.
+(def aggregation-of-measure
+  "The aggregation clause that holds a measure, from its aggType. This clause sets only the text that Metabase shows and
+  the type of the result. `:max` accepts every column type."
+  {"sum"                 :sum
+   "count"               :sum
+   "countDistinct"       :sum
+   "countDistinctApprox" :sum
+   "runningTotal"        :sum
+   "avg"                 :avg
+   "min"                 :min
+   "max"                 :max})
+
 (defn- measure-base-type
   [{member-type :type, agg-type :aggType}]
   (case member-type

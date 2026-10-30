@@ -60,5 +60,6 @@ database, wait some seconds for the search index, and then delete the database.
 
 - The API returns `**MetabasePass**` in place of the SQL password, and it hides the API secret. The check `security.secret.not_in_api` reads the admin and non-admin API and MCP.
 - The check `security.secret.not_in_logs` forces wrong connections and reads the Metabase log at the default log level. It looks for the secret, the sent password and a JWT, and it finds none.
+- Cube writes the JWT of a request that it refuses to its own log, as `{"message":"invalid signature","token":"..."}`. The driver cannot change this. The same check reads the log of `cube-secure`: it finds no secret and no token with a valid signature. A refused token shows the user name of the connection, so keep the Cube log private.
 - Post the API secret as `cube-api-secret-value`, as the Metabase UI does. The driver does not read a value in the key `cube-api-secret`. A live test shows that Cube then refuses the connection with HTTP 403, if dev mode is off.
 - Dev mode of Cube accepts each JWT, also one with a wrong signature. A live test confirmed this. To protect the REST API with the API secret, run Cube with `CUBEJS_DEV_MODE=false`.

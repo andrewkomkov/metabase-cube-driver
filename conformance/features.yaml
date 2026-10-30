@@ -4,13 +4,17 @@
 - id: measure.format.abbr
   area: cube.measures
   title: "measure format abbr"
-  status: pass
+  status: partial
   check: measure.format.abbr
+  cap: partial
+  reason: "Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: measure.format.accounting
   area: cube.measures
   title: "measure format accounting"
-  status: pass
+  status: partial
   check: measure.format.accounting
+  cap: partial
+  reason: "Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: measure.format.currency
   area: cube.measures
   title: "measure format currency"
@@ -244,8 +248,10 @@
 - id: dimension.format.abbr
   area: cube.dimensions
   title: "dimension format abbr"
-  status: pass
+  status: partial
   check: dimension.format.abbr
+  cap: partial
+  reason: "Metabase has no setting for an abbreviated number. The field has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: dimension.format.currency
   area: cube.dimensions
   title: "dimension format currency"
@@ -529,8 +535,10 @@
 - id: cube.refresh_key
   area: cube.cubes
   title: "cube refresh key"
-  status: pass
+  status: partial
   check: cube.refresh_key
+  cap: partial
+  reason: "A refresh key has no Metabase object. The check compares the value and reads the 1 hour key in the SQL that Cube generates. It changes no data, so it does not prove a refresh."
 - id: cube.sql
   area: cube.cubes
   title: "cube sql"
@@ -3134,23 +3142,31 @@
 - id: compile.xray.table_all_cards_run
   area: mb.compile.xray
   title: "xray table all cards run"
-  status: pass
+  status: partial
   check: compile.xray.table_all_cards_run
+  cap: partial
+  reason: "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
 - id: compile.xray.field_all_cards_run
   area: mb.compile.xray
   title: "xray field all cards run"
-  status: pass
+  status: partial
   check: compile.xray.field_all_cards_run
+  cap: partial
+  reason: "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
 - id: compile.xray.time_field_all_cards_run
   area: mb.compile.xray
   title: "xray time field all cards run"
-  status: pass
+  status: partial
   check: compile.xray.time_field_all_cards_run
+  cap: partial
+  reason: "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
 - id: compile.xray.typed_table_all_cards_run
   area: mb.compile.xray
   title: "xray typed table all cards run"
-  status: pass
+  status: partial
   check: compile.xray.typed_table_all_cards_run
+  cap: partial
+  reason: "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
 - id: compile.granularity.native_offset_no_rollup
   area: mb.compile.granularity
   title: "granularity native offset no rollup"
@@ -3331,3 +3347,66 @@
   title: "mcp execute query paging measure"
   status: pass
   check: mcp.execute_query.paging_measure
+- id: dimension.opt.propagate_filters_next_to_another_sub_query
+  area: cube.dimensions
+  title: "propagate filters next to another sub query"
+  status: partial
+  check: dimension.opt.propagate_filters_next_to_another_sub_query
+  cap: partial
+  reason: "Wrong number from Cube. In one SQL API query with a second sub_query dimension, the propagated dimension ignores the filter and shows all orders. Alone, it is right, see dimension.opt.propagate_filters. Do not select the two together."
+- id: measure.rolling.native_sql_limit
+  area: cube.measures
+  title: "rolling window in native SQL"
+  status: partial
+  check: measure.rolling.native_sql_limit
+  cap: partial
+  reason: "Wrong number from Cube, and the driver cannot read native SQL. With no time bucket, a rolling measure gives the total of all rows. With a filter inside a bucket, it gives the value of the whole bucket. The query builder and MCP execute_query stop these queries, see compile.rolling.*."
+- id: measure.multi_stage.time_shift_no_bucket_limit
+  area: cube.measures
+  title: "time shift with no time bucket"
+  status: partial
+  check: measure.multi_stage.time_shift_no_bucket_limit
+  cap: partial
+  reason: "Wrong number from Cube. With no time bucket, a time shift measure gives the total of all rows. /v1/meta does not tell which measure has a time shift, so the driver cannot stop this query. Group by a time bucket."
+- id: clickhouse.datetime64_millis
+  area: cube.clickhouse
+  title: "DateTime64 milliseconds"
+  status: partial
+  check: clickhouse.datetime64_millis
+  cap: partial
+  reason: "Cube reads a time as whole seconds. A raw value has no milliseconds, and a filter on them finds no row. Buckets of a second and above are right. A dimension with sql: toString(column) keeps the text."
+- id: compile.rolling.by_day_on_boundaries
+  area: mb.compile.rolling
+  title: "rolling window by day"
+  status: todo
+  check: compile.rolling.by_day_on_boundaries
+- id: compile.rolling.no_time_bucket_gives_error
+  area: mb.compile.rolling
+  title: "rolling window with no time bucket gives an error"
+  status: todo
+  check: compile.rolling.no_time_bucket_gives_error
+- id: compile.rolling.filter_inside_bucket_gives_error
+  area: mb.compile.rolling
+  title: "rolling window with a filter inside a bucket gives an error"
+  status: todo
+  check: compile.rolling.filter_inside_bucket_gives_error
+- id: compile.rolling.no_date_filter_gives_clear_error
+  area: mb.compile.rolling
+  title: "rolling window with no date filter gives a clear error"
+  status: todo
+  check: compile.rolling.no_date_filter_gives_clear_error
+- id: compile.agg.other_aggregation_of_measure
+  area: mb.compile.agg
+  title: "max of a measure column is the max of its rows"
+  status: todo
+  check: compile.agg.other_aggregation_of_measure
+- id: compile.agg.count_of_measure
+  area: mb.compile.agg
+  title: "count of a measure column is the count of its rows"
+  status: todo
+  check: compile.agg.count_of_measure
+- id: compile.agg.other_aggregation_can_give_error
+  area: mb.compile.agg
+  title: "other aggregation that Cube rejects gives a clear error"
+  status: todo
+  check: compile.agg.other_aggregation_can_give_error

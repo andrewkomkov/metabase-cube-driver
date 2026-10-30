@@ -3,7 +3,7 @@
 After each metadata sync, the driver writes the Cube data model into Metabase objects. It adds no second
 semantic model: if Metabase has an object for a Cube feature, the feature is in that object.
 
-The step runs on the Metabase event `:event/sync-metadata-end`. The same data comes from `/v1/meta?extended=true`.
+The step runs on the Metabase event `:event/sync-metadata-end`, and again on `:event/sync-end`, because the analysis between them can replace a semantic type. The data comes from `/v1/meta?extended=true`.
 
 ## Where each feature is
 
@@ -93,7 +93,9 @@ column goes away.
   the target is a public primary key. Other joins work in Cube SQL, and they have no Metabase foreign key. A primary key
   in Cube is not public unless the model says `public: true`.
 - A view has no joins in `/v1/meta`, so a view has no foreign keys.
-- Metabase sends the condition of a join, and Cube ignores it: the SQL API uses the join of the data model. `inner-join`
-  and `left-join` give the same rows. A join with no path in the data model fails.
+- Metabase sends the condition of a join, and Cube ignores it: the SQL API uses the join of the data model. Cube joins are
+  LEFT, so for an `inner-join` the driver adds a filter that the joined column is not NULL. A join with no path in the data
+  model fails.
 - Number formats that abbreviate (`.2~s`) or use parentheses (`(,.2~f`) have no Metabase setting. They become
-  a decimal format, and the description keeps the original text.
+  a decimal format, and the description keeps the original text. The entries `measure.format.abbr`,
+  `measure.format.accounting` and `dimension.format.abbr` have the status `partial` for this reason.

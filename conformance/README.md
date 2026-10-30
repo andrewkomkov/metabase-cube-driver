@@ -41,10 +41,15 @@ The runner prints one line per feature and then `coverage: N/M pass`. `M` counts
 | Status | Meaning |
 | --- | --- |
 | `todo` | The check did not run yet. This status occurs only in `features.yaml`. |
-| `pass` | The check ran and the value is equal to the SQL truth. |
+| `pass` | The check ran and the value is equal to the SQL truth. A check of a refusal compares the text of the error, because no truth value applies. |
+| `partial` | The check ran and passed, but it cannot prove the whole feature. The entry has `cap: partial` and a `reason`. If a limit of Cube goes away, the check fails and tells this. |
 | `fail` | The check ran and a value, a member or the Cube database is missing or wrong. |
 | `blocked` | The entry has no check. The `reason` tells what is necessary. |
 | `unsupported` | The feature has no meaning in Metabase. The `reason` tells why. |
+
+A number must be equal to the truth up to the rounding of a double. A check with a real tolerance gives it with `tol`. Times are compared with their fractions of a second.
+
+The demo data does not make status or quantity a function of a customer, a product or a day. See `dev/clickhouse/seed.sql`.
 
 ## Probe model
 

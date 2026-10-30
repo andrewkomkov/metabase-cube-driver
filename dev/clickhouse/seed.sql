@@ -26,12 +26,15 @@ INSERT INTO shop.products
 SELECT i, concat('Product ', toString(i)), ['Gadget','Widget','Gizmo'][1 + i % 3], toDecimal64(10 + i, 2)
 FROM (SELECT toInt32(number + 1) AS i FROM numbers(30));
 
+-- The moduli of user, product, day and hour have no common factor with the 5 of status or the 4 of quantity. So a
+-- filter on status or quantity does not select whole customers, products or days, and a wrong join or filter changes
+-- the number. User 200 and product 30 have no orders. The last date is 2025-12-27.
 INSERT INTO shop.orders
-SELECT i, 1 + i % 200, 1 + i % 30,
+SELECT i, 1 + i % 199, 1 + i % 29,
        ['completed','completed','shipped','processing','cancelled'][1 + i % 5],
        1 + i % 4,
        toDecimal64((1 + i % 4) * (11 + i % 30), 2),
-       toDateTime('2025-01-01 00:00:00', 'UTC') + toIntervalDay(i % 365) + toIntervalHour(i % 24)
+       toDateTime('2025-01-01 00:00:00', 'UTC') + toIntervalDay(i % 361) + toIntervalHour(i % 23)
 FROM (SELECT toInt32(number + 1) AS i FROM numbers(5000));
 
 -- appended: ClickHouse types as Cube sees them. 1000 rows, one per hour from 2025-03-01 UTC, so that

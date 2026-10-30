@@ -15,7 +15,10 @@
    [metabase.driver.sql.query-processor :as sql.qp]
    [metabase.query-processor.middleware.cache :as qp.middleware.cache]
    [metabase.util.honey-sql-2 :as h2x]
-   [toucan2.core :as t2]))
+   [toucan2.core :as t2])
+  (:import
+   (java.time DayOfWeek LocalDate LocalDateTime OffsetDateTime ZoneOffset ZonedDateTime)
+   (java.time.temporal ChronoUnit TemporalAdjusters)))
 
 (set! *warn-on-reflection* true)
 
@@ -243,17 +246,159 @@
   (contains? #{"cube.measure/count" "cube.measure/countDistinct" "cube.measure/countDistinctApprox"}
              (str (:database-type (stored-field arg)))))
 
+;;; Rolling windows. Cube computes a rolling window for each whole bucket of a time series. With no bucket it returns the
+;;; total of all rows, and a date filter that ends inside a bucket does not limit the window. Both give a number that
+;;; looks right, so the driver stops these queries.
+
+(declare start-of-week-index)
+
+(def ^:private bucket-rank
+  "The units that make a time series, from small to large."
+  {:minute 0, :hour 1, :day 2, :week 3, :month 4, :quarter 5, :year 6})
+
+(defn- rolling-measure?
+  [arg]
+  (str/starts-with? (str (:database-type (stored-field arg))) "cube.measure/cumulative-"))
+
+(defn- time-bucket
+  "The breakout that makes the time series of this stage, or nil."
+  []
+  (some (fn [clause]
+          (when (and (vector? clause)
+                     (= :field (first clause))
+                     (= :dimension (member-kind clause))
+                     (bucket-rank (:temporal-unit (second clause))))
+            clause))
+        (:breakout sql.qp/*inner-query*)))
+
+(defn- utc-time
+  ^LocalDateTime [t]
+  (condp instance? t
+    LocalDateTime  t
+    LocalDate      (.atStartOfDay ^LocalDate t)
+    OffsetDateTime (.toLocalDateTime (.withOffsetSameInstant ^OffsetDateTime t ZoneOffset/UTC))
+    ZonedDateTime  (.toLocalDateTime (.withZoneSameInstant ^ZonedDateTime t ZoneOffset/UTC))
+    nil))
+
+(defn- bucket-start
+  ^LocalDateTime [unit ^LocalDateTime t]
+  (let [day (.truncatedTo t ChronoUnit/DAYS)]
+    (case unit
+      :minute  (.truncatedTo t ChronoUnit/MINUTES)
+      :hour    (.truncatedTo t ChronoUnit/HOURS)
+      :day     day
+      ;; DayOfWeek counts from Monday as 1, and the index counts from Sunday as 0.
+      :week    (.with day (TemporalAdjusters/previousOrSame (DayOfWeek/of (int (inc (mod (dec (long (start-of-week-index))) 7))))))
+      :month   (.withDayOfMonth day 1)
+      :quarter (.withDayOfMonth (.withMonth day (inc (* 3 (quot (dec (.getMonthValue day)) 3)))) 1)
+      :year    (.withDayOfYear day 1))))
+
+(defn- one-later
+  "The end of the period that starts at `t`. Cube times have whole seconds, so with no unit this is one second."
+  ^LocalDateTime [unit ^LocalDateTime t]
+  (case unit
+    :minute  (.plusMinutes t 1)
+    :hour    (.plusHours t 1)
+    :day     (.plusDays t 1)
+    :week    (.plusWeeks t 1)
+    :month   (.plusMonths t 1)
+    :quarter (.plusMonths t 3)
+    :year    (.plusYears t 1)
+    (.plusSeconds (.truncatedTo t ChronoUnit/SECONDS) 1)))
+
+(defn- on-boundary?
+  "True if the filter value `value` is a boundary of `bucket`. `inclusive?` means that the value itself is inside the
+  range, so the boundary is one `field-unit` later."
+  [bucket field-unit inclusive? value]
+  (let [[tag _ a unit] (when (vector? value) value)]
+    (case tag
+      :absolute-datetime
+      (when-let [t (utc-time a)]
+        (when (or (nil? field-unit) (= :default field-unit) (bucket-rank field-unit))
+          (let [boundary (if inclusive? (one-later field-unit t) t)]
+            (= boundary (bucket-start bucket boundary)))))
+
+      ;; A relative date starts at a boundary of its own unit. A month does not start at a boundary of a week.
+      :relative-datetime
+      (and (bucket-rank unit)
+           (>= (long (bucket-rank unit)) (long (bucket-rank bucket)))
+           (or (= unit bucket) (not= :week bucket))
+           (not= :week unit))
+
+      false)))
+
+(defn- mentions-field?
+  [clause field-id]
+  (some (fn [x] (and (vector? x) (= :field (first x)) (= field-id (nth x 2 nil))))
+        (tree-seq coll? seq clause)))
+
+(defn- filter-on-boundaries?
+  "True if each date bound on the column of the bucket is a boundary of the bucket. Only an AND of plain comparisons can
+  show this, so a filter with OR, NOT or a part of a date on that column is false."
+  [bucket field-id clause]
+  (let [[op _ & args] clause]
+    (cond
+      (= :and op)                       (every? #(filter-on-boundaries? bucket field-id %) args)
+      (not (mentions-field? clause field-id)) true
+      :else
+      (let [[field & values] args
+            field-unit       (when (vector? field) (:temporal-unit (second field)))
+            on-boundary      (partial on-boundary? bucket field-unit)]
+        (case op
+          (:>= :<)   (on-boundary false (first values))
+          (:> :<=)   (on-boundary true (first values))
+          :between   (and (on-boundary false (first values)) (on-boundary true (second values)))
+          :=         (every? #(and (on-boundary false %) (on-boundary true %)) values)
+          false)))))
+
+(defn- check-rolling-measure!
+  [arg]
+  (let [measure-name (:name (stored-field arg))
+        bucket       (time-bucket)]
+    (when-not bucket
+      (throw (ex-info (format (str "%s is a rolling window measure. With no time bucket, Cube returns the total of all "
+                                   "rows, not the window. Group by a time bucket, for example by month, and add a date "
+                                   "filter.")
+                              measure-name)
+                      {:type :invalid-query})))
+    (let [unit     (:temporal-unit (second bucket))
+          field-id (nth bucket 2)
+          filters  (concat (:filters sql.qp/*inner-query*)
+                           (some-> (:filter sql.qp/*inner-query*) list))]
+      (when-not (every? #(filter-on-boundaries? unit field-id %) filters)
+        (throw (ex-info (format (str "%s is a rolling window measure, and Cube computes it for each whole %s. This date "
+                                     "filter starts or ends inside a %s, and Cube does not apply that part, so the number "
+                                     "would count rows outside the filter. Use a filter on whole %ss, or a smaller time "
+                                     "bucket.")
+                                measure-name (name unit) (name unit) (name unit))
+                        {:type :invalid-query}))))))
+
+(defn- own-aggregation?
+  "True if `agg-type` is the clause that holds this measure. See cube.meta/aggregation-of-measure."
+  [agg-type arg]
+  (let [member-type (-> (str (:database-type (stored-field arg)))
+                        (str/replace-first "cube.measure/" "")
+                        (str/replace-first "cumulative-" ""))]
+    (= agg-type (cube.meta/aggregation-of-measure member-type :max))))
+
 (doseq [agg-type [:sum :avg :min :max :count :distinct]]
   (let [parent (get-method sql.qp/->honeysql [:postgres agg-type])]
     (defmethod sql.qp/->honeysql [:cube agg-type]
       [driver [_ _opts arg :as clause]]
-      ;; A measure has its aggregation in the data model. Cube rejects a SQL aggregation of another type with
-      ;; "Measure aggregation type doesn't match", and MEASURE() has no such check.
+      ;; A measure has its aggregation in the data model, and its own clause is MEASURE(). Another aggregation stays a SQL
+      ;; aggregation: Cube computes it from the rows, or fails with "Measure aggregation type doesn't match". As MEASURE()
+      ;; it would return the measure with no error, under the name of another aggregation.
       (cond
         (and (= agg-type :count) (nil? arg)) (zero-when-empty (parent driver clause))
         (not= :measure (member-kind arg))    (parent driver clause)
-        (count-measure? arg)                 (zero-when-empty [:measure (sql.qp/->honeysql driver arg)])
-        :else                                [:measure (sql.qp/->honeysql driver arg)]))))
+        (not (own-aggregation? agg-type arg)) (parent driver clause)
+        :else
+        (do
+          (when (rolling-measure? arg)
+            (check-rolling-measure! arg))
+          (if (count-measure? arg)
+            (zero-when-empty [:measure (sql.qp/->honeysql driver arg)])
+            [:measure (sql.qp/->honeysql driver arg)]))))))
 
 (def ^:private ^:dynamic *raw-measures*
   "An atom from column alias to the compiled measure, for measures that a stage of this query selects as raw rows."
@@ -651,7 +796,10 @@
     (str "Cube cannot run this query, because it needs MEASURE() and post-processing at the same time. Use a plain "
          "aggregation in the first stage, or add a measure to the data model.")]
    ["Measure aggregation type doesn't match"
-    "This measure has its aggregation in the data model. Use the measure, not another aggregation of its column."]])
+    "This measure has its aggregation in the data model. Use the measure, not another aggregation of its column."]
+   ["Date range is required for time series"
+    (str "Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the "
+         "same time column. Add a date filter.")]])
 
 (defn- exception-text
   "The messages of an exception and its causes."
