@@ -1,4 +1,3 @@
-# A small model for the row-level rule in ../cube.js. The rule filters on users.city.
 {% set email_sql = "email" if COMPILE_CONTEXT.securityContext.all else "'hidden'" %}
 cubes:
   - name: orders
@@ -30,7 +29,11 @@ cubes:
       - { name: id, sql: id, type: number, primary_key: true, public: true }
       - { name: city, sql: city, type: string, description: "Billing city. The row-level rule uses it." }
       # COMPILE_CONTEXT: only people with all rows see the address.
-      - { name: email, sql: "{{ email_sql }}", type: string }
+{% if COMPILE_CONTEXT.securityContext.all %}
+      - { name: email, sql: email, type: string }
+{% else %}
+      - { name: email, sql: "'hidden'", type: string }
+{% endif %}
     measures:
       - { name: count, type: count }
 
