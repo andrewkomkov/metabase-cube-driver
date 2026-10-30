@@ -284,6 +284,9 @@
 
 (events/derive! ::metadata-synced :metabase/event)
 (events/derive! :event/sync-metadata-end ::metadata-synced)
+;; The analysis after the metadata step classifies by name: `thumb_url` becomes URL, also if its format says image. This
+;; second run puts the format back. It writes only what changed.
+(events/derive! :event/sync-end ::metadata-synced)
 
 (methodical/defmethod events/publish-event! ::metadata-synced
   [_topic {database-id :database_id}]
