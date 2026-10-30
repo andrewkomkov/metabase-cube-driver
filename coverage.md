@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 694/748 pass** (694 pass, 17 partial, 22 blocked, 10 unsupported, 5 fail of 748)
+**coverage: 698/748 pass** (698 pass, 17 partial, 22 blocked, 10 unsupported, 1 fail of 748)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f30b45dd144b`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41136536734), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `b8a78bdaa570`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41137757016), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -160,7 +160,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f30b45d
 | `preagg.original_sql` | blocked | Any original_sql pre-aggregation with an index fails on ClickHouse, also with no rollup on it: Missing columns: 'lambda_orders__status'. With no index, Cube refuses it. So the ClickHouse dialect has no working form. A subclass of ClickHouseQuery can drop the index, see docs/cube-findings.md. |
 | `preagg.partitioned` | pass |  |
 | `preagg.rollup` | pass |  |
-| `preagg.rollup_join` | fail | Cube did not serve the query from joined: {"dev_pre_aggregations.join_customers_customers_rollup": {"targetTableName": "dev_pre_aggregations.join_customers_customers_rollup_y5a5xwmx_omm3k11t_1lea5rs", "refreshKeyValues": [], "lastUpdatedAt": 1793398652000, "preAggregationId": "join_customers.customers_rollup", "type": "rollup"}, "dev_pre_ag |
+| `preagg.rollup_join` | pass |  |
 | `preagg.rollup_lambda` | pass |  |
 | `sqlapi.aggregate_function` | pass |  |
 | `sqlapi.date_trunc` | pass |  |
@@ -503,7 +503,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f30b45d
 | `compile.expr.get_quarter` | pass |  |
 | `compile.expr.get_second` | pass |  |
 | `compile.expr.in_aggregation` | pass |  |
-| `compile.expr.in_breakout` | pass |  |
+| `compile.expr.in_breakout` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T22:36:32.302799128Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"lib/type":"mbql/query","stages":[{"lib/type":"mbql.stage/mbql","source-table":30,"aggregation":[["measure",{"l |
 | `compile.expr.in_filter` | pass |  |
 | `compile.expr.in_filter_measure` | pass |  |
 | `compile.expr.integer_division` | pass |  |
@@ -689,13 +689,13 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f30b45d
 | `nested.outer_date_filter.week_numbers` | pass |  |
 | `mb.dashboard.date_filter_on_question` | pass |  |
 | `measure.rolling.through_model` | pass |  |
-| `measure.rolling.through_model_whole_buckets` | fail | whole months: got 1 rows, truth has 2. got=[['2025-05-01T00:00:00', 26498.0]] truth=[['2025-04-01T00:00:00', 27332.0], ['2025-05-01T00:00:00', 26498.0]] |
+| `measure.rolling.through_model_whole_buckets` | pass |  |
 | `measure.rolling.filter_in_the_model` | pass |  |
 | `measure.rolling.strict_bound_on_boundary` | pass |  |
-| `nested.measure_column.filter_gives_row_values` | fail | 2 of 43 differ. count > 50 sum: got [None], truth [0.0] \| count and status sum: got [None], truth [0.0] |
+| `nested.measure_column.filter_gives_row_values` | pass |  |
 | `nested.measure_column.breakout_gives_row_values` | pass |  |
 | `compile.filter.hidden_measure_column_refused` | pass |  |
-| `nested.measure_column.right_shapes_stay` | fail | 6 of 23 differ. unique_customers: got [5000.0], truth [199.0] \| unique_customers by status: got ['cancelled', 1000.0], truth ['cancelled', 199.0] \| unique_customers with date: got [3195.0], truth [199.0] \| unique_customers with status: got [1000.0], truth [199.0] \| unique_customers by month: got ['2025-01-01T00:00:00', 433.0], truth ['2025-01-01T00:00:00', 199.0] \| paid_revenue by status: got ['cancelled', None], truth ['cancelled', 0.0] |
+| `nested.measure_column.right_shapes_stay` | pass |  |
 | `nested.measure_column.other_aggregation` | pass |  |
 | `nested.model_of_model.measure_column` | pass |  |
 | `nested.model.raw_rows_of_a_measure_are_null` | pass |  |
@@ -722,7 +722,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f30b45d
 | `docs.query_compilation_agrees_with_code` | pass |  |
 | `compile.bound.datetime64_whole_seconds_limit` | partial | The ClickHouse dialect of Cube reads a time as whole seconds in a filter, so a row in the first second after a bound of > is out of the result. /v1/meta does not show the column type, so the driver cannot avoid this. A dimension with sql: toString(column) keeps the text. A subclass of ClickHouseQuery can fix this, see docs/cube-findings.md. |
 | `native.count_on_no_rows_limit` | partial | Limit of Cube: native COUNT(*) on no rows gives NULL where SQL gives 0 (m3). The driver does not change native text, and it cannot know that a NULL column is a count. MBQL gives 0. |
-| `nested.model.multi_stage_measure_column` | fail | 1 of 5 differ. rank by status: got ['cancelled', 4751.0], truth ['cancelled', 2.0] |
+| `nested.model.multi_stage_measure_column` | pass |  |
 | `nested.question.multi_stage_outer_date_filter` | pass |  |
 | `nested.model.measure_column_bounds` | pass |  |
 | `nested.model.relative_and_bucket_filters` | pass |  |
