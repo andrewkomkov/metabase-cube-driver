@@ -4,7 +4,7 @@ CI generates this page from `conformance/run.py`. Do not edit it.
 
 **coverage: 625/665 pass** (625 pass, 0 partial, 26 blocked, 10 unsupported, 4 fail of 665)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f6f52618f55f`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41097305199), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `52d77cf3413c`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41098082870), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -347,7 +347,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `f6f5261
 | `mcp.execute_query.filter` | pass |  |
 | `mcp.execute_query.implicit_join` | pass |  |
 | `mcp.execute_query.measure` | pass |  |
-| `mcp.execute_query.paging` | fail | no next_cursor: {'query_handle': 'b5e0c531-a5b2-4b96-88da-41be833c0feb', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float' |
+| `mcp.execute_query.paging` | fail | no next_cursor: {'query_handle': 'f4408c06-0df8-4550-8acd-189aa5a119bf', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float' |
 | `mcp.execute_query.segment` | pass |  |
 | `mcp.execute_query.view` | pass |  |
 | `mcp.execute_sql` | pass |  |
