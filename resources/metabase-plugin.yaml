@@ -1,0 +1,46 @@
+info:
+  name: Metabase Cube Driver
+  version: 0.1.0-SNAPSHOT
+  description: Connects Metabase to Cube Core through the Cube SQL API and the Cube REST API.
+driver:
+  name: cube
+  display-name: Cube
+  lazy-load: true
+  parent: postgres
+  connection-properties:
+    - merge:
+        - host
+        - required: true
+          placeholder: cube.example.com
+    - merge:
+        - port
+        - default: 15432
+          placeholder: 15432
+    - merge:
+        - dbname
+        - name: dbname
+          placeholder: cube
+    - user
+    - password
+    - name: cube-rest-url
+      display-name: Cube REST URL
+      placeholder: http://cube.example.com:4000
+      required: true
+      helper-text: Base URL of the Cube REST API. The driver reads the data model from it.
+    - name: cube-api-secret
+      display-name: Cube API secret
+      type: secret
+      secret-kind: password
+      required: false
+      helper-text: The value of CUBEJS_API_SECRET. The driver signs a short-lived JWT with it for the REST API.
+    - ssl
+    - advanced-options-start
+    - merge:
+        - additional-options
+        - placeholder: prepareThreshold=0
+    - default-advanced-options
+init:
+  - step: load-namespace
+    namespace: metabase.driver.postgres
+  - step: load-namespace
+    namespace: metabase.driver.cube
