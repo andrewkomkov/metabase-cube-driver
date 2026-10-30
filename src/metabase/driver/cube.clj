@@ -101,7 +101,7 @@
           (qp query rff)
           (with-cache query rff))))))
 
-(defonce ^:private cache-wrapped
+(defonce cache-wrapped
   (do (alter-var-root #'qp.middleware.cache/maybe-return-cached-results skip-cache-for-per-person-data)
       true))
 
@@ -195,12 +195,36 @@
 
 (declare apply-binning)
 
+;; Cube cannot plan split_part on the SQL API. It sends substr and strpos to the database.
+(defn- geo-part-sql
+  "The number in one part of the `latitude,longitude` text of a geo dimension."
+  [part geo-text]
+  (let [comma [:strpos geo-text [:inline ","]]]
+    (h2x/cast "double precision"
+              (if (= part "latitude")
+                [:substr geo-text [:inline 1] [:- comma [:inline 1]]]
+                [:substr geo-text [:+ comma [:inline 1]]]))))
+
+(defn- geo-column
+  "`compiled` is the identifier of a latitude or longitude field. It has no column on the SQL API, so this reads its geo
+  dimension. A later stage or an alias reads the column that the first stage selected, with the name of the field."
+  [{:keys [database-type], field-name :name} opts compiled]
+  (let [part         (cube.meta/geo-part database-type)
+        source-table (driver-api/qp.add.source-table opts)
+        identifier   (h2x/unwrap-typed-honeysql-form compiled)]
+    (if (and part
+             (h2x/identifier? identifier)
+             (not (contains? #{driver-api/qp.add.source driver-api/qp.add.none} source-table)))
+      (geo-part-sql part (update identifier 2 #(conj (vec (butlast %)) (cube.meta/geo-dimension-name field-name))))
+      compiled)))
+
 (defmethod sql.qp/->honeysql [:cube :field]
   [driver [tag {:keys [temporal-unit binning] :as opts} id :as clause]]
   (let [parent   (get-method sql.qp/->honeysql [:postgres :field])
         field    (stored-field clause)
         compiled (binding [*bucketed-field* field]
                    (parent driver (if binning [tag (dissoc opts :binning) id] clause)))
+        compiled (geo-column field opts compiled)
         compiled (if binning (apply-binning binning compiled) compiled)]
     ;; The compiler uses the database type to choose casts. It must not see the cube.* marker.
     (if (and field (not binning) (contains? #{nil :default} temporal-unit))
@@ -288,7 +312,7 @@
       :hour    (.truncatedTo t ChronoUnit/HOURS)
       :day     day
       ;; DayOfWeek counts from Monday as 1, and the index counts from Sunday as 0.
-      :week    (.with day (TemporalAdjusters/previousOrSame (DayOfWeek/of (int (inc (mod (dec (long (start-of-week-index))) 7))))))
+      :week    (.with day (TemporalAdjusters/previousOrSame (DayOfWeek/of (int (inc (mod (dec (start-of-week-index)) 7))))))
       :month   (.withDayOfMonth day 1)
       :quarter (.withDayOfMonth (.withMonth day (inc (* 3 (quot (dec (.getMonthValue day)) 3)))) 1)
       :year    (.withDayOfYear day 1))))

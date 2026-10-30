@@ -143,6 +143,7 @@
     "boolean" :type/Boolean
     "time"    :type/DateTime
     "geo"     :type/Text
+    ("geo-latitude" "geo-longitude") :type/Float
     :type/*))
 
 (def ^:private count-agg-types #{"count" "countDistinct" "countDistinctApprox"})
@@ -170,6 +171,37 @@
     "time"    :type/DateTime
     :type/*))
 
+(def ^:private geo-parts
+  "The number columns of a geo dimension."
+  [{:part "latitude", :semantic-type :type/Latitude}
+   {:part "longitude", :semantic-type :type/Longitude}])
+
+(def ^:private geo-part-types
+  (into {} (map (juxt #(str "geo-" (:part %)) :semantic-type)) geo-parts))
+
+(defn geo-part
+  "`\"latitude\"` or `\"longitude\"` if `database-type` is one number column of a geo dimension, otherwise nil."
+  [database-type]
+  (second (re-matches #"cube\.dimension/geo-(latitude|longitude)" (str database-type))))
+
+(defn geo-dimension-name
+  "`location__latitude` -> `location`"
+  [field-name]
+  (str/replace field-name #"__(latitude|longitude)$" ""))
+
+(defn- geo-part-members
+  "Cube has one text column for a geo dimension, `latitude,longitude`. A Metabase map needs one number column for each, with
+  the Latitude and Longitude semantic types, so a geo dimension also gives these two members."
+  [{:keys [title shortTitle description], member-name :name}]
+  (for [{:keys [part]} geo-parts
+        :let [with-part #(some-> (non-blank %) (str " " part))]]
+    (cond-> {:name        (str member-name "__" part)
+             :type        (str "geo-" part)
+             :description (str (str/capitalize part) " of the geo dimension " (short-name member-name) "."
+                               (some->> (non-blank description) (str " ")))}
+      (with-part title)      (assoc :title (with-part title))
+      (with-part shortTitle) (assoc :shortTitle (with-part shortTitle)))))
+
 (defn- dimension->field
   [member]
   (cond-> {:name          (short-name (:name member))
@@ -177,6 +209,7 @@
            :base-type     (dimension-base-type member)
            :pk?           (boolean (:primaryKey member))}
     (format->semantic-type member) (assoc :semantic-type (format->semantic-type member))
+    (geo-part-types (:type member)) (assoc :semantic-type (geo-part-types (:type member)))
     ;; Cube adds this column for a dimension link. A person has no use for it.
     (:synthetic member)            (assoc :visibility-type :hidden)))
 
@@ -236,10 +269,10 @@
   [member]
   (not-empty
    (str/join "\n\n" (keep identity [(non-blank (:description member))
-                                     (format-note member)
-                                     (link-labels member)
-                                     (drill-note member)
-                                     (json-line "Meta" (:meta member))]))))
+                                    (format-note member)
+                                    (link-labels member)
+                                    (drill-note member)
+                                    (json-line "Meta" (:meta member))]))))
 
 (defn- with-member-info
   [field member kind]
@@ -323,7 +356,9 @@
   that Metabase sync has no input for: `::kind`, `::member`, `::title` and `::settings`.
   See [[metabase.driver.cube.semantic]]."
   [cube]
-  (let [fields (concat (for [m (:dimensions cube) :when (public? m)]
+  (let [fields (concat (for [dimension (:dimensions cube)
+                             :when (public? dimension)
+                             m (cons dimension (when (= "geo" (:type dimension)) (geo-part-members dimension)))]
                          (with-member-info (dimension->field m) m :dimension))
                        (for [m (:measures cube) :when (public? m)]
                          (with-member-info (measure->field m) m :measure))

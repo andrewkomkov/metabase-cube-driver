@@ -746,6 +746,13 @@ def expect_geo(ctx, data):
         raise Fail("users has no fields with Latitude and Longitude semantic types")
 
 
+def expect_map_columns(ctx, data):
+    """The Metabase map reads these semantic types from the columns of the result."""
+    sems = [c.get("semantic_type") for c in data["cols"]]
+    if not {"type/Latitude", "type/Longitude"} <= set(sems):
+        raise Fail("the result columns have semantic types %s, a map needs Latitude and Longitude" % sems)
+
+
 def expect_field_format(table, name, style=None, currency=None):
     semantic = {"currency": ("type/Currency",), "percent": PERCENT_TYPES}.get(style, ())
 
@@ -910,6 +917,45 @@ Q("dimension.type.time", ORD, "SELECT toStartOfYear(created_at), count() FROM or
   post=expect_temporal("orders", "created_at"))
 Q("dimension.type.geo", "users", "SELECT concat(toString(latitude), ',', toString(longitude)), count() FROM users GROUP BY 1",
   agg=["m:users.count"], by=["d:users.location"], post=expect_geo)
+GEO = ["d:users.location__latitude", "d:users.location__longitude"]
+Q("dimension.type.geo.map_points", "users", "SELECT latitude, longitude, count() FROM users GROUP BY 1, 2",
+  agg=["m:users.count"], by=GEO, post=expect_map_columns)
+Q("dimension.type.geo.map_grid", "users", "SELECT floor(latitude / 10) * 10, floor(longitude / 10) * 10, count() FROM users GROUP BY 1, 2",
+  agg=["m:users.count"], by=[g + "#width=10" for g in GEO], post=expect_map_columns)
+Q("dimension.type.geo.raw_rows", "users", "SELECT id, latitude, longitude FROM users ORDER BY id LIMIT 5", ordered=True,
+  fields=["d:users.id"] + GEO, order=[["asc", "d:users.id"]], limit=5, post=expect_map_columns)
+Q("dimension.type.geo.filter", "users", "SELECT count() FROM users WHERE latitude > 40 AND longitude > -80",
+  agg=["m:users.count"], where=[[">", GEO[0], 40], [">", GEO[1], -80]])
+Q("dimension.type.geo.implicit_join", ORD, "SELECT u.latitude, u.longitude, count() FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1, 2",
+  agg=[["count"]], by=["d:orders>users.location__latitude", "d:orders>users.location__longitude"], post=expect_map_columns)
+Q("dimension.type.geo.view", "customer_locations", "SELECT latitude, longitude, count() FROM users GROUP BY 1, 2",
+  agg=["m:customer_locations.count"], by=["d:customer_locations.location__latitude", "d:customer_locations.location__longitude"], post=expect_map_columns)
+
+
+@check("dimension.type.geo.auto_bin")
+def _(ctx):
+    """The first option for a coordinate in the Metabase query builder. The default width is 10 degrees."""
+    by = [ctx.mb.ref(g)[:2] + [{"binning": {"strategy": "default"}}] for g in GEO]
+    data = ctx.mb.raw(ctx.mb.inner("users", agg=["m:users.count"], by=by))
+    assert_rows(data["rows"], ch("SELECT floor(latitude / 10) * 10, floor(longitude / 10) * 10, count() FROM users GROUP BY 1, 2"))
+    expect_map_columns(ctx, data)
+
+
+@check("dimension.type.geo.second_stage")
+def _(ctx):
+    inner = ctx.mb.inner("users", agg=["m:users.count"], by=GEO)
+    outer = {"source-query": inner, "filter": [">", ["field", "location__latitude", {"base-type": "type/Float"}], 40]}
+    assert_rows(ctx.mb.raw(outer)["rows"], ch("SELECT latitude, longitude, count() FROM users WHERE latitude > 40 GROUP BY 1, 2"))
+
+
+@check("dimension.type.geo.fingerprint")
+def _(ctx):
+    """Metabase computes the bins from the fingerprint, so the sample of the table must read these columns."""
+    got = []
+    for name in ("location__latitude", "location__longitude"):
+        number = (ctx.mb.field("users", name).get("fingerprint") or {}).get("type", {}).get("type/Number") or {}
+        got += [number.get("min"), number.get("max")]
+    assert_rows([got], ch("SELECT min(latitude), max(latitude), min(longitude), max(longitude) FROM users"))
 Q("dimension.type.switch", ORD, "SELECT toFloat64(sum(amount)) * 0.5 FROM orders", agg=["m:orders.revenue_in_currency"], where=[["=", "d:orders.display_currency", "EUR"]])
 Q("dimension.opt.case_sql", ORD, "SELECT %s, count() FROM orders GROUP BY 1" % SIZE, agg=["m:orders.count"], by=["d:orders.size"])
 Q("dimension.opt.case_label_sql", "users",

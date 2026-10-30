@@ -15,6 +15,13 @@ views:
         prefix: true
         includes: [category, name]
 
+  - name: customer_locations
+    title: Customer locations
+    description: Where customers are. A geo dimension of a view works on a map.
+    cubes:
+      - join_path: users
+        includes: [id, location, count]
+
   - name: paid_sales
     title: Paid sales
     description: Completed orders only. Default filters enforce this.
