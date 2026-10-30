@@ -69,6 +69,13 @@ views:
       - { join_path: orders.first_promo, prefix: true, includes: [code] }
       - { join_path: orders.second_promo, prefix: true, includes: [code] }
 
+  - name: calendar_sales
+    title: Calendar sales
+    description: Orders by the fiscal calendar.
+    cubes:
+      - { join_path: orders, includes: [revenue, revenue_prior_fiscal] }
+      - { join_path: orders.fiscal_calendar, prefix: true, includes: [date] }
+
   - name: hidden_sales
     public: false
     cubes:

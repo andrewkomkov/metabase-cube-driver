@@ -42,6 +42,45 @@ cubes:
     extends: products
     sql: "SELECT * FROM shop.products WHERE price < 20"
 
+  - name: filtered_orders
+    title: Filtered orders
+    description: Cube whose SQL reads FILTER_PARAMS.
+    sql: "SELECT * FROM shop.orders WHERE {FILTER_PARAMS.filtered_orders.status.filter('status')}"
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: status, sql: status, type: string, description: Pushed into the cube SQL. }
+      - name: created_berlin
+        sql: "{SQL_UTILS.convertTz('created_at')}"
+        type: time
+        description: Creation time through SQL_UTILS.
+    measures:
+      - { name: count, type: count, description: Orders that pass the pushed filter. }
+
+  - name: lambda_orders
+    title: Lambda orders
+    description: Cube with original_sql, rollup and lambda pre-aggregations.
+    sql: "SELECT id, status, amount, created_at FROM shop.orders"
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: status, sql: status, type: string, description: Order status. }
+      - { name: created_at, sql: created_at, type: time, description: Creation time. }
+    measures:
+      - { name: revenue, sql: amount, type: sum, format: currency, description: Revenue through pre-aggregations. }
+    pre_aggregations:
+      - name: base
+        type: original_sql
+        refresh_key: { every: 1 hour }
+      - name: daily
+        type: rollup
+        use_original_sql_pre_aggregations: true
+        measures: [revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        indexes:
+          - { name: status_idx, columns: [status] }
+        refresh_key: { every: 1 hour }
+
   - name: secret_audit
     public: false
     title: Secret audit

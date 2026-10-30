@@ -41,6 +41,8 @@ cubes:
       - { name: internal_note, sql: "'x'", type: string, public: false }
       - { name: created_fiscal_quarter, sql: "{created_at.fiscal_quarter}", type: time, title: Fiscal quarter start, description: Proxy for fiscal_quarter. }
       - { name: created_week_sunday, sql: "{created_at.week_from_sunday}", type: time, description: Proxy for week_from_sunday. }
+      - { name: created_fiscal_year, sql: "{created_at.fiscal_year_april}", type: time, description: Proxy for fiscal_year_april. }
+      - { name: created_half_day, sql: "{created_at.half_day}", type: time, description: Proxy for half_day. }
       - { name: created_month_proxy, sql: "{created_at.month}", type: time, description: Proxy for month. }
       - { name: cancel_status, sql: "nullIf(status, 'completed')", type: string, description: Status or NULL. }
       - { name: amount_pct, sql: "amount / 1000", type: number, format: percent_1, description: Amount per mille. }
@@ -88,7 +90,7 @@ cubes:
       - { name: public_false_measure, sql: amount, type: sum, public: false }
       - name: p50_amount
         multi_stage: true
-        sql: "quantile(0.5)({CUBE}.amount)"
+        sql: "quantile(0.5)({amount_dim})"
         type: number_agg
         description: Median order amount.
       - name: revenue_rank
