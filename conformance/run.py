@@ -3923,14 +3923,21 @@ def _(ctx):
     sec = secure(ctx)
     admin = sec._admin(SECURE_DB)
     card = admin.mbql_card("cache", "sales", agg=["m:sales.revenue"], by=["d:sales.users_city"])
-    admin.api("PUT", "/api/cache", {"model": "root", "model_id": 0, "strategy": {"type": "ttl", "multiplier": 1000, "min_duration_ms": 0}})
+    admin.api("PUT", "/api/cache", {"model": "root", "model_id": 0, "strategy": {"type": "ttl", "multiplier": 100000, "min_duration_ms": 0}})
     try:
-        for email in ("alice@example.com", "bob@example.com"):
-            for _i in range(2):
-                rows = sec.person(email).run_card(card["id"])["rows"]
-                assert_rows(rows, city_rev(CITY_OF[email]), label=email)
+        alice = sec.person("alice@example.com")
+        for _i in range(20):
+            res = alice.api("POST", "/api/card/%d/query" % card["id"], {"parameters": []})
+            if res.get("cached"):
+                break
+            time.sleep(1)
+        else:
+            raise Fail("Metabase did not cache the result, so this check shows nothing: %s" % str(res.get("cache/details") or res.get("cached"))[:200])
+        assert_rows(res["data"]["rows"], city_rev("Austin"), label="alice from the cache")
+        res = sec.person("bob@example.com").api("POST", "/api/card/%d/query" % card["id"], {"parameters": []})
+        assert_rows(res["data"]["rows"], city_rev("Boston"), label="bob, cached=%s" % res.get("cached"))
     finally:
-        admin.api("DELETE", "/api/cache", {"model": "root", "model_ids": [0]})
+        admin.api("DELETE", "/api/cache", {"model": "root", "model_id": [0]})
 
 
 def run_suite(args):
