@@ -4754,7 +4754,7 @@ def _(ctx):
                                    ("and status", ["and", [">", col, 50], ["=", status, "shipped"]], "%s > 50 AND status = 'shipped'" % row),
                                    ("or status", ["or", [">", col, 150], ["=", status, "shipped"]], "%s > 150 OR status = 'shipped'" % row)):
             grid.add("%s %s sum" % (measure, label), over(model, aggregation=[["sum", named("amount_dim")]], filter=where),
-                     "SELECT sum(amount) FROM orders WHERE %s" % cond)
+                     "SELECT sumOrNull(amount) FROM orders WHERE %s" % cond)
             grid.add("%s %s count" % (measure, label), over(model, aggregation=[["count"]], filter=where), "SELECT count() FROM orders WHERE %s" % cond)
     grid.add("sum of the same column", over(model, aggregation=[["sum", named("revenue")]], filter=[">", named("revenue"), 150]),
              "SELECT sum(amount) FROM orders WHERE amount > 150")
@@ -4799,7 +4799,7 @@ def _(ctx):
     grid = Grid(ctx)
     col = named("created_at", "type/DateTime")
     status = named("status", "type/Text")
-    for m, expr in (("revenue", "sum(amount)"), ("count", "count()"), ("unique_customers", "uniqExact(user_id)"), ("paid_revenue", "sumIf(amount, status IN ('completed','shipped'))")):
+    for m, expr in (("revenue", "sum(amount)"), ("count", "count()"), ("unique_customers", "uniqExact(user_id)"), ("paid_revenue", "sumIfOrNull(amount, status IN ('completed','shipped'))")):
         grid.add(m, over(model, aggregation=[["sum", named(m)]]), "SELECT %s FROM orders" % expr)
         grid.add(m + " by status", over(model, aggregation=[["sum", named(m)]], breakout=[status]), "SELECT status, %s FROM orders GROUP BY status" % expr)
         grid.add(m + " with date", over(model, aggregation=[["sum", named(m)]], filter=[">=", col, "2025-05-10"]), "SELECT %s FROM orders WHERE created_at >= '2025-05-10'" % expr)
@@ -4810,6 +4810,9 @@ def _(ctx):
     grid.add("min", over(model, aggregation=[["min", named("min_amount")]]), "SELECT min(amount) FROM orders")
     grid.add("max", over(model, aggregation=[["max", named("max_amount")]]), "SELECT max(amount) FROM orders")
     grid.done()
+    # With the value of each row, a distinct count does not add up, so the driver stops it.
+    expect_clear_error(ctx, over(model, aggregation=[["sum", named("unique_customers")]], filter=[">", named("revenue"), 150]), "do not add up")
+    expect_clear_error(ctx, over(model, aggregation=[["avg", named("avg_order_value")]], breakout=[named("revenue")]), "do not add up")
 
 
 @check("nested.measure_column.other_aggregation")
@@ -5316,7 +5319,8 @@ def _(ctx):
     ensure_table(ctx, "join_sales")
     query = ctx.mb.inner("join_sales", agg=["m:join_sales.revenue"], by=["d:join_sales>join_customers.state"])
     expect_rows(ctx, query, "SELECT u.state, sum(o.amount) FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1", "join")
-    used_rollup({"measures": ["join_sales.revenue"], "dimensions": ["join_customers.state"]}, "joined")(ctx, None)
+    # Cube names the rollups of the rollup_join in the result.
+    used_rollup({"measures": ["join_sales.revenue"], "dimensions": ["join_customers.state"]}, "customers_rollup")(ctx, None)
 
 
 Q("semantic.measure.min_on_time_column", ORD, "SELECT min(created_at), max(created_at) FROM orders", agg=["m:orders.first_order_at", "m:orders.last_order_at"])
