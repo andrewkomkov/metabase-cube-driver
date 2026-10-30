@@ -47,7 +47,7 @@ description: Deploy the committed state of this repository to the demo stack on 
 ## Planned
 
 These steps need files that were not in the repository when this skill was written. Run
-`git pull`, then check that the file exists. If it does not, tell the user and stop at step 5.
+`git pull`. Then look for the file. If it does not exist, tell the user and stop at step 5.
 
 6. Make the jar. Needs `scripts/package.sh`.
 
