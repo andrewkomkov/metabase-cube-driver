@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 578,
+    "pass": 581,
     "partial": 0,
-    "blocked": 24,
-    "unsupported": 7,
-    "fail": 16,
-    "total": 625
+    "blocked": 27,
+    "unsupported": 9,
+    "fail": 9,
+    "total": 626
   },
-  "coverage": "coverage: 578/625 pass",
+  "coverage": "coverage: 581/626 pass",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -183,7 +183,7 @@
     {
       "id": "measure.rolling.unbounded",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:45:03.763656205Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:52:03.916298672Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual"
     },
     {
       "id": "measure.type.avg",
@@ -402,8 +402,8 @@
     },
     {
       "id": "granularity.custom.interval_hours",
-      "status": "fail",
-      "reason": "rows: got ['2025-01-01T00:00:00', 13.0], truth ['2025-01-01T00:00:00', 7.0]"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "granularity.custom.negative_offset",
@@ -733,7 +733,7 @@
     {
       "id": "preagg.original_sql",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:45:38.998746564Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing:"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:52:33.325108016Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing:"
     },
     {
       "id": "preagg.partitioned",
@@ -952,8 +952,8 @@
     },
     {
       "id": "mb.agg.median",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:45:57.291203146Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/mbql\",\"source-table\":27,\"aggregation\":[[\"median\",{\"li"
+      "status": "unsupported",
+      "reason": "The Cube template for ClickHouse has no PERCENTILE_CONT: Rewrite Error: Can't detect Cube query. The driver turns off :percentile-aggregations, so Metabase rejects the query with a message. See compile.agg.median_gives_error. Use a measure with quantile() in the model."
     },
     {
       "id": "mb.agg.min_field",
@@ -962,13 +962,13 @@
     },
     {
       "id": "mb.agg.offset_window",
-      "status": "fail",
-      "reason": "rows: got ['2025-01-01T00:00:00', 0.0], truth ['2025-01-01T00:00:00', None]"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.agg.percentile",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:45:58.296790212Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/mbql\",\"source-table\":27,\"aggregation\":[[\"percentile\","
+      "status": "unsupported",
+      "reason": "The Cube template for ClickHouse has no PERCENTILE_CONT: Rewrite Error: Can't detect Cube query. The driver turns off :percentile-aggregations, so Metabase rejects the query with a message. Use a measure with quantile() in the model."
     },
     {
       "id": "mb.agg.share",
@@ -1323,7 +1323,7 @@
     {
       "id": "mb.expr.datetime_diff",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:46:23.766971615Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/mbql\",\"source-table\":27,\"fields\":[[\"expression\",{\"lib"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:53:12.038306187Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/mbql\",\"source-table\":27,\"fields\":[[\"expression\",{\"lib"
     },
     {
       "id": "mb.expr.div",
@@ -1597,8 +1597,8 @@
     },
     {
       "id": "mb.report_timezone",
-      "status": "fail",
-      "reason": "rows: got 1 rows, truth has 2. got=[['2025-01-01T00:00:00', 5000.0]] truth=[['2025-01-01T00:00:00', 4996.0], ['2026-01-01T00:00:00', 4.0]]"
+      "status": "blocked",
+      "reason": "The Cube SQL API has no time zone for a query. The REST API has one, but the driver uses the SQL API. So all buckets stay in UTC whatever the report timezone is, and compile.tz.report_timezone_keeps_utc checks that. A bucket in another zone needs a dimension in the data model."
     },
     {
       "id": "mb.other.actions",
@@ -1728,7 +1728,7 @@
     {
       "id": "mcp.execute_query.paging",
       "status": "fail",
-      "reason": "no next_cursor: {'query_handle': '999a288a-53d2-450d-bbb0-c9304e2a1dfb', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
+      "reason": "no next_cursor: {'query_handle': '67968218-7a9e-4ea7-a449-94bb9e222ef0', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
     },
     {
       "id": "mcp.execute_query.segment",
@@ -2262,8 +2262,8 @@
     },
     {
       "id": "compile.ch.decimal_above_double",
-      "status": "fail",
-      "reason": "got 3000000000000.000000, truth 3000000000000.00000003"
+      "status": "blocked",
+      "reason": "Cube returns numbers through JavaScript. SELECT dec_big FROM typed_events WHERE id = 3 gives 3000000000000 where the truth is 3000000000000.00000003. A dimension with SQL toString(column) keeps the digits."
     },
     {
       "id": "compile.ch.decimal_row",
@@ -2332,8 +2332,8 @@
     },
     {
       "id": "compile.ch.uint64_above_double",
-      "status": "pass",
-      "reason": ""
+      "status": "blocked",
+      "reason": "Cube returns numbers through JavaScript. SELECT ui64 FROM typed_events WHERE id = 2 gives 9007199254740996 where the truth is 9007199254740995, and MEASURE(sum_ui64) gives 9007199254741494000. A dimension with SQL toString(column) keeps the digits."
     },
     {
       "id": "compile.ch.uuid_filter",
@@ -2512,8 +2512,8 @@
     },
     {
       "id": "compile.expr.trim",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:48:37.84694218Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Internal Error: Date range is required for time series\\nQUERY: SELECT TRIM(CONCAT(' ', \\\"public\\\".\\\"orders\\\""
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.filter.bool_expr",
@@ -3132,6 +3132,11 @@
     },
     {
       "id": "compile.join.explicit_measure_regular",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.ch.integer_within_double",
       "status": "pass",
       "reason": ""
     }
