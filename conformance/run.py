@@ -3367,16 +3367,6 @@ def _(ctx):
     expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.revenue_trailing_30d"], by=MONTH), "Add a date filter")
 
 
-@check("measure.rolling.native_sql_limit")
-def _(ctx):
-    """A limit of Cube: the driver cannot read native SQL, so these numbers reach the person. See docs/query-compilation.md."""
-    total = ch(REV)
-    assert_rows(ctx.mb.native("SELECT MEASURE(revenue_trailing_30d) AS r FROM orders")["rows"], total, label="no bucket")
-    rows = ctx.mb.native("SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue_mtd) AS r FROM orders "
-                         "WHERE created_at >= '2025-02-15' AND created_at < '2025-03-11' GROUP BY 1")["rows"]
-    assert_rows(rows, ch("SELECT toStartOfMonth(created_at) AS m, sum(amount) FROM orders WHERE m IN ('2025-02-01', '2025-03-01') GROUP BY m"), label="filter inside a month")
-
-
 @check("measure.multi_stage.time_shift_no_bucket_limit")
 def _(ctx):
     """A limit of Cube: /v1/meta does not tell which measure has a time shift, so the driver cannot stop this."""
@@ -4214,6 +4204,1025 @@ def _(ctx):
             time.sleep(1)
     finally:
         admin.api("DELETE", "/api/cache", {"model": "root", "model_id": [0]})
+
+
+# ----------------------------------------------------------------- review 0.1.0
+#
+# The checks below come from docs/review/0.1.0.md. Each finding has a check, and the grids search for more shapes of the same
+# defect: outer stages, models, columns by name, boundary values, and each date type. Each truth is direct SQL on ClickHouse.
+
+
+def named(name, base_type="type/Decimal", **opts):
+    """A column of an earlier stage by name, as a question on a model uses it."""
+    return ["field", name, dict({"base-type": base_type}, **opts)]
+
+
+def over(card_id, **stage):
+    return dict({"source-table": "card__%d" % card_id}, **stage)
+
+
+def card_of(ctx, name, query, kind="question"):
+    return ctx.mb.card(name, {"database": ctx.mb.need_db(), "type": "query", "query": query}, kind)["id"]
+
+
+RAW_COLUMNS = ["id", "status", "amount_dim", "created_at", "revenue", "count", "avg_order_value", "unique_customers",
+               "paid_revenue", "min_amount", "max_amount", "revenue_trailing_30d", "revenue_mtd"]
+
+
+def raw_model(ctx):
+    """One model for all checks in a run, with dimensions and measures as columns."""
+    if not getattr(ctx, "review_model", None):
+        ctx.review_model = card_of(ctx, "raw model", ctx.mb.inner(ORD, fields=["d:orders.%s" % c for c in RAW_COLUMNS]), "model")
+    return ctx.review_model
+
+
+def outcome(ctx, query):
+    """(rows, None) or (None, error text)."""
+    res = ctx.mb.api("POST", "/api/dataset", {"database": ctx.mb.need_db(), "type": "query", "query": query}, ok=(200, 202, 400, 403, 500))
+    error = res.get("error") or res.get("message")
+    if error:
+        return None, str(error)
+    return res["data"]["rows"], None
+
+
+def expect_rows(ctx, query, sql, label="", ordered=False, tol=0.0):
+    rows, error = outcome(ctx, query)
+    if error:
+        raise Fail("%s: query failed: %s" % (label, error[:300]))
+    assert_rows(rows, sql if isinstance(sql, list) else ch(sql), ordered=ordered, tol=tol, label=label or "rows")
+
+
+def native_outcome(ctx, sql, tags=None, parameters=None):
+    query = {"database": ctx.mb.need_db(), "type": "native", "native": {"query": sql, "template-tags": tags or {}}}
+    if parameters:
+        query["parameters"] = parameters
+    res = ctx.mb.api("POST", "/api/dataset", query, ok=(200, 202, 400, 403, 500))
+    error = res.get("error") or res.get("message")
+    if error:
+        return None, str(error)
+    return res["data"]["rows"], None
+
+
+def expect_native_refusal(ctx, sql, needle, tags=None, parameters=None):
+    rows, error = native_outcome(ctx, sql, tags, parameters)
+    if error is None:
+        raise Fail("no refusal for %s: it gave %s" % (sql[:120], rows[:3]))
+    if needle not in error:
+        raise Fail("the error for %s has no %r: %s" % (sql[:120], needle, error[:300]))
+
+
+def expect_native_rows(ctx, sql, truth, tags=None, parameters=None):
+    rows, error = native_outcome(ctx, sql, tags, parameters)
+    if error:
+        raise Fail("%s: query failed: %s" % (sql[:120], error[:300]))
+    assert_rows(rows, truth if isinstance(truth, list) else ch(truth), label=sql[:80])
+
+
+class Grid:
+    """Runs many queries and reports all differences together. A refusal counts only if the grid names its text."""
+
+    def __init__(self, ctx, refusal=None):
+        self.ctx = ctx
+        self.refusal = refusal
+        self.wrong = []
+        self.count = 0
+        self.refused = 0
+
+    def add(self, label, query, truth, tol=1e-9):
+        self.count += 1
+        rows, error = outcome(self.ctx, query)
+        self.compare(label, rows, error, truth, tol)
+
+    def compare(self, label, rows, error, truth, tol=1e-9):
+        if error:
+            if self.refusal and self.refusal in error:
+                self.refused += 1
+                return
+            self.wrong.append("%s: ERROR %s" % (label, error[:160].replace("\n", " ")))
+            return
+        try:
+            assert_rows(rows, truth if isinstance(truth, list) else ch(truth), tol=tol, label=label)
+        except Fail as e:
+            self.wrong.append(str(e)[:260])
+
+    def done(self):
+        print("         %d queries, %d refused, %d differ" % (self.count, self.refused, len(self.wrong)))
+        if self.wrong:
+            raise Fail("%d of %d differ. %s" % (len(self.wrong), self.count, " | ".join(self.wrong[:6])))
+
+
+BOUND_X = "2025-03-15 05:00:00"
+BOUND_Y = "2025-03-16 05:00:00"
+# The rows exist at these two times, so a bound that includes or excludes a row changes the number.
+
+
+def bound_filters(ref, x=BOUND_X, y=BOUND_Y):
+    """(label, MBQL filter, truth condition with {c} for the column). X and Y are times with a row."""
+    ix, iy = x.replace(" ", "T"), y.replace(" ", "T")
+    sx, sy = "toDateTime('%s','UTC')" % x, "toDateTime('%s','UTC')" % y
+    return [
+        (">", [">", ref, ix], "{c} > %s" % sx),
+        (">=", [">=", ref, ix], "{c} >= %s" % sx),
+        ("<", ["<", ref, iy], "{c} < %s" % sy),
+        ("<=", ["<=", ref, iy], "{c} <= %s" % sy),
+        ("> and <=", ["and", [">", ref, ix], ["<=", ref, iy]], "{c} > %s AND {c} <= %s" % (sx, sy)),
+        ("> and <", ["and", [">", ref, ix], ["<", ref, iy]], "{c} > %s AND {c} < %s" % (sx, sy)),
+        (">= and <=", ["and", [">=", ref, ix], ["<=", ref, iy]], "{c} >= %s AND {c} <= %s" % (sx, sy)),
+        (">= and <", ["and", [">=", ref, ix], ["<", ref, iy]], "{c} >= %s AND {c} < %s" % (sx, sy)),
+        ("<= and >", ["and", ["<=", ref, iy], [">", ref, ix]], "{c} <= %s AND {c} > %s" % (sy, sx)),
+        ("between", ["between", ref, ix, iy], "{c} >= %s AND {c} <= %s" % (sx, sy)),
+        ("=", ["=", ref, ix], "{c} = %s" % sx),
+        ("not >", ["not", [">", ref, ix]], "NOT ({c} > %s)" % sx),
+        ("not <=", ["not", ["<=", ref, ix]], "NOT ({c} <= %s)" % sx),
+        ("or", ["or", ["<=", ref, ix], [">", ref, iy]], "{c} <= %s OR {c} > %s" % (sx, sy)),
+        ("two lower", ["and", [">", ref, ix], [">", ref, iy]], "{c} > %s AND {c} > %s" % (sx, sy)),
+    ]
+
+
+MEASURE_TRUTH = [
+    ("count", "count()"),
+    ("revenue", "sum(amount)"),
+    ("paid_revenue", "sumIf(amount, status IN ('completed','shipped'))"),
+    ("unique_customers", "uniqExact(user_id)"),
+    ("avg_order_value", "avg(amount)"),
+    ("min_amount", "min(amount)"),
+    ("max_amount", "max(amount)"),
+]
+
+
+@check("compile.bound.strict_lower_with_upper")
+def _(ctx):
+    """Finding B1, on a cube and in MCP."""
+    where = [[">", CRT, "2025-03-15T05:00:00"], ["<=", CRT, "2025-03-16T05:00:00"]]
+    truth = "SELECT count(), sum(amount) FROM orders WHERE created_at > '2025-03-15 05:00:00' AND created_at <= '2025-03-16 05:00:00'"
+    assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.count", "m:orders.revenue"], where=where)["rows"], ch(truth))
+    assert_rows(ctx.mcp.call("execute_query", query=mcp_query(ctx.mb, ORD, agg=["m:orders.count", "m:orders.revenue"], where=where))["rows"], ch(truth), label="MCP")
+
+
+@check("compile.bound.grid_measures")
+def _(ctx):
+    """Each kind of bound with each kind of measure on a cube."""
+    grid = Grid(ctx)
+    for m, expr in MEASURE_TRUTH:
+        for label, where, cond in bound_filters(CRT):
+            grid.add("%s %s" % (m, label), ctx.mb.inner(ORD, agg=["m:orders.%s" % m], where=[where]),
+                     "SELECT %s FROM orders WHERE %s" % (expr, cond.format(c="created_at")))
+    grid.done()
+
+
+@check("compile.bound.grid_date_types")
+def _(ctx):
+    """Each kind of bound on each date type. A nullable column has rows with no value. See clickhouse.datetime64_millis for DateTime64."""
+    ensure_table(ctx, TE)
+    grid = Grid(ctx)
+    cases = [("ts_utc", "ts_utc", "2025-03-01 06:00:00", "2025-03-01 09:00:00"),
+             ("ts_ny", "toDateTime(ts_ny, 'UTC')", "2025-03-01 06:00:00", "2025-03-01 09:00:00"),
+             ("day", "toDateTime(day, 'UTC')", "2025-03-02 00:00:00", "2025-03-04 00:00:00"),
+             ("day32", "toDateTime(day32, 'UTC')", "2025-03-02 00:00:00", "2025-03-04 00:00:00"),
+             ("n_ts", "n_ts", "2025-03-08 00:00:00", "2025-03-10 00:00:00")]
+    for column, truth_col, x, y in cases:
+        for label, where, cond in bound_filters("d:typed_events.%s" % column, x, y):
+            grid.add("%s %s" % (column, label), ctx.mb.inner(TE, agg=[["count"]], where=[where]),
+                     "SELECT count() FROM typed_events WHERE %s" % cond.format(c=truth_col))
+    grid.done()
+
+
+@check("compile.bound.grid_boundary_values")
+def _(ctx):
+    """A bound on the last second of a day, of a month and of a year, and the first second after it."""
+    grid = Grid(ctx)
+    for x, y in (("2025-03-14 23:59:59", "2025-03-15 00:00:00"), ("2025-03-31 23:59:59", "2025-04-30 23:59:59"), ("2024-12-31 23:59:59", "2025-01-01 00:00:00")):
+        for label, where, cond in bound_filters(CRT, x, y):
+            grid.add("%s..%s %s" % (x, y, label), ctx.mb.inner(ORD, agg=["m:orders.count"], where=[where]),
+                     "SELECT count() FROM orders WHERE %s" % cond.format(c="created_at"))
+    grid.done()
+
+
+@check("compile.bound.grid_view_and_join")
+def _(ctx):
+    """The same bounds on a view, on a column of a joined cube, and next to a breakout."""
+    grid = Grid(ctx)
+    for label, where, cond in bound_filters("d:sales.created_at"):
+        grid.add("view " + label, ctx.mb.inner("sales", agg=["m:sales.count", "m:sales.revenue"], where=[where]),
+                 "SELECT count(), sum(amount) FROM orders WHERE %s" % cond.format(c="created_at"))
+    for label, where, cond in bound_filters("d:orders.created_at"):
+        grid.add("by status " + label, ctx.mb.inner(ORD, agg=["m:orders.revenue"], by=[STA], where=[where]),
+                 "SELECT status, sum(amount) FROM orders WHERE %s GROUP BY status" % cond.format(c="created_at"))
+    x = ch("SELECT toString(created_at) FROM users ORDER BY created_at LIMIT 1 OFFSET 20")[0][0]
+    y = ch("SELECT toString(created_at) FROM users ORDER BY created_at LIMIT 1 OFFSET 100")[0][0]
+    for label, where, cond in bound_filters("d:orders>users.created_at", x, y):
+        grid.add("joined " + label, ctx.mb.inner(ORD, agg=["m:orders.count"], where=[where]),
+                 "SELECT count() FROM orders o JOIN users u ON o.user_id = u.id WHERE %s" % cond.format(c="u.created_at"))
+    grid.done()
+
+
+@check("compile.bound.grid_model_by_name")
+def _(ctx):
+    """The same bounds on a model, by the name of the column, as a question on a model writes them."""
+    model = raw_model(ctx)
+    grid = Grid(ctx)
+    col = named("created_at", "type/DateTime")
+    for label, where, cond in bound_filters(col):
+        text = cond.format(c="created_at")
+        grid.add("count " + label, over(model, aggregation=[["count"]], filter=where), "SELECT count() FROM orders WHERE %s" % text)
+        grid.add("sum " + label, over(model, aggregation=[["sum", named("amount_dim")]], filter=where), "SELECT sum(amount) FROM orders WHERE %s" % text)
+        grid.add("measure " + label, over(model, aggregation=[["sum", named("revenue")]], filter=where), "SELECT sum(amount) FROM orders WHERE %s" % text)
+    grid.done()
+
+
+@check("compile.bound.grid_mcp")
+def _(ctx):
+    """The same bounds in MCP, on a table and on a model with source-card."""
+    tid = ctx.mb.table(ORD)["id"]
+    model = raw_model(ctx)
+    wrong = []
+    created = ["field", {}, ctx.mb.field(ORD, "created_at")["id"]]
+    measure = to_mbql5(ctx.mb.walk("m:orders.revenue"))
+    named5 = ["field", {"base-type": "type/DateTime"}, "created_at"]
+    for label, where, cond in bound_filters("d:orders.created_at"):
+        truth = ch("SELECT sum(amount) FROM orders WHERE %s" % cond.format(c="created_at"))
+        for shape, stage in (
+                ("table", {"source-table": tid, "aggregation": [measure], "filters": [to_mbql5(ctx.mb.walk(where))]}),
+                ("model", {"source-card": model, "aggregation": [["sum", {}, ["field", {"base-type": "type/Decimal"}, "amount_dim"]]],
+                           "filters": [_with_column(to_mbql5(ctx.mb.walk(where)), created, named5)]})):
+            try:
+                rows = ctx.mcp.call("execute_query", query={"lib/type": "mbql/query", "database": ctx.mb.need_db(),
+                                                            "stages": [dict({"lib/type": "mbql.stage/mbql"}, **stage)]})["rows"]
+                assert_rows(rows, truth, label="%s %s" % (shape, label))
+            except Fail as e:
+                wrong.append(str(e)[:220])
+    if wrong:
+        raise Fail("%d differ. %s" % (len(wrong), " | ".join(wrong[:5])))
+
+
+def _with_column(clause, by_id, by_name):
+    """`clause` with each reference to the column `by_id` replaced by `by_name`."""
+    if isinstance(clause, list):
+        if len(clause) == 3 and clause[0] == "field" and clause[2] == by_id[2]:
+            return by_name
+        return [_with_column(c, by_id, by_name) for c in clause]
+    return clause
+
+
+@check("compile.bound.fraction_of_a_second")
+def _(ctx):
+    """A bound with a fraction on a column of whole seconds. Cube drops the fraction, so the driver rounds the bound."""
+    grid = Grid(ctx)
+    x, y = "2025-03-15T05:00:00.500", "2025-03-16T05:00:00.500"
+    up, down = "toDateTime('2025-03-15 05:00:01','UTC')", "toDateTime('2025-03-16 05:00:00','UTC')"
+    for label, where, cond in ((">=", [">=", CRT, x], "created_at >= %s" % up),
+                               (">", [">", CRT, x], "created_at >= %s" % up),
+                               ("<", ["<", CRT, y], "created_at <= %s" % down),
+                               ("<=", ["<=", CRT, y], "created_at <= %s" % down),
+                               (">= and <=", ["and", [">=", CRT, x], ["<=", CRT, y]], "created_at >= %s AND created_at <= %s" % (up, down)),
+                               ("> and <", ["and", [">", CRT, x], ["<", CRT, y]], "created_at >= %s AND created_at <= %s" % (up, down)),
+                               ("between", ["between", CRT, x, y], "created_at >= %s AND created_at <= %s" % (up, down))):
+        grid.add(label, ctx.mb.inner(ORD, agg=["m:orders.count"], where=[where]), "SELECT count() FROM orders WHERE " + cond)
+    grid.done()
+    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.count"], where=[["=", CRT, x]]), "whole seconds")
+
+
+@check("compile.bound.datetime64_whole_seconds_limit")
+def _(ctx):
+    """A limit of Cube: it reads a DateTime64 as whole seconds in a filter. A row in the first second after a bound of > is out."""
+    ensure_table(ctx, TE)
+    bound = "2025-03-01 06:00:00"
+    rows = ctx.mb.mbql(TE, agg=[["count"]], where=[[">", "d:typed_events.ts64_berlin", bound.replace(" ", "T")],
+                                                   ["<=", "d:typed_events.ts64_berlin", "2025-03-01T09:00:00"]])["rows"]
+    truth = ch("SELECT count() FROM typed_events WHERE ts64_berlin > toDateTime64('%s', 3, 'UTC') AND ts64_berlin <= toDateTime64('2025-03-01 09:00:00', 3, 'UTC')" % bound)
+    if rows[0][0] == truth[0][0]:
+        raise Fail("this now agrees with the truth %s. Give this entry its full status" % truth)
+    if rows[0][0] != truth[0][0] - 1:
+        raise Fail("expected the one row in the first second to be out: got %s, truth %s" % (rows, truth))
+
+
+@check("native.bound.strict_lower_refused")
+def _(ctx):
+    """Finding B1 in native SQL. The driver cannot change the text, so it stops the query. Right forms still run."""
+    x, y = "'2025-03-15 05:00:00'", "'2025-03-16 05:00:00'"
+    truth = "SELECT count() FROM orders WHERE created_at %s AND created_at %s"
+    for lower, upper in (("> " + x, "<= " + y), ("> " + x, "< " + y), ("> TIMESTAMP " + x, "<= TIMESTAMP " + y)):
+        expect_native_refusal(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at %s AND created_at %s" % (lower, upper), "next second")
+    expect_native_refusal(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at <= %s AND status = 'shipped' AND created_at > %s" % (y, x), "next second")
+    for lower, upper in ((">= " + x, "<= " + y), (">= " + x, "< " + y), (">= '2025-03-15 05:00:01'", "<= " + y)):
+        expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at %s AND created_at %s" % (lower, upper), truth % (lower, upper))
+    expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at > %s" % x, "SELECT count() FROM orders WHERE created_at > %s" % x)
+    expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at > %s OR created_at < %s" % (y, x),
+                       "SELECT count() FROM orders WHERE created_at > %s OR created_at < %s" % (y, x))
+    # The same words in a string or a comment are not a filter.
+    expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE status <> 'created_at > 1 AND created_at <= 2' -- created_at > 1 AND created_at <= 2",
+                       "SELECT count() FROM orders")
+
+
+def bucket_sql(unit, column="created_at"):
+    return {"day": "toStartOfDay(%s)", "month": "toStartOfMonth(%s)", "quarter": "toStartOfQuarter(%s)", "year": "toStartOfYear(%s)"}[unit] % column
+
+
+OUTER_MEASURES = [("revenue", "sum(amount)"), ("unique_customers", "uniqExact(user_id)"), ("avg_order_value", "avg(amount)"),
+                  ("paid_revenue", "sumIf(amount, status IN ('completed','shipped'))"), ("count", "count()")]
+
+
+@check("nested.outer_date_filter.keeps_inner_rows")
+def _(ctx):
+    """Finding B2: a filter on a saved question must not change the rows of the question."""
+    question = card_of(ctx, "revenue by month", ctx.mb.inner(ORD, agg=["m:orders.revenue"], by=MONTH))
+    col = named("created_at", "type/DateTime")
+    expect_rows(ctx, over(question, filter=[">=", col, "2025-05-15"]),
+                "SELECT m, r FROM (SELECT toStartOfMonth(created_at) m, sum(amount) r FROM orders GROUP BY m) WHERE m >= '2025-05-15'", "rows")
+    expect_rows(ctx, over(question, aggregation=[["sum", named("sum")]], filter=[">=", col, "2025-05-15"]),
+                "SELECT sum(r) FROM (SELECT toStartOfMonth(created_at) m, sum(amount) r FROM orders GROUP BY m) WHERE m >= '2025-05-15'", "sum")
+
+
+@check("nested.outer_date_filter.rolling")
+def _(ctx):
+    """Finding B2 with a rolling measure in the question."""
+    question = card_of(ctx, "rolling by month", ctx.mb.inner(ORD, agg=["m:orders.revenue_trailing_30d"], by=MONTH,
+                                                             where=[[">=", CRT, "2025-04-01"], ["<", CRT, "2025-07-01"]]))
+    expect_rows(ctx, over(question, filter=[">=", named("created_at", "type/DateTime"), "2025-05-15"]),
+                monthly_window("2025-06-01"), "rolling")
+
+
+def monthly_window(month):
+    return ("SELECT toDateTime('%s','UTC'), sumIf(amount, created_at >= addDays(toLastDayOfMonth(toDateTime('%s','UTC')) + INTERVAL 86399 SECOND, -30) "
+            "AND created_at <= toLastDayOfMonth(toDateTime('%s','UTC')) + INTERVAL 86399 SECOND) FROM orders" % (month, month, month))
+
+
+@check("nested.outer_date_filter.grid")
+def _(ctx):
+    """Each bucket with each measure kind, and each kind of outer filter. The filter value is inside a bucket, or on its boundary."""
+    grid = Grid(ctx)
+    col = named("created_at", "type/DateTime")
+    for unit in ("day", "month", "quarter", "year"):
+        for m, expr in OUTER_MEASURES:
+            question = card_of(ctx, "%s by %s" % (m, unit), ctx.mb.inner(ORD, agg=["m:orders.%s" % m], by=["d:orders.created_at@%s" % unit]))
+            inner = "(SELECT %s AS b, %s AS v FROM orders GROUP BY b)" % (bucket_sql(unit), expr)
+            bound_a, bound_b = ("2025-05-15", "2025-08-20") if unit != "year" else ("2024-06-15", "2025-02-20")
+            for label, where, cond in ((">=", [">=", col, bound_a], "b >= '%s'" % bound_a),
+                                       (">", [">", col, bound_a], "b > '%s'" % bound_a),
+                                       ("<", ["<", col, bound_b], "b < '%s'" % bound_b),
+                                       ("<=", ["<=", col, bound_b], "b <= '%s'" % bound_b),
+                                       ("two bounds", ["and", [">", col, bound_a], ["<=", col, bound_b]], "b > '%s' AND b <= '%s'" % (bound_a, bound_b)),
+                                       ("between", ["between", col, bound_a, bound_b], "b >= '%s' AND b <= '%s'" % (bound_a, bound_b))):
+                base = "%s %s by %s" % (m, label, unit)
+                grid.add(base, over(question, filter=where), "SELECT b, v FROM %s WHERE %s" % (inner, cond))
+                if m != "avg_order_value":
+                    grid.add(base + " sum", over(question, aggregation=[["sum", named("sum")]], filter=where),
+                             "SELECT sum(v) FROM %s WHERE %s" % (inner, cond))
+    grid.done()
+
+
+@check("nested.outer_filter.multi_stage_measure")
+def _(ctx):
+    """An outer filter on a dimension must not change a measure that reads other rows, such as a share or a rank."""
+    grid = Grid(ctx)
+    col = named("status", "type/Text")
+    totals = "(SELECT status, sum(amount) AS r FROM orders GROUP BY status)"
+    share = card_of(ctx, "share", ctx.mb.inner(ORD, agg=["m:orders.revenue_share_of_total"], by=[STA]))
+    grid.add("share", over(share, filter=["=", col, "shipped"]),
+             "SELECT status, toFloat64(r) / (SELECT toFloat64(sum(amount)) FROM orders) FROM %s WHERE status = 'shipped'" % totals)
+    rank = card_of(ctx, "rank", ctx.mb.inner(ORD, agg=["m:orders.revenue_rank"], by=[STA]))
+    grid.add("rank", over(rank, filter=["=", col, "shipped"]),
+             "SELECT status, k FROM (SELECT status, rank() OVER (ORDER BY r DESC) AS k FROM %s) WHERE status = 'shipped'" % totals)
+    plain = card_of(ctx, "plain", ctx.mb.inner(ORD, agg=["m:orders.revenue"], by=[STA]))
+    grid.add("plain", over(plain, filter=["=", col, "shipped"]), "SELECT status, r FROM %s WHERE status = 'shipped'" % totals)
+    grid.add("on the result", over(plain, filter=[">", named("sum"), 100000]), "SELECT status, r FROM %s WHERE r > 100000" % totals)
+    grid.done()
+
+
+@check("nested.outer_stage.grid_breakout_and_aggregation")
+def _(ctx):
+    """An outer stage that groups again. The inner rows stay as they are, also for a measure that is not additive."""
+    grid = Grid(ctx)
+    by_year = named("created_at", "type/DateTime", **{"temporal-unit": "year"})
+    for m, expr in OUTER_MEASURES:
+        question = card_of(ctx, "%s monthly" % m, ctx.mb.inner(ORD, agg=["m:orders.%s" % m], by=MONTH))
+        inner = "(SELECT toStartOfMonth(created_at) AS b, %s AS v FROM orders GROUP BY b)" % expr
+        grid.add(m + " sum", over(question, aggregation=[["sum", named("sum")]]), "SELECT sum(v) FROM %s" % inner)
+        grid.add(m + " max", over(question, aggregation=[["max", named("sum")]]), "SELECT max(v) FROM %s" % inner)
+        grid.add(m + " count", over(question, aggregation=[["count"]]), "SELECT count() FROM %s" % inner)
+        grid.add(m + " by year", over(question, aggregation=[["sum", named("sum")]], breakout=[by_year]),
+                 "SELECT toStartOfYear(b), sum(v) FROM %s GROUP BY 1" % inner)
+    grid.done()
+
+
+@check("nested.outer_date_filter.native_source")
+def _(ctx):
+    """Finding B2 with a native question as the source. The driver cannot read a filter inside the text, so it limits the text."""
+    question = ctx.mb.card("native by month", {"database": ctx.mb.need_db(), "type": "native", "native": {
+        "query": "SELECT DATE_TRUNC('month', created_at) AS created_at, MEASURE(revenue) AS revenue FROM orders GROUP BY 1 -- comment", "template-tags": {}}})["id"]
+    expect_rows(ctx, over(question, aggregation=[["sum", named("revenue", "type/Float")]], filter=[">=", named("created_at", "type/DateTime"), "2025-05-15"]),
+                "SELECT sum(r) FROM (SELECT toStartOfMonth(created_at) m, sum(amount) r FROM orders GROUP BY m) WHERE m >= '2025-05-15'", "native source")
+
+
+@check("nested.outer_date_filter.week_numbers")
+def _(ctx):
+    """A question by week on a cube with no granularity for the first day. Its subquery has a week number, and the outer filter reads a date."""
+    prev = ctx.mb.api("GET", "/api/setting/start-of-week")
+    ctx.mb.api("PUT", "/api/setting/start-of-week", {"value": "sunday"})
+    try:
+        question = card_of(ctx, "users by week", ctx.mb.inner("users", agg=["m:users.count"], by=["d:users.created_at@week"]))
+        expect_rows(ctx, over(question, filter=[">=", named("created_at", "type/DateTime"), "2024-03-05"]),
+                    "SELECT w, c FROM (SELECT toDateTime(toStartOfWeek(created_at, 0), 'UTC') w, count() c FROM users GROUP BY w) WHERE w >= '2024-03-05'", "week")
+    finally:
+        ctx.mb.api("PUT", "/api/setting/start-of-week", {"value": prev if isinstance(prev, str) and prev else None})
+
+
+@check("mb.dashboard.date_filter_on_question")
+def _(ctx):
+    """Finding B2 and M1 on a dashboard: a date filter on a card of a saved question and of a model."""
+    question = card_of(ctx, "dash question", ctx.mb.inner(ORD, agg=["m:orders.revenue"], by=MONTH))
+    model = raw_model(ctx)
+    over_model = card_of(ctx, "dash model", over(model, aggregation=[["sum", named("amount_dim")]]))
+    param = {"id": "p1", "name": "P", "slug": "p", "type": "date/all-options", "sectionId": "date"}
+    col = ["dimension", named("created_at", "type/DateTime"), {"stage-number": 0}]
+    dash = ctx.mb.dashboard("date filter", [param], [(question, [("p1", col)]), (over_model, [("p1", col)])])
+    value = [{"id": "p1", "type": "date/all-options", "value": "2025-05-15~", "target": col}]
+    # The question has months, and the filter is on its result column, so each month from June is in.
+    rows = ctx.mb.run_dashcard(dash, 1, value)["rows"]
+    assert_rows(rows, ch("SELECT sum(amount) FROM orders WHERE created_at >= '2025-05-16'"), label="model")
+
+
+@check("measure.rolling.through_model")
+def _(ctx):
+    """Finding B3: the rolling check also runs for a column by name, through a model and through MCP source-card."""
+    model = raw_model(ctx)
+    roll = named("revenue_trailing_30d")
+    col = named("created_at", "type/DateTime")
+    by_month = named("created_at", "type/DateTime", **{"temporal-unit": "month"})
+    expect_clear_error(ctx, over(model, aggregation=[["sum", roll]]), "Group by a time bucket")
+    expect_clear_error(ctx, over(model, aggregation=[["sum", roll]], breakout=[named("status", "type/Text")]), "Group by a time bucket")
+    expect_clear_error(ctx, over(model, aggregation=[["sum", roll]], breakout=[by_month],
+                                 filter=["and", [">=", col, "2025-04-15"], ["<", col, "2025-06-01"]]), "Use a filter on whole months")
+    expect_clear_error(ctx, over(model, aggregation=[["sum", ["field", ctx.mb.field(ORD, "revenue_trailing_30d")["id"], None]]]), "Group by a time bucket")
+    expect_clear_error(ctx, over(model, aggregation=[["max", roll]]), "rolling window")
+    res = ctx.mcp.rpc("tools/call", {"name": "execute_query", "arguments": {"query": {
+        "lib/type": "mbql/query", "database": ctx.mb.need_db(),
+        "stages": [{"lib/type": "mbql.stage/mbql", "source-card": model,
+                    "aggregation": [["sum", {}, ["field", {"base-type": "type/Decimal"}, "revenue_trailing_30d"]]]}]}}})
+    text = (res.get("content") or [{}])[0].get("text", "")
+    if not res.get("isError") or "rolling window" not in text:
+        raise Fail("MCP source-card gave no refusal: %s" % text[:200])
+
+
+@check("measure.rolling.through_model_whole_buckets")
+def _(ctx):
+    """A right shape stays right: whole months through a model give the window of each month."""
+    model = raw_model(ctx)
+    col = named("created_at", "type/DateTime")
+    by_month = named("created_at", "type/DateTime", **{"temporal-unit": "month"})
+    expect_rows(ctx, over(model, aggregation=[["sum", named("revenue_trailing_30d")]], breakout=[by_month],
+                          filter=["and", [">=", col, "2025-04-01"], ["<", col, "2025-06-01"]]),
+                "%s UNION ALL %s" % (monthly_window("2025-04-01"), monthly_window("2025-05-01")), "whole months")
+
+
+@check("measure.rolling.filter_in_the_model")
+def _(ctx):
+    """A date filter inside a model goes to the same scan as the window, so it counts for the check."""
+    inner = card_of(ctx, "filtered model", ctx.mb.inner(ORD, fields=["d:orders.created_at", "d:orders.revenue_mtd"], where=[[">=", CRT, "2025-04-15"]]), "model")
+    expect_clear_error(ctx, over(inner, aggregation=[["sum", named("revenue_mtd")]],
+                                 breakout=[named("created_at", "type/DateTime", **{"temporal-unit": "month"})],
+                                 filter=["<", named("created_at", "type/DateTime"), "2025-06-01"]), "Use a filter on whole months")
+
+
+@check("measure.rolling.strict_bound_on_boundary")
+def _(ctx):
+    """`>` with the last second of a month is the start of the next month, so April is the first bucket."""
+    expect_rows(ctx, ctx.mb.inner(ORD, agg=["m:orders.revenue_trailing_30d"], by=MONTH, where=[[">", CRT, "2025-03-31T23:59:59"], ["<", CRT, "2025-05-01"]]),
+                monthly_window("2025-04-01"), "strict bound")
+
+
+@check("nested.measure_column.filter_refused")
+def _(ctx):
+    """Finding B4: a filter on a measure column of a model has no meaning for Cube, so the driver stops it."""
+    model = raw_model(ctx)
+    for measure in ("revenue", "count", "avg_order_value", "unique_customers"):
+        col = named(measure)
+        for where in ([">", col, 150], ["between", col, 1, 150], ["not", [">", col, 150]], ["or", [">", col, 150], ["=", named("status", "type/Text"), "shipped"]]):
+            expect_clear_error(ctx, over(model, aggregation=[["sum", named("amount_dim")]], filter=where), "Cube cannot filter on the measure column")
+            expect_clear_error(ctx, over(model, aggregation=[["count"]], filter=where), "Cube cannot filter on the measure column")
+
+
+@check("nested.measure_column.breakout_refused")
+def _(ctx):
+    """Finding B4: a breakout on a measure column of a model gives one total row, so the driver stops it."""
+    model = raw_model(ctx)
+    for measure in ("revenue", "count", "avg_order_value"):
+        expect_clear_error(ctx, over(model, aggregation=[["count"]], breakout=[named(measure)]), "Cube cannot group by the measure")
+
+
+@check("compile.filter.hidden_measure_column_refused")
+def _(ctx):
+    """Finding B4 on a table: a filter on the hidden measure column reads as a filter on the group."""
+    for by in ([STA], None):
+        expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.count"], by=by, where=[[">", "d:orders.revenue", 100000]]), "Cube cannot filter on the measure column")
+
+
+@check("nested.measure_column.right_shapes_stay")
+def _(ctx):
+    """A refusal must not break a right shape. These use a measure column of a model with no filter on it."""
+    model = raw_model(ctx)
+    grid = Grid(ctx)
+    col = named("created_at", "type/DateTime")
+    status = named("status", "type/Text")
+    for m, expr in (("revenue", "sum(amount)"), ("count", "count()"), ("unique_customers", "uniqExact(user_id)"), ("paid_revenue", "sumIf(amount, status IN ('completed','shipped'))")):
+        grid.add(m, over(model, aggregation=[["sum", named(m)]]), "SELECT %s FROM orders" % expr)
+        grid.add(m + " by status", over(model, aggregation=[["sum", named(m)]], breakout=[status]), "SELECT status, %s FROM orders GROUP BY status" % expr)
+        grid.add(m + " with date", over(model, aggregation=[["sum", named(m)]], filter=[">=", col, "2025-05-10"]), "SELECT %s FROM orders WHERE created_at >= '2025-05-10'" % expr)
+        grid.add(m + " with status", over(model, aggregation=[["sum", named(m)]], filter=["=", status, "shipped"]), "SELECT %s FROM orders WHERE status = 'shipped'" % expr)
+        grid.add(m + " by month", over(model, aggregation=[["sum", named(m)]], breakout=[named("created_at", "type/DateTime", **{"temporal-unit": "month"})]),
+                 "SELECT toStartOfMonth(created_at), %s FROM orders GROUP BY 1" % expr)
+    grid.add("avg", over(model, aggregation=[["avg", named("avg_order_value")]]), "SELECT avg(amount) FROM orders")
+    grid.add("min", over(model, aggregation=[["min", named("min_amount")]]), "SELECT min(amount) FROM orders")
+    grid.add("max", over(model, aggregation=[["max", named("max_amount")]]), "SELECT max(amount) FROM orders")
+    grid.done()
+
+
+@check("nested.measure_column.other_aggregation")
+def _(ctx):
+    """Another aggregation of a measure column gives the row values or a refusal, on a table and through a model."""
+    model = raw_model(ctx)
+    grid = Grid(ctx, refusal="Measure aggregation type")
+    grid.add("max of a sum", over(model, aggregation=[["max", named("revenue")]]), "SELECT max(amount) FROM orders")
+    grid.add("min of a sum", over(model, aggregation=[["min", named("revenue")]]), "SELECT min(amount) FROM orders")
+    grid.add("avg of a sum", over(model, aggregation=[["avg", named("revenue")]]), "SELECT avg(amount) FROM orders")
+    grid.done()
+
+
+@check("nested.model_of_model.measure_column")
+def _(ctx):
+    """A model on a model: the name goes through two stages, and the checks still find the measure."""
+    model = raw_model(ctx)
+    upper = card_of(ctx, "model of model", over(model, fields=[named("status", "type/Text"), named("created_at", "type/DateTime"), named("revenue"), named("revenue_trailing_30d")]), "model")
+    expect_clear_error(ctx, over(upper, aggregation=[["count"]], filter=[">", named("revenue"), 150]), "Cube cannot filter on the measure column")
+    expect_clear_error(ctx, over(upper, aggregation=[["sum", named("revenue_trailing_30d")]]), "Group by a time bucket")
+    expect_rows(ctx, over(upper, aggregation=[["sum", named("revenue")]], breakout=[named("status", "type/Text")]), STATUS_REV, "sum")
+
+
+@check("nested.model.raw_rows_of_a_measure_are_null")
+def _(ctx):
+    """Finding m8: raw rows of a model show the same as raw rows of the table. A rolling or a multi-stage measure has no row value."""
+    model = raw_model(ctx)
+    expect_rows(ctx, over(model, fields=[named("id"), named("revenue"), named("revenue_trailing_30d")], filter=["=", named("id"), 7]), [[7, None, None]], "model")
+    assert_rows(ctx.mb.mbql(ORD, fields=["d:orders.id", "d:orders.revenue"], where=[["=", "d:orders.id", 7]])["rows"], [[7, None]], label="table")
+
+
+@check("view.two_paths_in_one_query_refused")
+def _(ctx):
+    """Finding B5, on a view with no join alias: Cube joins a cube once in a query, so both columns would show one value."""
+    view = "region_sales_one_join"
+    ensure_table(ctx, view)
+    both = ["d:%s.customer_region" % view, "d:%s.destination_region" % view]
+    needle = "through different join paths"
+    expect_clear_error(ctx, ctx.mb.inner(view, agg=["m:%s.count" % view], by=both), needle)
+    expect_clear_error(ctx, ctx.mb.inner(view, agg=["m:%s.count" % view], by=both[:1], where=[["=", both[1], "South"]]), needle)
+    expect_native_refusal(ctx, "SELECT customer_region, destination_region, MEASURE(count) FROM %s GROUP BY 1, 2" % view, needle)
+    res = ctx.mcp.rpc("tools/call", {"name": "execute_query", "arguments": {"query": mcp_query(ctx.mb, view, agg=["m:%s.count" % view], by=both)}})
+    if not res.get("isError"):
+        raise Fail("MCP gave no refusal")
+    # A question on a model of this view goes through the same scan of the SQL.
+    model = card_of(ctx, "two paths model", ctx.mb.inner(view, fields=both + ["d:%s.count" % view]), "model")
+    expect_clear_error(ctx, over(model, aggregation=[["count"]], breakout=[named("customer_region", "type/Text"), named("destination_region", "type/Text")]), needle)
+
+
+@check("view.two_paths_one_column_stays")
+def _(ctx):
+    """A right shape stays right: each column alone. Raw rows show the first column, and the second one is NULL, not a wrong value."""
+    view = "region_sales_one_join"
+    ensure_table(ctx, view)
+    expect_rows(ctx, ctx.mb.inner(view, agg=["m:%s.count" % view], by=["d:%s.destination_region" % view]),
+                "SELECT %s AS r, count() FROM orders GROUP BY r" % (REGION_SQL % "['TX','IL','WA','MA'][1 + id % 4]"), "destination")
+    expect_rows(ctx, ctx.mb.inner(view, agg=["m:%s.count" % view], by=["d:%s.customer_region" % view]),
+                "SELECT %s AS r, count() FROM orders o JOIN users u ON o.user_id = u.id GROUP BY r" % (REGION_SQL % "u.state"), "customer")
+    data = ctx.mb.mbql(view, fields=["d:%s.customer_region" % view, "d:%s.destination_region" % view], limit=20)
+    if any(r[1] is not None for r in data["rows"]) or not all(r[0] for r in data["rows"]):
+        raise Fail("raw rows must show the first column and NULL in the second one: %s" % data["rows"][:3])
+
+
+@check("view.two_paths_with_join_alias")
+def _(ctx):
+    """Finding B5: with a join alias for each path, one query shows both columns."""
+    expect_rows(ctx, ctx.mb.inner("region_sales", agg=["m:region_sales.count"], by=["d:region_sales.customer_region", "d:region_sales.destination_region"]),
+                "SELECT %s AS a, %s AS b, count() FROM orders o JOIN users u ON o.user_id = u.id GROUP BY a, b" % (REGION_SQL % "u.state", REGION_SQL % "['TX','IL','WA','MA'][1 + o.id % 4]"), "both regions")
+
+
+@check("measure.rolling.native_refused")
+def _(ctx):
+    """Finding B6: the scan of native text finds a rolling measure with no bucket, or with a filter inside a bucket."""
+    for sql in ("SELECT MEASURE(revenue_trailing_30d) FROM orders",
+                "SELECT status, MEASURE(revenue_mtd) FROM orders GROUP BY 1",
+                'SELECT MEASURE("orders"."revenue_trailing_30d") FROM "public"."orders"',
+                "select measure(cumulative_count) from orders"):
+        expect_native_refusal(ctx, sql, "With no time bucket")
+    for where in ("created_at >= '2025-04-15' AND created_at < '2025-06-01'", "created_at >= '2025-04-01' AND created_at < '2025-05-20'",
+                  "created_at >= TIMESTAMP '2025-04-15 00:00:00'", "created_at BETWEEN '2025-04-15 00:00:00' AND '2025-05-31 23:59:59'"):
+        expect_native_refusal(ctx, "SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_trailing_30d) FROM orders WHERE %s GROUP BY 1" % where, "Use a filter on whole months")
+    res = ctx.mcp.rpc("tools/call", {"name": "execute_sql", "arguments": {"database_id": ctx.mb.need_db(), "sql": "SELECT MEASURE(revenue_trailing_30d) FROM orders"}})
+    if not res.get("isError"):
+        raise Fail("MCP execute_sql gave no refusal: %s" % str(res)[:200])
+
+
+@check("measure.rolling.native_whole_buckets")
+def _(ctx):
+    """A right shape stays right: native SQL with whole buckets gives the window."""
+    for where in ("created_at >= '2025-04-01' AND created_at < '2025-06-01'", "created_at >= TIMESTAMP '2025-04-01 00:00:00' AND created_at <= TIMESTAMP '2025-05-31 23:59:59'",
+                  "created_at BETWEEN TIMESTAMP '2025-04-01 00:00:00' AND TIMESTAMP '2025-05-31 23:59:59'"):
+        expect_native_rows(ctx, "SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_trailing_30d) FROM orders WHERE %s GROUP BY 1" % where,
+                           "%s UNION ALL %s" % (monthly_window("2025-04-01"), monthly_window("2025-05-01")))
+    # A column with that name on another cube is not a rolling measure, and a word in a string is not a column.
+    expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE status <> 'revenue_trailing_30d'", "SELECT count() FROM orders")
+
+
+@check("native.between_date_text_refused")
+def _(ctx):
+    """Finding B7: Cube pads a date with no time at the end of a date range, which is documented for its REST API, and SQL reads it as midnight."""
+    needle = "BETWEEN"
+    a, b = "'2025-03-11'", "'2025-04-13'"
+    for where in ("created_at BETWEEN %s AND %s" % (a, b), "created_at NOT BETWEEN %s AND %s" % (a, b), "created_at between '2025-03-11 00:00:00' and %s" % b):
+        expect_native_refusal(ctx, "SELECT MEASURE(count) FROM orders WHERE " + where, needle)
+    for where in ("created_at BETWEEN '2025-03-11 00:00:00' AND '2025-04-13 00:00:00'", "created_at >= %s AND created_at <= %s" % (a, b),
+                  "created_at >= %s AND created_at < %s" % (a, b), "created_at <= %s" % b):
+        expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE " + where, "SELECT count() FROM orders WHERE " + where)
+    expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at BETWEEN DATE %s AND DATE %s" % (a, b),
+                       "SELECT count() FROM orders WHERE created_at BETWEEN %s AND %s" % (a, b))
+
+
+@check("native.between_date_parameter")
+def _(ctx):
+    """Finding B7 with date parameters: the truth, or the same refusal."""
+    tags = {"a": tag("a", "date"), "b": tag("b", "date")}
+    parameters = [{"type": "date/single", "target": ["variable", ["template-tag", "a"]], "value": "2025-03-11"},
+                  {"type": "date/single", "target": ["variable", ["template-tag", "b"]], "value": "2025-04-13"}]
+    rows, error = native_outcome(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at BETWEEN {{a}} AND {{b}}", tags, parameters)
+    if error:
+        if "BETWEEN" not in error:
+            raise Fail("not a clear refusal: %s" % error[:300])
+    else:
+        assert_rows(rows, ch("SELECT count() FROM orders WHERE created_at BETWEEN '2025-03-11' AND '2025-04-13'"), label="date parameters")
+    # The optional and the typed forms of a right query keep working.
+    expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at >= {{a}} AND created_at < {{b}}",
+                       "SELECT count() FROM orders WHERE created_at >= '2025-03-11' AND created_at < '2025-04-13'", tags, parameters)
+
+
+@check("docs.install.plugins_directory_writable")
+def _(ctx):
+    """Finding B8: the Metabase image runs as uid 2000 and it ignores a plugins directory that it cannot write, with no error."""
+    for path in ("docs/install.md", "README.md"):
+        with open(os.path.join(REPO, path), encoding="utf-8") as f:
+            text = f.read()
+        for word in ("chmod", "2000", "Registered driver"):
+            if word not in text:
+                raise Fail("%s has no %r" % (path, word))
+
+
+@check("docs.known_wrong_numbers")
+def _(ctx):
+    """The list of the numbers that stay wrong, in the docs and in the README."""
+    for path in ("docs/query-compilation.md", "README.md"):
+        with open(os.path.join(REPO, path), encoding="utf-8") as f:
+            text = f.read()
+        if "Known wrong numbers" not in text:
+            raise Fail("%s has no section Known wrong numbers" % path)
+
+
+@check("nested.model_date_filter")
+def _(ctx):
+    """Finding M1: a date filter on a model or a question gave `Can't parse date: 'replaced_placeholder'`."""
+    model = raw_model(ctx)
+    col = named("created_at", "type/DateTime")
+    expect_rows(ctx, over(model, aggregation=[["sum", named("amount_dim")]], filter=[">=", col, "2025-05-10"]), "SELECT sum(amount) FROM orders WHERE created_at >= '2025-05-10'", "sum")
+    expect_rows(ctx, over(model, aggregation=[["count"]], filter=["between", col, "2025-05-10", "2025-05-20"]), "SELECT count() FROM orders WHERE toDate(created_at) BETWEEN '2025-05-10' AND '2025-05-20'", "count")
+    expect_rows(ctx, over(model, aggregation=[["count"]], breakout=[named("status", "type/Text")], filter=["<", col, "2025-05-10T12:30:00"]),
+                "SELECT status, count() FROM orders WHERE created_at < '2025-05-10 12:30:00' GROUP BY status", "by status")
+
+
+@check("nested.model_date_filter_on_expression")
+def _(ctx):
+    """Finding M1: an expression of a rolling measure by month with whole buckets, which is post-processing."""
+    month, window = ch(monthly_window("2025-04-01"))[0]
+    expect_rows(ctx, ctx.mb.inner(ORD, agg=[["+", "m:orders.revenue_trailing_30d", 1]], by=MONTH, where=[[">=", CRT, "2025-04-01"], ["<", CRT, "2025-05-01"]]),
+                [[month, window + 1]], "plus one")
+
+
+def with_start_of_week(ctx, day, fn):
+    prev = ctx.mb.api("GET", "/api/setting/start-of-week")
+    ctx.mb.api("PUT", "/api/setting/start-of-week", {"value": day})
+    try:
+        fn()
+    finally:
+        ctx.mb.api("PUT", "/api/setting/start-of-week", {"value": prev if isinstance(prev, str) and prev else None})
+
+
+def week_start(column, day):
+    """The first day of the week of `column`, for a first day that ClickHouse has no mode for."""
+    offset = {"sunday": 0, "monday": 1, "tuesday": 2, "wednesday": 3, "thursday": 4, "friday": 5, "saturday": 6}[day]
+    return "toDateTime(toDate(%s) - toUInt16(((toDayOfWeek(%s) %% 7) + 7 - %d) %% 7), 'UTC')" % (column, column, offset)
+
+
+@check("compile.week.default_with_date_filter")
+def _(ctx):
+    """Finding M2: a week number with a date filter on each first day of the week."""
+    grid = Grid(ctx)
+
+    def run(day):
+        def body():
+            grid.add("%s users" % day, ctx.mb.inner("users", agg=["m:users.count"], by=["d:users.created_at@week"], where=[[">=", "d:users.created_at", "2024-03-01"]]),
+                     "SELECT %s AS w, count() FROM users WHERE created_at >= '2024-03-01' GROUP BY w" % week_start("created_at", day))
+            grid.add("%s level_one" % day, ctx.mb.inner("level_one", agg=["m:level_one.revenue"], by=["d:level_one.created_at@week"], where=[["between", "d:level_one.created_at", "2025-03-05", "2025-04-17"]]),
+                     "SELECT %s AS w, sum(amount * 2) FROM orders WHERE toDate(created_at) BETWEEN '2025-03-05' AND '2025-04-17' GROUP BY w" % week_start("created_at", day))
+            grid.add("%s orders" % day, ctx.mb.inner(ORD, agg=["m:orders.count"], by=[WK], where=[[">=", CRT, "2025-12-01"]]),
+                     "SELECT %s AS w, count() FROM orders WHERE created_at >= '2025-12-01' GROUP BY w" % week_start("created_at", day))
+        with_start_of_week(ctx, day, body)
+    for day in ("sunday", "monday", "wednesday", "saturday"):
+        run(day)
+    grid.done()
+
+
+@check("mcp.query.count_in_a_date_range")
+def _(ctx):
+    """Finding M3: count with an absolute date filter in MCP."""
+    where = [[">=", CRT, "2025-05-10"], ["<", CRT, "2025-05-21"]]
+    truth = "SELECT %s FROM orders WHERE created_at >= '2025-05-10' AND created_at < '2025-05-21'"
+    mcp_rows(ctx, ORD, truth % "count()", agg=["m:orders.count"], where=where)
+    mcp_rows(ctx, ORD, truth % "count()", agg=[["count"]], where=where)
+    mcp_rows(ctx, ORD, truth % "sum(amount), count()", agg=["m:orders.revenue", "m:orders.count"], where=where)
+
+
+@check("compile.week.relative_on_each_first_day")
+def _(ctx):
+    """Finding M4: a relative filter in weeks, on each first day of the week. The truth starts at the first day of a week."""
+    grid = Grid(ctx)
+
+    def run(day):
+        def body():
+            today = "now('UTC')"
+            start = "(%s - INTERVAL 90 WEEK)" % week_start(today, day)
+            end = week_start(today, day)
+            grid.add(day, ctx.mb.inner(ORD, agg=["m:orders.count"], where=[["time-interval", CRT, -90, "week"]]),
+                     "SELECT count() FROM orders WHERE created_at >= %s AND created_at < %s" % (start, end))
+        with_start_of_week(ctx, day, body)
+    for day in ("sunday", "monday", "wednesday", "saturday"):
+        run(day)
+    grid.done()
+
+
+@check("compile.error.segment_errors_are_clear")
+def _(ctx):
+    """Finding m1."""
+    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=[["count"]], where=[["or", "s:orders.paid", "s:orders.large"]]), "add a segment")
+    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.revenue"], where=["s:users.vip"]), "use a view")
+
+
+@check("docs.fan_out_rule")
+def _(ctx):
+    """Finding m2: the docs tell which rule applies over a fan-out, and the numbers agree with it."""
+    with open(os.path.join(REPO, "docs/query-compilation.md"), encoding="utf-8") as f:
+        text = f.read()
+    if "fan-out" not in text.lower() and "fan out" not in text.lower():
+        raise Fail("docs/query-compilation.md has no rule for a fan-out")
+    join = [{"source-table": ctx.mb.table("payments")["id"], "alias": "P", "strategy": "left-join", "condition": ["=", "d:orders.id", "d:payments.order_id|P"]}]
+    assert_rows(ctx.mb.mbql(ORD, agg=[["count"], ["sum", "d:orders.quantity_dim"]], joins=join)["rows"],
+                ch("SELECT (SELECT count() FROM orders o JOIN (SELECT id AS order_id FROM orders UNION ALL SELECT id FROM orders) p ON o.id = p.order_id), (SELECT sum(quantity) FROM orders)"), label="fan-out")
+
+
+@check("native.count_on_no_rows_limit")
+def _(ctx):
+    """Finding m3, a limit of Cube: native COUNT(*) on no rows is NULL. MBQL gives 0, and NULL does not look like a real count."""
+    for sql in ("SELECT COUNT(*) FROM orders WHERE status = 'nope'", "SELECT MEASURE(count) FROM orders WHERE status = 'nope'"):
+        rows = ctx.mb.native(sql)["rows"]
+        if rows != [[None]]:
+            raise Fail("Cube now gives %s for %s. Give this entry its full status" % (rows, sql))
+    assert_rows(ctx.mb.mbql(ORD, agg=[["count"]], where=[["=", STA, "nope"]])["rows"], ch("SELECT count() FROM orders WHERE status = 'nope'"), label="MBQL")
+
+
+@check("measure.rolling.unbounded_one_bucket")
+def _(ctx):
+    """Finding m4: `trailing: unbounded` works for one bucket, and for more it stops with a message that tells this."""
+    expect_rows(ctx, ctx.mb.inner(ORD, agg=["m:orders.cumulative_count"], by=MONTH, where=[[">=", CRT, "2025-04-01"], ["<", CRT, "2025-05-01"]]),
+                "SELECT toDateTime('2025-04-01','UTC'), countIf(created_at <= '2025-04-30 23:59:59') FROM orders", "one month")
+    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.cumulative_count"], by=MONTH, where=[[">=", CRT, "2025-04-01"], ["<", CRT, "2025-06-01"]]), "for more than one bucket")
+    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=[["max", "d:orders.revenue_trailing_30d"]]), "cannot compute max")
+
+
+@check("demo.lambda_cube_is_hidden")
+def _(ctx):
+    """Finding m5: the demo has no table that fails on each query."""
+    if "lambda_orders" in ctx.mb.tables:
+        raise Fail("the table lambda_orders is public, and each query on it fails")
+
+
+@check("security.dev_mode_warning_for_hidden_members")
+def _(ctx):
+    """Finding m6: native SQL reads hidden members in dev mode. The docs tell this, and the check shows why."""
+    with open(os.path.join(REPO, "docs/security.md"), encoding="utf-8") as f:
+        text = f.read()
+    if not re.search(r"(?s)CUBEJS_DEV_MODE.*hidden|hidden.*CUBEJS_DEV_MODE", text):
+        raise Fail("docs/security.md has no warning about hidden members in dev mode")
+    rows, error = native_outcome(ctx, "SELECT COUNT(*) FROM secret_audit")
+    if error or not rows:
+        raise Fail("the demo Cube has dev mode on, and the query must read the hidden cube: %s" % error)
+
+
+@check("security.validate_echoes_the_request_limit")
+def _(ctx):
+    """Finding m7, a limit of Metabase: this admin endpoint repeats the request body for each driver. A stored value stays masked."""
+    secret = CUBE_DB_DETAILS["cube-api-secret-value"]
+    status, text, _h = http("POST", MB + "/api/database/validate", {"details": {"engine": "cube", "details": CUBE_DB_DETAILS}}, {"X-Metabase-Session": ctx.mb.sid})
+    if status != 200:
+        raise Fail("HTTP %s" % status)
+    stored = json.dumps(ctx.mb.api("GET", "/api/database/%d" % ctx.mb.need_db()))
+    if secret in stored or CUBE_DB_DETAILS["password"] in stored:
+        raise Fail("a read of the stored database shows a secret")
+    if secret not in text:
+        raise Fail("Metabase no longer repeats the request. Give this entry its full status")
+
+
+def package_with_broken_jar(tmp):
+    """Finding m9: copy what the script needs, and put a `jar` on the PATH that fails, as the stub on a Mac with no Java does."""
+    for name in ("scripts", "src", "resources"):
+        subprocess.run(["cp", "-R", os.path.join(REPO, name), tmp], check=True)
+    fake = os.path.join(tmp, "fakebin")
+    os.mkdir(fake)
+    with open(os.path.join(fake, "jar"), "w", encoding="utf-8") as f:
+        f.write("#!/bin/sh\necho 'Unable to locate a Java Runtime' >&2\nexit 1\n")
+    os.chmod(os.path.join(fake, "jar"), 0o755)
+    env = dict(os.environ, PATH=fake + os.pathsep + os.environ["PATH"])
+    return subprocess.run(["sh", os.path.join(tmp, "scripts", "package.sh")], capture_output=True, text=True, env=env, timeout=120)
+
+
+@check("build.package_with_no_java")
+def _(ctx):
+    import tempfile
+    import zipfile
+    with tempfile.TemporaryDirectory() as tmp:
+        p = package_with_broken_jar(tmp)
+        out = os.path.join(tmp, "dev", "plugins", "cube.metabase-driver.jar")
+        if p.returncode != 0 or not os.path.exists(out):
+            raise Fail("package.sh failed with a jar stub: %s" % (p.stderr[-200:]))
+        with zipfile.ZipFile(out) as z:
+            names = z.namelist()
+        if "metabase-plugin.yaml" not in names or "metabase/driver/cube.clj" not in names:
+            raise Fail("the jar has no manifest or driver at its root: %s" % names[:6])
+    with open(os.path.join(REPO, "CONTRIBUTING.md"), encoding="utf-8") as f:
+        if "Java" not in f.read():
+            raise Fail("CONTRIBUTING.md does not list Java")
+
+
+@check("build.load_check_sends_the_api_secret")
+def _(ctx):
+    """Finding m10: the load check sends the key that the driver reads, and it takes its address from the environment."""
+    with open(os.path.join(REPO, ".github/scripts/load_check.py"), encoding="utf-8") as f:
+        text = f.read()
+    if '"cube-api-secret-value"' not in text:
+        raise Fail("the load check does not send cube-api-secret-value")
+    if "METABASE_URL" not in text:
+        raise Fail("the address of the load check is fixed")
+
+
+@check("docs.query_compilation_agrees_with_code")
+def _(ctx):
+    """Finding m11."""
+    with open(os.path.join(REPO, "docs/query-compilation.md"), encoding="utf-8") as f:
+        text = f.read()
+    for wrong in ("A left join from `products` to `orders` drops products",
+                  "The first two checks read the database type of the field, so they work on the query builder and on the MCP tool `execute_query`. They cannot read native SQL.",
+                  "A rolling window with `trailing: unbounded` fails on ClickHouse"):
+        if wrong in text:
+            raise Fail("docs/query-compilation.md still has: %s" % wrong)
+    expect_clear_error(ctx, ctx.mb.inner("products", agg=[["count"]], joins=[{"source-table": ctx.mb.table(ORD)["id"], "alias": "O", "strategy": "left-join", "condition": ["=", "d:products.id", "d:orders.product_id|O"]}]), "join path")
+
+
+# More shapes of B2, B3 and B4, with a truth or a refusal for each.
+
+MULTI_STAGE_REFUSAL = "cannot"
+
+
+@check("nested.model.multi_stage_measure_column")
+def _(ctx):
+    """A multi-stage measure or a measure with an aggregate in its SQL, as a column of a model: the truth or a refusal. Never another number."""
+    model = card_of(ctx, "multi stage model", ctx.mb.inner(ORD, fields=["d:orders.status", "d:orders.created_at", "d:orders.revenue_share_of_total", "d:orders.revenue_rank",
+                                                                         "d:orders.revenue_all_statuses", "d:orders.revenue_prior_month", "d:orders.paid_share"]), "model")
+    status = named("status", "type/Text")
+    by_month = named("created_at", "type/DateTime", **{"temporal-unit": "month"})
+    grid = Grid(ctx, refusal=MULTI_STAGE_REFUSAL)
+    totals = "(SELECT status, toFloat64(sum(amount)) AS r FROM orders GROUP BY status)"
+    grid.add("share by status", over(model, aggregation=[["max", named("revenue_share_of_total")]], breakout=[status]),
+             "SELECT status, r / (SELECT sum(r) FROM %s) FROM %s" % (totals, totals))
+    grid.add("rank by status", over(model, aggregation=[["max", named("revenue_rank")]], breakout=[status]),
+             "SELECT status, rank() OVER (ORDER BY r DESC) FROM %s" % totals)
+    grid.add("all statuses", over(model, aggregation=[["max", named("revenue_all_statuses")]], breakout=[status]),
+             "SELECT status, r FROM %s" % totals)
+    grid.add("prior month", over(model, aggregation=[["sum", named("revenue_prior_month")]], breakout=[by_month], filter=["and", [">=", named("created_at", "type/DateTime"), "2025-04-01"], ["<", named("created_at", "type/DateTime"), "2025-06-01"]]),
+             "SELECT addMonths(toStartOfMonth(created_at), 1) AS m, sum(amount) FROM orders WHERE m >= '2025-04-01' AND m < '2025-06-01' GROUP BY m")
+    grid.add("paid share", over(model, aggregation=[["max", named("paid_share")]]),
+             "SELECT sumIf(toFloat64(amount), status IN ('completed','shipped')) / sum(toFloat64(amount)) FROM orders")
+    grid.done()
+
+
+@check("nested.question.multi_stage_outer_date_filter")
+def _(ctx):
+    """A filter on a saved question with a time shift or a rolling measure keeps the months of the question."""
+    grid = Grid(ctx)
+    col = named("created_at", "type/DateTime")
+    prior = card_of(ctx, "prior month question", ctx.mb.inner(ORD, agg=["m:orders.revenue_prior_month"], by=MONTH, where=[[">=", CRT, "2025-04-01"], ["<", CRT, "2025-09-01"]]))
+    grid.add("prior month", over(prior, filter=[">=", col, "2025-06-15"]),
+             "SELECT addMonths(toStartOfMonth(created_at), 1) AS m, sum(amount) FROM orders WHERE m > '2025-06-15' AND m < '2025-09-01' GROUP BY m")
+    mtd = card_of(ctx, "mtd question", ctx.mb.inner(ORD, agg=["m:orders.revenue_mtd"], by=MONTH, where=[[">=", CRT, "2025-04-01"], ["<", CRT, "2025-09-01"]]))
+    grid.add("month to date", over(mtd, filter=["<", col, "2025-07-15"]),
+             "SELECT toStartOfMonth(created_at) AS m, sum(amount) FROM orders WHERE m >= '2025-04-01' AND m < '2025-07-15' GROUP BY m")
+    grid.done()
+
+
+@check("nested.model.measure_column_bounds")
+def _(ctx):
+    """A model with a column of a joined cube, then a date bound or a filter on that column, by name."""
+    model = card_of(ctx, "joined model", ctx.mb.inner(ORD, fields=["d:orders.id", "d:orders.amount_dim", "d:orders.created_at", "d:orders.revenue"]), "model")
+    grid = Grid(ctx)
+    col = named("created_at", "type/DateTime")
+    for label, where, cond in bound_filters(col):
+        grid.add(label, over(model, aggregation=[["sum", named("revenue")], ["count"]], filter=where),
+                 "SELECT sum(amount), count() FROM orders WHERE %s" % cond.format(c="created_at"))
+    grid.done()
+
+
+@check("nested.model.relative_and_bucket_filters")
+def _(ctx):
+    """Relative dates and a filter on a bucket, by column name, on a model. The bucket value can be inside the bucket."""
+    model = raw_model(ctx)
+    col = named("created_at", "type/DateTime")
+    month = named("created_at", "type/DateTime", **{"temporal-unit": "month"})
+    grid = Grid(ctx)
+    grid.add("relative days", over(model, aggregation=[["count"]], filter=["time-interval", col, -PAST_DAYS, "day"]),
+             "SELECT count() FROM orders WHERE created_at >= today() - %d AND created_at < today()" % PAST_DAYS)
+    grid.add("relative months", over(model, aggregation=[["count"]], filter=["time-interval", col, -30, "month"]),
+             "SELECT count() FROM orders WHERE created_at >= addMonths(toStartOfMonth(now('UTC')), -30) AND created_at < toStartOfMonth(now('UTC'))")
+    grid.add("= month", over(model, aggregation=[["count"]], filter=["=", month, "2025-05-01"]),
+             "SELECT count() FROM orders WHERE toStartOfMonth(created_at) = '2025-05-01'")
+    grid.add("> month", over(model, aggregation=[["count"]], filter=[">", month, "2025-05-01"]),
+             "SELECT count() FROM orders WHERE toStartOfMonth(created_at) > '2025-05-01'")
+    grid.add("<= month", over(model, aggregation=[["count"]], filter=["<=", month, "2025-05-01"]),
+             "SELECT count() FROM orders WHERE toStartOfMonth(created_at) <= '2025-05-01'")
+    grid.add("not null", over(model, aggregation=[["count"]], filter=["not-null", col]), "SELECT count() FROM orders")
+    grid.add("is null", over(model, aggregation=[["count"]], filter=["is-null", col]), "SELECT count() FROM orders WHERE created_at IS NULL")
+    grid.done()
+
+
+@check("compile.bound.relative_strict")
+def _(ctx):
+    """`>` with a relative date, alone and with an upper bound. The truth uses the same start of the day."""
+    start = "toDateTime(today() - 300, 'UTC')"
+    end = "toDateTime(today() - 200, 'UTC')"
+    grid = Grid(ctx)
+    relative = lambda n: ["relative-datetime", n, "day"]
+    grid.add("alone", ctx.mb.inner(ORD, agg=["m:orders.count"], where=[[">", CRT, relative(-300)]]),
+             "SELECT count() FROM orders WHERE created_at > %s" % start)
+    grid.add("two bounds", ctx.mb.inner(ORD, agg=["m:orders.count"], where=[[">", CRT, relative(-300)], ["<=", CRT, relative(-200)]]),
+             "SELECT count() FROM orders WHERE created_at > %s AND created_at <= %s" % (start, end))
+    grid.done()
+
+
+@check("compile.case.date_bounds_in_an_aggregation")
+def _(ctx):
+    """A date bound inside count-where and sum-where, where Cube makes no date range."""
+    x, y = "2025-03-15T05:00:00", "2025-03-16T05:00:00"
+    cond = ["and", [">", CRT, x], ["<=", CRT, y]]
+    expect_rows(ctx, ctx.mb.inner(ORD, agg=[["count-where", cond], ["sum-where", "d:orders.amount_dim", cond]]),
+                "SELECT countIf(created_at > '2025-03-15 05:00:00' AND created_at <= '2025-03-16 05:00:00'), sumIf(amount, created_at > '2025-03-15 05:00:00' AND created_at <= '2025-03-16 05:00:00') FROM orders", "where")
+
+
+@check("nested.measure_column.expression")
+def _(ctx):
+    """An expression of a measure column gives the truth or a refusal, on a model and in a condition of an aggregation."""
+    model = raw_model(ctx)
+    revenue = named("revenue")
+    grid = Grid(ctx, refusal="ube")
+    grid.add("sum of an expression", over(model, aggregation=[["sum", ["+", revenue, 1]]]), "SELECT sum(amount + 1) FROM orders")
+    grid.add("expression of the sum", over(model, aggregation=[["+", ["sum", revenue], 1]]), "SELECT sum(amount) + 1 FROM orders")
+    grid.add("count where", over(model, aggregation=[["count-where", [">", revenue, 150]]]), "SELECT countIf(amount > 150) FROM orders")
+    grid.add("sum where", over(model, aggregation=[["sum-where", named("amount_dim"), [">", revenue, 150]]]), "SELECT sumIf(amount, amount > 150) FROM orders")
+    grid.add("table count where", ctx.mb.inner(ORD, agg=[["count-where", [">", "d:orders.revenue", 150]]]), "SELECT countIf(amount > 150) FROM orders")
+    grid.done()
+
+
+@check("nested.model.segment_column")
+def _(ctx):
+    """A segment column of a model: a filter by name is the segment, or a refusal. A breakout is a refusal."""
+    model = card_of(ctx, "segment model", ctx.mb.inner(ORD, fields=["d:orders.id", "d:orders.status", "d:orders.amount_dim", "d:orders.paid"]), "model")
+    paid = named("paid", "type/Boolean")
+    grid = Grid(ctx, refusal="Cube cannot")
+    grid.add("filter", over(model, aggregation=[["sum", named("amount_dim")]], filter=["=", paid, True]), "SELECT sum(amount) FROM orders WHERE status IN ('completed','shipped')")
+    grid.done()
+    expect_clear_error(ctx, over(model, aggregation=[["count"]], breakout=[paid]), "Cube cannot group by the segment")
+
+
+@check("nested.question_on_question.date_filter")
+def _(ctx):
+    """Three stages: a question on a question, each with a filter."""
+    first = card_of(ctx, "stage one", ctx.mb.inner(ORD, agg=["m:orders.revenue"], by=["d:orders.created_at@day"], where=[["=", STA, "shipped"]]))
+    second = card_of(ctx, "stage two", over(first, aggregation=[["sum", named("sum")]], breakout=[named("created_at", "type/DateTime", **{"temporal-unit": "month"})],
+                                            filter=[">=", named("created_at", "type/DateTime"), "2025-02-15"]))
+    expect_rows(ctx, over(second, filter=["<", named("created_at", "type/DateTime"), "2025-05-15"]),
+                "SELECT toStartOfMonth(d) AS m, sum(r) FROM (SELECT toStartOfDay(created_at) d, sum(amount) r FROM orders WHERE status = 'shipped' GROUP BY d) "
+                "WHERE d >= '2025-02-15' GROUP BY m HAVING m < '2025-05-15'", "three stages")
 
 
 def run_suite(args):

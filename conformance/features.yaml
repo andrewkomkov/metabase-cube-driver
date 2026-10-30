@@ -800,7 +800,7 @@
   area: cube.pre_aggregations
   title: "preagg rollup lambda"
   status: blocked
-  reason: "rollup_lambda needs streaming or partitioned source data. Not modelled yet."
+  reason: "Each query on lambda_orders fails on ClickHouse with the error of preagg.original_sql, Missing columns: 'lambda_orders__status', so this cube is not public in the demo. rollup_lambda also needs streaming or partitioned source data, which the demo does not have."
 - id: sqlapi.aggregate_function
   area: cube.sql_api
   title: "sqlapi aggregate function"
@@ -3401,13 +3401,6 @@
   check: dimension.opt.propagate_filters_next_to_another_sub_query
   cap: partial
   reason: "Wrong number from Cube. In one SQL API query with a second sub_query dimension, the propagated dimension ignores the filter and shows all orders. Alone, it is right, see dimension.opt.propagate_filters. Do not select the two together."
-- id: measure.rolling.native_sql_limit
-  area: cube.measures
-  title: "rolling window in native SQL"
-  status: partial
-  check: measure.rolling.native_sql_limit
-  cap: partial
-  reason: "Wrong number from Cube, and the driver cannot read native SQL. With no time bucket, a rolling measure gives the total of all rows. With a filter inside a bucket, it gives the value of the whole bucket. The query builder and MCP execute_query stop these queries, see compile.rolling.*."
 - id: measure.multi_stage.time_shift_no_bucket_limit
   area: cube.measures
   title: "time shift with no time bucket"
@@ -3457,3 +3450,321 @@
   title: "other aggregation that Cube rejects gives a clear error"
   status: pass
   check: compile.agg.other_aggregation_can_give_error
+- id: compile.bound.strict_lower_with_upper
+  area: mb.compile.bound
+  title: "strict lower date bound with an upper bound (B1)"
+  status: todo
+  check: compile.bound.strict_lower_with_upper
+- id: compile.bound.grid_measures
+  area: mb.compile.bound
+  title: "each kind of date bound with each kind of measure"
+  status: todo
+  check: compile.bound.grid_measures
+- id: compile.bound.grid_date_types
+  area: mb.compile.bound
+  title: "each kind of date bound on DateTime, Date, Date32 and nullable columns"
+  status: todo
+  check: compile.bound.grid_date_types
+- id: compile.bound.grid_boundary_values
+  area: mb.compile.bound
+  title: "date bounds on the last second of a day, a month and a year"
+  status: todo
+  check: compile.bound.grid_boundary_values
+- id: compile.bound.grid_view_and_join
+  area: mb.compile.bound
+  title: "date bounds on a view, next to a breakout, and on a joined cube"
+  status: todo
+  check: compile.bound.grid_view_and_join
+- id: compile.bound.grid_model_by_name
+  area: mb.compile.bound
+  title: "date bounds on a model by column name"
+  status: todo
+  check: compile.bound.grid_model_by_name
+- id: compile.bound.grid_mcp
+  area: mb.compile.bound
+  title: "date bounds in MCP on a table and with source-card"
+  status: todo
+  check: compile.bound.grid_mcp
+- id: compile.bound.fraction_of_a_second
+  area: mb.compile.bound
+  title: "date bound with a fraction of a second"
+  status: todo
+  check: compile.bound.fraction_of_a_second
+- id: native.bound.strict_lower_refused
+  area: mb.native
+  title: "strict lower date bound with an upper bound in native SQL (B1)"
+  status: todo
+  check: native.bound.strict_lower_refused
+- id: nested.outer_date_filter.keeps_inner_rows
+  area: mb.nested
+  title: "date filter on a saved question keeps its rows (B2)"
+  status: todo
+  check: nested.outer_date_filter.keeps_inner_rows
+- id: nested.outer_date_filter.rolling
+  area: mb.nested
+  title: "date filter on a saved question with a rolling measure (B2)"
+  status: todo
+  check: nested.outer_date_filter.rolling
+- id: nested.outer_date_filter.grid
+  area: mb.nested
+  title: "outer date filters over each bucket and measure kind"
+  status: todo
+  check: nested.outer_date_filter.grid
+- id: nested.outer_filter.multi_stage_measure
+  area: mb.nested
+  title: "outer filter on a share or a rank"
+  status: todo
+  check: nested.outer_filter.multi_stage_measure
+- id: nested.outer_stage.grid_breakout_and_aggregation
+  area: mb.nested
+  title: "outer aggregation and breakout over each measure kind"
+  status: todo
+  check: nested.outer_stage.grid_breakout_and_aggregation
+- id: nested.outer_date_filter.native_source
+  area: mb.nested
+  title: "date filter on a native saved question (B2)"
+  status: todo
+  check: nested.outer_date_filter.native_source
+- id: nested.outer_date_filter.week_numbers
+  area: mb.nested
+  title: "date filter on a saved question with a week number"
+  status: todo
+  check: nested.outer_date_filter.week_numbers
+- id: mb.dashboard.date_filter_on_question
+  area: mb.dashboards
+  title: "dashboard date filter on a card of a model (M1)"
+  status: todo
+  check: mb.dashboard.date_filter_on_question
+- id: measure.rolling.through_model
+  area: cube.measures
+  title: "rolling check by column name, through a model and MCP source-card (B3)"
+  status: todo
+  check: measure.rolling.through_model
+- id: measure.rolling.through_model_whole_buckets
+  area: cube.measures
+  title: "rolling measure through a model with whole buckets"
+  status: todo
+  check: measure.rolling.through_model_whole_buckets
+- id: measure.rolling.filter_in_the_model
+  area: cube.measures
+  title: "rolling measure with a date filter inside the model"
+  status: todo
+  check: measure.rolling.filter_in_the_model
+- id: measure.rolling.strict_bound_on_boundary
+  area: cube.measures
+  title: "rolling measure with a strict bound on a boundary"
+  status: todo
+  check: measure.rolling.strict_bound_on_boundary
+- id: nested.measure_column.filter_refused
+  area: mb.nested
+  title: "filter on a measure column of a model (B4)"
+  status: todo
+  check: nested.measure_column.filter_refused
+- id: nested.measure_column.breakout_refused
+  area: mb.nested
+  title: "breakout on a measure column of a model (B4)"
+  status: todo
+  check: nested.measure_column.breakout_refused
+- id: compile.filter.hidden_measure_column_refused
+  area: mb.compile.filter
+  title: "filter on a hidden measure column of a table (B4)"
+  status: todo
+  check: compile.filter.hidden_measure_column_refused
+- id: nested.measure_column.right_shapes_stay
+  area: mb.nested
+  title: "aggregation of a measure column of a model"
+  status: todo
+  check: nested.measure_column.right_shapes_stay
+- id: nested.measure_column.other_aggregation
+  area: mb.nested
+  title: "another aggregation of a measure column of a model"
+  status: todo
+  check: nested.measure_column.other_aggregation
+- id: nested.model_of_model.measure_column
+  area: mb.nested
+  title: "measure column through a model of a model"
+  status: todo
+  check: nested.model_of_model.measure_column
+- id: nested.model.raw_rows_of_a_measure_are_null
+  area: mb.nested
+  title: "raw rows of a measure column of a model (m8)"
+  status: todo
+  check: nested.model.raw_rows_of_a_measure_are_null
+- id: view.two_paths_in_one_query_refused
+  area: cube.views
+  title: "two join paths of a view in one query (B5)"
+  status: todo
+  check: view.two_paths_in_one_query_refused
+- id: view.two_paths_one_column_stays
+  area: cube.views
+  title: "one join path of a view with two paths"
+  status: todo
+  check: view.two_paths_one_column_stays
+- id: view.two_paths_with_join_alias
+  area: cube.views
+  title: "two join paths with a join alias"
+  status: todo
+  check: view.two_paths_with_join_alias
+- id: measure.rolling.native_refused
+  area: cube.measures
+  title: "rolling measure in native SQL with no bucket or a filter inside a bucket (B6)"
+  status: todo
+  check: measure.rolling.native_refused
+- id: measure.rolling.native_whole_buckets
+  area: cube.measures
+  title: "rolling measure in native SQL with whole buckets"
+  status: todo
+  check: measure.rolling.native_whole_buckets
+- id: native.between_date_text_refused
+  area: mb.native
+  title: "native BETWEEN with a date text (B7)"
+  status: todo
+  check: native.between_date_text_refused
+- id: native.between_date_parameter
+  area: mb.native
+  title: "native BETWEEN with date parameters (B7)"
+  status: todo
+  check: native.between_date_parameter
+- id: docs.install.plugins_directory_writable
+  area: docs
+  title: "install steps make the plugins directory writable (B8)"
+  status: todo
+  check: docs.install.plugins_directory_writable
+- id: docs.known_wrong_numbers
+  area: docs
+  title: "docs and README list the known wrong numbers"
+  status: todo
+  check: docs.known_wrong_numbers
+- id: nested.model_date_filter
+  area: mb.nested
+  title: "date filter on a model (M1)"
+  status: todo
+  check: nested.model_date_filter
+- id: nested.model_date_filter_on_expression
+  area: mb.nested
+  title: "date filter with an expression of a rolling measure (M1)"
+  status: todo
+  check: nested.model_date_filter_on_expression
+- id: compile.week.default_with_date_filter
+  area: mb.compile.week
+  title: "week number with a date filter on each first day (M2)"
+  status: todo
+  check: compile.week.default_with_date_filter
+- id: mcp.query.count_in_a_date_range
+  area: mcp
+  title: "count in a date range in MCP (M3)"
+  status: todo
+  check: mcp.query.count_in_a_date_range
+- id: compile.week.relative_on_each_first_day
+  area: mb.compile.week
+  title: "relative filter in weeks on each first day (M4)"
+  status: todo
+  check: compile.week.relative_on_each_first_day
+- id: compile.error.segment_errors_are_clear
+  area: mb.compile.error
+  title: "clear errors for segments (m1)"
+  status: todo
+  check: compile.error.segment_errors_are_clear
+- id: docs.fan_out_rule
+  area: docs
+  title: "docs tell the rule for a fan-out (m2)"
+  status: todo
+  check: docs.fan_out_rule
+- id: measure.rolling.unbounded_one_bucket
+  area: cube.measures
+  title: "unbounded window for one bucket and a clear error for more (m4)"
+  status: todo
+  check: measure.rolling.unbounded_one_bucket
+- id: demo.lambda_cube_is_hidden
+  area: demo
+  title: "demo has no table that always fails (m5)"
+  status: todo
+  check: demo.lambda_cube_is_hidden
+- id: build.package_with_no_java
+  area: build
+  title: "package script with a jar stub and no Java (m9)"
+  status: todo
+  check: build.package_with_no_java
+- id: build.load_check_sends_the_api_secret
+  area: build
+  title: "load check sends the API secret (m10)"
+  status: todo
+  check: build.load_check_sends_the_api_secret
+- id: docs.query_compilation_agrees_with_code
+  area: docs
+  title: "query compilation docs agree with the code (m11)"
+  status: todo
+  check: docs.query_compilation_agrees_with_code
+- id: compile.bound.datetime64_whole_seconds_limit
+  area: mb.compile.bound
+  title: "strict bound on DateTime64 reads whole seconds"
+  status: todo
+  check: compile.bound.datetime64_whole_seconds_limit
+  cap: partial
+  reason: "Wrong number from Cube, which reads a DateTime64 as whole seconds in a filter: a row in the first second after a bound of > is out of the result. Cube sends no fraction to ClickHouse and /v1/meta does not show the column type, so the driver cannot avoid this. A dimension with sql: toString(column) keeps the text."
+- id: native.count_on_no_rows_limit
+  area: mb.native
+  title: "native COUNT(*) on no rows"
+  status: todo
+  check: native.count_on_no_rows_limit
+  cap: partial
+  reason: "Limit of Cube: native COUNT(*) on no rows gives NULL where SQL gives 0 (m3). The driver does not change native text, and it cannot know that a NULL column is a count. MBQL gives 0."
+- id: security.dev_mode_warning_for_hidden_members
+  area: security
+  title: "native SQL reads hidden members in dev mode"
+  status: todo
+  check: security.dev_mode_warning_for_hidden_members
+  cap: partial
+  reason: "Limit of Cube: with CUBEJS_DEV_MODE=true the SQL API reads hidden cubes and members (m6). A Cube with dev mode off refuses this query. docs/security.md warns about it."
+- id: security.validate_echoes_the_request_limit
+  area: security
+  title: "POST /api/database/validate repeats the request"
+  status: todo
+  check: security.validate_echoes_the_request_limit
+  cap: partial
+  reason: "Limit of Metabase: this admin endpoint repeats the request body with the secret that the admin sent, for each driver (m7). No driver hook applies. Each read of a stored database gives the mask."
+- id: nested.model.multi_stage_measure_column
+  area: mb.nested
+  title: "multi-stage measure as a column of a model"
+  status: todo
+  check: nested.model.multi_stage_measure_column
+- id: nested.question.multi_stage_outer_date_filter
+  area: mb.nested
+  title: "date filter on a question with a time shift or a rolling measure"
+  status: todo
+  check: nested.question.multi_stage_outer_date_filter
+- id: nested.model.measure_column_bounds
+  area: mb.nested
+  title: "date bounds on a model with a measure column"
+  status: todo
+  check: nested.model.measure_column_bounds
+- id: nested.model.relative_and_bucket_filters
+  area: mb.nested
+  title: "relative and bucket filters on a model by column name"
+  status: todo
+  check: nested.model.relative_and_bucket_filters
+- id: compile.bound.relative_strict
+  area: mb.compile.bound
+  title: "strict bound with a relative date"
+  status: todo
+  check: compile.bound.relative_strict
+- id: compile.case.date_bounds_in_an_aggregation
+  area: mb.compile.bound
+  title: "date bounds in count-where and sum-where"
+  status: todo
+  check: compile.case.date_bounds_in_an_aggregation
+- id: nested.measure_column.expression
+  area: mb.nested
+  title: "expression of a measure column"
+  status: todo
+  check: nested.measure_column.expression
+- id: nested.model.segment_column
+  area: mb.nested
+  title: "segment column of a model"
+  status: todo
+  check: nested.model.segment_column
+- id: nested.question_on_question.date_filter
+  area: mb.nested
+  title: "three stages with date filters"
+  status: todo
+  check: nested.question_on_question.date_filter
