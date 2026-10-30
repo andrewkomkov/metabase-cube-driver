@@ -2146,3 +2146,978 @@
   title: "Measure of type min or max on a time column"
   status: blocked
   reason: "Cube REST returns the time, but /v1/meta types the measure as number and the SQL API returns NULL for MEASURE(). The driver reads only the SQL API, so the demo measure first_order_at gives NULL. Use a measure of type time, see semantic.measure.type_time."
+- id: compile.agg.median_gives_error
+  area: mb.compile.agg
+  title: "agg median gives error"
+  status: todo
+  check: compile.agg.median_gives_error
+- id: compile.agg.offset_measure
+  area: mb.compile.agg
+  title: "agg offset measure"
+  status: todo
+  check: compile.agg.offset_measure
+- id: compile.bucket.day
+  area: mb.compile.bucket
+  title: "bucket day"
+  status: todo
+  check: compile.bucket.day
+- id: compile.bucket.hour
+  area: mb.compile.bucket
+  title: "bucket hour"
+  status: todo
+  check: compile.bucket.hour
+- id: compile.bucket.minute
+  area: mb.compile.bucket
+  title: "bucket minute"
+  status: todo
+  check: compile.bucket.minute
+- id: compile.bucket.month
+  area: mb.compile.bucket
+  title: "bucket month"
+  status: todo
+  check: compile.bucket.month
+- id: compile.bucket.quarter
+  area: mb.compile.bucket
+  title: "bucket quarter"
+  status: todo
+  check: compile.bucket.quarter
+- id: compile.bucket.year
+  area: mb.compile.bucket
+  title: "bucket year"
+  status: todo
+  check: compile.bucket.year
+- id: compile.ch.approx_distinct_high_cardinality
+  area: mb.compile.ch
+  title: "ch approx distinct high cardinality"
+  status: todo
+  check: compile.ch.approx_distinct_high_cardinality
+- id: compile.ch.approx_distinct_low_cardinality
+  area: mb.compile.ch
+  title: "ch approx distinct low cardinality"
+  status: todo
+  check: compile.ch.approx_distinct_low_cardinality
+- id: compile.ch.array_as_text
+  area: mb.compile.ch
+  title: "ch array as text"
+  status: todo
+  check: compile.ch.array_as_text
+- id: compile.ch.array_has
+  area: mb.compile.ch
+  title: "ch array has"
+  status: todo
+  check: compile.ch.array_has
+- id: compile.ch.array_length
+  area: mb.compile.ch
+  title: "ch array length"
+  status: todo
+  check: compile.ch.array_length
+- id: compile.ch.array_measure
+  area: mb.compile.ch
+  title: "ch array measure"
+  status: todo
+  check: compile.ch.array_measure
+- id: compile.ch.bool_group
+  area: mb.compile.ch
+  title: "ch bool group"
+  status: todo
+  check: compile.ch.bool_group
+- id: compile.ch.date32_week
+  area: mb.compile.ch
+  title: "ch date32 week"
+  status: todo
+  check: compile.ch.date32_week
+- id: compile.ch.date_month
+  area: mb.compile.ch
+  title: "ch date month"
+  status: todo
+  check: compile.ch.date_month
+- id: compile.ch.date_part_on_ny
+  area: mb.compile.ch
+  title: "ch date part on ny"
+  status: todo
+  check: compile.ch.date_part_on_ny
+- id: compile.ch.datetime64_berlin_hour
+  area: mb.compile.ch
+  title: "ch datetime64 berlin hour"
+  status: todo
+  check: compile.ch.datetime64_berlin_hour
+- id: compile.ch.datetime_ny_day
+  area: mb.compile.ch
+  title: "ch datetime ny day"
+  status: todo
+  check: compile.ch.datetime_ny_day
+- id: compile.ch.datetime_ny_raw
+  area: mb.compile.ch
+  title: "ch datetime ny raw"
+  status: todo
+  check: compile.ch.datetime_ny_raw
+- id: compile.ch.decimal_above_double
+  area: mb.compile.ch
+  title: "ch decimal above double"
+  status: todo
+  check: compile.ch.decimal_above_double
+- id: compile.ch.decimal_row
+  area: mb.compile.ch
+  title: "ch decimal row"
+  status: todo
+  check: compile.ch.decimal_row
+- id: compile.ch.decimal_sum
+  area: mb.compile.ch
+  title: "ch decimal sum"
+  status: todo
+  check: compile.ch.decimal_sum
+- id: compile.ch.enum_group
+  area: mb.compile.ch
+  title: "ch enum group"
+  status: todo
+  check: compile.ch.enum_group
+- id: compile.ch.float32
+  area: mb.compile.ch
+  title: "ch float32"
+  status: todo
+  check: compile.ch.float32
+- id: compile.ch.lowcardinality_distinct
+  area: mb.compile.ch
+  title: "ch lowcardinality distinct"
+  status: todo
+  check: compile.ch.lowcardinality_distinct
+- id: compile.ch.lowcardinality_group
+  area: mb.compile.ch
+  title: "ch lowcardinality group"
+  status: todo
+  check: compile.ch.lowcardinality_group
+- id: compile.ch.lowcardinality_nullable_group
+  area: mb.compile.ch
+  title: "ch lowcardinality nullable group"
+  status: todo
+  check: compile.ch.lowcardinality_nullable_group
+- id: compile.ch.nullable_bool_group
+  area: mb.compile.ch
+  title: "ch nullable bool group"
+  status: todo
+  check: compile.ch.nullable_bool_group
+- id: compile.ch.nullable_decimal_sum
+  area: mb.compile.ch
+  title: "ch nullable decimal sum"
+  status: todo
+  check: compile.ch.nullable_decimal_sum
+- id: compile.ch.nullable_int_avg
+  area: mb.compile.ch
+  title: "ch nullable int avg"
+  status: todo
+  check: compile.ch.nullable_int_avg
+- id: compile.ch.nullable_string_distinct
+  area: mb.compile.ch
+  title: "ch nullable string distinct"
+  status: todo
+  check: compile.ch.nullable_string_distinct
+- id: compile.ch.nullable_string_group
+  area: mb.compile.ch
+  title: "ch nullable string group"
+  status: todo
+  check: compile.ch.nullable_string_group
+- id: compile.ch.nullable_time_month
+  area: mb.compile.ch
+  title: "ch nullable time month"
+  status: todo
+  check: compile.ch.nullable_time_month
+- id: compile.ch.uint64_above_double
+  area: mb.compile.ch
+  title: "ch uint64 above double"
+  status: todo
+  check: compile.ch.uint64_above_double
+- id: compile.ch.uuid_filter
+  area: mb.compile.ch
+  title: "ch uuid filter"
+  status: todo
+  check: compile.ch.uuid_filter
+- id: compile.empty.breakout
+  area: mb.compile.empty
+  title: "empty breakout"
+  status: todo
+  check: compile.empty.breakout
+- id: compile.empty.count
+  area: mb.compile.empty
+  title: "empty count"
+  status: todo
+  check: compile.empty.count
+- id: compile.empty.count_measure
+  area: mb.compile.empty
+  title: "empty count measure"
+  status: todo
+  check: compile.empty.count_measure
+- id: compile.empty.distinct_measure
+  area: mb.compile.empty
+  title: "empty distinct measure"
+  status: todo
+  check: compile.empty.distinct_measure
+- id: compile.empty.sum_is_null
+  area: mb.compile.empty
+  title: "empty sum is null"
+  status: todo
+  check: compile.empty.sum_is_null
+- id: compile.expr.boolean_is_true
+  area: mb.compile.expr
+  title: "expr boolean is true"
+  status: todo
+  check: compile.expr.boolean_is_true
+- id: compile.expr.case_two_branches
+  area: mb.compile.expr
+  title: "expr case two branches"
+  status: todo
+  check: compile.expr.case_two_branches
+- id: compile.expr.count_where_breakout
+  area: mb.compile.expr
+  title: "expr count where breakout"
+  status: todo
+  check: compile.expr.count_where_breakout
+- id: compile.expr.datediff_day
+  area: mb.compile.expr
+  title: "expr datediff day"
+  status: todo
+  check: compile.expr.datediff_day
+- id: compile.expr.datediff_hour
+  area: mb.compile.expr
+  title: "expr datediff hour"
+  status: todo
+  check: compile.expr.datediff_hour
+- id: compile.expr.datediff_minute
+  area: mb.compile.expr
+  title: "expr datediff minute"
+  status: todo
+  check: compile.expr.datediff_minute
+- id: compile.expr.datediff_second
+  area: mb.compile.expr
+  title: "expr datediff second"
+  status: todo
+  check: compile.expr.datediff_second
+- id: compile.expr.datediff_week
+  area: mb.compile.expr
+  title: "expr datediff week"
+  status: todo
+  check: compile.expr.datediff_week
+- id: compile.expr.datetime_add_in_aggregated_query_gives_error
+  area: mb.compile.expr
+  title: "expr datetime add in aggregated query gives error"
+  status: todo
+  check: compile.expr.datetime_add_in_aggregated_query_gives_error
+- id: compile.expr.datetime_diff_month_gives_error
+  area: mb.compile.expr
+  title: "expr datetime diff month gives error"
+  status: todo
+  check: compile.expr.datetime_diff_month_gives_error
+- id: compile.expr.distinct_where
+  area: mb.compile.expr
+  title: "expr distinct where"
+  status: todo
+  check: compile.expr.distinct_where
+- id: compile.expr.exp
+  area: mb.compile.expr
+  title: "expr exp"
+  status: todo
+  check: compile.expr.exp
+- id: compile.expr.get_day
+  area: mb.compile.expr
+  title: "expr get day"
+  status: todo
+  check: compile.expr.get_day
+- id: compile.expr.get_day_of_week
+  area: mb.compile.expr
+  title: "expr get day of week"
+  status: todo
+  check: compile.expr.get_day_of_week
+- id: compile.expr.get_hour
+  area: mb.compile.expr
+  title: "expr get hour"
+  status: todo
+  check: compile.expr.get_hour
+- id: compile.expr.get_minute
+  area: mb.compile.expr
+  title: "expr get minute"
+  status: todo
+  check: compile.expr.get_minute
+- id: compile.expr.get_quarter
+  area: mb.compile.expr
+  title: "expr get quarter"
+  status: todo
+  check: compile.expr.get_quarter
+- id: compile.expr.get_second
+  area: mb.compile.expr
+  title: "expr get second"
+  status: todo
+  check: compile.expr.get_second
+- id: compile.expr.in_aggregation
+  area: mb.compile.expr
+  title: "expr in aggregation"
+  status: todo
+  check: compile.expr.in_aggregation
+- id: compile.expr.in_breakout
+  area: mb.compile.expr
+  title: "expr in breakout"
+  status: todo
+  check: compile.expr.in_breakout
+- id: compile.expr.in_filter
+  area: mb.compile.expr
+  title: "expr in filter"
+  status: todo
+  check: compile.expr.in_filter
+- id: compile.expr.in_filter_measure
+  area: mb.compile.expr
+  title: "expr in filter measure"
+  status: todo
+  check: compile.expr.in_filter_measure
+- id: compile.expr.integer_division
+  area: mb.compile.expr
+  title: "expr integer division"
+  status: todo
+  check: compile.expr.integer_division
+- id: compile.expr.log_of_expression
+  area: mb.compile.expr
+  title: "expr log of expression"
+  status: todo
+  check: compile.expr.log_of_expression
+- id: compile.expr.ltrim
+  area: mb.compile.expr
+  title: "expr ltrim"
+  status: todo
+  check: compile.expr.ltrim
+- id: compile.expr.measure_arithmetic
+  area: mb.compile.expr
+  title: "expr measure arithmetic"
+  status: todo
+  check: compile.expr.measure_arithmetic
+- id: compile.expr.rtrim
+  area: mb.compile.expr
+  title: "expr rtrim"
+  status: todo
+  check: compile.expr.rtrim
+- id: compile.expr.sum_of_dimension
+  area: mb.compile.expr
+  title: "expr sum of dimension"
+  status: todo
+  check: compile.expr.sum_of_dimension
+- id: compile.expr.sum_where
+  area: mb.compile.expr
+  title: "expr sum where"
+  status: todo
+  check: compile.expr.sum_where
+- id: compile.expr.trim
+  area: mb.compile.expr
+  title: "expr trim"
+  status: todo
+  check: compile.expr.trim
+- id: compile.filter.bool_expr
+  area: mb.compile.filter
+  title: "filter bool expr"
+  status: todo
+  check: compile.filter.bool_expr
+- id: compile.filter.bool_false
+  area: mb.compile.filter
+  title: "filter bool false"
+  status: todo
+  check: compile.filter.bool_false
+- id: compile.filter.bool_null
+  area: mb.compile.filter
+  title: "filter bool null"
+  status: todo
+  check: compile.filter.bool_null
+- id: compile.filter.bool_nullable_ne
+  area: mb.compile.filter
+  title: "filter bool nullable ne"
+  status: todo
+  check: compile.filter.bool_nullable_ne
+- id: compile.filter.bool_nullable_true
+  area: mb.compile.filter
+  title: "filter bool nullable true"
+  status: todo
+  check: compile.filter.bool_nullable_true
+- id: compile.filter.bool_true
+  area: mb.compile.filter
+  title: "filter bool true"
+  status: todo
+  check: compile.filter.bool_true
+- id: compile.filter.not_group
+  area: mb.compile.filter
+  title: "filter not group"
+  status: todo
+  check: compile.filter.not_group
+- id: compile.filter.number_between
+  area: mb.compile.filter
+  title: "filter number between"
+  status: todo
+  check: compile.filter.number_between
+- id: compile.filter.number_decimal_eq
+  area: mb.compile.filter
+  title: "filter number decimal eq"
+  status: todo
+  check: compile.filter.number_decimal_eq
+- id: compile.filter.number_gt_null
+  area: mb.compile.filter
+  title: "filter number gt null"
+  status: todo
+  check: compile.filter.number_gt_null
+- id: compile.filter.number_is_null
+  area: mb.compile.filter
+  title: "filter number is null"
+  status: todo
+  check: compile.filter.number_is_null
+- id: compile.filter.number_multi
+  area: mb.compile.filter
+  title: "filter number multi"
+  status: todo
+  check: compile.filter.number_multi
+- id: compile.filter.number_ne_null
+  area: mb.compile.filter
+  title: "filter number ne null"
+  status: todo
+  check: compile.filter.number_ne_null
+- id: compile.filter.string_contains
+  area: mb.compile.filter
+  title: "filter string contains"
+  status: todo
+  check: compile.filter.string_contains
+- id: compile.filter.string_ends
+  area: mb.compile.filter
+  title: "filter string ends"
+  status: todo
+  check: compile.filter.string_ends
+- id: compile.filter.string_ends_ci
+  area: mb.compile.filter
+  title: "filter string ends ci"
+  status: todo
+  check: compile.filter.string_ends_ci
+- id: compile.filter.string_is_empty
+  area: mb.compile.filter
+  title: "filter string is empty"
+  status: todo
+  check: compile.filter.string_is_empty
+- id: compile.filter.string_is_null
+  area: mb.compile.filter
+  title: "filter string is null"
+  status: todo
+  check: compile.filter.string_is_null
+- id: compile.filter.string_multi_ne
+  area: mb.compile.filter
+  title: "filter string multi ne"
+  status: todo
+  check: compile.filter.string_multi_ne
+- id: compile.filter.string_ne_null
+  area: mb.compile.filter
+  title: "filter string ne null"
+  status: todo
+  check: compile.filter.string_ne_null
+- id: compile.filter.string_not_contains
+  area: mb.compile.filter
+  title: "filter string not contains"
+  status: todo
+  check: compile.filter.string_not_contains
+- id: compile.filter.string_not_empty
+  area: mb.compile.filter
+  title: "filter string not empty"
+  status: todo
+  check: compile.filter.string_not_empty
+- id: compile.filter.string_not_null
+  area: mb.compile.filter
+  title: "filter string not null"
+  status: todo
+  check: compile.filter.string_not_null
+- id: compile.filter.string_starts
+  area: mb.compile.filter
+  title: "filter string starts"
+  status: todo
+  check: compile.filter.string_starts
+- id: compile.filter.time_between_minutes
+  area: mb.compile.filter
+  title: "filter time between minutes"
+  status: todo
+  check: compile.filter.time_between_minutes
+- id: compile.filter.time_day_eq
+  area: mb.compile.filter
+  title: "filter time day eq"
+  status: todo
+  check: compile.filter.time_day_eq
+- id: compile.filter.time_gte
+  area: mb.compile.filter
+  title: "filter time gte"
+  status: todo
+  check: compile.filter.time_gte
+- id: compile.filter.time_is_null
+  area: mb.compile.filter
+  title: "filter time is null"
+  status: todo
+  check: compile.filter.time_is_null
+- id: compile.filter.time_lte
+  area: mb.compile.filter
+  title: "filter time lte"
+  status: todo
+  check: compile.filter.time_lte
+- id: compile.filter.time_month_eq
+  area: mb.compile.filter
+  title: "filter time month eq"
+  status: todo
+  check: compile.filter.time_month_eq
+- id: compile.filter.time_ne_day
+  area: mb.compile.filter
+  title: "filter time ne day"
+  status: todo
+  check: compile.filter.time_ne_day
+- id: compile.filter.time_next_days
+  area: mb.compile.filter
+  title: "filter time next days"
+  status: todo
+  check: compile.filter.time_next_days
+- id: compile.filter.time_not_null
+  area: mb.compile.filter
+  title: "filter time not null"
+  status: todo
+  check: compile.filter.time_not_null
+- id: compile.filter.time_on_berlin_column
+  area: mb.compile.filter
+  title: "filter time on berlin column"
+  status: todo
+  check: compile.filter.time_on_berlin_column
+- id: compile.filter.time_on_date32_column
+  area: mb.compile.filter
+  title: "filter time on date32 column"
+  status: todo
+  check: compile.filter.time_on_date32_column
+- id: compile.filter.time_on_date_column
+  area: mb.compile.filter
+  title: "filter time on date column"
+  status: todo
+  check: compile.filter.time_on_date_column
+- id: compile.filter.time_on_ny_column
+  area: mb.compile.filter
+  title: "filter time on ny column"
+  status: todo
+  check: compile.filter.time_on_ny_column
+- id: compile.filter_measure.bool_true
+  area: mb.compile.filter_measure
+  title: "filter measure bool true"
+  status: todo
+  check: compile.filter_measure.bool_true
+- id: compile.filter_measure.number_ne_null
+  area: mb.compile.filter_measure
+  title: "filter measure number ne null"
+  status: todo
+  check: compile.filter_measure.number_ne_null
+- id: compile.filter_measure.string_ne_null
+  area: mb.compile.filter_measure
+  title: "filter measure string ne null"
+  status: todo
+  check: compile.filter_measure.string_ne_null
+- id: compile.filter_measure.time_day_eq
+  area: mb.compile.filter_measure
+  title: "filter measure time day eq"
+  status: todo
+  check: compile.filter_measure.time_day_eq
+- id: compile.filter_measure.time_is_null
+  area: mb.compile.filter_measure
+  title: "filter measure time is null"
+  status: todo
+  check: compile.filter_measure.time_is_null
+- id: compile.granularity.native
+  area: mb.compile.granularity
+  title: "granularity native"
+  status: todo
+  check: compile.granularity.native
+- id: compile.granularity.native_fiscal_year
+  area: mb.compile.granularity
+  title: "granularity native fiscal year"
+  status: todo
+  check: compile.granularity.native_fiscal_year
+- id: compile.granularity.native_sunday
+  area: mb.compile.granularity
+  title: "granularity native sunday"
+  status: todo
+  check: compile.granularity.native_sunday
+- id: compile.granularity.proxy_no_bin
+  area: mb.compile.granularity
+  title: "granularity proxy no bin"
+  status: todo
+  check: compile.granularity.proxy_no_bin
+- id: compile.join.explicit_two_cubes
+  area: mb.compile.join
+  title: "join explicit two cubes"
+  status: todo
+  check: compile.join.explicit_two_cubes
+- id: compile.join.filter_on_both_sides
+  area: mb.compile.join
+  title: "join filter on both sides"
+  status: todo
+  check: compile.join.filter_on_both_sides
+- id: compile.join.implicit_two_tables
+  area: mb.compile.join
+  title: "join implicit two tables"
+  status: todo
+  check: compile.join.implicit_two_tables
+- id: compile.join.implicit_uses_join_field
+  area: mb.compile.join
+  title: "join implicit uses join field"
+  status: todo
+  check: compile.join.implicit_uses_join_field
+- id: compile.join.inner_drops_rows_with_no_match
+  area: mb.compile.join
+  title: "join inner drops rows with no match"
+  status: todo
+  check: compile.join.inner_drops_rows_with_no_match
+- id: compile.join.inner_total
+  area: mb.compile.join
+  title: "join inner total"
+  status: todo
+  check: compile.join.inner_total
+- id: compile.join.left_keeps_rows_with_no_match
+  area: mb.compile.join
+  title: "join left keeps rows with no match"
+  status: todo
+  check: compile.join.left_keeps_rows_with_no_match
+- id: compile.join.no_fan_out
+  area: mb.compile.join
+  title: "join no fan out"
+  status: todo
+  check: compile.join.no_fan_out
+- id: compile.join.other_columns_give_error
+  area: mb.compile.join
+  title: "join other columns give error"
+  status: todo
+  check: compile.join.other_columns_give_error
+- id: compile.join.subquery_gives_error
+  area: mb.compile.join
+  title: "join subquery gives error"
+  status: todo
+  check: compile.join.subquery_gives_error
+- id: compile.latency.ten_million_rows
+  area: mb.compile.latency
+  title: "latency ten million rows"
+  status: todo
+  check: compile.latency.ten_million_rows
+- id: compile.native.error_keeps_cube_text
+  area: mb.compile.native
+  title: "native error keeps cube text"
+  status: todo
+  check: compile.native.error_keeps_cube_text
+- id: compile.native.explain_regular_with_parameter
+  area: mb.compile.native
+  title: "native explain regular with parameter"
+  status: todo
+  check: compile.native.explain_regular_with_parameter
+- id: compile.native.field_filter_empty_is_all_rows
+  area: mb.compile.native
+  title: "native field filter empty is all rows"
+  status: todo
+  check: compile.native.field_filter_empty_is_all_rows
+- id: compile.native.field_filter_multi
+  area: mb.compile.native
+  title: "native field filter multi"
+  status: todo
+  check: compile.native.field_filter_multi
+- id: compile.native.field_filter_number_range
+  area: mb.compile.native
+  title: "native field filter number range"
+  status: todo
+  check: compile.native.field_filter_number_range
+- id: compile.native.field_filter_relative_date
+  area: mb.compile.native
+  title: "native field filter relative date"
+  status: todo
+  check: compile.native.field_filter_relative_date
+- id: compile.nested.aggregate_of_grouped_rows
+  area: mb.compile.nested
+  title: "nested aggregate of grouped rows"
+  status: todo
+  check: compile.nested.aggregate_of_grouped_rows
+- id: compile.nested.custom_column_on_question
+  area: mb.compile.nested
+  title: "nested custom column on question"
+  status: todo
+  check: compile.nested.custom_column_on_question
+- id: compile.nested.model_of_a_native_query
+  area: mb.compile.nested
+  title: "nested model of a native query"
+  status: todo
+  check: compile.nested.model_of_a_native_query
+- id: compile.nested.model_raw_rows_then_group
+  area: mb.compile.nested
+  title: "nested model raw rows then group"
+  status: todo
+  check: compile.nested.model_raw_rows_then_group
+- id: compile.nested.model_with_measure_then_filter
+  area: mb.compile.nested
+  title: "nested model with measure then filter"
+  status: todo
+  check: compile.nested.model_with_measure_then_filter
+- id: compile.nested.more_than_the_default_row_limit
+  area: mb.compile.nested
+  title: "nested more than the default row limit"
+  status: todo
+  check: compile.nested.more_than_the_default_row_limit
+- id: compile.nested.raw_rows_with_filter
+  area: mb.compile.nested
+  title: "nested raw rows with filter"
+  status: todo
+  check: compile.nested.raw_rows_with_filter
+- id: compile.nested.week_on_question_is_clear
+  area: mb.compile.nested
+  title: "nested week on question is clear"
+  status: todo
+  check: compile.nested.week_on_question_is_clear
+- id: compile.order.by_measure_desc
+  area: mb.compile.order
+  title: "order by measure desc"
+  status: todo
+  check: compile.order.by_measure_desc
+- id: compile.order.limit
+  area: mb.compile.order
+  title: "order limit"
+  status: todo
+  check: compile.order.limit
+- id: compile.order.page_offset
+  area: mb.compile.order
+  title: "order page offset"
+  status: todo
+  check: compile.order.page_offset
+- id: compile.order.page_offset_grouped
+  area: mb.compile.order
+  title: "order page offset grouped"
+  status: todo
+  check: compile.order.page_offset_grouped
+- id: compile.order.two_columns
+  area: mb.compile.order
+  title: "order two columns"
+  status: todo
+  check: compile.order.two_columns
+- id: compile.part.day-of-month
+  area: mb.compile.part
+  title: "part day-of-month"
+  status: todo
+  check: compile.part.day-of-month
+- id: compile.part.day-of-week
+  area: mb.compile.part
+  title: "part day-of-week"
+  status: todo
+  check: compile.part.day-of-week
+- id: compile.part.day-of-year
+  area: mb.compile.part
+  title: "part day-of-year"
+  status: todo
+  check: compile.part.day-of-year
+- id: compile.part.filter_measure
+  area: mb.compile.part
+  title: "part filter measure"
+  status: todo
+  check: compile.part.filter_measure
+- id: compile.part.filter_with_breakout
+  area: mb.compile.part
+  title: "part filter with breakout"
+  status: todo
+  check: compile.part.filter_with_breakout
+- id: compile.part.hour-of-day
+  area: mb.compile.part
+  title: "part hour-of-day"
+  status: todo
+  check: compile.part.hour-of-day
+- id: compile.part.minute-of-hour
+  area: mb.compile.part
+  title: "part minute-of-hour"
+  status: todo
+  check: compile.part.minute-of-hour
+- id: compile.part.month-of-year
+  area: mb.compile.part
+  title: "part month-of-year"
+  status: todo
+  check: compile.part.month-of-year
+- id: compile.part.non_additive_avg
+  area: mb.compile.part
+  title: "part non additive avg"
+  status: todo
+  check: compile.part.non_additive_avg
+- id: compile.part.number_measure
+  area: mb.compile.part
+  title: "part number measure"
+  status: todo
+  check: compile.part.number_measure
+- id: compile.part.quarter-of-year
+  area: mb.compile.part
+  title: "part quarter-of-year"
+  status: todo
+  check: compile.part.quarter-of-year
+- id: compile.part.second-of-minute
+  area: mb.compile.part
+  title: "part second-of-minute"
+  status: todo
+  check: compile.part.second-of-minute
+- id: compile.pivot.date_and_string
+  area: mb.compile.pivot
+  title: "pivot date and string"
+  status: todo
+  check: compile.pivot.date_and_string
+- id: compile.pivot.two_dimensions
+  area: mb.compile.pivot
+  title: "pivot two dimensions"
+  status: todo
+  check: compile.pivot.two_dimensions
+- id: compile.rolling.by_week_sunday
+  area: mb.compile.rolling
+  title: "rolling by week sunday"
+  status: todo
+  check: compile.rolling.by_week_sunday
+- id: compile.rolling.with_status_filter
+  area: mb.compile.rolling
+  title: "rolling with status filter"
+  status: todo
+  check: compile.rolling.with_status_filter
+- id: compile.rollup.avg
+  area: mb.compile.rollup
+  title: "rollup avg"
+  status: todo
+  check: compile.rollup.avg
+- id: compile.rollup.count_rows
+  area: mb.compile.rollup
+  title: "rollup count rows"
+  status: todo
+  check: compile.rollup.count_rows
+- id: compile.rollup.date_range_aligned
+  area: mb.compile.rollup
+  title: "rollup date range aligned"
+  status: todo
+  check: compile.rollup.date_range_aligned
+- id: compile.rollup.date_range_not_aligned_is_right
+  area: mb.compile.rollup
+  title: "rollup date range not aligned is right"
+  status: todo
+  check: compile.rollup.date_range_not_aligned_is_right
+- id: compile.rollup.day_status
+  area: mb.compile.rollup
+  title: "rollup day status"
+  status: todo
+  check: compile.rollup.day_status
+- id: compile.rollup.filter_status_month
+  area: mb.compile.rollup
+  title: "rollup filter status month"
+  status: todo
+  check: compile.rollup.filter_status_month
+- id: compile.rollup.month
+  area: mb.compile.rollup
+  title: "rollup month"
+  status: todo
+  check: compile.rollup.month
+- id: compile.rollup.small_month_rollup_on_day_filter
+  area: mb.compile.rollup
+  title: "rollup small month rollup on day filter"
+  status: todo
+  check: compile.rollup.small_month_rollup_on_day_filter
+- id: compile.rollup.total
+  area: mb.compile.rollup
+  title: "rollup total"
+  status: todo
+  check: compile.rollup.total
+- id: compile.rollup.week_monday
+  area: mb.compile.rollup
+  title: "rollup week monday"
+  status: todo
+  check: compile.rollup.week_monday
+- id: compile.rollup.week_sunday
+  area: mb.compile.rollup
+  title: "rollup week sunday"
+  status: todo
+  check: compile.rollup.week_sunday
+- id: compile.segment.two
+  area: mb.compile.segment
+  title: "segment two"
+  status: todo
+  check: compile.segment.two
+- id: compile.segment.with_breakout
+  area: mb.compile.segment
+  title: "segment with breakout"
+  status: todo
+  check: compile.segment.with_breakout
+- id: compile.segment.with_filter_and_month
+  area: mb.compile.segment
+  title: "segment with filter and month"
+  status: todo
+  check: compile.segment.with_filter_and_month
+- id: compile.tz.dst_day_in_new_york_column
+  area: mb.compile.tz
+  title: "tz dst day in new york column"
+  status: todo
+  check: compile.tz.dst_day_in_new_york_column
+- id: compile.tz.filter_is_utc
+  area: mb.compile.tz
+  title: "tz filter is utc"
+  status: todo
+  check: compile.tz.filter_is_utc
+- id: compile.tz.report_timezone_keeps_utc
+  area: mb.compile.tz
+  title: "tz report timezone keeps utc"
+  status: todo
+  check: compile.tz.report_timezone_keeps_utc
+- id: compile.tz.set_time_zone_error
+  area: mb.compile.tz
+  title: "tz set time zone error"
+  status: todo
+  check: compile.tz.set_time_zone_error
+- id: compile.values.big_table_status
+  area: mb.compile.values
+  title: "values big table status"
+  status: todo
+  check: compile.values.big_table_status
+- id: compile.values.remapped_nullable
+  area: mb.compile.values
+  title: "values remapped nullable"
+  status: todo
+  check: compile.values.remapped_nullable
+- id: compile.values.search_lowcardinality
+  area: mb.compile.values
+  title: "values search lowcardinality"
+  status: todo
+  check: compile.values.search_lowcardinality
+- id: compile.week.day_of_week_monday
+  area: mb.compile.week
+  title: "week day of week monday"
+  status: todo
+  check: compile.week.day_of_week_monday
+- id: compile.week.day_of_week_sunday
+  area: mb.compile.week
+  title: "week day of week sunday"
+  status: todo
+  check: compile.week.day_of_week_sunday
+- id: compile.week.monday
+  area: mb.compile.week
+  title: "week monday"
+  status: todo
+  check: compile.week.monday
+- id: compile.week.monday_measure
+  area: mb.compile.week
+  title: "week monday measure"
+  status: todo
+  check: compile.week.monday_measure
+- id: compile.week.saturday_without_granularity
+  area: mb.compile.week
+  title: "week saturday without granularity"
+  status: todo
+  check: compile.week.saturday_without_granularity
+- id: compile.week.sunday_non_additive
+  area: mb.compile.week
+  title: "week sunday non additive"
+  status: todo
+  check: compile.week.sunday_non_additive
+- id: compile.week.sunday_with_granularity
+  area: mb.compile.week
+  title: "week sunday with granularity"
+  status: todo
+  check: compile.week.sunday_with_granularity
+- id: compile.week.sunday_without_granularity
+  area: mb.compile.week
+  title: "week sunday without granularity"
+  status: todo
+  check: compile.week.sunday_without_granularity
+- id: compile.week.sunday_without_granularity_distinct
+  area: mb.compile.week
+  title: "week sunday without granularity distinct"
+  status: todo
+  check: compile.week.sunday_without_granularity_distinct
+- id: compile.week.week_of_year_monday
+  area: mb.compile.week
+  title: "week week of year monday"
+  status: todo
+  check: compile.week.week_of_year_monday

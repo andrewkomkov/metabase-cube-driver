@@ -12,6 +12,8 @@ import json
 import os
 import re
 import secrets
+import socket
+import struct
 import subprocess
 import sys
 import time
@@ -2488,6 +2490,822 @@ def _(ctx):
 
 
 # ----------------------------------------------------------------- main
+
+
+# ----- query compilation: what Cube does with each query shape
+
+
+class PgError(Exception):
+    """An error from the Cube SQL API."""
+
+
+def cube_sql(sql):
+    """Run SQL on the Cube SQL API with the simple Postgres protocol. Only for EXPLAIN and for errors, never for truth."""
+    host = os.environ.get("CUBE_SQL_API_HOST", "127.0.0.1")
+    port = int(os.environ.get("CUBE_SQL_API_PORT", "15433"))
+    sock = socket.create_connection((host, port), timeout=HTTP_TIMEOUT)
+    buf = bytearray()
+
+    def read(n):
+        while len(buf) < n:
+            chunk = sock.recv(65536)
+            if not chunk:
+                raise PgError("the connection closed")
+            buf.extend(chunk)
+        out = bytes(buf[:n])
+        del buf[:n]
+        return out
+
+    def message():
+        tag = read(1)
+        size = struct.unpack("!i", read(4))[0]
+        return tag, read(size - 4)
+
+    def text_of_error(body):
+        return "".join(f[1:].decode("utf-8", "replace") for f in body.split(b"\0") if f[:1] == b"M")
+
+    try:
+        start = b"user\0cube\0database\0cube\0\0"
+        sock.sendall(struct.pack("!ii", len(start) + 8, 196608) + start)
+        while True:
+            tag, body = message()
+            if tag == b"R" and struct.unpack("!i", body[:4])[0] == 3:
+                password = b"cube-dev-only\0"
+                sock.sendall(b"p" + struct.pack("!i", len(password) + 4) + password)
+            elif tag == b"E":
+                raise PgError(text_of_error(body))
+            elif tag == b"Z":
+                break
+        query = sql.encode() + b"\0"
+        sock.sendall(b"Q" + struct.pack("!i", len(query) + 4) + query)
+        rows, error = [], None
+        while True:
+            tag, body = message()
+            if tag == b"D":
+                count, pos, row = struct.unpack("!h", body[:2])[0], 2, []
+                for _ in range(count):
+                    size = struct.unpack("!i", body[pos:pos + 4])[0]
+                    pos += 4
+                    row.append(None if size < 0 else body[pos:pos + size].decode("utf-8", "replace"))
+                    pos += max(size, 0)
+                rows.append(row)
+            elif tag == b"E":
+                error = text_of_error(body)
+            elif tag == b"Z":
+                break
+    finally:
+        sock.close()
+    if error:
+        raise PgError(error)
+    return rows
+
+
+def plan_of(sql):
+    """(logical plan, list of Cube requests) from EXPLAIN."""
+    rows = cube_sql("EXPLAIN " + sql)
+    logical = next(r[1] for r in rows if r[0] == "logical_plan")
+    physical = next(r[1] for r in rows if r[0] == "physical_plan")
+    requests = [json.JSONDecoder().raw_decode(physical[m.end():])[0] for m in re.finditer(r"Request:\s*", physical)]
+    return logical, requests
+
+
+def kind_of(sql):
+    """regular: Cube runs one CubeScan. post: Cube computes over a CubeScan. pushdown: Cube writes SQL for the database."""
+    logical, _ = plan_of(sql)
+    if re.search(r"CubeScanWrapp|WrappedSelect", logical):
+        return "pushdown"
+    return "regular" if logical.lstrip().startswith("CubeScan") else "post"
+
+
+def compile_query(ctx, query):
+    res = ctx.mb.api("POST", "/api/dataset/native", {"database": ctx.mb.need_db(), "type": "query", "query": query, "pretty": False})
+    return res["query"]
+
+
+def ensure_table(ctx, name):
+    if name.lower() in ctx.mb.tables:
+        return
+    db = ctx.mb.need_db()
+    ctx.mb.api("POST", "/api/database/%d/sync_schema" % db)
+    for _ in range(40):
+        time.sleep(3)
+        ctx.mb.discover()
+        if name.lower() in ctx.mb.tables and ctx.mb.table(name)["fields"]:
+            return
+    raise Fail("no table %s after a sync" % name)
+
+
+def C(check_id, table, sql, kind=None, ordered=False, tol=0.0, sql_has=None, setting=None, **kw):
+    """Run MBQL through Metabase, compare with the truth, then check the plan of Cube and the compiled SQL."""
+    def run(ctx):
+        ensure_table(ctx, table)
+        restore = None
+        if setting:
+            restore = {k: ctx.mb.api("GET", "/api/setting/" + k) for k in setting}
+            for k, v in setting.items():
+                ctx.mb.api("PUT", "/api/setting/" + k, {"value": v})
+        try:
+            query = ctx.mb.inner(table, **kw)
+            text = compile_query(ctx, query)
+            if sql_has and sql_has not in text:
+                raise Fail("the SQL has no %s: %s" % (sql_has, text[:400]))
+            if kind:
+                got = kind_of(text)
+                if got not in ((kind,) if isinstance(kind, str) else kind):
+                    raise Fail("Cube runs this as %s, want %s: %s" % (got, kind, text[:300]))
+            assert_rows(ctx.mb.raw(query)["rows"], ch(sql), ordered=ordered, tol=tol)
+        finally:
+            for k, v in (restore or {}).items():
+                ctx.mb.api("PUT", "/api/setting/" + k, {"value": v if isinstance(v, str) and v else None})
+    check(check_id)(run)
+
+
+def expect_clear_error(ctx, query, needle):
+    """Metabase must show a message that says what to do, and no bare Cube planner text."""
+    try:
+        res = ctx.mb.api("POST", "/api/dataset", {"database": ctx.mb.need_db(), "type": "query", "query": query}, ok=(200, 202, 400, 500))
+    except Fail as e:
+        raise Fail("no error reply: %s" % e)
+    text = str(res.get("error") or res.get("message") or "")
+    if needle not in text:
+        raise Fail("the error has no %r: %s" % (needle, text[:400]))
+
+
+# weeks, with both settings of metabase/metabase#42255
+
+WK = "d:orders.created_at@week"
+BIGR = "big_orders_raw"
+SUN = {"start-of-week": "sunday"}
+MON = {"start-of-week": "monday"}
+C("compile.week.sunday_with_granularity", ORD, "SELECT toStartOfWeek(created_at, 0), count() FROM orders GROUP BY 1", kind="regular", setting=SUN,
+  sql_has="week_from_sunday", agg=[["count"]], by=[WK])
+C("compile.week.sunday_non_additive", ORD, "SELECT toStartOfWeek(created_at, 0), uniqExact(user_id) FROM orders GROUP BY 1", kind="regular", setting=SUN,
+  agg=["m:orders.unique_customers"], by=[WK])
+C("compile.week.monday", ORD, "SELECT toStartOfWeek(created_at, 1), count() FROM orders GROUP BY 1", kind="regular", setting=MON, agg=[["count"]], by=[WK])
+C("compile.week.monday_measure", ORD, "SELECT toStartOfWeek(created_at, 1), sum(amount) FROM orders GROUP BY 1", kind="regular", setting=MON, agg=["m:orders.revenue"], by=[WK])
+C("compile.week.sunday_without_granularity", BIGR, "SELECT toStartOfWeek(created_at, 0), sum(amount) FROM big_orders GROUP BY 1", kind="pushdown", setting=SUN,
+  agg=["m:big_orders_raw.revenue"], by=["d:big_orders_raw.created_at@week"])
+C("compile.week.sunday_without_granularity_distinct", BIGR, "SELECT toStartOfWeek(created_at, 0), status, uniqExact(user_id) FROM big_orders GROUP BY 1, 2 ORDER BY 1, 2 LIMIT 9", kind="pushdown", setting=SUN, ordered=True,
+  agg=["m:big_orders_raw.unique_users"], by=["d:big_orders_raw.created_at@week", "d:big_orders_raw.status"], order=[["asc", "d:big_orders_raw.created_at@week"], ["asc", "d:big_orders_raw.status"]], limit=9)
+C("compile.week.saturday_without_granularity", ORD, "SELECT toStartOfWeek(addDays(created_at, 2), 1) - 2, count() FROM orders GROUP BY 1", kind="pushdown", setting={"start-of-week": "saturday"},
+  agg=[["count"]], by=[WK])
+C("compile.week.day_of_week_monday", ORD, "SELECT toDayOfWeek(created_at), count() FROM orders GROUP BY 1", kind="pushdown", setting=MON, agg=[["count"]], by=["d:orders.created_at@day-of-week"])
+C("compile.week.day_of_week_sunday", ORD, "SELECT toDayOfWeek(created_at, 3), count() FROM orders GROUP BY 1", kind="pushdown", setting=SUN, agg=[["count"]], by=["d:orders.created_at@day-of-week"])
+C("compile.week.week_of_year_monday", ORD, "SELECT toWeek(created_at, 1) + if(toDayOfWeek(toStartOfYear(created_at)) > 4, 1, 0), count() FROM orders GROUP BY 1", kind="pushdown", setting=MON,
+  agg=[["count"]], by=["d:orders.created_at@week-of-year"])
+
+# date parts stay right on 10 million rows, where post-processing would see only a part of the rows
+
+BC = "d:big_orders_raw.created_at"
+for _unit, _truth in [("minute-of-hour", "toMinute(created_at)"), ("second-of-minute", "toSecond(created_at)"), ("hour-of-day", "toHour(created_at)"),
+                      ("day-of-month", "toDayOfMonth(created_at)"), ("day-of-year", "toDayOfYear(created_at)"), ("month-of-year", "toMonth(created_at)"),
+                      ("quarter-of-year", "toQuarter(created_at)"), ("day-of-week", "toDayOfWeek(created_at, 3)")]:
+    C("compile.part.%s" % _unit, BIGR, "SELECT %s, count(), uniqExact(user_id) FROM big_orders GROUP BY 1" % _truth, kind="pushdown", setting=SUN,
+      agg=[["count"], "m:big_orders_raw.unique_users"], by=["%s@%s" % (BC, _unit)])
+C("compile.part.non_additive_avg", ORD, "SELECT toMonth(created_at), avg(amount) FROM orders GROUP BY 1", kind="pushdown", agg=["m:orders.avg_order_value"], by=["d:orders.created_at@month-of-year"])
+C("compile.part.number_measure", ORD, "SELECT toMonth(created_at), sumIf(amount, %s) / sum(amount) FROM orders GROUP BY 1" % PAID, kind="pushdown", agg=["m:orders.paid_share"], by=["d:orders.created_at@month-of-year"])
+C("compile.part.filter_measure", ORD, "SELECT sum(amount) FROM orders WHERE toHour(created_at) != 3", kind="pushdown", agg=["m:orders.revenue"], where=[["!=", "d:orders.created_at@hour-of-day", 3]])
+C("compile.part.filter_with_breakout", ORD, "SELECT status, count() FROM orders WHERE toQuarter(created_at) = 2 GROUP BY 1", kind="pushdown", agg=[["count"]], by=["d:orders.status"], where=[["=", "d:orders.created_at@quarter-of-year", 2]])
+
+# plain buckets: Cube can answer from one CubeScan, so a rollup can serve them
+
+for _unit, _truth in [("minute", "toStartOfMinute(created_at)"), ("hour", "toStartOfHour(created_at)"), ("day", "toDate(created_at)"), ("month", "toStartOfMonth(created_at)"),
+                      ("quarter", "toStartOfQuarter(created_at)"), ("year", "toStartOfYear(created_at)")]:
+    C("compile.bucket.%s" % _unit, ORD, "SELECT %s, sum(amount) FROM orders GROUP BY 1" % _truth, kind="regular", agg=["m:orders.revenue"], by=["d:orders.created_at@%s" % _unit])
+
+# custom granularities: a proxy dimension with no bin, and native SQL
+
+_HALF = "fromUnixTimestamp(intDiv(toUnixTimestamp(created_at), 43200) * 43200)"
+C("compile.granularity.proxy_no_bin", ORD, "SELECT %s, count() FROM orders GROUP BY 1" % _HALF, kind="regular", agg=[["count"]], by=["d:orders.created_half_day@default"])
+N("compile.granularity.native", "SELECT DATE_TRUNC('half_day', created_at) AS d, MEASURE(count) AS n FROM orders GROUP BY 1", "SELECT %s, count() FROM orders GROUP BY 1" % _HALF)
+N("compile.granularity.native_fiscal_year", "SELECT DATE_TRUNC('fiscal_year_april', created_at) AS d, MEASURE(count) AS n FROM orders GROUP BY 1",
+  "SELECT addMonths(toStartOfYear(addMonths(created_at, -3)), 3), count() FROM orders GROUP BY 1")
+N("compile.granularity.native_sunday", "SELECT DATE_TRUNC('week_from_sunday', created_at) AS d, MEASURE(count) AS n FROM orders GROUP BY 1", "SELECT toStartOfWeek(created_at, 0), count() FROM orders GROUP BY 1")
+
+# filters on the demo types, with the NULL rule of Metabase: != keeps the NULL rows
+
+TE = "typed_events"
+for _fid, _clause, _sql in [
+    ("string_ne_null", ["!=", "d:typed_events.n_str", "s1"], "n_str != 's1' OR n_str IS NULL"),
+    ("string_is_null", ["is-null", "d:typed_events.n_str"], "n_str IS NULL"),
+    ("string_not_null", ["not-null", "d:typed_events.n_str"], "n_str IS NOT NULL"),
+    ("string_is_empty", ["is-empty", "d:typed_events.n_str"], "n_str IS NULL OR n_str = ''"),
+    ("string_not_empty", ["not-empty", "d:typed_events.n_str"], "n_str IS NOT NULL AND n_str != ''"),
+    ("string_contains", ["contains", "d:typed_events.n_str", "1"], "n_str LIKE '%1%'"),
+    ("string_not_contains", ["does-not-contain", "d:typed_events.n_str", "1"], "n_str NOT LIKE '%1%' OR n_str IS NULL"),
+    ("string_starts", ["starts-with", "d:typed_events.lc", "al"], "lc LIKE 'al%'"),
+    ("string_ends", ["ends-with", "d:typed_events.lc", "ma"], "lc LIKE '%ma'"),
+    ("string_ends_ci", ["ends-with", "d:typed_events.lc", "MA", {"case-sensitive": False}], "lc ILIKE '%MA'"),
+    ("string_multi_ne", ["!=", "d:typed_events.lc", "alpha", "beta"], "lc NOT IN ('alpha', 'beta')"),
+    ("number_ne_null", ["!=", "d:typed_events.n_int", 1], "n_int != 1 OR n_int IS NULL"),
+    ("number_is_null", ["is-null", "d:typed_events.n_int"], "n_int IS NULL"),
+    ("number_gt_null", [">", "d:typed_events.n_int", 5], "n_int > 5"),
+    ("number_between", ["between", "d:typed_events.n_dec", 10, 20], "n_dec BETWEEN 10 AND 20"),
+    ("number_decimal_eq", ["=", "d:typed_events.dec_amount", 0.875], "dec_amount = 0.875"),
+    ("number_multi", ["=", "d:typed_events.n_int", 1, 2, 3], "n_int IN (1, 2, 3)"),
+    ("bool_true", ["=", "d:typed_events.flag", True], "flag"),
+    ("bool_false", ["=", "d:typed_events.flag", False], "NOT flag"),
+    ("bool_null", ["is-null", "d:typed_events.n_bool"], "n_bool IS NULL"),
+    ("bool_nullable_true", ["=", "d:typed_events.n_bool", True], "n_bool = true"),
+    ("bool_nullable_ne", ["!=", "d:typed_events.n_bool", True], "n_bool = false OR n_bool IS NULL"),
+    ("bool_expr", ["=", "d:typed_events.has_t1", True], "has(tags, 't1')"),
+    ("time_gte", [">=", "d:typed_events.ts_utc", "2025-03-10T12:00:00"], "ts_utc >= toDateTime('2025-03-10 12:00:00', 'UTC')"),
+    ("time_lte", ["<=", "d:typed_events.ts_utc", "2025-03-10T12:00:00"], "ts_utc <= toDateTime('2025-03-10 12:00:00', 'UTC')"),
+    ("time_between_minutes", ["between", "d:typed_events.ts_utc", "2025-03-10T12:00:00", "2025-03-11T06:00:00"], "ts_utc BETWEEN toDateTime('2025-03-10 12:00:00', 'UTC') AND toDateTime('2025-03-11 06:00:00', 'UTC')"),
+    ("time_day_eq", ["=", "d:typed_events.ts_utc@day", "2025-03-10"], "toDate(ts_utc) = '2025-03-10'"),
+    ("time_month_eq", ["=", "d:typed_events.ts_utc@month", "2025-03-01"], "toStartOfMonth(ts_utc) = '2025-03-01'"),
+    ("time_ne_day", ["!=", "d:typed_events.ts_utc@day", "2025-03-10"], "toDate(ts_utc) != '2025-03-10'"),
+    ("time_is_null", ["is-null", "d:typed_events.n_ts"], "n_ts IS NULL"),
+    ("time_not_null", ["not-null", "d:typed_events.n_ts"], "n_ts IS NOT NULL"),
+    ("time_on_date_column", ["=", "d:typed_events.day", "2025-03-10"], "day = '2025-03-10'"),
+    ("time_on_date32_column", [">=", "d:typed_events.day32", "2025-04-01"], "day32 >= '2025-04-01'"),
+    ("time_on_ny_column", ["=", "d:typed_events.ts_ny@day", "2025-03-10"], "toDate(ts_ny, 'UTC') = '2025-03-10'"),
+    ("time_on_berlin_column", ["=", "d:typed_events.ts64_berlin@day", "2025-03-10"], "toDate(ts64_berlin, 'UTC') = '2025-03-10'"),
+    ("time_next_days", ["time-interval", "d:typed_events.ts_utc", 30, "day"], "toDate(ts_utc) >= today() + 1 AND toDate(ts_utc) <= today() + 30"),
+    ("not_group", ["not", ["or", ["=", "d:typed_events.lc", "alpha"], ["is-null", "d:typed_events.n_int"]]], "NOT (lc = 'alpha' OR n_int IS NULL)"),
+]:
+    C("compile.filter.%s" % _fid, TE, "SELECT count() FROM typed_events WHERE %s" % _sql, agg=[["count"]], where=[_clause])
+    if _fid in ("string_ne_null", "number_ne_null", "bool_true", "time_day_eq", "time_is_null"):
+        C("compile.filter_measure.%s" % _fid, TE, "SELECT sum(dec_amount) FROM typed_events WHERE %s" % _sql, tol=1e-6, agg=["m:typed_events.sum_dec"], where=[_clause])
+
+# a count over no rows
+
+C("compile.empty.count", ORD, "SELECT count() FROM orders WHERE status = 'nope'", agg=[["count"]], where=[["=", STA, "nope"]])
+C("compile.empty.count_measure", ORD, "SELECT count() FROM orders WHERE status = 'nope'", agg=["m:orders.count"], where=[["=", STA, "nope"]])
+C("compile.empty.distinct_measure", ORD, "SELECT uniqExact(user_id) FROM orders WHERE status = 'nope'", agg=["m:orders.unique_customers"], where=[["=", STA, "nope"]])
+C("compile.empty.breakout", ORD, "SELECT status, count() FROM orders WHERE status = 'nope' GROUP BY 1", kind="regular", agg=[["count"]], by=[STA], where=[["=", STA, "nope"]])
+
+
+@check("compile.empty.sum_is_null")
+def _(ctx):
+    rows = ctx.mb.mbql(ORD, agg=["m:orders.revenue"], where=[["=", STA, "nope"]])["rows"]
+    if rows not in ([[None]], [[0]], [[0.0]]):
+        raise Fail("got %s" % rows)
+    assert_rows(ch("SELECT sum(amount) FROM orders WHERE status = 'nope'"), [[0]])
+
+
+# joins
+
+_JO = "SELECT u.%s, count() FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1"
+C("compile.join.implicit_uses_join_field", ORD, _JO % "city", kind="regular", sql_has="__cubeJoinField", agg=[["count"]], by=["d:orders>users.city"])
+C("compile.join.implicit_two_tables", ORD, "SELECT u.city, p.category, sum(o.amount) FROM orders o JOIN users u ON o.user_id = u.id JOIN products p ON o.product_id = p.id GROUP BY 1, 2", kind="regular", sql_has="__cubeJoinField",
+  agg=["m:orders.revenue"], by=["d:orders>users.city", "d:orders>products.category"])
+C("compile.join.filter_on_both_sides", ORD, "SELECT u.city, sum(o.amount) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.is_vip AND o.status = 'completed' GROUP BY 1", kind="regular",
+  agg=["m:orders.revenue"], by=["d:orders>users.city"], where=[["=", "d:orders>users.is_vip", True], ["=", STA, "completed"]])
+
+
+def J(check_id, table, sql, join_table, alias, strategy, left, right, kind=None, **kw):
+    def run(ctx):
+        ensure_table(ctx, table)
+        ensure_table(ctx, join_table)
+        joins = [{"source-table": ctx.mb.table(join_table)["id"], "alias": alias, "strategy": strategy, "condition": ["=", left, right]}]
+        query = ctx.mb.inner(table, joins=joins, **kw)
+        text = compile_query(ctx, query)
+        if "__cubeJoinField" not in text:
+            raise Fail("the SQL has no __cubeJoinField: %s" % text[:300])
+        if kind and kind_of(text) != kind:
+            raise Fail("Cube runs this as %s: %s" % (kind_of(text), text[:300]))
+        assert_rows(ctx.mb.raw(query)["rows"], ch(sql))
+    check(check_id)(run)
+
+
+J("compile.join.explicit_two_cubes", ORD, _JO % "state", "users", "U", "left-join", "d:orders.user_id", "d:users.id|U", kind="regular", agg=[["count"]], by=["d:users.state|U"])
+J("compile.join.left_keeps_rows_with_no_match", "orphan_orders", "SELECT c.name, count() FROM orphan_orders o LEFT JOIN orphan_customers c ON o.customer_id = c.id GROUP BY 1 SETTINGS join_use_nulls = 1",
+  "orphan_customers", "C", "left-join", "d:orphan_orders.customer_id", "d:orphan_customers.id|C", agg=[["count"]], by=["d:orphan_customers.name|C"])
+J("compile.join.inner_drops_rows_with_no_match", "orphan_orders", "SELECT c.name, count() FROM orphan_orders o INNER JOIN orphan_customers c ON o.customer_id = c.id GROUP BY 1",
+  "orphan_customers", "C", "inner-join", "d:orphan_orders.customer_id", "d:orphan_customers.id|C", agg=[["count"]], by=["d:orphan_customers.name|C"])
+J("compile.join.inner_total", "orphan_orders", "SELECT sum(o.amount) FROM orphan_orders o INNER JOIN orphan_customers c ON o.customer_id = c.id",
+  "orphan_customers", "C", "inner-join", "d:orphan_orders.customer_id", "d:orphan_customers.id|C", agg=["m:orphan_orders.total"])
+J("compile.join.no_fan_out", ORD, "SELECT p.method, count() FROM (SELECT id FROM orders) o JOIN (SELECT id AS order_id, 'card' AS method FROM orders UNION ALL SELECT id, 'fee' FROM orders) p ON o.id = p.order_id GROUP BY 1",
+  "payments", "P", "left-join", "d:orders.id", "d:payments.order_id|P", agg=["m:orders.count"], by=["d:payments.method|P"])
+
+
+@check("compile.join.other_columns_give_error")
+def _(ctx):
+    joins = [{"source-table": ctx.mb.table("users")["id"], "alias": "U", "strategy": "left-join", "condition": ["=", "d:orders.status", "d:users.city|U"]}]
+    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=[["count"]], by=["d:users.city|U"], joins=joins), "joins only through the data model")
+
+
+@check("compile.join.subquery_gives_error")
+def _(ctx):
+    joins = [{"source-query": ctx.mb.inner("users", where=[["=", "d:users.is_vip", True]]), "alias": "U", "strategy": "left-join", "condition": ["=", "d:orders.user_id", ["field", "id", {"base-type": "type/Integer", "join-alias": "U"}]]}]
+    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=[["count"]], joins=joins), "one equality of two columns")
+
+
+# segments
+
+C("compile.segment.with_breakout", ORD, "SELECT status, sum(amount) FROM orders WHERE %s GROUP BY 1" % PAID, kind="regular", agg=["m:orders.revenue"], by=[STA], where=["s:orders.paid"])
+C("compile.segment.two", ORD, "SELECT count() FROM orders WHERE %s AND quantity >= 3" % PAID, agg=["m:orders.count"], where=["s:orders.paid", "s:orders.large"])
+C("compile.segment.with_filter_and_month", ORD, "SELECT toStartOfMonth(created_at), count() FROM orders WHERE %s AND quantity = 2 GROUP BY 1" % PAID, kind="regular", agg=[["count"]],
+  by=["d:orders.created_at@month"], where=["s:orders.paid", ["=", QTY, 2]])
+
+# order, limit, offset
+
+C("compile.order.by_measure_desc", ORD, "SELECT status, sum(amount) r FROM orders GROUP BY 1 ORDER BY r DESC", kind="regular", ordered=True, agg=["m:orders.revenue"], by=[STA], order=[["desc", ["aggregation", 0]]])
+C("compile.order.two_columns", ORD, "SELECT status, if(quantity >= 3, 'large', 'small') s, count() FROM orders GROUP BY 1, 2 ORDER BY 1 DESC, 2 ASC", kind="regular", ordered=True, agg=[["count"]],
+  by=[STA, "d:orders.size"], order=[["desc", STA], ["asc", "d:orders.size"]])
+C("compile.order.limit", ORD, "SELECT status, count() c FROM orders GROUP BY 1 ORDER BY 1 LIMIT 2", kind="regular", ordered=True, agg=[["count"]], by=[STA], order=[["asc", STA]], limit=2)
+
+
+@check("compile.order.page_offset")
+def _(ctx):
+    query = ctx.mb.inner(ORD, fields=["d:orders.id"], order=[["asc", "d:orders.id"]])
+    query["page"] = {"page": 3, "items": 4}
+    text = compile_query(ctx, query)
+    if kind_of(text) != "regular":
+        raise Fail("Cube runs this as %s" % kind_of(text))
+    assert_rows(ctx.mb.raw(query)["rows"], ch("SELECT id FROM orders ORDER BY id LIMIT 4 OFFSET 8"), ordered=True)
+
+
+@check("compile.order.page_offset_grouped")
+def _(ctx):
+    query = ctx.mb.inner(ORD, agg=[["count"]], by=["d:orders.created_at@day"], order=[["asc", "d:orders.created_at@day"]])
+    query["page"] = {"page": 2, "items": 5}
+    assert_rows(ctx.mb.raw(query)["rows"], ch("SELECT toDate(created_at) d, count() FROM orders GROUP BY d ORDER BY d LIMIT 5 OFFSET 5"), ordered=True)
+
+
+# expressions and custom columns
+
+for _name, _clause, _sql in [
+    ("trim", ["trim", ["concat", " ", STA, " "]], "status"),
+    ("ltrim", ["ltrim", ["concat", " ", STA]], "status"),
+    ("rtrim", ["rtrim", ["concat", STA, " "]], "status"),
+    ("exp", ["exp", ["/", QTY, 2]], "exp(quantity / 2)"),
+    ("log_of_expression", ["log", ["*", _AMT, 10]], "log10(toFloat64(amount) * 10)"),
+    ("get_day", ["get-day", CRT], "toDayOfMonth(created_at)"),
+    ("get_hour", ["get-hour", CRT], "toHour(created_at)"),
+    ("get_minute", ["get-minute", CRT], "toMinute(created_at)"),
+    ("get_second", ["get-second", CRT], "toSecond(created_at)"),
+    ("get_quarter", ["get-quarter", CRT], "toQuarter(created_at)"),
+    ("get_day_of_week", ["get-day-of-week", CRT], "toDayOfWeek(created_at, 3)"),
+    ("datediff_hour", ["datetime-diff", "d:orders.created_fiscal_quarter", CRT, "hour"], "intDiv(dateDiff('second', addMonths(toStartOfQuarter(addMonths(created_at, -1)), 1), created_at), 3600)"),
+    ("datediff_minute", ["datetime-diff", "d:orders.created_fiscal_quarter", CRT, "minute"], "intDiv(dateDiff('second', addMonths(toStartOfQuarter(addMonths(created_at, -1)), 1), created_at), 60)"),
+    ("datediff_second", ["datetime-diff", "d:orders.created_fiscal_quarter", CRT, "second"], "dateDiff('second', addMonths(toStartOfQuarter(addMonths(created_at, -1)), 1), created_at)"),
+    ("datediff_day", ["datetime-diff", "d:orders.created_fiscal_quarter", CRT, "day"], "dateDiff('day', addMonths(toStartOfQuarter(addMonths(created_at, -1)), 1), created_at)"),
+    ("datediff_week", ["datetime-diff", "d:orders.created_fiscal_quarter", CRT, "week"], "intDiv(dateDiff('day', addMonths(toStartOfQuarter(addMonths(created_at, -1)), 1), created_at), 7)"),
+    ("integer_division", ["/", QTY, 3], "quantity / 3"),
+    ("case_two_branches", ["case", [[["=", STA, "shipped"], 1], [["=", STA, "completed"], 2]], {"default": 0}], "multiIf(status = 'shipped', 1, status = 'completed', 2, 0)"),
+    ("boolean_is_true", ["case", [[["=", "d:orders.is_paid", True], "y"]], {"default": "n"}], "if(%s, 'y', 'n')" % PAID),
+]:
+    Q("compile.expr.%s" % _name, ORD, "SELECT %s FROM orders WHERE id = 7" % _sql, fields=[["expression", _name]], exprs={_name: _clause}, where=ID7)
+
+C("compile.expr.in_breakout", ORD, "SELECT if(quantity > 2, 'big', 'small') k, sum(amount) FROM orders GROUP BY 1", agg=["m:orders.revenue"],
+  by=[["expression", "k"]], exprs={"k": ["case", [[[">", QTY, 2], "big"]], {"default": "small"}]})
+C("compile.expr.in_filter", ORD, "SELECT count() FROM orders WHERE quantity * 2 > 4", agg=[["count"]], where=[[">", ["expression", "d"], 4]], exprs={"d": ["*", QTY, 2]})
+C("compile.expr.in_filter_measure", ORD, "SELECT sum(amount) FROM orders WHERE upper(status) = 'SHIPPED'", agg=["m:orders.revenue"], where=[["=", ["expression", "u"], "SHIPPED"]], exprs={"u": ["upper", STA]})
+C("compile.expr.in_aggregation", ORD, "SELECT status, sum(quantity * 2) FROM orders GROUP BY 1", agg=[["sum", ["*", QTY, 2]]], by=[STA])
+C("compile.expr.measure_arithmetic", ORD, "SELECT status, sum(amount) / count() FROM orders GROUP BY 1", agg=[["/", "m:orders.revenue", "m:orders.count"]], by=[STA])
+C("compile.expr.sum_where", ORD, "SELECT status, sumIf(quantity, quantity > 2) FROM orders GROUP BY 1", agg=[["sum-where", QTY, [">", QTY, 2]]], by=[STA])
+C("compile.expr.count_where_breakout", ORD, "SELECT status, countIf(quantity > 2) FROM orders GROUP BY 1", agg=[["count-where", [">", QTY, 2]]], by=[STA])
+C("compile.expr.distinct_where", ORD, "SELECT uniqExactIf(user_id, quantity > 2) FROM orders", agg=[["distinct-where", "d:orders.user_id", [">", QTY, 2]]])
+C("compile.expr.sum_of_dimension", ORD, "SELECT sum(amount), min(amount), max(amount), avg(amount), uniqExact(amount) FROM orders",
+  agg=[["sum", _AMT], ["min", _AMT], ["max", _AMT], ["avg", _AMT], ["distinct", _AMT]])
+
+
+@check("compile.expr.datetime_add_in_aggregated_query_gives_error")
+def _(ctx):
+    query = ctx.mb.inner(ORD, agg=[["count"]], by=[["expression", "d"]], exprs={"d": ["datetime-add", CRT, 1, "day"]}, order=[["asc", ["expression", "d"]]])
+    expect_clear_error(ctx, query, "cannot add an interval")
+
+
+@check("compile.expr.datetime_diff_month_gives_error")
+def _(ctx):
+    query = ctx.mb.inner(ORD, fields=[["expression", "d"]], exprs={"d": ["datetime-diff", "d:orders.created_fiscal_quarter", CRT, "month"]}, where=ID7)
+    expect_clear_error(ctx, query, "cannot count whole months")
+
+
+@check("compile.agg.median_gives_error")
+def _(ctx):
+    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=[["median", _AMT]]), "Cube cannot")
+
+
+@check("compile.agg.offset_measure")
+def _(ctx):
+    month = ctx.mb.ref("d:orders.created_at@month")
+    query = {"source-table": ctx.mb.table(ORD)["id"], "breakout": [month], "order-by": [["asc", month]],
+             "aggregation": [["offset", {"name": "p", "display-name": "p"}, ctx.mb.ref("m:orders.revenue"), -1]]}
+    assert_rows(ctx.mb.raw(query)["rows"], ch("SELECT m, lagInFrame(r, 1, NULL) OVER (ORDER BY m ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) FROM (SELECT toStartOfMonth(created_at) m, toNullable(sum(amount)) r FROM orders GROUP BY 1)"), ordered=True)
+
+
+# nested queries and models
+
+def _source(ctx, **kw):
+    return {"source-query": ctx.mb.inner(ORD, **kw)}
+
+
+@check("compile.nested.aggregate_of_grouped_rows")
+def _(ctx):
+    query = dict(_source(ctx, agg=["m:orders.revenue"], by=[STA]), aggregation=[["sum", ["field", "sum", {"base-type": "type/Float"}]]])
+    assert_rows(ctx.mb.raw(query)["rows"], ch(REV))
+
+
+@check("compile.nested.more_than_the_default_row_limit")
+def _(ctx):
+    ensure_table(ctx, BIGR)
+    query = {"source-query": ctx.mb.inner(BIGR, agg=["m:big_orders_raw.count"], by=["d:big_orders_raw.user_id"]), "aggregation": [["count"]]}
+    assert_rows(ctx.mb.raw(query)["rows"], ch("SELECT uniqExact(user_id) FROM big_orders"))
+
+
+@check("compile.nested.raw_rows_with_filter")
+def _(ctx):
+    query = dict(_source(ctx, fields=["d:orders.id", STA]), filter=["=", ["field", "status", {"base-type": "type/Text"}], "shipped"], aggregation=[["count"]])
+    assert_rows(ctx.mb.raw(query)["rows"], ch(SHIPPED))
+
+
+@check("compile.nested.custom_column_on_question")
+def _(ctx):
+    card = ctx.mb.mbql_card("nested expr", ORD, agg=["m:orders.count"], by=[STA])
+    n = ["field", "sum", {"base-type": "type/Float"}]
+    query = {"source-table": "card__%d" % card["id"], "expressions": {"twice": ["*", n, 2]}, "fields": [["field", "status", {"base-type": "type/Text"}], ["expression", "twice"]]}
+    assert_rows(ctx.mb.raw(query)["rows"], ch("SELECT status, count() * 2 FROM orders GROUP BY 1"))
+
+
+@check("compile.nested.model_raw_rows_then_group")
+def _(ctx):
+    card = ctx.mb.mbql_card("model rows", ORD, kind="model", fields=[STA, QTY, _AMT])
+    query = {"source-table": "card__%d" % card["id"], "aggregation": [["sum", ["field", "amount_dim", {"base-type": "type/Float"}]]], "breakout": [["field", "status", {"base-type": "type/Text"}]]}
+    assert_rows(ctx.mb.raw(query)["rows"], ch(STATUS_REV))
+
+
+@check("compile.nested.model_with_measure_then_filter")
+def _(ctx):
+    card = ctx.mb.mbql_card("model agg", ORD, kind="model", agg=["m:orders.revenue"], by=[STA])
+    query = {"source-table": "card__%d" % card["id"], "filter": [">", ["field", "sum", {"base-type": "type/Float"}], 70000]}
+    assert_rows(ctx.mb.raw(query)["rows"], ch("SELECT status, sum(amount) r FROM orders GROUP BY 1 HAVING r > 70000"))
+
+
+@check("compile.nested.model_of_a_native_query")
+def _(ctx):
+    card = ctx.mb.card("native model", {"database": ctx.mb.need_db(), "type": "native", "native": {"query": "SELECT status, MEASURE(count) AS n FROM orders GROUP BY 1", "template-tags": {}}}, "model")
+    ctx.mb.run_card(card["id"])
+    query = {"source-table": "card__%d" % card["id"], "aggregation": [["sum", ["field", "n", {"base-type": "type/Float"}]]]}
+    assert_rows(ctx.mb.raw(query)["rows"], ch(CNT_O))
+
+
+@check("compile.nested.week_on_question_is_clear")
+def _(ctx):
+    card = ctx.mb.mbql_card("week source", ORD, fields=[CRT])
+    query = {"source-table": "card__%d" % card["id"], "aggregation": [["count"]], "breakout": [["field", "created_at", {"base-type": "type/DateTime", "temporal-unit": "month"}]]}
+    assert_rows(ctx.mb.raw(query)["rows"], ch("SELECT toStartOfMonth(created_at), count() FROM orders GROUP BY 1"))
+
+
+# native SQL
+
+@check("compile.native.field_filter_multi")
+def _(ctx):
+    tags = field_tag(ctx, "f", STA, "string/=")
+    data = ctx.mb.native("SELECT MEASURE(count) AS n FROM orders WHERE {{f}}", tags=tags,
+                         parameters=[{"type": "string/=", "target": ["dimension", ["template-tag", "f"]], "value": ["completed", "shipped"]}])
+    assert_rows(data["rows"], ch("SELECT count() FROM orders WHERE %s" % PAID))
+
+
+@check("compile.native.field_filter_number_range")
+def _(ctx):
+    tags = field_tag(ctx, "f", QTY, "number/between")
+    data = ctx.mb.native("SELECT MEASURE(count) AS n FROM orders WHERE {{f}}", tags=tags,
+                         parameters=[{"type": "number/between", "target": ["dimension", ["template-tag", "f"]], "value": [2, 3]}])
+    assert_rows(data["rows"], ch("SELECT count() FROM orders WHERE quantity BETWEEN 2 AND 3"))
+
+
+@check("compile.native.field_filter_relative_date")
+def _(ctx):
+    tags = field_tag(ctx, "f", CRT, "date/all-options")
+    data = ctx.mb.native("SELECT MEASURE(count) AS n FROM orders WHERE {{f}}", tags=tags,
+                         parameters=[{"type": "date/all-options", "target": ["dimension", ["template-tag", "f"]], "value": "2025-02-01~2025-02-28"}])
+    assert_rows(data["rows"], ch(FEB))
+
+
+@check("compile.native.field_filter_empty_is_all_rows")
+def _(ctx):
+    tags = field_tag(ctx, "f", STA, "string/=")
+    assert_rows(ctx.mb.native("SELECT MEASURE(count) AS n FROM orders WHERE {{f}}", tags=tags)["rows"], ch(CNT_O))
+
+
+@check("compile.native.explain_regular_with_parameter")
+def _(ctx):
+    data = ctx.mb.native("SELECT status, MEASURE(revenue) AS r FROM orders WHERE created_at >= {{d}} GROUP BY 1", tags=tag("d", "date"),
+                         parameters=[{"type": "date/single", "target": ["variable", ["template-tag", "d"]], "value": "2025-12-01"}])
+    assert_rows(data["rows"], ch("SELECT status, sum(amount) FROM orders WHERE created_at >= '2025-12-01' GROUP BY 1"))
+    if kind_of("SELECT status, MEASURE(revenue) AS r FROM orders WHERE created_at >= timestamp '2025-12-01 00:00:00' GROUP BY 1") != "regular":
+        raise Fail("the native form is not a regular query")
+
+
+@check("compile.native.error_keeps_cube_text")
+def _(ctx):
+    res = ctx.mb.api("POST", "/api/dataset", {"database": ctx.mb.need_db(), "type": "native", "native": {"query": "SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(unique_customers) FROM orders GROUP BY 1", "template-tags": {}}}, ok=(200, 202, 400, 500))
+    text = str(res.get("error") or "")
+    if "Cube cannot plan this query" not in text or "Can't detect Cube query" not in text:
+        raise Fail("error text: %s" % text[:400])
+
+
+# field values and search for filter dropdowns, on the large table
+
+@check("compile.values.big_table_status")
+def _(ctx):
+    ensure_table(ctx, BIGR)
+    fid = ctx.mb.field(BIGR, "status")["id"]
+    ctx.mb.api("POST", "/api/field/%d/rescan_values" % fid, {})
+    vals = []
+    for _i in range(20):
+        vals = ctx.mb.api("GET", "/api/field/%d/values" % fid)["values"]
+        if vals:
+            break
+        time.sleep(2)
+    assert_rows(values_of(vals), ch("SELECT DISTINCT status FROM big_orders"))
+
+
+@check("compile.values.search_lowcardinality")
+def _(ctx):
+    ensure_table(ctx, TE)
+    fid = ctx.mb.field(TE, "lc")["id"]
+    assert_rows(values_of(ctx.mb.api("GET", "/api/field/%d/search/%d?value=lph" % (fid, fid))), ch("SELECT DISTINCT lc FROM typed_events WHERE lc LIKE '%lph%'"))
+
+
+@check("compile.values.remapped_nullable")
+def _(ctx):
+    ensure_table(ctx, TE)
+    fid = ctx.mb.field(TE, "lc_n")["id"]
+    ctx.mb.api("POST", "/api/field/%d/rescan_values" % fid, {})
+    vals = []
+    for _i in range(20):
+        vals = ctx.mb.api("GET", "/api/field/%d/values" % fid)["values"]
+        if vals:
+            break
+        time.sleep(2)
+    got = [[v[0]] for v in vals if v[0] is not None]
+    assert_rows(got, ch("SELECT DISTINCT lc_n FROM typed_events WHERE lc_n IS NOT NULL"))
+
+
+# pivot tables
+
+
+def pivot(ctx, inner, rows, cols):
+    query = {"database": ctx.mb.need_db(), "type": "query", "query": inner, "pivot_rows": rows, "pivot_cols": cols}
+    res = ctx.mb.api("POST", "/api/dataset/pivot", query)
+    if res.get("error"):
+        raise Fail("pivot: %s" % str(res["error"])[:500])
+    return res["data"]
+
+
+@check("compile.pivot.two_dimensions")
+def _(ctx):
+    inner = ctx.mb.inner(ORD, agg=["m:orders.revenue"], by=[STA, "d:orders.size"])
+    data = pivot(ctx, inner, [0], [1])
+    names = [c["name"] for c in data["cols"]]
+    grouping = names.index("pivot-grouping")
+    value = names.index("sum")
+    by_group = {}
+    for row in data["rows"]:
+        by_group.setdefault(row[grouping], []).append(row)
+    detail = [[r[0], r[1], r[value]] for r in by_group[0]]
+    assert_rows(detail, ch("SELECT status, if(quantity >= 3, 'large', 'small'), sum(amount) FROM orders GROUP BY 1, 2"))
+    total = [[r[value]] for r in by_group[3]]
+    assert_rows(total, ch(REV))
+    if len(by_group) < 3:
+        raise Fail("the pivot has only groupings %s" % sorted(by_group))
+
+
+@check("compile.pivot.date_and_string")
+def _(ctx):
+    inner = ctx.mb.inner(ORD, agg=[["count"]], by=["d:orders.created_at@quarter", STA])
+    data = pivot(ctx, inner, [0], [1])
+    names = [c["name"] for c in data["cols"]]
+    grouping, value = names.index("pivot-grouping"), names.index("count")
+    detail = [[r[0], r[1], r[value]] for r in data["rows"] if r[grouping] == 0]
+    assert_rows(detail, ch("SELECT toStartOfQuarter(created_at), status, count() FROM orders GROUP BY 1, 2"))
+    assert_rows([[r[value]] for r in data["rows"] if r[grouping] == 3], ch(CNT_O))
+
+
+# ClickHouse types through Cube
+
+C("compile.ch.decimal_sum", TE, "SELECT sum(dec_amount) FROM typed_events", kind=("regular", "post"), agg=["m:typed_events.sum_dec"])
+C("compile.ch.decimal_row", TE, "SELECT dec_amount FROM typed_events WHERE id = 7", fields=["d:typed_events.dec_amount"], where=[["=", "d:typed_events.id", 7]])
+C("compile.ch.float32", TE, "SELECT f32 FROM typed_events WHERE id = 7", fields=["d:typed_events.f32"], where=[["=", "d:typed_events.id", 7]])
+C("compile.ch.nullable_int_avg", TE, "SELECT avg(n_int) FROM typed_events", agg=["m:typed_events.avg_n_int"])
+C("compile.ch.nullable_decimal_sum", TE, "SELECT sum(n_dec) FROM typed_events", agg=["m:typed_events.sum_n_dec"])
+C("compile.ch.nullable_string_group", TE, "SELECT n_str, count() FROM typed_events GROUP BY 1", kind="regular", agg=[["count"]], by=["d:typed_events.n_str"])
+C("compile.ch.nullable_string_distinct", TE, "SELECT uniqExact(n_str) FROM typed_events", agg=["m:typed_events.distinct_n_str"])
+C("compile.ch.nullable_bool_group", TE, "SELECT n_bool, count() FROM typed_events GROUP BY 1", agg=[["count"]], by=["d:typed_events.n_bool"])
+C("compile.ch.nullable_time_month", TE, "SELECT if(n_ts IS NULL, NULL, toStartOfMonth(assumeNotNull(n_ts))), count() FROM typed_events GROUP BY 1", agg=[["count"]], by=["d:typed_events.n_ts@month"])
+C("compile.ch.lowcardinality_group", TE, "SELECT lc, sum(dec_amount) FROM typed_events GROUP BY 1", kind="regular", agg=["m:typed_events.sum_dec"], by=["d:typed_events.lc"])
+C("compile.ch.lowcardinality_nullable_group", TE, "SELECT lc_n, count() FROM typed_events GROUP BY 1", agg=[["count"]], by=["d:typed_events.lc_n"])
+C("compile.ch.lowcardinality_distinct", TE, "SELECT uniqExact(lc) FROM typed_events", agg=["m:typed_events.distinct_lc"])
+C("compile.ch.bool_group", TE, "SELECT flag, count() FROM typed_events GROUP BY 1", kind="regular", agg=[["count"]], by=["d:typed_events.flag"])
+C("compile.ch.enum_group", TE, "SELECT toString(en), count() FROM typed_events GROUP BY 1", agg=[["count"]], by=["d:typed_events.en"])
+C("compile.ch.uuid_filter", TE, "SELECT count() FROM typed_events WHERE uid = toUUID('00000000-0000-0000-0000-000000000007')", agg=[["count"]], where=[["=", "d:typed_events.uid", "00000000-0000-0000-0000-000000000007"]])
+C("compile.ch.array_as_text", TE, "SELECT arrayStringConcat(tags, ',') FROM typed_events WHERE id = 8", fields=["d:typed_events.tags_text"], where=[["=", "d:typed_events.id", 8]])
+C("compile.ch.array_length", TE, "SELECT length(nums), count() FROM typed_events GROUP BY 1", agg=[["count"]], by=["d:typed_events.nums_len"])
+C("compile.ch.array_has", TE, "SELECT has(tags, 't1'), count() FROM typed_events GROUP BY 1", agg=[["count"]], by=["d:typed_events.has_t1"])
+C("compile.ch.array_measure", TE, "SELECT sum(length(tags)) FROM typed_events", agg=["m:typed_events.tags_total"])
+C("compile.ch.datetime_ny_day", TE, "SELECT toDate(ts_ny, 'UTC'), count() FROM typed_events GROUP BY 1", kind="regular", agg=[["count"]], by=["d:typed_events.ts_ny@day"])
+C("compile.ch.datetime_ny_raw", TE, "SELECT toDateTime(ts_ny, 'UTC') FROM typed_events WHERE id = 300", fields=["d:typed_events.ts_ny"], where=[["=", "d:typed_events.id", 300]])
+C("compile.ch.datetime64_berlin_hour", TE, "SELECT toStartOfHour(ts64_berlin, 'UTC'), count() FROM typed_events GROUP BY 1 ORDER BY 1 LIMIT 3", ordered=True, kind="regular", agg=[["count"]],
+  by=["d:typed_events.ts64_berlin@hour"], order=[["asc", "d:typed_events.ts64_berlin@hour"]], limit=3)
+C("compile.ch.date_month", TE, "SELECT toStartOfMonth(day), count() FROM typed_events GROUP BY 1", kind="regular", agg=[["count"]], by=["d:typed_events.day@month"])
+C("compile.ch.date32_week", TE, "SELECT toStartOfWeek(day32, 1), count() FROM typed_events GROUP BY 1", kind="regular", setting=MON, agg=[["count"]], by=["d:typed_events.day32@week"])
+C("compile.ch.date_part_on_ny", TE, "SELECT toHour(ts_ny, 'UTC'), count() FROM typed_events GROUP BY 1", kind="pushdown", agg=[["count"]], by=["d:typed_events.ts_ny@hour-of-day"])
+
+
+def exact_text(row_value):
+    return format(row_value, "f") if isinstance(row_value, float) else str(row_value)
+
+
+@check("compile.ch.uint64_above_double")
+def _(ctx):
+    ensure_table(ctx, TE)
+    got = ctx.mb.mbql(TE, fields=["d:typed_events.ui64"], where=[["=", "d:typed_events.id", 1]])["rows"][0][0]
+    want = ch("SELECT toString(ui64) FROM typed_events WHERE id = 1")[0][0]
+    if str(got).split(".")[0] != want:
+        raise Fail("got %s, truth %s" % (got, want))
+
+
+@check("compile.ch.decimal_above_double")
+def _(ctx):
+    ensure_table(ctx, TE)
+    got = ctx.mb.mbql(TE, fields=["d:typed_events.dec_big"], where=[["=", "d:typed_events.id", 3]])["rows"][0][0]
+    want = ch("SELECT toString(dec_big) FROM typed_events WHERE id = 3")[0][0]
+    if exact_text(got).rstrip("0").rstrip(".") != want.rstrip("0").rstrip("."):
+        raise Fail("got %s, truth %s" % (exact_text(got), want))
+
+
+@check("compile.ch.approx_distinct_low_cardinality")
+def _(ctx):
+    ensure_table(ctx, "big_orders")
+    assert_approx(ctx, "approx_users", "user_id")
+
+
+@check("compile.ch.approx_distinct_high_cardinality")
+def _(ctx):
+    ensure_table(ctx, "big_orders")
+    assert_approx(ctx, "approx_ids", "id")
+
+
+APPROX_TOLERANCE = 0.02
+
+
+def assert_approx(ctx, measure, column):
+    """Cube sends uniq() for count_distinct_approx on ClickHouse. It must be equal to uniq(), and uniq() must be within
+    the tolerance of uniqExact(). The tolerance comes from measured values on this table, see docs/query-compilation.md."""
+    got = float(ctx.mb.mbql("big_orders", agg=["m:big_orders.%s" % measure])["rows"][0][0])
+    truth = float(ch("SELECT uniqExact(%s) FROM big_orders" % column)[0][0])
+    uniq = float(ch("SELECT uniq(%s) FROM big_orders" % column)[0][0])
+    error = abs(got - truth) / truth
+    print("         %s: cube %d, uniq %d, uniqExact %d, error %.4f%%" % (measure, got, uniq, truth, error * 100))
+    if got != uniq:
+        raise Fail("Cube gave %d, uniq() gives %d" % (got, uniq))
+    if error > APPROX_TOLERANCE:
+        raise Fail("error %.4f is above %.4f" % (error, APPROX_TOLERANCE))
+
+
+# rolling windows and time zones
+
+C("compile.rolling.with_status_filter", ORD, monthly("sumIf(o.amount, o.created_at >= addDays(e, -30) AND o.created_at <= e AND o.status = 'shipped')"), ordered=True,
+  agg=["m:orders.revenue_trailing_30d"], by=MONTH, where=RANGE_WHERE + [["=", STA, "shipped"]], order=[["asc", MONTH[0]]])
+C("compile.rolling.by_week_sunday", ORD, "SELECT w, sumIf(o.amount, o.created_at >= addDays(e, -30) AND o.created_at <= e) FROM (SELECT toDateTime(toStartOfWeek(toDate('2025-01-15') + number * 7, 0), 'UTC') w, w + INTERVAL 7 DAY - INTERVAL 1 SECOND e FROM numbers(4)) d CROSS JOIN orders o GROUP BY w, e ORDER BY w",
+  ordered=True, setting=SUN, agg=["m:orders.revenue_trailing_30d"], by=[WK], where=[["between", CRT, "2025-01-12", "2025-02-08"]], order=[["asc", WK]])
+
+
+@check("compile.tz.report_timezone_keeps_utc")
+def _(ctx):
+    prev = ctx.mb.api("GET", "/api/setting/report-timezone")
+    ctx.mb.api("PUT", "/api/setting/report-timezone", {"value": "Asia/Tokyo"})
+    try:
+        res = ctx.mb.dataset({"database": ctx.mb.need_db(), "type": "query", "query": ctx.mb.inner(ORD, agg=[["count"]], by=["d:orders.created_at@year"])})
+    finally:
+        ctx.mb.api("PUT", "/api/setting/report-timezone", {"value": prev if isinstance(prev, str) and prev else None})
+    assert_rows(res["data"]["rows"], ch("SELECT toStartOfYear(created_at), count() FROM orders GROUP BY 1"))
+
+
+@check("compile.tz.set_time_zone_error")
+def _(ctx):
+    # The driver has no :set-timezone. This records what the SQL API does with the session setting.
+    try:
+        rows = cube_sql("SET TIME ZONE 'Asia/Tokyo'")
+    except PgError as e:
+        rows = str(e)
+    plain = cube_sql("SELECT DATE_TRUNC('year', created_at) AS y, MEASURE(count) AS n FROM orders GROUP BY 1 ORDER BY 1")
+    assert_rows([[r[0][:10], float(r[1])] for r in plain], ch("SELECT toString(toStartOfYear(created_at)), count() FROM orders GROUP BY 1 ORDER BY 1"), ordered=True)
+    if rows and "rror" not in str(rows):
+        raise Fail("SET TIME ZONE returned %s" % rows)
+
+
+C("compile.tz.filter_is_utc", TE, "SELECT count() FROM typed_events WHERE ts_ny >= toDateTime('2025-03-09 07:00:00', 'UTC') AND ts_ny < toDateTime('2025-03-09 08:00:00', 'UTC')", agg=[["count"]],
+  where=[["between", "d:typed_events.ts_ny", "2025-03-09T07:00:00", "2025-03-09T07:59:59"]])
+C("compile.tz.dst_day_in_new_york_column", TE, "SELECT toStartOfDay(ts_ny, 'UTC'), count() FROM typed_events WHERE toDate(ts_ny, 'UTC') BETWEEN '2025-03-08' AND '2025-03-10' GROUP BY 1", agg=[["count"]],
+  by=["d:typed_events.ts_ny@day"], where=[["between", "d:typed_events.ts_ny@day", "2025-03-08", "2025-03-10"]])
+
+
+# which queries read a rollup
+
+
+def request_of(text):
+    _logical, requests = plan_of(text)
+    if len(requests) != 1:
+        raise Fail("the plan has %d Cube requests: %s" % (len(requests), text[:300]))
+    return requests[0]
+
+
+def load_used(query, needle):
+    for _ in range(120):
+        status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
+        res = json.loads(text)
+        if res.get("error") == "Continue wait":
+            time.sleep(2)
+            continue
+        if status != 200:
+            raise Fail("Cube load: HTTP %s %s" % (status, text[:300]))
+        used = json.dumps(res.get("usedPreAggregations") or {})
+        if needle not in used:
+            raise Fail("not served from %s: %s, request %s" % (needle, used[:200], json.dumps(query)[:300]))
+        return
+    raise Fail("Cube load: timeout")
+
+
+def P(check_id, table, sql, needle, setting=None, tol=0.0, **kw):
+    """The SQL that Metabase writes gives the Cube request that the rollup serves, and the number is the truth."""
+    def run(ctx):
+        ensure_table(ctx, table)
+        restore = None
+        if setting:
+            restore = {k: ctx.mb.api("GET", "/api/setting/" + k) for k in setting}
+            for k, v in setting.items():
+                ctx.mb.api("PUT", "/api/setting/" + k, {"value": v})
+        try:
+            query = ctx.mb.inner(table, **kw)
+            load_used(request_of(compile_query(ctx, query)), needle)
+            assert_rows(ctx.mb.raw(query)["rows"], ch(sql), tol=tol)
+        finally:
+            for k, v in (restore or {}).items():
+                ctx.mb.api("PUT", "/api/setting/" + k, {"value": v if isinstance(v, str) and v else None})
+    check(check_id)(run)
+
+
+BIG = "big_orders"
+BCT = "d:big_orders.created_at"
+P("compile.rollup.total", BIG, "SELECT sum(amount) FROM big_orders", "daily", agg=["m:big_orders.revenue"])
+P("compile.rollup.count_rows", BIG, "SELECT count() FROM big_orders", "daily", agg=[["count"]])
+P("compile.rollup.month", BIG, "SELECT toStartOfMonth(created_at), sum(amount) FROM big_orders GROUP BY 1", "daily", agg=["m:big_orders.revenue"], by=[BCT + "@month"])
+P("compile.rollup.day_status", BIG, "SELECT toDate(created_at), status, count() FROM big_orders GROUP BY 1, 2", "daily", agg=[["count"]], by=[BCT + "@day", "d:big_orders.status"])
+P("compile.rollup.week_monday", BIG, "SELECT toStartOfWeek(created_at, 1), sum(amount) FROM big_orders GROUP BY 1", "daily", setting=MON, agg=["m:big_orders.revenue"], by=[BCT + "@week"])
+P("compile.rollup.week_sunday", BIG, "SELECT toStartOfWeek(created_at, 0), sum(amount) FROM big_orders GROUP BY 1", "daily", setting=SUN, agg=["m:big_orders.revenue"], by=[BCT + "@week"])
+P("compile.rollup.avg", BIG, "SELECT status, avg(amount) FROM big_orders GROUP BY 1", "daily", agg=["m:big_orders.avg_amount"], by=["d:big_orders.status"])
+P("compile.rollup.filter_status_month", BIG, "SELECT toStartOfQuarter(created_at), sum(amount) FROM big_orders WHERE status = 'shipped' GROUP BY 1", "daily",
+  agg=["m:big_orders.revenue"], by=[BCT + "@quarter"], where=[["=", "d:big_orders.status", "shipped"]])
+P("compile.rollup.date_range_aligned", BIG, "SELECT sum(amount) FROM big_orders WHERE toDate(created_at) BETWEEN '2024-03-05' AND '2024-03-09'", "daily",
+  agg=["m:big_orders.revenue"], where=[["between", BCT, "2024-03-05", "2024-03-09"]])
+
+
+@check("compile.rollup.date_range_not_aligned_is_right")
+def _(ctx):
+    # A rollup of days cannot answer a range of hours. Cube must read the table, because the default of Cube would give a wrong number.
+    ensure_table(ctx, BIG)
+    query = ctx.mb.inner(BIG, agg=["m:big_orders.revenue"], where=[[">=", BCT, "2024-03-05T06:00:00"], ["<", BCT, "2024-03-05T07:00:00"]])
+    assert_rows(ctx.mb.raw(query)["rows"], ch("SELECT sum(amount) FROM big_orders WHERE created_at >= toDateTime('2024-03-05 06:00:00', 'UTC') AND created_at < toDateTime('2024-03-05 07:00:00', 'UTC')"))
+    status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": request_of(compile_query(ctx, query))})
+    if "daily" in json.dumps(json.loads(text).get("usedPreAggregations") or {}):
+        raise Fail("the rollup of days served a range of hours")
+
+
+@check("compile.rollup.small_month_rollup_on_day_filter")
+def _(ctx):
+    # The first date filter that this suite found wrong: a month rollup and a range inside a month gave NULL.
+    query = ctx.mb.inner(ORD, agg=["m:orders.revenue"], where=[["=", "d:orders.created_at@day", "2025-02-03"]])
+    assert_rows(ctx.mb.raw(query)["rows"], ch("SELECT sum(amount) FROM orders WHERE toDate(created_at) = '2025-02-03'"))
+
+
+def median_seconds(fn, runs=5):
+    times = []
+    for i in range(runs):
+        started = time.time()
+        fn(i)
+        times.append(time.time() - started)
+    return sorted(times)[len(times) // 2]
+
+
+@check("compile.latency.ten_million_rows")
+def _(ctx):
+    ensure_table(ctx, BIG)
+    ensure_table(ctx, BIGR)
+    total = ch("SELECT count() FROM big_orders")[0][0]
+    if total < 10000000:
+        raise Fail("the table has %d rows" % total)
+
+    def run(table):
+        def one(i):
+            # Another date range each time, so that the result cache of Cube cannot answer.
+            start = "2024-%02d-01" % (1 + i)
+            end = "2024-%02d-28" % (8 + i)
+            query = ctx.mb.inner(table, agg=["m:%s.revenue" % table], by=["d:%s.status" % table], where=[["between", "d:%s.created_at" % table, start, end]])
+            rows = ctx.mb.raw(query)["rows"]
+            truth = ch("SELECT status, sum(amount) FROM big_orders WHERE toDate(created_at) BETWEEN '%s' AND '%s' GROUP BY 1" % (start, end))
+            assert_rows(rows, truth)
+        return one
+
+    with_rollup = median_seconds(run(BIG))
+    without = median_seconds(run(BIGR))
+    print("         latency over 10000000 rows, median of 5, with truth check: with rollup %.3f s, without rollup %.3f s" % (with_rollup, without))
+    query = ctx.mb.inner(BIG, agg=["m:big_orders.revenue"], by=["d:big_orders.status"], where=[["between", BCT, "2024-01-01", "2024-08-28"]])
+    load_used(request_of(compile_query(ctx, query)), "daily")
 
 
 def report(path, final, reasons, line):
