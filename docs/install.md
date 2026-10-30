@@ -2,15 +2,23 @@
 
 ## Install
 
-`MB_PLUGINS_DIR` is the plugins directory of Metabase. Download the jar from the
-[latest release](https://github.com/andrewkomkov/metabase-cube-driver/releases/latest) into it:
+`MB_PLUGINS_DIR` is the plugins directory of Metabase. Metabase must be able to write to this directory. The `metabase/metabase` image runs as uid 2000. If it cannot write there, it writes `Metabase cannot use the plugins directory` to its log, uses `/tmp`, and starts with no error and no Cube driver.
+
+Download the jar from the
+[latest release](https://github.com/andrewkomkov/metabase-cube-driver/releases/latest) and make the directory writable:
 
 ```sh
+mkdir -p "$MB_PLUGINS_DIR"
 curl -fL -o "$MB_PLUGINS_DIR/cube.metabase-driver.jar" \
   https://github.com/andrewkomkov/metabase-cube-driver/releases/latest/download/cube.metabase-driver.jar
+chmod 644 "$MB_PLUGINS_DIR/cube.metabase-driver.jar"
+# The image runs as uid 2000. Use chown 2000 instead of chmod 777 if you can.
+chmod 777 "$MB_PLUGINS_DIR"
 ```
 
 Restart Metabase. If the download fails with error 404, no release exists yet.
+
+To check the install, look for `Registered driver :cube` in the log of Metabase. **Cube** is then in the list of **Admin > Databases > Add database**.
 
 Each release also has a demo image with the driver inside, at
 `ghcr.io/andrewkomkov/metabase-cube-driver/demo`.

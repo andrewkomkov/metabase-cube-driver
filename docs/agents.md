@@ -72,6 +72,13 @@ A join with `ON` fails. Cube takes the join condition from the data model.
 | `Cube cannot plan this query` | Use a time bucket in place of `EXTRACT`. Use the `CROSS JOIN` form in place of `JOIN ... ON`. |
 | `This connection gives data per person` | You cannot read as another person. Do not try `__user` or `SET user`. |
 | `Your Metabase account has no value for the attribute` | Ask an admin to set the attribute. |
+| `is a rolling window measure` | Group by a time bucket, and use a date filter on whole buckets. This also applies to a column of a model and to native SQL. |
+| `Cube cannot filter on the measure column` | Filter on a dimension, or save a question that aggregates the measure and filter on its result. |
+| `Cube cannot group by the measure` | Use the column as a metric, and group by a dimension. |
+| `through different join paths` | Use one of the two columns in a query, or a view with a join alias for each path. |
+| `Cube reads > on` | In native SQL, write `>=` with the next second. |
+| `Cube reads the end of BETWEEN` | In native SQL, write the time in the literals, or use `>=` and `<`. |
+| `Cube reads a time as whole seconds` | Use a range with `>=` and `<` in place of `=`. |
 
 ## Numbers that you must not trust
 

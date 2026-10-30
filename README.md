@@ -35,15 +35,20 @@ shows the other versions that CI tests. Other Cube data sources are a second pri
 
 ## Install
 
-No release exists yet, so this download fails until the first release. Install the jar in one step,
-then restart Metabase:
+No release exists yet, so this download fails until the first release. Install the jar, make the directory
+writable, then restart Metabase:
 
 ```sh
+mkdir -p "$MB_PLUGINS_DIR"
 curl -fL -o "$MB_PLUGINS_DIR/cube.metabase-driver.jar" \
   https://github.com/andrewkomkov/metabase-cube-driver/releases/latest/download/cube.metabase-driver.jar
+chmod 644 "$MB_PLUGINS_DIR/cube.metabase-driver.jar"
+# The image runs as uid 2000. Use chown 2000 instead of chmod 777 if you can.
+chmod 777 "$MB_PLUGINS_DIR"
 ```
 
-`MB_PLUGINS_DIR` is the plugins directory of your Metabase.
+`MB_PLUGINS_DIR` is the plugins directory of your Metabase. If Metabase cannot write to it, Metabase uses `/tmp` and
+starts with no error and no Cube driver. Look for `Registered driver :cube` in its log. See [`docs/install.md`](docs/install.md).
 
 ## Connect
 
@@ -58,6 +63,18 @@ are the addresses of the demo stack. Start it with `make up`:
 
 The demo SQL API user is `cube` and the password is `cube-dev-only`. These are fixed throwaway values
 for fake data, and every port binds to the loopback interface only. Do not use them anywhere else.
+
+## Known wrong numbers
+
+Most shapes where Cube gives a wrong number now stop with a clear message. See the list of what the driver stops in
+[How queries reach Cube](docs/query-compilation.md#what-the-driver-stops). The driver cannot stop these, so each gives a number with no error:
+
+- A time shift measure with no time bucket gives the total of all rows.
+- A custom granularity with an offset in months is wrong on a measure that a rollup of months serves.
+- A filter on a `DateTime64` column reads whole seconds, so a row in the first second after a bound of `>` is out.
+- A number above 2^53 loses digits.
+- A `propagate_filters_to_sub_query` dimension next to a second `sub_query` dimension ignores the filter.
+- Native SQL in a shape that the scan of the text does not read. See [Known wrong numbers](docs/query-compilation.md#known-wrong-numbers).
 
 ## Use with an AI agent
 
