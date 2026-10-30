@@ -11,9 +11,12 @@
 | Private vulnerability reporting | `SECURITY.md` links to it. |
 | Dependabot security updates | Fixes for known problems in dependencies. |
 
+The repository variable `PINS_AUTOMERGE` is `false` now, so the pin gate reports and does not merge. This
+keeps the pins stable during the driver work.
+
 ## Enable after the driver work ends
 
-Do not enable these while agents push to `main`.
+Do not enable these while agents push to `main`. To enable pin merges, delete the variable `PINS_AUTOMERGE`.
 
 **Branch protection or a ruleset on `main`:**
 
