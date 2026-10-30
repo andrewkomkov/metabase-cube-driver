@@ -68,7 +68,9 @@ if [ "$author" != "app/github-actions" ] || [ "$head" != "$sha" ]; then
   exit 1
 fi
 
-gh pr merge "$PR" --repo "$repo" --auto --squash --delete-branch --match-head-commit "$sha"
+# --auto waits for required checks, but GitHub rejects it on a branch without protection rules.
+gh pr merge "$PR" --repo "$repo" --auto --squash --delete-branch --match-head-commit "$sha" ||
+  gh pr merge "$PR" --repo "$repo" --squash --delete-branch --match-head-commit "$sha"
 # GITHUB_TOKEN merges start no push workflows, so start them here.
 gh workflow run ci.yml --repo "$repo" --ref main
 gh workflow run release-please.yml --repo "$repo" --ref main
