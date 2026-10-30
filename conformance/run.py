@@ -3626,6 +3626,7 @@ class Secure:
             for item in items if isinstance(items, list) else items.get("data", []):
                 if item["table_id"] in tables:
                     self.admin.api("PUT", "%s/%d" % (path, item["id"]), {"archived": True, "revision_message": "conformance cleanup"})
+        time.sleep(8)  # The search index takes the archive from a queue.
         self.admin.api("DELETE", "/api/database/%d" % db_id)
 
     def cleanup(self):
