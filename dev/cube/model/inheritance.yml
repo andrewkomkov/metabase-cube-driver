@@ -7,7 +7,7 @@ cubes:
     joins:
       - { name: products, relationship: many_to_one, sql: "{CUBE}.product_id = {products.id}" }
     dimensions:
-      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
       - { name: product_id, sql: product_id, type: number, description: Inherited product key. }
       - { name: status, sql: status, type: string, description: Inherited status. }
       - { name: quantity, sql: quantity, type: number, description: Inherited quantity. }
@@ -54,7 +54,7 @@ cubes:
     description: Abstract base of the polymorphic customer cubes.
     sql_table: shop.users
     dimensions:
-      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
       - { name: city, sql: city, type: string, description: Billing city. }
     measures:
       - { name: count, type: count, description: Number of people. }
@@ -79,7 +79,7 @@ cubes:
     data_source: default
     sql_table: shop.products
     dimensions:
-      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
       - { name: category, sql: category, type: string, description: Product category. }
     measures:
       - { name: count, type: count, description: Number of products. }
