@@ -6,6 +6,15 @@ set -eu
 only=${1:-}
 repo=$GITHUB_REPOSITORY
 
+# The GitHub API sometimes answers with a server error.
+retry() {
+  for delay in 10 30 60; do
+    "$@" && return 0
+    sleep "$delay"
+  done
+  "$@"
+}
+
 gh auth setup-git
 git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -35,22 +44,23 @@ echo "$updates" | jq -c '.[]' | while read -r update; do
   git add -A
   git commit -q -m "$title"
 
-  # Skip a branch that already has this content, so a day with no change starts no runs.
-  if git fetch -q origin "$branch" 2>/dev/null && git diff --quiet FETCH_HEAD HEAD; then
+  number=$(retry gh pr list --repo "$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')
+
+  # An open pull request with this content needs no new runs.
+  if [ -n "$number" ] && git fetch -q origin "$branch" 2>/dev/null && git diff --quiet FETCH_HEAD HEAD; then
     echo "$branch has no changes"
     continue
   fi
-  git push -q --force origin "$branch"
+  retry git push -q --force origin "$branch"
 
-  number=$(gh pr list --repo "$repo" --head "$branch" --state open --json number --jq '.[0].number // empty')
   body="Scheduled pin update. The conformance workflow tests this branch and the base branch, and reports on this pull request. It merges only if the pass count did not fall."
   if [ -n "$number" ]; then
-    gh pr edit "$number" --repo "$repo" --title "$title"
+    retry gh pr edit "$number" --repo "$repo" --title "$title"
   else
-    url=$(gh pr create --repo "$repo" --base main --head "$branch" --title "$title" --body "$body" --label dependencies)
+    url=$(retry gh pr create --repo "$repo" --base main --head "$branch" --title "$title" --body "$body" --label dependencies)
     number=${url##*/}
   fi
 
-  gh workflow run conformance.yml --repo "$repo" --ref "$branch" -f pr="$number"
-  gh workflow run ci.yml --repo "$repo" --ref "$branch"
+  retry gh workflow run conformance.yml --repo "$repo" --ref "$branch" -f pr="$number"
+  retry gh workflow run ci.yml --repo "$repo" --ref "$branch"
 done
