@@ -545,7 +545,7 @@ class Mcp:
         if res.get("isError"):
             raise Fail("%s: %s" % (tool, text[:500]))
         try:
-            return json.loads(text)
+            return json.JSONDecoder().raw_decode(text)[0]
         except ValueError:
             return text
 
@@ -640,12 +640,15 @@ class Ctx:
         self.mcp = mcp
 
 
+PERCENT_TYPES = ("type/Percentage", "type/Share")
+
+
 def expect_format(style=None, currency=None, decimals=None, semantic=None):
     """The last result column carries the display format of the Cube member."""
     def post(ctx, data):
         col = data["cols"][-1]
         settings, sem = dict(col.get("settings") or {}), col.get("semantic_type")
-        if semantic and sem == semantic:
+        if semantic and sem in semantic:
             return
         if style and settings.get("number_style") != style:
             raise Fail("column settings %s, semantic %s: want number_style %s" % (settings, sem, style))
@@ -719,14 +722,14 @@ def expect_geo(ctx, data):
 
 
 def expect_field_format(table, name, style=None, currency=None):
-    semantic = {"currency": "type/Currency", "percent": "type/Percentage"}.get(style)
+    semantic = {"currency": ("type/Currency",), "percent": PERCENT_TYPES}.get(style, ())
 
     def post(ctx, data):
         f = ctx.mb.field(table, name)
         settings = f.get("settings") or {}
-        if not settings and not (semantic and f.get("semantic_type") == semantic):
+        if not settings and f.get("semantic_type") not in semantic:
             raise Fail("%s.%s has no format settings" % (table, name))
-        if style and settings.get("number_style") != style and f.get("semantic_type") != semantic:
+        if style and settings.get("number_style") != style and f.get("semantic_type") not in semantic:
             raise Fail("%s.%s settings %s, want number_style %s" % (table, name, settings, style))
         if currency and settings.get("currency") != currency:
             raise Fail("%s.%s settings %s, want currency %s" % (table, name, settings, currency))
@@ -818,9 +821,9 @@ Q("measure.opt.drill_members", ORD, "SELECT id, status, created_at FROM orders O
   fields=["d:orders.id", "d:orders.status", "d:orders.created_at"], order=[["asc", "d:orders.id"]], limit=3, post=expect_text("orders", "drill"))
 Q("measure.opt.mask", "masked_sales", "SELECT count(), -1 FROM orders", agg=["m:masked_sales.count", "m:masked_sales.revenue_masked"])
 Q("measure.opt.cross_cube_reference", ORD, "SELECT (SELECT 2 * count() FROM orders) / count() FROM orders", agg=["m:orders.payments_per_order"])
-Q("measure.format.currency", ORD, REV, agg=["m:orders.revenue"], post=expect_format("currency", semantic="type/Currency"))
+Q("measure.format.currency", ORD, REV, agg=["m:orders.revenue"], post=expect_format("currency", semantic=("type/Currency",)))
 Q("measure.format.currency_code", ORD, REV, agg=["m:orders.revenue_eur"], post=expect_format("currency", "EUR"))
-Q("measure.format.percent", ORD, "SELECT sumIf(toFloat64(amount), %s) / sum(toFloat64(amount)) FROM orders" % PAID, agg=["m:orders.paid_share"], post=expect_format("percent", semantic="type/Percentage"))
+Q("measure.format.percent", ORD, "SELECT sumIf(toFloat64(amount), %s) / sum(toFloat64(amount)) FROM orders" % PAID, agg=["m:orders.paid_share"], post=expect_format("percent", semantic=PERCENT_TYPES))
 Q("measure.format.percent_n", ORD, "SELECT sumIf(toFloat64(amount), %s) / sum(toFloat64(amount)) FROM orders" % PAID, agg=["m:orders.paid_share_1"], post=expect_format("percent", decimals=1))
 Q("measure.format.number_n", ORD, REV, agg=["m:orders.revenue_number"], post=expect_format(decimals=0))
 Q("measure.format.abbr", ORD, REV, agg=["m:orders.revenue_abbr"], post=expect_format())
@@ -980,7 +983,7 @@ Q("view.prefix", "sales", "SELECT category, count() FROM orders o JOIN products 
 Q("view.member_alias", "paid_sales", COMPLETED, agg=["m:paid_sales.net_sales"])
 Q("view.member_title", "paid_sales", COMPLETED, agg=["m:paid_sales.net_sales"], post=expect_title("paid_sales", "net_sales", "Net sales"))
 Q("view.member_description", "paid_sales", COMPLETED, agg=["m:paid_sales.net_sales"], post=expect_measure_attr("paid_sales", "net_sales", "description", "Revenue under another name."))
-Q("view.member_format", "paid_sales", COMPLETED, agg=["m:paid_sales.net_sales"], post=expect_format("currency", semantic="type/Currency"))
+Q("view.member_format", "paid_sales", COMPLETED, agg=["m:paid_sales.net_sales"], post=expect_format("currency", semantic=("type/Currency",)))
 Q("view.member_meta", "paid_sales", COMPLETED, agg=["m:paid_sales.net_sales"], post=expect_text("paid_sales", "curated"))
 Q("view.derived_measure", "paid_sales", "SELECT avg(amount) FROM orders WHERE status = 'completed'", agg=["m:paid_sales.revenue_per_order"])
 Q("view.extends", "extended_sales", "SELECT status, sum(amount) FROM orders GROUP BY status", agg=["m:extended_sales.revenue"], by=["d:extended_sales.status"])
