@@ -6,13 +6,11 @@
    [metabase.driver :as driver]
    [metabase.driver-api.core :as driver-api]
    [metabase.driver.cube.meta :as cube.meta]
+   [metabase.driver.cube.semantic]
    [metabase.driver.postgres]
    [metabase.driver.sql-jdbc.connection :as sql-jdbc.conn]
    [metabase.driver.sql.query-processor :as sql.qp]
-   [metabase.util.honey-sql-2 :as h2x]
-   [metabase.util.log :as log]
-   [metabase.warehouse-schema.humanization :as humanization]
-   [toucan2.core :as t2]))
+   [metabase.util.honey-sql-2 :as h2x]))
 
 (set! *warn-on-reflection* true)
 
@@ -33,7 +31,6 @@
                  :describe-is-nullable
                  :index/fetch
                  :index/standalone-create
-                 :metadata/key-constraints
                  :metadata/table-existence-check
                  :native-pivot-tables
                  :nested-field-columns
@@ -86,7 +83,7 @@
         (comp (filter (fn [_] (allowed? schema-names cube.meta/schema-name)))
               (filter #(allowed? table-names (:name %)))
               (mapcat cube.meta/cube->fields)
-              (map #(dissoc % ::cube.meta/title)))
+              (map cube.meta/sync-field))
         (sort-by :name (cube.meta/public-cubes (cube.meta/fetch-meta (:details database))))))
 
 ;; Fingerprinting wraps each text column in SUBSTRING. On a wide cube or view, this makes the SQL API fail with
@@ -95,43 +92,21 @@
   [driver table fields rff opts]
   ((get-method driver/table-rows-sample :postgres) driver table fields rff (dissoc opts :truncation-size)))
 
-(defn- apply-model-metadata!
-  "Sync has no input for a field title, so this step writes titles to the app DB after sync. A display name that an
-  admin changed is not the humanized name, and stays. Measures and segments get no field values, because the SQL API
-  has no list of values for them."
-  [database]
-  (let [cubes      (cube.meta/public-cubes (cube.meta/fetch-meta (:details database)))
-        name->cube (into {} (map (juxt :name identity)) cubes)
-        humanized? (fn [{entity-name :name, display-name :display_name}]
-                     (= display-name (humanization/name->human-readable-name entity-name)))]
-    (doseq [{table-id :id, table-name :name, :as table} (t2/select :model/Table :db_id (:id database), :active true)
-            :let  [cube (name->cube table-name)]
-            :when cube
-            :let  [name->member (into {} (map (juxt :name identity)) (cube.meta/cube->fields cube))]]
-      (when (and (humanized? table) (seq (:title cube)) (not= (:title cube) (:display_name table)))
-        (t2/update! :model/Table table-id {:display_name (:title cube)}))
-      (doseq [{field-id :id, field-name :name, :as field} (t2/select :model/Field :table_id table-id, :active true)
-              :let  [title         (::cube.meta/title (name->member field-name))
-                     database-type (str (:database_type field))
-                     no-values?    (or (str/starts-with? database-type "cube.measure/")
-                                       (= database-type "cube.segment"))
-                     changes       (cond-> {}
-                                     (and title (humanized? field) (not= title (:display_name field)))
-                                     (assoc :display_name title)
+(defmethod driver/describe-fks :cube
+  [_driver database & {:keys [schema-names table-names]}]
+  (into []
+        (comp (filter (fn [_] (allowed? schema-names cube.meta/schema-name)))
+              (filter (fn [{[fk-table] :fk}] (allowed? table-names fk-table)))
+              (map (fn [{[fk-table fk-column] :fk, [pk-table pk-column] :pk}]
+                     {:fk-table-schema cube.meta/schema-name
+                      :fk-table-name   fk-table
+                      :fk-column-name  fk-column
+                      :pk-table-schema cube.meta/schema-name
+                      :pk-table-name   pk-table
+                      :pk-column-name  pk-column})))
+        (cube.meta/foreign-keys (cube.meta/fetch-meta (:details database)))))
 
-                                     (and no-values? (not= :none (:has_field_values field)))
-                                     (assoc :has_field_values :none))]
-              :when (seq changes)]
-        (t2/update! :model/Field field-id changes)))))
-
-(defmethod driver/sync-in-context :cube
-  [_driver database f]
-  (let [result (f)]
-    (try
-      (apply-model-metadata! database)
-      (catch Throwable e
-        (log/warnf e "Could not apply Cube titles to database %s" (:id database))))
-    result))
+;; Tables, fields, measures and segments get the rest of the data model after sync. See metabase.driver.cube.semantic.
 
 ;;; --------------------------------------------------- compiler --------------------------------------------------
 
@@ -240,6 +215,36 @@
                             (if (= kind :segment) "filter" "metric"))
                     {:type :invalid-query})))
   ((get-method sql.qp/apply-top-level-clause [:postgres :breakout]) driver clause honeysql-form query))
+
+;; The SQL API plans a join only from __cubeJoinField on both sides. It takes the join condition from the data model.
+(defn- join-field
+  "`\"public\".\"orders\".\"user_id\"` -> `\"public\".\"orders\".\"__cubeJoinField\"`, or nil if `clause` is not a field."
+  [driver clause]
+  (let [compiled (h2x/unwrap-typed-honeysql-form (sql.qp/->honeysql driver clause))]
+    (when (h2x/identifier? compiled)
+      (update compiled 2 #(conj (vec (butlast %)) "__cubeJoinField")))))
+
+(defn- plain-table-id
+  "The table id of a join stage that only selects columns of one table. Metabase writes such a join as a subquery, and
+  a subquery has no __cubeJoinField."
+  [{:keys [stages]}]
+  (let [[{:keys [source-table] :as stage} & more] stages]
+    (when (and source-table
+               (empty? more)
+               (not-any? stage [:aggregation :breakout :filters :expressions :joins :order-by :limit]))
+      source-table)))
+
+(defmethod sql.qp/join->honeysql :cube
+  [driver {:keys [conditions] :as join}]
+  (let [[operator _ lhs rhs] (first conditions)
+        table-id             (plain-table-id join)
+        left                 (when (= := operator) (join-field driver lhs))
+        right                (when (= := operator) (join-field driver rhs))]
+    (if (and table-id left right (= 1 (count conditions)))
+      [[(sql.qp/->honeysql driver (driver-api/table (driver-api/metadata-provider) table-id))
+        [(sql.qp/->honeysql driver (h2x/identifier :table-alias ((some-fn driver-api/qp.add.alias :alias) join)))]]
+       [:= left right]]
+      ((get-method sql.qp/join->honeysql :postgres) driver join))))
 
 ;; Cube turns DATE_TRUNC on a time dimension into a granularity of the CubeScan. A cast around the column or an
 ;; interval on it stops that rewrite.
