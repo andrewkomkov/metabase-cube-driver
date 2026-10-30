@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 637,
-    "partial": 13,
-    "blocked": 26,
+    "pass": 681,
+    "partial": 16,
+    "blocked": 22,
     "unsupported": 10,
-    "fail": 0,
-    "total": 686
+    "fail": 18,
+    "total": 747
   },
-  "coverage": "coverage: 637/686 pass",
+  "coverage": "coverage: 681/747 pass",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -183,7 +183,7 @@
     {
       "id": "measure.rolling.unbounded",
       "status": "blocked",
-      "reason": "Cube writes the window as a join with only an inequality, and ClickHouse 26.8 rejects it: Cannot determine join keys in JOIN ON expression lessOrEquals(__table10.ord__created_at_month, __table2.date_to). allow_experimental_join_condition=1 does not change this. Bounded windows work, see measure.rolling.trailing."
+      "reason": "For more than one bucket, Cube writes the window as a join with only an inequality, and ClickHouse 26.8 rejects it: Cannot determine join keys in JOIN ON expression. allow_experimental_join_condition=1 does not change this. One bucket works, and more buckets stop with a clear message, see measure.rolling.unbounded_one_bucket. trailing: 100 year in the data model works for more buckets. Bounded windows work, see measure.rolling.trailing."
     },
     {
       "id": "measure.type.avg",
@@ -458,7 +458,7 @@
     {
       "id": "granularity.custom.offset",
       "status": "blocked",
-      "reason": "Wrong number from Cube Store. A custom granularity with an offset in months, on a measure that a rollup of months serves, gets DATE_BIN(INTERVAL '3 MONTH', month, to_timestamp('2026-02-01')). Cube gives 2025-02-01 825 and 2025-05-01 1288. The truth is 2024-11-01 433 and 2025-02-01 1246. A measure that the rollup does not serve is right, see compile.granularity.native_offset_no_rollup. The driver cannot see this. Do not put such a measure in a rollup of months."
+      "reason": "Wrong number from Cube Store: a time before the origin of a custom granularity gets the wrong bin. An offset uses an origin in the current year, so old rows on a rollup of months go wrong: Cube gives 2025-02-01 825 and 2025-05-01 1288, and the truth is 2024-11-01 433 and 2025-02-01 1246. A measure that the rollup does not serve is right, see compile.granularity.native_offset_no_rollup. The driver cannot see this. Use an origin before all rows, such as 2000-02-01, in place of an offset."
     },
     {
       "id": "granularity.custom.origin",
@@ -758,7 +758,7 @@
     {
       "id": "preagg.original_sql",
       "status": "blocked",
-      "reason": "Cube fails to build the rollup on an original_sql pre-aggregation on ClickHouse: Missing columns: 'lambda_orders__status'."
+      "reason": "Any original_sql pre-aggregation with an index fails on ClickHouse, also with no rollup on it: Missing columns: 'lambda_orders__status'. With no index, Cube refuses it. So the ClickHouse dialect has no working form. A subclass of ClickHouseQuery can drop the index, see docs/cube-findings.md."
     },
     {
       "id": "preagg.partitioned",
@@ -772,13 +772,13 @@
     },
     {
       "id": "preagg.rollup_join",
-      "status": "blocked",
-      "reason": "rollup_join needs two data sources. The demo stack has one."
+      "status": "fail",
+      "reason": "Cube did not serve the query from joined: {\"dev_pre_aggregations.join_customers_customers_rollup\": {\"targetTableName\": \"dev_pre_aggregations.join_customers_customers_rollup_y5a5xwmx_omm3k11t_1lea4vr\", \"refreshKeyValues\": [], \"lastUpdatedAt\": 1793397755000, \"preAggregationId\": \"join_customers.customers_rollup\", \"type\": \"rollup\"}, \"dev_pre_ag"
     },
     {
       "id": "preagg.rollup_lambda",
-      "status": "blocked",
-      "reason": "rollup_lambda needs streaming or partitioned source data. Not modelled yet."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "sqlapi.aggregate_function",
@@ -1462,8 +1462,8 @@
     },
     {
       "id": "mb.card.metric_with_breakout",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 500: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T22:05:42.130182024Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: null\",\"stacktrace\":[\"--> query_processor.compile$compile_preprocessed$fn__99596.invoke(compile.clj:60)\",\"query_pro"
     },
     {
       "id": "mb.card.model",
@@ -1622,8 +1622,8 @@
     },
     {
       "id": "mb.report_timezone",
-      "status": "blocked",
-      "reason": "The Cube SQL API has no time zone for a query. The REST API has one, but the driver uses the SQL API. So all buckets stay in UTC whatever the report timezone is, and compile.tz.report_timezone_keeps_utc checks that. A bucket in another zone needs a dimension in the data model."
+      "status": "fail",
+      "reason": "3 of 8 differ. truth SQL failed: SELECT toTimeZone(toStartOfMonth(toTimeZone(created_at, 'Asia/Tokyo')), 'UTC') AS b, sum(amount) FROM orders GROUP BY b: Received exception from server (version 26.8.36):\nCode: 43. DB::Exception: Received from localhost:9000. DB::Exception: I | truth SQL failed: SELECT toTimeZone(toStartOfYear(toTimeZone(created_at, 'Asia/Tokyo')), 'UTC') AS b, sum(amount) FROM orders GROUP BY b: Received exception from server (version 26.8.36):\nCode: 43. DB::Exception: Received from localhost:9000. DB::Exception: Il | truth SQL failed: SELECT toTimeZone(toStartOfMonth(toTimeZone(created_at, 'Asia/Tokyo')), 'UTC') AS b, count() FROM orders GROUP BY b: Received exception from server (version 26.8.36):\nCode: 43. DB::Exception: Received from localhost:9000. DB::Exception: Illeg"
     },
     {
       "id": "mb.other.actions",
@@ -2177,8 +2177,8 @@
     },
     {
       "id": "semantic.measure.min_on_time_column",
-      "status": "blocked",
-      "reason": "Cube REST returns the time, but /v1/meta types the measure as number and the SQL API returns NULL for MEASURE(). The driver reads only the SQL API, so the demo measure first_order_at gives NULL. Use a measure of type time, see semantic.measure.type_time."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.agg.median_gives_error",
@@ -2187,8 +2187,8 @@
     },
     {
       "id": "compile.agg.offset_measure",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 500: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T22:07:31.812014502Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: null\",\"stacktrace\":[\"--> query_processor.compile$compile_preprocessed$fn__99596.invoke(compile.clj:60)\",\"query_pro"
     },
     {
       "id": "compile.bucket.day",
@@ -2288,7 +2288,7 @@
     {
       "id": "compile.ch.decimal_above_double",
       "status": "blocked",
-      "reason": "Cube returns numbers through JavaScript. SELECT dec_big FROM typed_events WHERE id = 3 gives 3000000000000 where the truth is 3000000000000.00000003. A dimension with SQL toString(column) keeps the digits."
+      "reason": "The SQL API of Cube has the type Double for numbers, and the ClickHouse driver of Cube sends JSON numbers. SELECT dec_big FROM typed_events WHERE id = 3 gives 3000000000000 where the truth is 3000000000000.00000003. A dimension with SQL toString(column) keeps the digits."
     },
     {
       "id": "compile.ch.decimal_row",
@@ -2358,7 +2358,7 @@
     {
       "id": "compile.ch.uint64_above_double",
       "status": "blocked",
-      "reason": "Cube returns numbers through JavaScript. SELECT ui64 FROM typed_events WHERE id = 2 gives 9007199254740996 where the truth is 9007199254740995, and MEASURE(sum_ui64) gives 9007199254741494000. A dimension with SQL toString(column) keeps the digits."
+      "reason": "The SQL API of Cube has the type Double for numbers, and the ClickHouse driver of Cube sends JSON numbers. SELECT ui64 FROM typed_events WHERE id = 2 gives 9007199254740996 where the truth is 9007199254740995, and MEASURE(sum_ui64) gives 9007199254741494000. A dimension with SQL toString(column) keeps the digits."
     },
     {
       "id": "compile.ch.uuid_filter",
@@ -2487,8 +2487,8 @@
     },
     {
       "id": "compile.expr.in_breakout",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "POST /api/dataset/native: HTTP 500: {\"via\":[{\"type\":\"clojure.lang.ExceptionInfo\",\"message\":\"Error compiling query: null\",\"at\":[\"metabase.query_processor.compile$compile_preprocessed$fn__99596\",\"invoke\",\"compile.clj\",60]},{\"type\":\"java.lang.IndexOutOfBoundsException\",\"at\":[\"clojure.lang.PersistentVector\",\"arrayFor\",\"PersistentVector.ja"
     },
     {
       "id": "compile.expr.in_filter",
@@ -3081,11 +3081,6 @@
       "reason": ""
     },
     {
-      "id": "compile.tz.report_timezone_keeps_utc",
-      "status": "pass",
-      "reason": ""
-    },
-    {
       "id": "compile.tz.set_time_zone_error",
       "status": "pass",
       "reason": ""
@@ -3283,22 +3278,17 @@
     {
       "id": "dimension.opt.propagate_filters_next_to_another_sub_query",
       "status": "partial",
-      "reason": "Wrong number from Cube. In one SQL API query with a second sub_query dimension, the propagated dimension ignores the filter and shows all orders. Alone, it is right, see dimension.opt.propagate_filters. Do not select the two together."
-    },
-    {
-      "id": "measure.rolling.native_sql_limit",
-      "status": "partial",
-      "reason": "Wrong number from Cube, and the driver cannot read native SQL. With no time bucket, a rolling measure gives the total of all rows. With a filter inside a bucket, it gives the value of the whole bucket. The query builder and MCP execute_query stop these queries, see compile.rolling.*."
+      "reason": "Wrong number from Cube with the Tesseract planner. When two sub_query dimensions have equal SQL, the generated SQL joins both subqueries and selects the first for both columns, so the propagated dimension shows the other value. Alone, it is right, see dimension.opt.propagate_filters. With other SQL, such as {orders.count} + 0, it gives the truth."
     },
     {
       "id": "measure.multi_stage.time_shift_no_bucket_limit",
       "status": "partial",
-      "reason": "Wrong number from Cube. With no time bucket, a time shift measure gives the total of all rows. /v1/meta does not tell which measure has a time shift, so the driver cannot stop this query. Group by a time bucket."
+      "reason": "Unclear intent. With no time bucket, a time shift measure gives the total of all rows, because a sum over all time does not change after a shift. With a date range it gives the value of the earlier month. /v1/meta does not tell which measure has a time shift, so the driver cannot ask for a time bucket here. Group by a time bucket."
     },
     {
       "id": "clickhouse.datetime64_millis",
       "status": "partial",
-      "reason": "Cube reads a time as whole seconds. A raw value has no milliseconds, and a filter on them finds no row. Buckets of a second and above are right. A dimension with sql: toString(column) keeps the text."
+      "reason": "The ClickHouse dialect of Cube reads a time as whole seconds. A raw value has no milliseconds, and a filter on them finds no row. Postgres keeps them. Buckets of a second and above are right. A dimension with sql: toString(column) keeps the text. A subclass of ClickHouseQuery can fix this, see docs/cube-findings.md."
     },
     {
       "id": "compile.rolling.by_day_on_boundaries",
@@ -3332,6 +3322,311 @@
     },
     {
       "id": "compile.agg.other_aggregation_can_give_error",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.bound.strict_lower_with_upper",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.bound.grid_measures",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.bound.grid_date_types",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.bound.grid_boundary_values",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.bound.grid_view_and_join",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.bound.grid_model_by_name",
+      "status": "fail",
+      "reason": "15 of 45 differ. measure >: ERROR Error running query | measure >=: ERROR Error running query | measure <: ERROR Error running query | measure <=: ERROR Error running query | measure > and <=: ERROR Error running query | measure > and <: ERROR Error running query"
+    },
+    {
+      "id": "compile.bound.grid_mcp",
+      "status": "fail",
+      "reason": "2 differ. table between: got [2234.0], truth [1111.0] | model between: got [2234.0], truth [1111.0]"
+    },
+    {
+      "id": "compile.bound.fraction_of_a_second",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.bound.strict_lower_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.outer_date_filter.keeps_inner_rows",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.outer_date_filter.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.outer_date_filter.grid",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.outer_filter.multi_stage_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.outer_stage.grid_breakout_and_aggregation",
+      "status": "fail",
+      "reason": "3 of 20 differ. avg_order_value sum: ERROR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube | avg_order_value max: ERROR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube | avg_order_value by year: ERROR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube"
+    },
+    {
+      "id": "nested.outer_date_filter.native_source",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.outer_date_filter.week_numbers",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.date_filter_on_question",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.rolling.through_model",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.rolling.through_model_whole_buckets",
+      "status": "fail",
+      "reason": "whole months: query failed: Error running query"
+    },
+    {
+      "id": "measure.rolling.filter_in_the_model",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.rolling.strict_bound_on_boundary",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.measure_column.filter_gives_row_values",
+      "status": "fail",
+      "reason": "43 of 43 differ. revenue > 50 sum: ERROR Error running query | revenue > 50 count: ERROR Error running query | revenue between sum: ERROR Error running query | revenue between count: ERROR Error running query | revenue not sum: ERROR Error running query | revenue not count: ERROR Error running query"
+    },
+    {
+      "id": "nested.measure_column.breakout_gives_row_values",
+      "status": "fail",
+      "reason": "count: query failed: Error running query"
+    },
+    {
+      "id": "compile.filter.hidden_measure_column_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.measure_column.right_shapes_stay",
+      "status": "fail",
+      "reason": "23 of 23 differ. revenue: ERROR Error running query | revenue by status: ERROR Error running query | revenue with date: ERROR Error running query | revenue with status: ERROR Error running query | revenue by month: ERROR Error running query | count: ERROR Error running query"
+    },
+    {
+      "id": "nested.measure_column.other_aggregation",
+      "status": "fail",
+      "reason": "3 of 3 differ. max of a sum: ERROR Error running query | min of a sum: ERROR Error running query | avg of a sum: ERROR Error running query"
+    },
+    {
+      "id": "nested.model_of_model.measure_column",
+      "status": "fail",
+      "reason": "filter: query failed: Error running query"
+    },
+    {
+      "id": "nested.model.raw_rows_of_a_measure_are_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.two_paths_in_one_query_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.two_paths_one_column_stays",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.two_paths_with_join_alias",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.rolling.native_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.rolling.native_whole_buckets",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.between_date_text_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.between_date_parameter",
+      "status": "fail",
+      "reason": "unexpected KeyError: 'data'"
+    },
+    {
+      "id": "docs.install.plugins_directory_writable",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "docs.known_wrong_numbers",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.model_date_filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.model_date_filter_on_expression",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.week.default_with_date_filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.query.count_in_a_date_range",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.week.relative_on_each_first_day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.error.segment_errors_are_clear",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "docs.fan_out_rule",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.rolling.unbounded_one_bucket",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "demo.lambda_cube_is_hidden",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "build.package_with_no_java",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "build.load_check_sends_the_api_secret",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "docs.query_compilation_agrees_with_code",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.bound.datetime64_whole_seconds_limit",
+      "status": "partial",
+      "reason": "The ClickHouse dialect of Cube reads a time as whole seconds in a filter, so a row in the first second after a bound of > is out of the result. /v1/meta does not show the column type, so the driver cannot avoid this. A dimension with sql: toString(column) keeps the text. A subclass of ClickHouseQuery can fix this, see docs/cube-findings.md."
+    },
+    {
+      "id": "native.count_on_no_rows_limit",
+      "status": "partial",
+      "reason": "Limit of Cube: native COUNT(*) on no rows gives NULL where SQL gives 0 (m3). The driver does not change native text, and it cannot know that a NULL column is a count. MBQL gives 0."
+    },
+    {
+      "id": "nested.model.multi_stage_measure_column",
+      "status": "fail",
+      "reason": "5 of 5 differ. share by status: ERROR Error running query | rank by status: ERROR Error running query | all statuses: ERROR Error running query | prior month: ERROR Error running query | paid share: ERROR Error running query"
+    },
+    {
+      "id": "nested.question.multi_stage_outer_date_filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.model.measure_column_bounds",
+      "status": "fail",
+      "reason": "15 of 15 differ. >: ERROR Error running query | >=: ERROR Error running query | <: ERROR Error running query | <=: ERROR Error running query | > and <=: ERROR Error running query | > and <: ERROR Error running query"
+    },
+    {
+      "id": "nested.model.relative_and_bucket_filters",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.bound.relative_strict",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.case.date_bounds_in_an_aggregation",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.measure_column.expression",
+      "status": "fail",
+      "reason": "4 of 5 differ. sum of an expression: got [None], truth [324790.0] | expression of the sum: ERROR Error running query | count where: got [0.0], truth [166.0] | sum where: got [0.0], truth [25896.0]"
+    },
+    {
+      "id": "nested.model.segment_column",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.question_on_question.date_filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.measure_column.filter_with_no_key_refused",
       "status": "pass",
       "reason": ""
     },
@@ -3439,6 +3734,16 @@
       "id": "security.metabase_cache",
       "status": "pass",
       "reason": ""
+    },
+    {
+      "id": "security.dev_mode_warning_for_hidden_members",
+      "status": "partial",
+      "reason": "Limit of Cube: with CUBEJS_DEV_MODE=true the SQL API reads hidden cubes and members (m6). A Cube with dev mode off refuses this query. docs/security.md warns about it."
+    },
+    {
+      "id": "security.validate_echoes_the_request_limit",
+      "status": "partial",
+      "reason": "Limit of Metabase: this admin endpoint repeats the request body with the secret that the admin sent, for each driver (m7). No driver hook applies. Each read of a stored database gives the mask."
     }
   ]
 }
