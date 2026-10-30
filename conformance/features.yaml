@@ -3156,3 +3156,33 @@
   title: "granularity native offset no rollup"
   status: todo
   check: compile.granularity.native_offset_no_rollup
+- id: compile.filter.quote_in_value
+  area: mb.compile.filter
+  title: "filter quote in value"
+  status: todo
+  check: compile.filter.quote_in_value
+- id: compile.filter.backslash_quote_in_value
+  area: mb.compile.filter
+  title: "filter backslash quote in value"
+  status: todo
+  check: compile.filter.backslash_quote_in_value
+- id: compile.filter.quote_in_contains
+  area: mb.compile.filter
+  title: "filter quote in contains"
+  status: todo
+  check: compile.filter.quote_in_contains
+- id: compile.filter.backslash_in_case
+  area: mb.compile.filter
+  title: "filter backslash in case"
+  status: todo
+  check: compile.filter.backslash_in_case
+- id: compile.native.cross_join
+  area: mb.compile.native
+  title: "native cross join"
+  status: todo
+  check: compile.native.cross_join
+- id: compile.native.join_field
+  area: mb.compile.native
+  title: "native join field"
+  status: todo
+  check: compile.native.join_field

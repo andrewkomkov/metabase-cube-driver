@@ -2730,6 +2730,14 @@ for _fid, _clause, _sql in [
     if _fid in ("string_ne_null", "number_ne_null", "bool_true", "time_day_eq", "time_is_null"):
         C("compile.filter_measure.%s" % _fid, TE, "SELECT sum(dec_amount) FROM typed_events WHERE %s" % _sql, tol=1e-6, agg=["m:typed_events.sum_dec"], where=[_clause])
 
+# text that could break out of a literal must stay a value
+
+C("compile.filter.quote_in_value", ORD, "SELECT count() FROM orders WHERE status = 'it\\'s'", agg=[["count"]], where=[["=", STA, "it's"]])
+C("compile.filter.backslash_quote_in_value", ORD, "SELECT count() FROM orders WHERE status = 'x\\\\\\' OR 1=1 -- '", agg=[["count"]], where=[["=", STA, "x\\' OR 1=1 -- "]])
+C("compile.filter.quote_in_contains", ORD, "SELECT count() FROM orders WHERE position(status, 'a\\'b') > 0", agg=[["count"]], where=[["contains", STA, "a'b"]])
+C("compile.filter.backslash_in_case", ORD, "SELECT if(status = 'shipped', 'a\\\\b', 'c') FROM orders WHERE id = 7", fields=[["expression", "k"]],
+  exprs={"k": ["case", [[["=", STA, "shipped"], "a\\b"]], {"default": "c"}]}, where=ID7)
+
 # a count over no rows
 
 C("compile.empty.count", ORD, "SELECT count() FROM orders WHERE status = 'nope'", agg=[["count"]], where=[["=", STA, "nope"]])
@@ -2999,6 +3007,10 @@ def _(ctx):
     text = str(res.get("error") or "")
     if "Cube cannot plan this query" not in text or "Can't detect Cube query" not in text:
         raise Fail("error text: %s" % text[:400])
+
+
+N("compile.native.cross_join", "SELECT u.city, MEASURE(o.revenue) AS r FROM orders o CROSS JOIN users u GROUP BY 1", "SELECT u.city, sum(o.amount) FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1")
+N("compile.native.join_field", "SELECT u.city, MEASURE(o.revenue) AS r FROM orders o JOIN users u ON o.__cubeJoinField = u.__cubeJoinField GROUP BY 1", "SELECT u.city, sum(o.amount) FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1")
 
 
 # field values and search for filter dropdowns, on the large table
