@@ -1856,3 +1856,173 @@
   title: "mcp visualize query"
   status: blocked
   reason: "The tools/list reply for a session without MCP Apps support does not include this tool."
+- id: inherit.cube.members
+  area: cube.inheritance
+  title: "child cube inherits members"
+  status: todo
+  check: inherit.cube.members
+- id: inherit.cube.override_measure
+  area: cube.inheritance
+  title: "child cube overrides a measure"
+  status: todo
+  check: inherit.cube.override_measure
+- id: inherit.cube.override_dimension
+  area: cube.inheritance
+  title: "child cube overrides a dimension"
+  status: todo
+  check: inherit.cube.override_dimension
+- id: inherit.cube.add_measure
+  area: cube.inheritance
+  title: "child cube adds a measure"
+  status: todo
+  check: inherit.cube.add_measure
+- id: inherit.cube.add_dimension
+  area: cube.inheritance
+  title: "child cube adds a dimension"
+  status: todo
+  check: inherit.cube.add_dimension
+- id: inherit.multi_level.rows
+  area: cube.inheritance
+  title: "second level of extends narrows the rows"
+  status: todo
+  check: inherit.multi_level.rows
+- id: inherit.multi_level.add_measure
+  area: cube.inheritance
+  title: "second level of extends adds a measure"
+  status: todo
+  check: inherit.multi_level.add_measure
+- id: inherit.multi_level.override
+  area: cube.inheritance
+  title: "second level of extends keeps the override of the first level"
+  status: todo
+  check: inherit.multi_level.override
+- id: inherit.abstract_base
+  area: cube.inheritance
+  title: "abstract base with public false stays hidden"
+  status: todo
+  check: inherit.abstract_base
+- id: inherit.join
+  area: cube.inheritance
+  title: "child cube inherits a join"
+  status: todo
+  check: inherit.join
+- id: inherit.segment
+  area: cube.inheritance
+  title: "child cube inherits a segment"
+  status: todo
+  check: inherit.segment
+- id: inherit.pre_aggregation
+  area: cube.inheritance
+  title: "child cube inherits a pre-aggregation"
+  status: todo
+  check: inherit.pre_aggregation
+- id: inherit.view.members
+  area: cube.inheritance
+  title: "view extends a view and inherits members"
+  status: todo
+  check: inherit.view.members
+- id: inherit.view.adds
+  area: cube.inheritance
+  title: "view extends a view and adds members"
+  status: todo
+  check: inherit.view.adds
+- id: inherit.view.multi_level
+  area: cube.inheritance
+  title: "second level of view extends"
+  status: todo
+  check: inherit.view.multi_level
+- id: view.includes_star
+  area: cube.views
+  title: "view includes star"
+  status: todo
+  check: view.includes_star
+- id: view.excludes_star
+  area: cube.views
+  title: "view includes star with excludes"
+  status: todo
+  check: view.excludes_star
+- id: view.public_true
+  area: cube.views
+  title: "view with public true"
+  status: todo
+  check: view.public_true
+- id: view.join_path_transitive
+  area: cube.views
+  title: "view with a transitive join_path"
+  status: todo
+  check: view.join_path_transitive
+- id: view.several_paths
+  area: cube.views
+  title: "view reaches one cube through several paths"
+  status: todo
+  check: view.several_paths
+- id: view.same_name_two_cubes
+  area: cube.views
+  title: "view has a member of the same name from two cubes"
+  status: todo
+  check: view.same_name_two_cubes
+- id: view.on_extended_cube
+  area: cube.views
+  title: "view on an extended cube"
+  status: todo
+  check: view.on_extended_cube
+- id: view.prefix_sync
+  area: cube.views
+  title: "view prefix in synced fields"
+  status: todo
+  check: view.prefix_sync
+- id: view.member_alias_sync
+  area: cube.views
+  title: "view member alias in synced fields"
+  status: todo
+  check: view.member_alias_sync
+- id: cube.sql_sync
+  area: cube.cubes
+  title: "cube sql instead of sql_table in synced fields"
+  status: todo
+  check: cube.sql_sync
+- id: cube.sql_alias_sync
+  area: cube.cubes
+  title: "cube sql_alias in generated SQL and synced fields"
+  status: todo
+  check: cube.sql_alias_sync
+- id: cube.data_source_default
+  area: cube.cubes
+  title: "cube with data_source default"
+  status: todo
+  check: cube.data_source_default
+- id: cube.polymorphic_first
+  area: cube.cubes
+  title: "polymorphic cube, first child"
+  status: todo
+  check: cube.polymorphic_first
+- id: cube.polymorphic_second
+  area: cube.cubes
+  title: "polymorphic cube, second child"
+  status: todo
+  check: cube.polymorphic_second
+- id: cube.polymorphic_base
+  area: cube.cubes
+  title: "polymorphic base stays hidden"
+  status: todo
+  check: cube.polymorphic_base
+- id: cube.generated_jinja
+  area: cube.cubes
+  title: "generated model, YAML with Jinja"
+  status: todo
+  check: cube.generated_jinja
+- id: cube.generated_jinja_second
+  area: cube.cubes
+  title: "generated model, second cube of the Jinja loop"
+  status: todo
+  check: cube.generated_jinja_second
+- id: cube.generated_async
+  area: cube.cubes
+  title: "generated model, JavaScript asyncModule"
+  status: todo
+  check: cube.generated_async
+- id: cube.generated_async_second
+  area: cube.cubes
+  title: "generated model, second cube of asyncModule"
+  status: todo
+  check: cube.generated_async_second

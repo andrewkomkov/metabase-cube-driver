@@ -992,6 +992,134 @@ Q("view.access_row_level", "restricted_sales", "SELECT status, count() FROM orde
 Q("view.access_member_level", "restricted_sales", "SELECT sum(amount) FROM orders WHERE status = 'shipped'", agg=["m:restricted_sales.revenue"], post=expect_absent("restricted_sales", "created_at"))
 Q("view.group", "paid_sales", "SELECT count() FROM orders WHERE status = 'completed'", agg=["m:paid_sales.count"], post=expect_text("paid_sales", "Revenue views"))
 
+# ----- inheritance, view shapes and cube variants: each check reads the synced metadata and a value
+
+
+def expect_sync(table, dims=(), measures=(), segments=(), absent=(), display=None, no_tables=()):
+    def post(ctx, data):
+        mb = ctx.mb
+        for name in dims:
+            kind = str(mb.field(table, name).get("database_type"))
+            if kind.startswith("cube.measure/") or kind == "cube.segment":
+                raise Fail("%s.%s synced as %s, want a dimension" % (table, name, kind))
+        for name in measures:
+            if not mb.entity(mb.measures, table, name) and not str(mb.field(table, name).get("database_type")).startswith("cube.measure/"):
+                raise Fail("%s.%s did not sync as a measure" % (table, name))
+        for name in segments:
+            if not mb.entity(mb.segments, table, name) and str(mb.field(table, name).get("database_type")) != "cube.segment":
+                raise Fail("%s.%s did not sync as a segment" % (table, name))
+        for name in absent:
+            if mb.has_field(table, name):
+                raise Fail("%s.%s must not sync" % (table, name))
+        for name in no_tables:
+            if name in mb.tables:
+                raise Fail("table %s must not sync" % name)
+        if display is not None and mb.table(table)["display_name"] != display:
+            raise Fail("%s has display name %r, want %r" % (table, mb.table(table)["display_name"], display))
+    return post
+
+
+def sql_uses_alias(needle):
+    def post(ctx, data):
+        query = urllib.parse.quote(json.dumps({"measures": ["orders.count"]}))
+        _s, text, _h = http("GET", CUBE + "/cubejs-api/v1/sql?query=" + query)
+        if needle not in text:
+            raise Fail("generated SQL has no %s: %s" % (needle, text[:200]))
+    return post
+
+
+def inherited_rollup(ctx, data):
+    q = {"measures": ["level_one.revenue"], "dimensions": ["level_one.status"],
+         "timeDimensions": [{"dimension": "level_one.created_at", "granularity": "month"}]}
+    used_rollup(q, "monthly")(ctx, data)
+
+
+SIZE_3 = "quantity >= 3"
+REGION_SQL = "transform(%s, ['TX','IL','WA','MA'], ['South','Midwest','West','East'], '')"
+Q("inherit.cube.members", "level_one", "SELECT count() FROM orders", agg=["m:level_one.count"],
+  post=expect_sync("level_one", ["id", "product_id", "quantity", "created_at"], ["count"], display="Level one"))
+Q("inherit.cube.override_measure", "level_one", "SELECT sum(amount * 2) FROM orders", agg=["m:level_one.revenue"],
+  post=expect_sync("level_one", measures=["revenue"]))
+Q("inherit.cube.override_dimension", "level_one", "SELECT upper(status), count() FROM orders GROUP BY status",
+  agg=["m:level_one.count"], by=["d:level_one.status"], post=expect_sync("level_one", ["status"]))
+Q("inherit.cube.add_measure", "level_one", "SELECT avg(quantity) FROM orders", agg=["m:level_one.avg_quantity"],
+  post=expect_sync("level_one", measures=["avg_quantity"]))
+Q("inherit.cube.add_dimension", "level_one", "SELECT if(%s, 'high', 'low') AS b, count() FROM orders GROUP BY b" % SIZE_3,
+  agg=["m:level_one.count"], by=["d:level_one.quantity_band"], post=expect_sync("level_one", ["quantity_band"]))
+Q("inherit.multi_level.rows", "level_two", "SELECT count() FROM orders WHERE %s" % SIZE_3, agg=["m:level_two.count"],
+  post=expect_sync("level_two", ["id", "quantity_band"], ["count"], display="Level two"))
+Q("inherit.multi_level.add_measure", "level_two", "SELECT max(quantity) FROM orders", agg=["m:level_two.max_quantity"],
+  post=expect_sync("level_two", measures=["max_quantity", "avg_quantity"]))
+Q("inherit.multi_level.override", "level_two", "SELECT sum(amount * 2) FROM orders WHERE %s" % SIZE_3,
+  agg=["m:level_two.revenue"], post=expect_sync("level_two", measures=["revenue"]))
+Q("inherit.abstract_base", "level_one", "SELECT count() FROM orders", agg=["m:level_one.count"],
+  post=expect_sync("level_one", no_tables=["base_sales"]))
+Q("inherit.segment", "level_one", "SELECT count() FROM orders WHERE %s" % SIZE_3, agg=["m:level_one.count"],
+  where=["s:level_one.large"], post=expect_sync("level_one", segments=["large"]))
+Q("inherit.pre_aggregation", "level_one",
+  "SELECT upper(status), toStartOfMonth(created_at) AS m, sum(amount * 2) FROM orders GROUP BY status, m",
+  agg=["m:level_one.revenue"], by=["d:level_one.status", "d:level_one.created_at@month"], post=inherited_rollup)
+
+
+@check("inherit.join")
+def _(ctx):
+    expect_sync("level_one", ["product_id"])(ctx, None)
+    data = ctx.mb.native("SELECT products.category, MEASURE(level_one.count) FROM level_one CROSS JOIN products GROUP BY 1")
+    assert_rows(data["rows"], ch("SELECT p.category, count() FROM orders o JOIN products p ON o.product_id = p.id GROUP BY p.category"))
+
+
+Q("inherit.view.members", "extended_sales", "SELECT count() FROM orders", agg=["m:extended_sales.count"],
+  post=expect_sync("extended_sales", ["status", "users_city"], ["count", "revenue"], display="Extended sales"))
+Q("inherit.view.adds", "extended_sales", "SELECT sum(amount) + count() FROM orders", agg=["m:extended_sales.payments_total"],
+  post=expect_sync("extended_sales", ["payments_method"], ["payments_total"]))
+Q("inherit.view.multi_level", "deep_extended_sales", "SELECT ['air','ground','sea'][1 + id % 3] AS c, count() FROM orders GROUP BY c",
+  agg=["m:deep_extended_sales.count"], by=["d:deep_extended_sales.shipments_carrier_mode"],
+  post=expect_sync("deep_extended_sales", ["shipments_carrier_mode", "payments_method", "status"], ["count"]))
+
+Q("view.includes_star", "products_lite", "SELECT category, count() FROM products GROUP BY category",
+  agg=["m:products_lite.count"], by=["d:products_lite.category"],
+  post=expect_sync("products_lite", ["id", "name", "category"], ["count", "avg_price"], display="Products lite"))
+Q("view.excludes_star", "products_lite", "SELECT avg(price) FROM products", agg=["m:products_lite.avg_price"],
+  post=expect_sync("products_lite", absent=["price"]))
+Q("view.public_true", "products_lite", "SELECT count() FROM products", agg=["m:products_lite.count"],
+  post=expect_sync("products_lite", measures=["count"]))
+Q("view.join_path_transitive", "region_sales",
+  "SELECT %s AS r, count() FROM orders o JOIN users u ON o.user_id = u.id GROUP BY r" % (REGION_SQL % "u.state"),
+  agg=["m:region_sales.count"], by=["d:region_sales.customer_region"], post=expect_sync("region_sales", ["customer_region"]))
+Q("view.several_paths", "region_sales",
+  "SELECT %s AS r, count() FROM orders GROUP BY r" % (REGION_SQL % "['TX','IL','WA','MA'][1 + id % 4]"),
+  agg=["m:region_sales.count"], by=["d:region_sales.destination_region"],
+  post=expect_sync("region_sales", ["customer_region", "destination_region"]))
+Q("view.same_name_two_cubes", "region_sales", "SELECT count(), uniqExact(user_id) FROM orders",
+  agg=["m:region_sales.count", "m:region_sales.customer_count"], post=expect_sync("region_sales", measures=["count", "customer_count"]))
+Q("view.on_extended_cube", "level_two_view", "SELECT sum(amount * 2) FROM orders WHERE %s" % SIZE_3, agg=["m:level_two_view.revenue"],
+  post=expect_sync("level_two_view", ["status", "quantity_band"], ["revenue", "max_quantity"], ["large"]))
+Q("view.prefix_sync", "sales", "SELECT u.city, count() FROM orders o JOIN users u ON o.user_id = u.id GROUP BY u.city",
+  agg=["m:sales.count"], by=["d:sales.users_city"], post=expect_sync("sales", ["users_city", "products_category"], ["users_count"], absent=["city"]))
+Q("view.member_alias_sync", "paid_sales", "SELECT sum(amount) FROM orders WHERE status = 'completed'", agg=["m:paid_sales.net_sales"],
+  post=expect_sync("paid_sales", measures=["net_sales"], absent=["revenue"]))
+
+Q("cube.sql_sync", "payments", "SELECT method, count() FROM (SELECT 'card' AS method FROM orders UNION ALL SELECT 'fee' FROM orders) GROUP BY method",
+  agg=["m:payments.count"], by=["d:payments.method"], post=expect_sync("payments", ["method", "order_id"], ["count", "total"], absent=["id"]))
+Q("cube.sql_alias_sync", "orders", "SELECT count() FROM orders", agg=["m:orders.count"],
+  post=lambda ctx, data: (sql_uses_alias("ord__count")(ctx, data), expect_sync("orders", ["status"], ["count"])(ctx, data)))
+Q("cube.data_source_default", "explicit_source", "SELECT category, count() FROM products GROUP BY category",
+  agg=["m:explicit_source.count"], by=["d:explicit_source.category"], post=expect_sync("explicit_source", ["category"], ["count"]))
+Q("cube.polymorphic_first", "vip_people", "SELECT city, count() FROM users WHERE is_vip GROUP BY city",
+  agg=["m:vip_people.count"], by=["d:vip_people.city"], post=expect_sync("vip_people", ["id", "city"], ["count"], display="VIP people"))
+Q("cube.polymorphic_second", "regular_people", "SELECT city, count() FROM users WHERE NOT is_vip GROUP BY city",
+  agg=["m:regular_people.count"], by=["d:regular_people.city"], post=expect_sync("regular_people", ["id", "city"], ["count"]))
+Q("cube.polymorphic_base", "vip_people", "SELECT count() FROM users WHERE is_vip", agg=["m:vip_people.count"],
+  post=expect_sync("vip_people", no_tables=["people"]))
+Q("cube.generated_jinja", "gen_completed_orders", "SELECT sum(amount) FROM orders WHERE status = 'completed'", agg=["m:gen_completed_orders.revenue"],
+  post=expect_sync("gen_completed_orders", ["id"], ["count", "revenue"], display="Generated completed orders"))
+Q("cube.generated_jinja_second", "gen_shipped_orders", "SELECT count() FROM orders WHERE status = 'shipped'", agg=["m:gen_shipped_orders.count"],
+  post=expect_sync("gen_shipped_orders", ["id"], ["count", "revenue"]))
+Q("cube.generated_async", "async_processing_orders", "SELECT sum(amount) FROM orders WHERE status = 'processing'", agg=["m:async_processing_orders.revenue"],
+  post=expect_sync("async_processing_orders", ["id"], ["count", "revenue"], display="Async processing orders"))
+Q("cube.generated_async_second", "async_cancelled_orders", "SELECT count() FROM orders WHERE status = 'cancelled'", agg=["m:async_cancelled_orders.count"],
+  post=expect_sync("async_cancelled_orders", ["id"], ["count", "revenue"]))
+
 # ----- hierarchies
 
 Q("hierarchy.levels", ORD, "SELECT status, %s, count() FROM orders GROUP BY 1, 2" % SIZE, agg=["m:orders.count"], by=["d:orders.status", "d:orders.size"], post=expect_text("orders", "Fulfilment"))
