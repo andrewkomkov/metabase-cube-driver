@@ -11,7 +11,8 @@ cubes:
       - { name: products, relationship: many_to_one, sql: "{CUBE}.product_id = {products.id}" }
       - { name: payments, relationship: one_to_many, sql: "{CUBE}.id = {payments.order_id}" }
       - { name: shipments, relationship: one_to_one, sql: "{CUBE}.id = {shipments.order_id}" }
-      - { name: users, alias: referrer, relationship: many_to_one, sql: "{CUBE}.user_id % 200 + 1 = {referrer.id}" }
+      - { name: promos, alias: first_promo, relationship: many_to_one, sql: "{CUBE}.id % 10 = {first_promo.id}" }
+      - { name: promos, alias: second_promo, relationship: many_to_one, sql: "({CUBE}.id + 1) % 10 = {second_promo.id}" }
       - { name: fiscal_calendar, relationship: many_to_one, sql: "toDate({CUBE}.created_at) = toDate({fiscal_calendar.date_key})" }
     dimensions:
       - { name: id, sql: id, type: number, primary_key: true, public: true, title: Order ID }

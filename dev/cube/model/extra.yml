@@ -16,6 +16,16 @@ cubes:
       - { name: count, type: count, description: Number of payments. }
       - { name: total, sql: amount, type: sum, format: currency, description: Total paid. }
 
+  - name: promos
+    title: Promos
+    description: Ten promo codes. Orders join it twice through aliases.
+    sql: "SELECT toInt32(number) AS id, concat('P', toString(number)) AS code FROM numbers(10)"
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: false }
+      - { name: code, sql: code, type: string, description: Promo code. }
+    measures:
+      - { name: count, type: count, description: Number of promos. }
+
   - name: shipments
     title: Shipments
     description: One shipment per order. Joined one to one.

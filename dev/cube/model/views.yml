@@ -61,6 +61,14 @@ views:
         includes:
           - join_path: orders.users
 
+  - name: promo_sales
+    title: Promo sales
+    description: Orders with two aliased promo joins.
+    cubes:
+      - { join_path: orders, includes: [count] }
+      - { join_path: orders.first_promo, prefix: true, includes: [code] }
+      - { join_path: orders.second_promo, prefix: true, includes: [code] }
+
   - name: hidden_sales
     public: false
     cubes:
