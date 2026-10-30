@@ -29,7 +29,7 @@ cubes:
       - { name: id, sql: id, type: number, primary_key: true, public: true }
       - { name: city, sql: city, type: string, description: "Billing city. The row-level rule uses it." }
       # COMPILE_CONTEXT: only people with all rows see the address.
-{% if COMPILE_CONTEXT.securityContext.all %}
+{% if COMPILE_CONTEXT.securityContext.user in ["metabase", "admin@example.com"] %}
       - { name: email, sql: email, type: string }
 {% else %}
       - { name: email, sql: "'hidden'", type: string }

@@ -18,8 +18,9 @@
 (set! *warn-on-reflection* true)
 
 (def schema-name
-  "The Cube SQL API exposes all cubes and views in this schema."
-  "public")
+  "Cube has one namespace for cubes and views, so a table has no schema. The Cube SQL API also accepts `public`, but
+  with a schema the MCP tool `browse_data` lists no tables unless the agent asks for that schema first."
+  nil)
 
 (def ^:private http-timeout-ms 30000)
 (def ^:private token-lifetime-seconds 300)
@@ -29,7 +30,11 @@
   [details]
   (when-let [secret (not-empty (driver-api/secret-value-as-string :cube details "cube-api-secret"))]
     (let [now (quot (System/currentTimeMillis) 1000)]
-      (jwt/sign {:iat now, :exp (+ now token-lifetime-seconds)} secret {:alg :hs256}))))
+      ;; The security context of the request is the payload. `user` is the same name that the SQL API sends to checkSqlAuth.
+      (jwt/sign (cond-> {:iat now, :exp (+ now token-lifetime-seconds)}
+                  (:user details) (assoc :user (:user details)))
+                secret
+                {:alg :hs256}))))
 
 (defn- meta-url
   [details]
@@ -247,9 +252,28 @@
   [group]
   (str (str/capitalize (str/replace group "_" " ")) " (" group ")"))
 
+(def ^:private max-members-in-text
+  "A very wide cube must not make each search result long."
+  60)
+
+(defn- member-list-line
+  "`Measures: Revenue, Order count.`, with the title of each public member. A title is the name that people use, so a
+  search for it finds this table. Fields have no entry in the Metabase search index."
+  [label members]
+  (when-let [members (seq (filter public? members))]
+    (let [titles (map #(or (non-blank (:shortTitle %)) (non-blank (:title %)) (short-name (:name %))) members)
+          shown  (take max-members-in-text titles)
+          more   (- (count titles) (count shown))]
+      (str label ": " (str/join ", " shown) (when (pos? more) (format ", and %d more" more)) "."))))
+
+(defn- joins-line
+  [cube]
+  (when-let [joins (seq (:joins cube))]
+    (str "Joins: " (str/join ", " (map :name joins)) ".")))
+
 (defn cube-description
   "The description of a cube or view, followed by what Metabase has no object for: hierarchies, folders, view groups
-  and meta. Agents read this text with search and with the table metadata."
+  and meta, and by the members of the cube. Agents read this text with search and with the table metadata."
   [cube]
   (let [hierarchies (filter public? (:hierarchies cube))
         folders     (or (seq (:nestedFolders cube)) (:folders cube))]
@@ -261,7 +285,11 @@
                       (when (seq folders)     (str "Folders: " (str/join "; " (map folder-text folders)) "."))
                       (when (seq (:viewGroups cube))
                         (str "View groups: " (str/join ", " (map view-group-text (:viewGroups cube))) "."))
-                      (json-line "Meta" (:meta cube))])))))
+                      (json-line "Meta" (:meta cube))
+                      (member-list-line "Measures" (:measures cube))
+                      (member-list-line "Dimensions" (:dimensions cube))
+                      (member-list-line "Segments" (:segments cube))
+                      (joins-line cube)])))))
 
 (defn public-cubes
   "The public cubes and views of a decoded meta response."

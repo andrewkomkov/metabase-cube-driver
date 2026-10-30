@@ -6,6 +6,7 @@
    [clojure.walk :as walk]
    [metabase.driver :as driver]
    [metabase.driver-api.core :as driver-api]
+   [metabase.driver.cube.identity :as cube.identity]
    [metabase.driver.cube.meta :as cube.meta]
    [metabase.driver.cube.semantic]
    [metabase.driver.postgres]
@@ -60,6 +61,23 @@
     (parent driver (-> (apply dissoc details (filter #(str/starts-with? (name %) "cube-") (keys details)))
                        (update :port #(or % 15432))))))
 
+;; With `cube-user-attribute`, each query has its own connection and the person is the user name. See
+;; metabase.driver.cube.identity. A raw JDBC spec does not go through the pool of the database.
+(defn- connection-details
+  [db-or-id-or-spec]
+  (if (integer? db-or-id-or-spec)
+    (driver-api/with-metadata-provider db-or-id-or-spec
+      (:details (driver-api/database (driver-api/metadata-provider))))
+    (:details db-or-id-or-spec)))
+
+(defmethod sql-jdbc.execute/do-with-connection-with-options :cube
+  [driver db-or-id-or-spec options f]
+  (let [parent  (get-method sql-jdbc.execute/do-with-connection-with-options :postgres)
+        details (connection-details db-or-id-or-spec)]
+    (if-let [sql-user (some-> details cube.identity/sql-user)]
+      (parent driver (sql-jdbc.conn/connection-details->spec driver (assoc details :user sql-user)) options f)
+      (parent driver db-or-id-or-spec options f))))
+
 (defmethod driver/can-connect? :cube
   [driver details]
   (let [parent (get-method driver/can-connect? :postgres)]
@@ -95,9 +113,14 @@
 
 ;; Fingerprinting wraps each text column in SUBSTRING. On a wide cube or view, this makes the SQL API fail with
 ;; "Can't find rewrite due to AST node limit reached".
+;;
+;; With per-user data, Metabase keeps one fingerprint for all people, so sync reads no rows.
 (defmethod driver/table-rows-sample :cube
   [driver table fields rff opts]
-  ((get-method driver/table-rows-sample :postgres) driver table fields rff (dissoc opts :truncation-size)))
+  (if (cube.identity/attribute (:details (driver-api/database (driver-api/metadata-provider))))
+    (let [rf (rff {:cols (mapv #(select-keys % [:name :base_type]) fields)})]
+      (rf (rf)))
+    ((get-method driver/table-rows-sample :postgres) driver table fields rff (dissoc opts :truncation-size))))
 
 (defmethod driver/describe-fks :cube
   [_driver database & {:keys [schema-names table-names]}]
@@ -582,9 +605,21 @@
   [["PERCENTILE_CONT"
     (str "Cube cannot compute a median or a percentile on this data source. Add a measure with the SQL of the database "
          "to the data model.")]
+   ["Invalid identifier"
+    (str "This table has no column with that name. Call browse_data with action get_fields to read the columns of the "
+         "table. A column of another cube is not on this table: use a view that has it, or write "
+         "FROM a CROSS JOIN b WHERE a.__cubeJoinField = b.__cubeJoinField and read a.column and b.column.")]
    ["Can't detect Cube query"
-    (str "Cube cannot plan this query. EXTRACT on a time dimension next to a measure, and a function that the SQL API "
-         "does not know, are the common cause. Use a time bucket, or add a dimension for it to the data model.")]
+    (str "Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function that the SQL API does "
+         "not know, and a JOIN with an ON condition are the common cause. Use a time bucket, or add a dimension for it "
+         "to the data model. For a join, write FROM a CROSS JOIN b WHERE a.__cubeJoinField = b.__cubeJoinField.")]
+   ["You cannot change security context"
+    "This connection gives data per person, so a query cannot read as another person."]
+   ["is not allowed to switch to"
+    "This connection gives data per person, so a query cannot read as another person."]
+   ["password authentication failed"
+    (str "Cube refused the sign-in. Check the password of the connection. With per-user data, also check that "
+         "checkSqlAuth in cube.js knows this person.")]
    ["Can't generate SQL for interval"
     (str "Cube cannot add an interval to a time in an aggregated query on this data source. Remove the date arithmetic, "
          "or add a dimension with that SQL to the data model.")]
@@ -609,6 +644,7 @@
 
 (defmethod driver/execute-reducible-query :cube
   [driver query context respond]
+  (cube.identity/assert-person! (:details (driver-api/database (driver-api/metadata-provider))))
   (try
     (sql-jdbc.execute/execute-reducible-query driver query context respond)
     (catch Exception e

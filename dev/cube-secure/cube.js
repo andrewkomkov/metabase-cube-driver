@@ -12,29 +12,32 @@ const PEOPLE = {
   'tenant-seattle': { city: 'Seattle', groups: [] },
 };
 
+// The security context is { user } on the SQL API, from checkSqlAuth, and on the REST API, from the JWT of the driver.
+const personOf = (securityContext) => PEOPLE[securityContext?.user];
+
 module.exports = {
   checkSqlAuth: async (_req, username) => {
-    const person = PEOPLE[username];
-    if (!person) {
+    if (!PEOPLE[username]) {
       throw new Error(`Unknown SQL user: ${username}`);
     }
     return {
       password: process.env.CUBEJS_SQL_PASSWORD,
-      securityContext: { user: username, ...person },
+      securityContext: { user: username },
     };
   },
 
   // A separate compiled model per kind of person, so that COMPILE_CONTEXT takes effect.
-  contextToAppId: ({ securityContext }) => `app_${securityContext?.all ? 'all' : 'limited'}`,
+  contextToAppId: ({ securityContext }) => `app_${personOf(securityContext)?.all ? 'all' : 'limited'}`,
 
-  contextToGroups: ({ securityContext }) => securityContext?.groups ?? [],
+  contextToGroups: ({ securityContext }) => personOf(securityContext)?.groups ?? [],
 
   // The row-level rule. A query with no known person fails.
   queryRewrite: (query, { securityContext }) => {
-    if (securityContext?.all) {
+    const person = personOf(securityContext);
+    if (person?.all) {
       return query;
     }
-    const city = securityContext?.city;
+    const city = person?.city;
     if (!city) {
       throw new Error('No row-level rule for this user');
     }

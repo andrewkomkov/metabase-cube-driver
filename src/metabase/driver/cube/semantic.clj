@@ -12,6 +12,7 @@
   (:require
    [clojure.string :as str]
    [metabase.config.core :as config]
+   [metabase.driver.cube.identity :as cube.identity]
    [metabase.driver.cube.meta :as cube.meta]
    [metabase.events.core :as events]
    [metabase.util.log :as log]
@@ -52,14 +53,23 @@
     :else                                                  semantic_type))
 
 (defn- sync-field!
-  [field {::cube.meta/keys [title kind settings], :keys [field-comment], :as member}]
+  "With per-user data, a dimension has no stored list of values, because Metabase keeps one list for all people. A filter
+  then asks Cube as the person who uses it."
+  [database field {::cube.meta/keys [title kind settings], :keys [field-comment], :as member}]
   (update-when-changed!
    :model/Field (:id field) field
    (cond-> {:description   field-comment
             :semantic_type (wanted-semantic-type field member)
             :settings      settings}
      title                           (assoc :display_name title)
-     (#{:measure :segment} kind)     (assoc :has_field_values :none))))
+     (#{:measure :segment} kind)     (assoc :has_field_values :none)
+     (and (= kind :dimension)
+          (cube.identity/attribute (:details database))) (assoc :has_field_values :search))))
+
+(defn- remove-stored-field-values!
+  [database field-ids]
+  (when (and (cube.identity/attribute (:details database)) (seq field-ids))
+    (t2/delete! :model/FieldValues :field_id [:in field-ids])))
 
 (defn- clear-stale-foreign-keys!
   "Metabase sync only adds foreign keys. This removes those whose Cube join went away."
@@ -127,6 +137,15 @@
   [{:kind :measure, :model :model/Measure, :revision-model "Measure", :definition measure-definition}
    {:kind :segment, :model :model/Segment, :revision-model "Segment", :definition segment-definition}])
 
+(defn- with-owner
+  "A search result for a measure or a segment shows only its name and description, and many tables can have a Revenue.
+  This text tells which table it is, and gives the id that a query needs as source-table."
+  [description {table-id :id, table-name :name, display-name :display_name}]
+  (let [owner (format "Table: %s (%s, id %d)." (or display-name table-name) table-name table-id)]
+    (if (str/blank? description)
+      owner
+      (str description "\n\n" owner))))
+
 (defn- wanted-entities
   "The Measure or Segment for each public member of this kind that has a field."
   [database {:keys [kind definition]} table+members]
@@ -136,7 +155,7 @@
     {:entity_id   (member-entity-id database (:name member))
      :table_id    (:id table)
      :name        title
-     :description field-comment
+     :description (with-owner field-comment table)
      :definition  (definition database (:id table) field-id title member)}))
 
 (def ^:private reset-message
@@ -198,11 +217,37 @@
       (count! :archived))
     (log/infof "Cube semantic sync of database %s: %ss %s" (:id database) (name kind) (pr-str @stats))))
 
+;;; ------------------------------------------------------- agent guidance -------------------------------------------------------
+
+(def ^:private guidance-start
+  "The start of the text below. A description with another start is from a person, and sync keeps it."
+  "Cube semantic layer.")
+
+(def ^:private guidance
+  (str guidance-start " Each table is a cube or a view. Its description lists its measures, dimensions and segments, and "
+       "browse_data with action get_fields gives their ids. Prefer a view if one fits the question. "
+       "A measure already has its aggregation in the data model: in execute_query write [\"measure\", {}, <measure id>] in "
+       "aggregation, with the table of the measure as source-table, and do not sum or count its column again. "
+       "A segment is a filter: write [\"segment\", {}, <segment id>] in filters. "
+       "A column of a joined table is [\"field\", {\"source-field\": <foreign key field id>}, <field id>], and related_tables "
+       "in get_fields gives these ids. "
+       "In execute_sql write MEASURE(name) with GROUP BY, and read a joined cube with "
+       "FROM a CROSS JOIN b WHERE a.__cubeJoinField = b.__cubeJoinField."))
+
+(defn- write-guidance!
+  "`browse_data` with action list_databases returns this text. The MCP skill files are in the Metabase image, so this
+  metadata is the place for guidance about Cube."
+  [{:keys [id description]}]
+  (when (or (str/blank? description)
+            (and (str/starts-with? description guidance-start) (not= description guidance)))
+    (t2/update! :model/Database id {:description guidance})))
+
 ;;; ------------------------------------------------------- entry point -------------------------------------------------------
 
 (defn sync-semantics!
   "Bring the Metabase objects of `database` up to date with the Cube data model."
   [database]
+  (write-guidance! database)
   (let [cube-meta   (cube.meta/fetch-meta (:details database))
         database    (assoc database :cube-meta cube-meta)
         cubes       (cube.meta/public-cubes cube-meta)
@@ -230,7 +275,8 @@
     (let [fresh (when (seq fields) (into {} (map (juxt :id identity)) (t2/select :model/Field :id [:in (map :id fields)])))]
       (doseq [[_table members] table+members
               {:keys [field-id] :as member} members]
-        (sync-field! (fresh field-id) member)))
+        (sync-field! database (fresh field-id) member))
+      (remove-stored-field-values! database (keys fresh)))
     (let [table-ids (map :id tables)]
       (doseq [spec entity-kinds]
         (sync-kind! database spec table+members table-ids)))))
