@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Conformance runner. See conformance/README.md.
 
-Run on nettop: METABASE_ADMIN_PASSWORD=... python3 conformance/run.py [--only REGEX] [--no-write]
+Run: METABASE_ADMIN_PASSWORD=... python3 conformance/run.py [--only REGEX] [--no-write] [--json PATH]
 """
 import argparse
 import base64
@@ -30,6 +30,16 @@ MCP_PATH = "/api/metabase-mcp"
 REDIRECT = "http://127.0.0.1:9/callback"
 SCOPES = "agent:content:read agent:content:write agent:query:run agent:sql:run agent:delivery:write"
 HTTP_TIMEOUT = 180
+CUBE_DB_DETAILS = {
+    "host": os.environ.get("CUBE_SQL_HOST", "cube"),
+    "port": int(os.environ.get("CUBE_SQL_PORT", "15432")),
+    "dbname": "cube",
+    "user": "cube",
+    "password": "cube-dev-only",
+    "cube-rest-url": os.environ.get("CUBE_REST_INTERNAL_URL", "http://cube:4000"),
+    "cube-api-secret": "cube-dev-only-secret-0123456789abcdef",
+    "ssl": False,
+}
 
 DATE_RANGE = ["2025-01-01", "2025-03-31"]
 
@@ -192,15 +202,42 @@ class Metabase:
             raise Fail("%s %s: HTTP %s: %s" % (method, path, status, text[:300]))
         return json.loads(text) if text.strip()[:1] in ("{", "[") else text
 
+    def wait_for_metabase(self, seconds=180):
+        deadline = time.time() + seconds
+        while True:
+            try:
+                if http("GET", MB + "/api/health")[0] == 200:
+                    return
+            except Fail:
+                pass
+            if time.time() > deadline:
+                raise Fail("Metabase at %s is not healthy after %d s" % (MB, seconds))
+            time.sleep(3)
+
     def login(self):
+        self.wait_for_metabase()
         props = self.api("GET", "/api/session/properties")
-        if not props.get("has-user-setup"):
+        fresh = not props.get("has-user-setup")
+        if fresh:
+            self.password = self.password or secrets.token_urlsafe(24)
             self.api("POST", "/api/setup", {
                 "token": props["setup-token"],
                 "user": {"email": ADMIN_EMAIL, "first_name": "Conformance", "last_name": "Admin", "password": self.password},
                 "prefs": {"site_name": "Cube demo", "allow_tracking": False},
             })
+        if not self.password:
+            raise Fail("Metabase has an admin. Set METABASE_ADMIN_PASSWORD")
         self.sid = self.api("POST", "/api/session", {"username": ADMIN_EMAIL, "password": self.password})["id"]
+        if fresh:
+            self.connect_cube()
+
+    def connect_cube(self, seconds=300):
+        db = self.api("POST", "/api/database", {"engine": "cube", "name": "Cube", "details": CUBE_DB_DETAILS})
+        deadline = time.time() + seconds
+        while self.api("GET", "/api/database/%d" % db["id"]).get("initial_sync_status") != "complete":
+            if time.time() > deadline:
+                raise Fail("first sync of the Cube database did not end in %d s" % seconds)
+            time.sleep(3)
 
     def discover(self):
         dbs = self.api("GET", "/api/database")["data"]
@@ -1877,30 +1914,29 @@ def _(ctx):
 # ----------------------------------------------------------------- main
 
 
-def main():
-    ap = argparse.ArgumentParser(description="Run the conformance suite.")
-    ap.add_argument("--only", help="run only the features whose id matches this regex")
-    ap.add_argument("--no-write", action="store_true", help="do not rewrite features.yaml")
-    ap.add_argument("--db-name", help="test the runner on a database with this name; results say nothing about the driver, so add --no-write")
-    ap.add_argument("--verbose", action="store_true", help="print a stack trace for unexpected errors")
-    args = ap.parse_args()
+def report(path, final, reasons, line):
+    if not path:
+        return
+    counts = dict.fromkeys(["pass", "partial", "blocked", "unsupported", "fail"], 0)
+    for status in final.values():
+        counts[status] += 1
+    counts["total"] = len(final)
+    features = [{"id": fid, "status": st, "reason": reasons.get(fid, "")} for fid, st in final.items()]
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({"schema": 1, "counts": counts, "coverage": line, "features": features}, f, indent=1)
+        f.write("\n")
 
-    password = os.environ.get("METABASE_ADMIN_PASSWORD")
-    if not password:
-        raise SystemExit("set METABASE_ADMIN_PASSWORD")
 
+def run_suite(args):
     features = load_features()
     ids = [f["id"] for f in features]
     if len(ids) != len(set(ids)):
-        raise SystemExit("duplicate ids in features.yaml")
-    unknown = sorted({f["check"] for f in features if f.get("check")} - set(CHECKS))
-    if unknown:
-        raise SystemExit("features.yaml names unknown checks: %s" % unknown)
+        raise ValueError("duplicate ids in features.yaml")
     orphans = sorted(set(CHECKS) - {f.get("check") for f in features})
     if orphans:
         print("warning: checks without an entry: %s" % orphans)
 
-    mb = Metabase(password, args.db_name)
+    mb = Metabase(os.environ.get("METABASE_ADMIN_PASSWORD"), args.db_name)
     setup_error = None
     try:
         mb.login()
@@ -1909,41 +1945,68 @@ def main():
         setup_error = str(e)
     ctx = Ctx(mb, Mcp(mb))
 
-    results = {}
+    final = {}
+    reasons = {}
     only = re.compile(args.only) if args.only else None
     for f in features:
-        if only and not only.search(f["id"]):
+        fid = f["id"]
+        if only and not only.search(fid):
             continue
         cid = f.get("check")
         if not cid:
-            results[f["id"]] = f["status"]
-            print("%-8s %s: %s" % (f["status"], f["id"], f.get("reason", "no check")))
+            final[fid] = f["status"]
+            reasons[fid] = f.get("reason", "no check")
+            print("%-8s %s: %s" % (final[fid], fid, reasons[fid]))
             continue
         try:
             if setup_error:
                 raise Fail(setup_error)
+            if cid not in CHECKS:
+                raise Fail("unknown check %s" % cid)
             CHECKS[cid](ctx)
         except Fail as e:
-            results[f["id"]] = "fail"
-            print("fail     %s: %s" % (f["id"], e))
+            final[fid], reasons[fid] = "fail", str(e)
         except Exception as e:  # a reply of an unexpected shape must not stop the run
-            results[f["id"]] = "fail"
-            print("fail     %s: unexpected %s: %s" % (f["id"], type(e).__name__, str(e)[:300]))
+            final[fid], reasons[fid] = "fail", "unexpected %s: %s" % (type(e).__name__, str(e)[:300])
             if args.verbose:
                 traceback.print_exc()
         else:
-            results[f["id"]] = "pass"
-            print("pass     %s" % f["id"])
+            final[fid] = "pass"
+        if final[fid] == "pass":
+            print("pass     %s" % fid)
+        else:
+            print("fail     %s: %s" % (fid, reasons[fid]))
 
     if not setup_error:
         mb.cleanup()
     if not args.no_write:
-        write_statuses(results)
+        write_statuses(final)
 
-    final = {f["id"]: results.get(f["id"], f["status"]) for f in features}
-    passed = sum(1 for s in final.values() if s == "pass")
-    print("coverage: %d/%d pass" % (passed, len(final)))
-    return 0
+    passed = sum(1 for st in final.values() if st == "pass")
+    line = "coverage: %d/%d pass" % (passed, len(final))
+    if args.only:
+        line += " (only %s)" % args.only
+    print(line)
+    report(args.json, final, reasons, line)
+    return 1 if "fail" in final.values() else 0
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Run the conformance suite.")
+    ap.add_argument("--only", help="run only the features whose id matches this regex")
+    ap.add_argument("--no-write", action="store_true", help="do not rewrite features.yaml")
+    ap.add_argument("--db-name", help="test the runner on a database with this name; results say nothing about the driver, so add --no-write")
+    ap.add_argument("--json", help="write the result contract to this path")
+    ap.add_argument("--verbose", action="store_true", help="print a stack trace for unexpected errors")
+    args = ap.parse_args()
+    try:
+        return run_suite(args)
+    except Exception as e:  # CI reads only the JSON, so a crash must also leave one
+        line = "coverage: 0/0 pass (runner error: %s: %s)" % (type(e).__name__, e)
+        print(line)
+        traceback.print_exc()
+        report(args.json, {"runner": "fail"}, {"runner": line}, line)
+        return 2
 
 
 if __name__ == "__main__":

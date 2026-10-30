@@ -14,16 +14,21 @@ METABASE_ADMIN_PASSWORD=... python3 conformance/run.py
 | --- | --- |
 | `--only REGEX` | Run only the matching feature ids. |
 | `--no-write` | Do not change `features.yaml`. |
+| `--json PATH` | Write the result contract to this path. The runner also writes it when checks fail. |
 | `--db-name NAME` | Use another database to test the runner. The result says nothing about the driver. Use it with `--no-write`. |
 
 | Environment variable | Default |
 | --- | --- |
-| `METABASE_ADMIN_PASSWORD` | Required. |
+| `METABASE_ADMIN_PASSWORD` | Required if Metabase has an admin. |
 | `METABASE_ADMIN_EMAIL` | `admin@example.com` |
 | `METABASE_URL` | `http://127.0.0.1:3300` |
 | `CUBE_REST_URL` | `http://127.0.0.1:4400` |
+| `CUBE_SQL_HOST`, `CUBE_SQL_PORT` | `cube`, `15432`. Metabase uses this address. |
+| `CUBE_REST_INTERNAL_URL` | `http://cube:4000`. Metabase uses this address. |
 
-If Metabase has no admin user, the runner creates one with these credentials.
+If Metabase has no admin, the runner creates one and connects the Cube database. It generates a random password if `METABASE_ADMIN_PASSWORD` is not set.
+
+The exit code is 0 if no check failed. It is 1 if a check failed and 2 if the runner failed.
 
 ## Result
 
@@ -31,7 +36,7 @@ The runner prints one line per feature and then `coverage: N/M pass`. `M` counts
 
 | Status | Meaning |
 | --- | --- |
-| `todo` | The check did not run yet. |
+| `todo` | The check did not run yet. This status occurs only in `features.yaml`. |
 | `pass` | The check ran and the value is equal to the SQL truth. |
 | `fail` | The check ran and a value, a member or the Cube database is missing or wrong. |
 | `blocked` | The entry has no check. The `reason` tells what is necessary. |
