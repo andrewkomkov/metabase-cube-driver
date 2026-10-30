@@ -229,8 +229,8 @@
        "A measure already has its aggregation in the data model: in execute_query write [\"measure\", {}, <measure id>] in "
        "aggregation, with the table of the measure as source-table, and do not sum or count its column again. "
        "A segment is a filter: write [\"segment\", {}, <segment id>] in filters. "
-       "A column of a joined table is [\"field\", {\"source-field\": <foreign key field id>}, <field id>], and related_tables "
-       "in get_fields gives these ids. "
+       "A column of a table in related_tables works directly as [\"field\", {}, <field id>], and get_fields of that table "
+       "gives the id. "
        "In execute_sql write MEASURE(name) with GROUP BY, and read a joined cube with "
        "FROM a CROSS JOIN b WHERE a.__cubeJoinField = b.__cubeJoinField."))
 

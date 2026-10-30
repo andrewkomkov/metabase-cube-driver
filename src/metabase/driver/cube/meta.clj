@@ -269,7 +269,7 @@
 (defn- joins-line
   [cube]
   (when-let [joins (seq (:joins cube))]
-    (str "Joins: " (str/join ", " (map :name joins)) ".")))
+    (str "Joins: " (str/join ", " (distinct (map :name joins))) ".")))
 
 (defn cube-description
   "The description of a cube or view, followed by what Metabase has no object for: hierarchies, folders, view groups

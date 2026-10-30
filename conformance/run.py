@@ -39,7 +39,7 @@ CUBE_DB_DETAILS = {
     "user": "cube",
     "password": "cube-dev-only",
     "cube-rest-url": os.environ.get("CUBE_REST_INTERNAL_URL", "http://cube:4000"),
-    "cube-api-secret": "cube-dev-only-secret-0123456789abcdef",
+    "cube-api-secret-value": "cube-dev-only-secret-0123456789abcdef",
     "ssl": False,
 }
 
@@ -3351,6 +3351,586 @@ def report(path, final, reasons, line):
         f.write("\n")
 
 
+# ----- The agent path: each check uses MCP tools only to find ids and to run the query. See docs/agents.md.
+
+
+def cube_database(ctx):
+    for d in ctx.mcp.call("browse_data", action="list_databases")["data"]:
+        if d["engine"] == "cube" and d["id"] == ctx.mb.need_db():
+            return d
+    raise Fail("list_databases does not list the Cube database")
+
+
+def agent_table(ctx, name, *keywords):
+    """Find a table with search, as an agent does, from the words of the question."""
+    hits = ctx.mcp.call("search", term_queries=list(keywords), type=["table"], limit=50)["data"]
+    found = [h for h in hits if h["name"] == name]
+    if not found:
+        raise Fail("search %s does not find table %s: %s" % (keywords, name, [h["name"] for h in hits][:10]))
+    return get_fields_table(ctx, found[0]["id"]), found[0]
+
+
+def by_title(items, title):
+    found = [i for i in items if title in (i["name"], i.get("display_name"))]
+    if not found:
+        raise Fail("no %s in %s" % (title, [i.get("display_name", i["name"]) for i in items]))
+    return found[0]
+
+
+def agent_query(tid, **stage):
+    return mcp_stage(tid, **stage)
+
+
+REV_BY_CITY = "SELECT u.city, sum(o.amount) FROM orders o JOIN users u ON o.user_id = u.id GROUP BY u.city"
+
+
+@check("mcp.agent.list_tables_without_schema")
+def _(ctx):
+    res = ctx.mcp.call("browse_data", action="list_tables", database_id=cube_database(ctx)["id"], limit=100)["data"]
+    names = {t["name"] for t in res}
+    if not {"orders", "users", "sales"} <= names:
+        raise Fail("list_tables with no schema: %s" % sorted(names))
+    tid = [t["id"] for t in res if t["name"] == "users"][0]
+    mid = by_title(get_fields_table(ctx, tid)["measures"], "Customer count")["id"]
+    assert_rows(ctx.mcp.call("execute_query", query=agent_query(tid, aggregation=[["measure", {}, mid]]))["rows"], ch(CNT_U))
+
+
+@check("mcp.agent.find_revenue_by_city")
+def _(ctx):
+    table, hit = agent_table(ctx, "sales", "revenue", "city")
+    for word in ("Revenue", "Users City"):
+        if word not in hit.get("description", ""):
+            raise Fail("the search result does not list %s: %r" % (word, hit.get("description")))
+    query = agent_query(table["id"], aggregation=[["measure", {}, by_title(table["measures"], "Revenue")["id"]]],
+                        breakout=[["field", {}, by_title(table["fields"], "Users City")["id"]]])
+    assert_rows(ctx.mcp.call("execute_query", query=query)["rows"], ch(REV_BY_CITY))
+
+
+@check("mcp.agent.search_names_owner_of_measure")
+def _(ctx):
+    hits = ctx.mcp.call("search", term_queries=["Revenue"], type=["measure"], limit=50)["data"]
+    for hit in hits:
+        m = re.search(r"Table: .* \((\w+), id (\d+)\)\.", hit.get("description") or "")
+        if not m:
+            raise Fail("the search result of measure %s does not name its table: %r" % (hit["id"], hit.get("description")))
+        if m.group(1) == "orders" and hit["name"] == "Revenue":
+            query = agent_query(int(m.group(2)), aggregation=[["measure", {}, hit["id"]]])
+            assert_rows(ctx.mcp.call("execute_query", query=query)["rows"], ch(REV))
+            return
+    raise Fail("search for Revenue does not find the measure of orders")
+
+
+@check("mcp.agent.find_segment_owner")
+def _(ctx):
+    hits = ctx.mcp.call("search", term_queries=["Paid"], type=["segment"], limit=50)["data"]
+    for hit in hits:
+        m = re.search(r"Table: .* \((\w+), id (\d+)\)\.", hit.get("description") or "")
+        if m and m.group(1) == "orders":
+            query = agent_query(int(m.group(2)), aggregation=[["count", {}]], filters=[["segment", {}, hit["id"]]])
+            assert_rows(ctx.mcp.call("execute_query", query=query)["rows"], ch("SELECT count() FROM orders WHERE %s" % PAID))
+            return
+    raise Fail("no segment of orders names its table: %s" % [h.get("description") for h in hits][:5])
+
+
+@check("mcp.agent.table_description_lists_members")
+def _(ctx):
+    hits = ctx.mcp.call("browse_data", action="list_tables", database_id=ctx.mb.need_db(), search="orders", limit=100)["data"]
+    text = [h for h in hits if h["name"] == "orders"][0]["description"]
+    for want in ("Measures: ", "Revenue", "Dimensions: ", "Segments: ", "Joins: users"):
+        if want not in text:
+            raise Fail("the description of orders has no %r: %r" % (want, text[:400]))
+    if "Internal Note" in text or "internal_note" in text:
+        raise Fail("the description lists a private member")
+    mcp_rows(ctx, ORD, REV, agg=["m:orders.revenue"])
+
+
+@check("mcp.agent.database_guidance_works")
+def _(ctx):
+    """Each form in the description of the database must run and give the truth."""
+    text = cube_database(ctx)["description"] or ""
+    for want in ('["measure", {}, <measure id>]', '["segment", {}, <segment id>]', '["field", {}, <field id>]', "MEASURE(name)", "__cubeJoinField"):
+        if want not in text:
+            raise Fail("the guidance has no %s: %r" % (want, text[:300]))
+    orders = get_fields_table(ctx, [t["id"] for t in ctx.mcp.call("browse_data", action="list_tables", database_id=ctx.mb.need_db(), search="orders", limit=100)["data"] if t["name"] == "orders"][0])
+    users = get_fields_table(ctx, by_title(orders["related_tables"], "users")["id"])
+    query = agent_query(orders["id"], aggregation=[["measure", {}, by_title(orders["measures"], "Revenue")["id"]]],
+                        breakout=[["field", {}, by_title(users["fields"], "city")["id"]]])
+    assert_rows(ctx.mcp.call("execute_query", query=query)["rows"], ch(REV_BY_CITY))
+    sql = "SELECT b.city, MEASURE(a.revenue) FROM orders a CROSS JOIN users b WHERE a.__cubeJoinField = b.__cubeJoinField GROUP BY 1"
+    assert_rows(ctx.mcp.call("execute_sql", database_id=ctx.mb.need_db(), sql=sql)["rows"], ch(REV_BY_CITY))
+
+
+@check("mcp.agent.question_from_measure")
+def _(ctx):
+    table, _hit = agent_table(ctx, "sales", "revenue", "city")
+    query = agent_query(table["id"], aggregation=[["measure", {}, by_title(table["measures"], "Revenue")["id"]]],
+                        breakout=[["field", {}, by_title(table["fields"], "Users City")["id"]]])
+    handle = ctx.mcp.call("execute_query", query=query)["query_handle"]
+    res = ctx.mcp.call("question_write", method="create", name="conformance agent revenue by city", query_handle=handle, collection_id=ctx.mb.collection())
+    assert_rows(ctx.mcp.call("run_saved_question", id=deep_find(res, "id"))["rows"], ch(REV_BY_CITY))
+
+
+def agent_dashboard(ctx):
+    table, _hit = agent_table(ctx, "sales", "revenue", "city")
+    city = by_title(table["fields"], "Users City")["id"]
+    query = agent_query(table["id"], aggregation=[["measure", {}, by_title(table["measures"], "Revenue")["id"]]])
+    card = deep_find(ctx.mcp.call("question_write", method="create", name="conformance agent revenue", query=query, collection_id=ctx.mb.collection()), "id")
+    res = ctx.mcp.call("dashboard_write", method="create", name="conformance agent dash", collection_id=ctx.mb.collection(), ops=[
+        {"op": "add_card", "id": -1, "card_id": card, "tab": None, "position": None, "size": None, "series": None, "inline_parameters": None},
+        {"op": "add_parameter", "parameter_id": "city", "name": "City", "type": "string/=", "sectionId": "location"},
+        {"op": "wire_parameter", "parameter_id": "city", "dashcard_id": -1, "target_field": city},
+    ])
+    return deep_find(res, "id")
+
+
+@check("mcp.agent.dashboard_wired_filter")
+def _(ctx):
+    dash = ctx.mb.api("GET", "/api/dashboard/%d" % agent_dashboard(ctx))
+    target = dash["dashcards"][0]["parameter_mappings"][0]["target"]
+    rows = ctx.mb.run_dashcard(dash, 0, [{"id": "city", "type": "string/=", "value": ["Boston"], "target": target}])["rows"]
+    assert_rows(rows, ch("SELECT sum(o.amount) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.city = 'Boston'"))
+
+
+@check("mcp.agent.filter_values")
+def _(ctx):
+    res = ctx.mcp.call("get_parameter_values", target="dashboard", id=agent_dashboard(ctx), parameter_id="city")
+    assert_rows(parameter_values(res), ch("SELECT DISTINCT city FROM users"))
+
+
+def agent_error(ctx, sql):
+    res = ctx.mcp.rpc("tools/call", {"name": "execute_sql", "arguments": {"database_id": ctx.mb.need_db(), "sql": sql}})
+    if not res.get("isError"):
+        raise Fail("no error for %s" % sql)
+    return (res.get("content") or [{}])[0].get("text", "")
+
+
+@check("mcp.agent.error_unknown_column")
+def _(ctx):
+    text = agent_error(ctx, "SELECT city, MEASURE(revenue) FROM orders GROUP BY 1")
+    for want in ("browse_data", "get_fields", "__cubeJoinField"):
+        if want not in text:
+            raise Fail("the error does not tell the next step (%s): %s" % (want, text[:300]))
+    # The next step in the error must work.
+    sql = "SELECT b.city, MEASURE(a.revenue) FROM orders a CROSS JOIN users b WHERE a.__cubeJoinField = b.__cubeJoinField GROUP BY 1"
+    assert_rows(ctx.mcp.call("execute_sql", database_id=ctx.mb.need_db(), sql=sql)["rows"], ch(REV_BY_CITY))
+
+
+@check("mcp.agent.error_join_on")
+def _(ctx):
+    text = agent_error(ctx, "SELECT u.city, MEASURE(o.revenue) FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1")
+    if "CROSS JOIN" not in text or "__cubeJoinField" not in text:
+        raise Fail("the error does not show the join form of Cube: %s" % text[:300])
+
+
+# ----- Per-person data. The second Cube in dev/cube-secure has a row-level rule. See docs/security.md.
+
+SECURE_PASSWORD = "cube-secure-dev-only"
+SECURE_API_SECRET = "cube-secure-dev-only-secret-0123456789"
+SECURE_DETAILS = {
+    "host": os.environ.get("CUBE_SECURE_SQL_HOST", "cube-secure"),
+    "port": int(os.environ.get("CUBE_SECURE_SQL_PORT", "15432")),
+    "dbname": "cube",
+    "user": "metabase",
+    "password": SECURE_PASSWORD,
+    "cube-rest-url": os.environ.get("CUBE_SECURE_REST_INTERNAL_URL", "http://cube-secure:4000"),
+    "cube-api-secret-value": SECURE_API_SECRET,
+    "ssl": False,
+    "cube-user-attribute": "email",
+}
+SECURE_DB = "Cube secure conformance"
+ATTRIBUTE_DB = "Cube secure conformance attribute"
+PERSON_PASSWORD = "Conformance-person-1"
+CITY_OF = {"alice@example.com": "Austin", "bob@example.com": "Boston"}
+
+
+def city_rev(city):
+    return ch("SELECT u.city, sum(o.amount) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.city = '%s' GROUP BY u.city" % city)
+
+
+def city_scalar(expr, city):
+    return ch("SELECT %s FROM orders o JOIN users u ON o.user_id = u.id WHERE u.city = '%s'" % (expr, city))
+
+
+class Secure:
+    """Databases on the second Cube, and people. The suite removes the databases at the end."""
+
+    def __init__(self, ctx):
+        self.admin = ctx.mb
+        self.people = {}
+        self.dbs = {}
+        self.error = None
+
+    def create_db(self, name, details):
+        old = [d for d in self.admin.api("GET", "/api/database")["data"] if d["name"] == name]
+        for d in old:
+            self.admin.api("DELETE", "/api/database/%d" % d["id"])
+        db = self.admin.api("POST", "/api/database", {"engine": "cube", "name": name, "details": details})
+        deadline = time.time() + 240
+        while self.admin.api("GET", "/api/database/%d" % db["id"]).get("initial_sync_status") != "complete":
+            if time.time() > deadline:
+                raise Fail("first sync of %s did not end" % name)
+            time.sleep(2)
+        while not [m for m in self.admin.api("GET", "/api/measure") if m["name"] == "Revenue" and m["table_id"] in
+                   [t["id"] for t in self.admin.api("GET", "/api/database/%d/metadata" % db["id"])["tables"]]]:
+            if time.time() > deadline:
+                raise Fail("the measures of %s did not appear" % name)
+            time.sleep(2)
+        self.dbs[name] = db["id"]
+        return db["id"]
+
+    def ensure_db(self, name=SECURE_DB, details=None):
+        if name not in self.dbs:
+            self.create_db(name, details or SECURE_DETAILS)
+        return self.dbs[name]
+
+    def person(self, email, name=SECURE_DB, attributes=None):
+        self.ensure_db(name)
+        key = (email, name)
+        if key not in self.people:
+            users = self.admin.api("GET", "/api/user?query=%s" % urllib.parse.quote(email))["data"]
+            if users:
+                uid = users[0]["id"]
+                self.admin.api("PUT", "/api/user/%d/password" % uid, {"password": PERSON_PASSWORD})
+            else:
+                uid = self.admin.api("POST", "/api/user", {"email": email, "first_name": email.split("@")[0], "last_name": "Conformance", "password": PERSON_PASSWORD})["id"]
+            if attributes is not None:
+                self.admin.api("PUT", "/api/user/%d" % uid, {"login_attributes": attributes})
+            mb = Metabase(PERSON_PASSWORD, name)
+            mb.sid = mb.api("POST", "/api/session", {"username": email, "password": PERSON_PASSWORD})["id"]
+            mb.discover()
+            if mb.db is None:
+                raise Fail("%s does not see database %s: %s" % (email, name, mb.db_error))
+            mb.collection_id = self.admin.collection()
+            self.people[key] = mb
+        return self.people[key]
+
+    def admin_view(self, name=SECURE_DB):
+        return self.person(ADMIN_EMAIL, name) if ADMIN_EMAIL != "admin@example.com" else self._admin(name)
+
+    def _admin(self, name):
+        self.ensure_db(name)
+        mb = Metabase(self.admin.password, name)
+        mb.sid = self.admin.sid
+        mb.discover()
+        mb.collection_id = self.admin.collection()
+        return mb
+
+    def cleanup(self):
+        for db_id in self.dbs.values():
+            try:
+                self.admin.api("DELETE", "/api/database/%d" % db_id)
+            except Fail as e:
+                print("warning: could not remove database %s: %s" % (db_id, e))
+        self.dbs = {}
+
+
+def secure(ctx):
+    if not getattr(ctx, "secure", None):
+        ctx.secure = Secure(ctx)
+    return ctx.secure
+
+
+def expect_failure(run, *fragments):
+    """The call must fail, and no row may come back."""
+    try:
+        data = run()
+    except Fail as e:
+        text = str(e)
+    else:
+        raise Fail("no error, the rows are %s" % str(data.get("rows") if isinstance(data, dict) else data)[:200])
+    if fragments and not any(f in text for f in fragments):
+        raise Fail("the error does not say why: %s" % text[:300])
+
+
+@check("security.security_context_row_filter")
+def _(ctx):
+    sec = secure(ctx)
+    for email, city in CITY_OF.items():
+        rows = sec.person(email).mbql("sales", agg=["m:sales.revenue"], by=["d:sales.users_city"])["rows"]
+        assert_rows(rows, city_rev(city), label=email)
+    assert_rows(sec._admin(SECURE_DB).mbql("sales", agg=["m:sales.revenue"], by=["d:sales.users_city"])["rows"], ch(REV_BY_CITY), label="admin")
+
+
+@check("security.row_filter.measure_with_no_dimension")
+def _(ctx):
+    for email, city in CITY_OF.items():
+        rows = secure(ctx).person(email).mbql("orders", agg=["m:orders.count", "m:orders.revenue"])["rows"]
+        assert_rows(rows, city_scalar("count(), sum(o.amount)", city), label=email)
+
+
+@check("security.row_filter.native")
+def _(ctx):
+    for email, city in CITY_OF.items():
+        rows = secure(ctx).person(email).native("SELECT status, MEASURE(count) AS n FROM orders GROUP BY 1")["rows"]
+        assert_rows(rows, ch("SELECT o.status, count() FROM orders o JOIN users u ON o.user_id = u.id WHERE u.city = '%s' GROUP BY 1" % city), label=email)
+
+
+@check("security.row_filter.push_down")
+def _(ctx):
+    """DATEDIFF goes to SQL push-down, so the rule must apply there too. Raw rows also."""
+    sql = "SELECT DATEDIFF('year', created_at, DATE '2026-01-01') AS d, MEASURE(count) AS n FROM orders GROUP BY 1"
+    truth = "SELECT dateDiff('year', o.created_at, toDate('2026-01-01')), count() FROM orders o JOIN users u ON o.user_id = u.id WHERE u.city = '%s' GROUP BY 1"
+    for email, city in CITY_OF.items():
+        assert_rows(secure(ctx).person(email).native(sql)["rows"], ch(truth % city), label=email)
+    rows = secure(ctx).person("bob@example.com").native("SELECT SUM(amount_dim) FROM orders")["rows"]
+    assert_rows(rows, city_scalar("sum(o.amount)", "Boston"), label="post-processing")
+
+
+@check("security.row_filter.mcp")
+def _(ctx):
+    for email, city in CITY_OF.items():
+        person = secure(ctx).person(email)
+        mcp = Mcp(person)
+        tid = person.table("sales")["id"]
+        table = get_fields_table(Ctx(person, mcp), tid)
+        query = mcp_stage(tid, aggregation=[["measure", {}, by_title(table["measures"], "Revenue")["id"]]],
+                          breakout=[["field", {}, by_title(table["fields"], "Users City")["id"]]])
+        assert_rows(mcp.call("execute_query", query=query)["rows"], city_rev(city), label=email)
+        assert_rows(mcp.call("execute_sql", database_id=person.db, sql="SELECT users_city, MEASURE(revenue) FROM sales GROUP BY 1")["rows"], city_rev(city), label=email + " sql")
+
+
+@check("security.row_filter.saved_question")
+def _(ctx):
+    sec = secure(ctx)
+    card = sec._admin(SECURE_DB).mbql_card("per person", "sales", agg=["m:sales.revenue"], by=["d:sales.users_city"])
+    for email, city in CITY_OF.items():
+        assert_rows(sec.person(email).run_card(card["id"])["rows"], city_rev(city), label=email)
+
+
+@check("security.row_filter.filter_values")
+def _(ctx):
+    """Metabase keeps one list of values per field, so with per-person data it must keep none."""
+    sec = secure(ctx)
+    admin = sec._admin(SECURE_DB)
+    card = admin.mbql_card("values", "sales", agg=["m:sales.revenue"])
+    field = admin.field("sales", "users_city")
+    dash = admin.api("POST", "/api/dashboard", {"name": "conformance values", "collection_id": admin.collection()})
+    admin.api("PUT", "/api/dashboard/%d" % dash["id"], {
+        "parameters": [{"id": "city", "slug": "city", "name": "City", "type": "string/="}],
+        "dashcards": [{"id": -1, "card_id": card["id"], "row": 0, "col": 0, "size_x": 6, "size_y": 4,
+                       "parameter_mappings": [{"parameter_id": "city", "card_id": card["id"], "target": ["dimension", ["field", field["id"], None]]}]}]})
+    stored = admin.api("GET", "/api/field/%d/values" % field["id"]).get("values")
+    if stored:
+        raise Fail("Metabase stores values of a per-person field: %s" % stored)
+    for email, city in CITY_OF.items():
+        person = sec.person(email)
+        res = Mcp(person).call("get_parameter_values", target="dashboard", id=dash["id"], parameter_id="city", query="o")
+        values = sorted(v[0] if isinstance(v, list) else v for v in (res.get("values") or res.get("data") or []))
+        want = sorted(r[0] for r in ch("SELECT DISTINCT city FROM users WHERE city = '%s' AND city LIKE '%%o%%'" % city))
+        if values != want:
+            raise Fail("%s sees filter values %s, want %s" % (email, values, want))
+
+
+@check("security.row_filter.no_fingerprint_of_all_rows")
+def _(ctx):
+    sec = secure(ctx)
+    admin = sec._admin(SECURE_DB)
+    field = admin.field("orders", "amount_dim")
+    fp = admin.api("GET", "/api/field/%d" % field["id"]).get("fingerprint") or {}
+    number = ((fp.get("type") or {}).get("type/Number") or {})
+    if number.get("max") is not None or number.get("avg") is not None:
+        raise Fail("the fingerprint has values of all rows: %s" % fp)
+    assert_rows(sec.person("alice@example.com").mbql("orders", agg=["m:orders.count"])["rows"], city_scalar("count()", "Austin"))
+
+
+@check("security.no_switch.native_user_filter")
+def _(ctx):
+    person = secure(ctx).person("alice@example.com")
+    for target in ("admin@example.com", "metabase", "bob@example.com"):
+        sql = "SELECT users_city, MEASURE(revenue) FROM sales WHERE __user = '%s' GROUP BY 1" % target
+        expect_failure(lambda: person.native(sql), "another person")
+    assert_rows(person.native("SELECT users_city, MEASURE(revenue) FROM sales GROUP BY 1")["rows"], city_rev("Austin"))
+
+
+@check("security.no_switch.native_set_user")
+def _(ctx):
+    person = secure(ctx).person("alice@example.com")
+    for sql in ("SET user = 'admin@example.com'", "SET ROLE 'admin@example.com'",
+                "SET user = 'admin@example.com'; SELECT users_city, MEASURE(revenue) FROM sales GROUP BY 1"):
+        try:
+            rows = person.native(sql).get("rows") or []
+        except Fail:
+            rows = []
+        if len(rows) > 1:
+            raise Fail("%s gives rows of more than one city: %s" % (sql, rows))
+    assert_rows(person.native("SELECT users_city, MEASURE(revenue) FROM sales GROUP BY 1")["rows"], city_rev("Austin"))
+
+
+@check("security.no_mixing_of_people")
+def _(ctx):
+    """Requests of two people run in turns and at the same time, and each one gets the rows of that person."""
+    import concurrent.futures
+    sec = secure(ctx)
+    people = [(e, sec.person(e)) for e in CITY_OF]
+
+    def one(item):
+        email, person = item
+        return email, person.mbql("sales", agg=["m:sales.count"], by=["d:sales.users_city"])["rows"]
+    with concurrent.futures.ThreadPoolExecutor(8) as pool:
+        for email, rows in pool.map(one, people * 12):
+            if [r[0] for r in rows] != [CITY_OF[email]]:
+                raise Fail("%s got %s" % (email, rows))
+    for email, city in CITY_OF.items():
+        assert_rows(sec.person(email).mbql("sales", agg=["m:sales.revenue"], by=["d:sales.users_city"])["rows"], city_rev(city))
+
+
+@check("security.unknown_person_fails")
+def _(ctx):
+    person = secure(ctx).person("carol@example.com")
+    expect_failure(lambda: person.mbql("orders", agg=["m:orders.count"]), "checkSqlAuth", "refused")
+
+
+@check("security.user_attribute")
+def _(ctx):
+    sec = secure(ctx)
+    sec.ensure_db(ATTRIBUTE_DB, dict(SECURE_DETAILS, **{"cube-user-attribute": "cube_user"}))
+    person = sec.person("dana@example.com", ATTRIBUTE_DB, attributes={"cube_user": "tenant-seattle"})
+    assert_rows(person.mbql("sales", agg=["m:sales.revenue"], by=["d:sales.users_city"])["rows"], city_rev("Seattle"))
+    other = sec.person("erin@example.com", ATTRIBUTE_DB)
+    expect_failure(lambda: other.mbql("sales", agg=["m:sales.revenue"]), "no value for the attribute")
+
+
+@check("security.public_link_fails")
+def _(ctx):
+    sec = secure(ctx)
+    admin = sec._admin(SECURE_DB)
+    card = admin.mbql_card("public", "sales", agg=["m:sales.revenue"], by=["d:sales.users_city"])
+    before = admin.api("GET", "/api/setting/enable-public-sharing")
+    admin.api("PUT", "/api/setting/enable-public-sharing", {"value": True})
+    try:
+        uuid = admin.api("POST", "/api/card/%d/public_link" % card["id"])["uuid"]
+        status, text, _h = http("GET", MB + "/api/public/card/%s/query" % uuid)
+        try:
+            data = json.loads(text)
+        except ValueError:
+            data = {}
+        rows = (data.get("data") or {}).get("rows") or []
+        if rows:
+            raise Fail("a public link shows rows with no person: %s" % rows)
+        if "signed-in person" not in text:
+            raise Fail("HTTP %s, the error does not say why: %s" % (status, text[:300]))
+    finally:
+        admin.api("PUT", "/api/setting/enable-public-sharing", {"value": before})
+
+
+@check("security.compile_context")
+def _(ctx):
+    sec = secure(ctx)
+    rows = sec.person("alice@example.com").native("SELECT email FROM users ORDER BY email LIMIT 1")["rows"]
+    if rows != [["hidden"]]:
+        raise Fail("alice reads %s" % rows)
+    rows = sec._admin(SECURE_DB).native("SELECT email FROM users ORDER BY email LIMIT 1")["rows"]
+    assert_rows(rows, ch("SELECT email FROM users ORDER BY email LIMIT 1"), label="admin")
+
+
+@check("security.access_policy_groups")
+def _(ctx):
+    sec = secure(ctx)
+    sql = "SELECT users_city, MEASURE(revenue) FROM analyst_sales GROUP BY 1"
+    assert_rows(sec.person("alice@example.com").native(sql)["rows"], city_rev("Austin"), label="analyst")
+    try:
+        rows = sec.person("bob@example.com").native(sql)["rows"]
+    except Fail:
+        rows = []
+    if rows:
+        raise Fail("a person outside the group reads %s" % rows)
+    if "analyst_sales" not in sec._admin(SECURE_DB).tables:
+        raise Fail("sync does not find the view: the context of the connection user has no effect on the REST API")
+
+
+def secret_values():
+    return [SECURE_API_SECRET, SECURE_PASSWORD]
+
+
+def assert_no_secret(text, where):
+    for value in secret_values():
+        if value in text:
+            raise Fail("%s shows a secret value" % where)
+
+
+@check("security.secret.not_in_api")
+def _(ctx):
+    sec = secure(ctx)
+    admin = sec._admin(SECURE_DB)
+    db = sec.ensure_db()
+    for path in ("/api/database/%d" % db, "/api/database", "/api/database/%d/metadata" % db, "/api/database?include=tables",
+                 "/api/database/%d/fields" % db, "/api/setting", "/api/session/properties"):
+        assert_no_secret(json.dumps(admin.api("GET", path)), "admin GET " + path)
+    person = sec.person("alice@example.com")
+    for path in ("/api/database/%d" % db, "/api/database", "/api/database/%d/metadata" % db):
+        assert_no_secret(json.dumps(person.api("GET", path)), "person GET " + path)
+    details = admin.api("GET", "/api/database/%d" % db).get("details") or {}
+    if details.get("password") != "**MetabasePass**":
+        raise Fail("the password in the API is %r" % str(details.get("password"))[:4])
+    mcp = Mcp(admin)
+    for tool, args in (("browse_data", {"action": "list_databases", "response_format": "detailed"}),
+                       ("get_content", {"items": [{"type": "database", "id": db}]}),
+                       ("search", {"term_queries": ["secure"], "type": ["database"]})):
+        res = mcp.rpc("tools/call", {"name": tool, "arguments": args})
+        assert_no_secret(json.dumps(res), "MCP " + tool)
+    assert_rows(person.mbql("orders", agg=["m:orders.count"])["rows"], city_scalar("count()", "Austin"))
+
+
+@check("security.secret.rest_requires_it")
+def _(ctx):
+    """The driver signs its REST requests with the secret: a wrong secret must make the connection fail."""
+    sec = secure(ctx)
+    bad = dict(SECURE_DETAILS, **{"cube-api-secret-value": "wrong-secret-wrong-secret-wrong-secret"})
+    status, text, _h = http("POST", MB + "/api/database", {"engine": "cube", "name": "conformance bad secret", "details": bad},
+                            {"X-Metabase-Session": sec.admin.sid})
+    if status < 400:
+        created = json.loads(text)
+        sec.admin.api("DELETE", "/api/database/%d" % created["id"])
+        raise Fail("a wrong API secret connects")
+    assert_no_secret(text, "the error for a wrong secret")
+    if "wrong-secret-wrong-secret" in text:
+        raise Fail("the error shows the secret that was sent")
+    assert_rows(sec.person("bob@example.com").mbql("orders", agg=["m:orders.count"])["rows"], city_scalar("count()", "Boston"))
+
+
+@check("security.secret.not_in_logs")
+def _(ctx):
+    sec = secure(ctx)
+    bad = dict(SECURE_DETAILS, **{"password": "wrong-sql-password-for-log-check"})
+    http("POST", MB + "/api/database", {"engine": "cube", "name": "conformance bad password", "details": bad}, {"X-Metabase-Session": sec.admin.sid})
+    bad = dict(SECURE_DETAILS, **{"cube-rest-url": "http://cube-secure:1"})
+    http("POST", MB + "/api/database", {"engine": "cube", "name": "conformance bad url", "details": bad}, {"X-Metabase-Session": sec.admin.sid})
+    sec.person("carol@example.com")
+    try:
+        sec.person("carol@example.com").mbql("orders", agg=["m:orders.count"])
+    except Fail:
+        pass
+    container = os.environ.get("METABASE_CONTAINER", "metabase-cube-driver-metabase-1")
+    out = subprocess.run(["docker", "logs", container], capture_output=True, text=True, timeout=120)
+    if out.returncode != 0:
+        raise Fail("docker logs %s: %s" % (container, out.stderr[:200]))
+    log = out.stdout + out.stderr
+    if "Cube" not in log and "cube" not in log:
+        raise Fail("the log has no text about Cube, so this is the wrong container")
+    assert_no_secret(log, "the Metabase log")
+    if "wrong-sql-password-for-log-check" in log:
+        raise Fail("the Metabase log shows a password that was sent")
+    if re.search(r"eyJhbGciOi[\w-]+\.[\w-]+\.[\w-]+", log):
+        raise Fail("the Metabase log shows a JWT")
+    assert_rows(sec.person("alice@example.com").mbql("orders", agg=["m:orders.count"])["rows"], city_scalar("count()", "Austin"))
+
+
+@check("security.metabase_cache")
+def _(ctx):
+    """Metabase makes the cache key from the query, with no person. A cached result must not reach another person."""
+    sec = secure(ctx)
+    admin = sec._admin(SECURE_DB)
+    card = admin.mbql_card("cache", "sales", agg=["m:sales.revenue"], by=["d:sales.users_city"])
+    admin.api("PUT", "/api/cache", {"model": "root", "model_id": 0, "strategy": {"type": "duration", "duration": 1, "unit": "hours", "refresh_automatically": False}})
+    try:
+        for email in ("alice@example.com", "bob@example.com"):
+            for _i in range(2):
+                rows = sec.person(email).run_card(card["id"])["rows"]
+                assert_rows(rows, city_rev(CITY_OF[email]), label=email)
+    finally:
+        admin.api("DELETE", "/api/cache", {"model": "root", "model_ids": [0]})
+
+
 def run_suite(args):
     features = load_features()
     ids = [f["id"] for f in features]
@@ -3372,7 +3952,8 @@ def run_suite(args):
     final = {}
     reasons = {}
     only = re.compile(args.only) if args.only else None
-    for f in features:
+    # The security checks add databases to Metabase, so they run last. The other checks must not find those objects.
+    for f in sorted(features, key=lambda x: x["id"].startswith("security.")):
         fid = f["id"]
         if only and not only.search(fid):
             continue
@@ -3402,6 +3983,8 @@ def run_suite(args):
             print("fail     %s: %s" % (fid, reasons[fid]))
 
     if not setup_error:
+        if getattr(ctx, "secure", None):
+            ctx.secure.cleanup()
         mb.cleanup()
     if not args.no_write:
         write_statuses(final)

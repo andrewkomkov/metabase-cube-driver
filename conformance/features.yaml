@@ -574,23 +574,23 @@
 - id: security.access_policy_groups
   area: cube.security
   title: "security access policy groups"
-  status: blocked
-  reason: "Group policies need groups in the security context, so they need a cube.js. Policies for all groups are checked in view.access_*."
+  status: todo
+  check: security.access_policy_groups
 - id: security.compile_context
   area: cube.security
   title: "security compile context"
-  status: blocked
-  reason: "Needs a cube.js with contextToAppId and a mount in dev/docker-compose.yml. The stack mounts only the model."
+  status: todo
+  check: security.compile_context
 - id: security.security_context_row_filter
   area: cube.security
   title: "security security context row filter"
-  status: blocked
-  reason: "Needs a cube.js with checkSqlAuth and a mount in dev/docker-compose.yml. The driver must also pass a Metabase user attribute to Cube."
+  status: todo
+  check: security.security_context_row_filter
 - id: security.sql_user_impersonation
   area: cube.security
   title: "security sql user impersonation"
-  status: blocked
-  reason: "Needs CUBEJS_SQL_SUPER_USER and a virtual __user filter. The compose file sets no super user."
+  status: unsupported
+  reason: "The driver does not use CUBEJS_SQL_SUPER_USER, SET user or __user. A live test on Cube v1.8.15 shows that a session of the super user accepts __user from native SQL, so a person who writes SQL reads as anybody. SET user works in one direction, so a pool cannot give the connection back. The driver connects as the person instead. See docs/security.md."
 - id: view.access_member_level
   area: cube.views
   title: "view access member level"
@@ -3186,3 +3186,143 @@
   title: "native join field"
   status: pass
   check: compile.native.join_field
+- id: mcp.agent.list_tables_without_schema
+  area: mcp
+  title: "mcp agent list tables without schema"
+  status: todo
+  check: mcp.agent.list_tables_without_schema
+- id: mcp.agent.find_revenue_by_city
+  area: mcp
+  title: "mcp agent find revenue by city"
+  status: todo
+  check: mcp.agent.find_revenue_by_city
+- id: mcp.agent.search_names_owner_of_measure
+  area: mcp
+  title: "mcp agent search names owner of measure"
+  status: todo
+  check: mcp.agent.search_names_owner_of_measure
+- id: mcp.agent.find_segment_owner
+  area: mcp
+  title: "mcp agent find segment owner"
+  status: todo
+  check: mcp.agent.find_segment_owner
+- id: mcp.agent.table_description_lists_members
+  area: mcp
+  title: "mcp agent table description lists members"
+  status: todo
+  check: mcp.agent.table_description_lists_members
+- id: mcp.agent.database_guidance_works
+  area: mcp
+  title: "mcp agent database guidance works"
+  status: todo
+  check: mcp.agent.database_guidance_works
+- id: mcp.agent.question_from_measure
+  area: mcp
+  title: "mcp agent question from measure"
+  status: todo
+  check: mcp.agent.question_from_measure
+- id: mcp.agent.dashboard_wired_filter
+  area: mcp
+  title: "mcp agent dashboard wired filter"
+  status: todo
+  check: mcp.agent.dashboard_wired_filter
+- id: mcp.agent.filter_values
+  area: mcp
+  title: "mcp agent filter values"
+  status: todo
+  check: mcp.agent.filter_values
+- id: mcp.agent.error_unknown_column
+  area: mcp
+  title: "mcp agent error unknown column"
+  status: todo
+  check: mcp.agent.error_unknown_column
+- id: mcp.agent.error_join_on
+  area: mcp
+  title: "mcp agent error join on"
+  status: todo
+  check: mcp.agent.error_join_on
+- id: security.row_filter.measure_with_no_dimension
+  area: cube.security
+  title: "security row filter measure with no dimension"
+  status: todo
+  check: security.row_filter.measure_with_no_dimension
+- id: security.row_filter.native
+  area: cube.security
+  title: "security row filter native"
+  status: todo
+  check: security.row_filter.native
+- id: security.row_filter.push_down
+  area: cube.security
+  title: "security row filter push down"
+  status: todo
+  check: security.row_filter.push_down
+- id: security.row_filter.mcp
+  area: cube.security
+  title: "security row filter mcp"
+  status: todo
+  check: security.row_filter.mcp
+- id: security.row_filter.saved_question
+  area: cube.security
+  title: "security row filter saved question"
+  status: todo
+  check: security.row_filter.saved_question
+- id: security.row_filter.filter_values
+  area: cube.security
+  title: "security row filter filter values"
+  status: todo
+  check: security.row_filter.filter_values
+- id: security.row_filter.no_fingerprint_of_all_rows
+  area: cube.security
+  title: "security row filter no fingerprint of all rows"
+  status: todo
+  check: security.row_filter.no_fingerprint_of_all_rows
+- id: security.no_switch.native_user_filter
+  area: cube.security
+  title: "security no switch native user filter"
+  status: todo
+  check: security.no_switch.native_user_filter
+- id: security.no_switch.native_set_user
+  area: cube.security
+  title: "security no switch native set user"
+  status: todo
+  check: security.no_switch.native_set_user
+- id: security.no_mixing_of_people
+  area: cube.security
+  title: "security no mixing of people"
+  status: todo
+  check: security.no_mixing_of_people
+- id: security.unknown_person_fails
+  area: cube.security
+  title: "security unknown person fails"
+  status: todo
+  check: security.unknown_person_fails
+- id: security.user_attribute
+  area: cube.security
+  title: "security user attribute"
+  status: todo
+  check: security.user_attribute
+- id: security.public_link_fails
+  area: cube.security
+  title: "security public link fails"
+  status: todo
+  check: security.public_link_fails
+- id: security.secret.not_in_api
+  area: cube.security
+  title: "security secret not in api"
+  status: todo
+  check: security.secret.not_in_api
+- id: security.secret.rest_requires_it
+  area: cube.security
+  title: "security secret rest requires it"
+  status: todo
+  check: security.secret.rest_requires_it
+- id: security.secret.not_in_logs
+  area: cube.security
+  title: "security secret not in logs"
+  status: todo
+  check: security.secret.not_in_logs
+- id: security.metabase_cache
+  area: cube.security
+  title: "security metabase cache"
+  status: todo
+  check: security.metabase_cache
