@@ -431,14 +431,15 @@
 (defn- raw-select-item
   "A measure has no value for one row, and a segment column on the SQL API is always NULL. Cube fails an ungrouped
   query that selects a measure with an aggregate in its SQL or a multi-stage measure, and one such measure would break
-  the whole table view. So raw rows show NULL for these columns."
+  the whole table view. So raw rows show NULL for these columns, and for a geo dimension of a view, which Cube cannot read."
   [driver clause]
   (let [[compiled alias-form :as selected] (sql.qp/as driver clause)
         null-column (h2x/cast (physical-type (stored-field clause)) nil)]
     (when (and *raw-measures* alias-form (= :measure (member-kind clause)))
       (swap! *raw-measures* assoc alias-form compiled))
     (cond
-      (not (#{:measure :segment} (member-kind clause))) selected
+      (not (or (#{:measure :segment} (member-kind clause))
+               (= "cube.dimension/geo-in-view" (:database-type (stored-field clause))))) selected
       alias-form                                        [null-column alias-form]
       :else                                             [null-column])))
 

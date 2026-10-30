@@ -928,8 +928,26 @@ Q("dimension.type.geo.filter", "users", "SELECT count() FROM users WHERE latitud
   agg=["m:users.count"], where=[[">", GEO[0], 40], [">", GEO[1], -80]])
 Q("dimension.type.geo.implicit_join", ORD, "SELECT u.latitude, u.longitude, count() FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1, 2",
   agg=[["count"]], by=["d:orders>users.location__latitude", "d:orders>users.location__longitude"], post=expect_map_columns)
-Q("dimension.type.geo.view", "customer_locations", "SELECT latitude, longitude, count() FROM users GROUP BY 1, 2",
-  agg=["m:customer_locations.count"], by=["d:customer_locations.location__latitude", "d:customer_locations.location__longitude"], post=expect_map_columns)
+
+
+@check("dimension.type.geo.view")
+def _(ctx):
+    """Cube fails on a geo dimension of a view, so the view must keep working without it. This fails when Cube can read it."""
+    query = json.dumps({"dimensions": ["customer_locations.location"], "measures": ["customer_locations.count"], "limit": 1})
+    _status, text, _h = http("GET", CUBE + "/cubejs-api/v1/load?query=" + urllib.parse.quote(query))
+    if "Cannot read properties of undefined" not in text:
+        raise Fail("Cube has a new answer for a geo dimension of a view, so remove the limit in cube.meta/with-geo-parts: %s" % text[:200])
+    if ctx.mb.has_field("customer_locations", "location__latitude"):
+        raise Fail("the view has a latitude field that Cube cannot read")
+    if ctx.mb.field("customer_locations", "location").get("visibility_type") != "hidden":
+        raise Fail("customer_locations.location is visible, and Cube cannot read it")
+    if not ctx.mb.field("customer_locations", "id").get("fingerprint"):
+        raise Fail("the sample of the view failed: customer_locations.id has no fingerprint")
+    data = ctx.mb.mbql("customer_locations", order=[["asc", "d:customer_locations.id"]], limit=3)
+    assert_rows([r[:1] for r in data["rows"]], ch("SELECT id FROM users ORDER BY id LIMIT 3"), ordered=True)
+    # A person can ask for the hidden column too.
+    data = ctx.mb.mbql("customer_locations", fields=["d:customer_locations.id", "d:customer_locations.location"], order=[["asc", "d:customer_locations.id"]], limit=3)
+    assert_rows(data["rows"], ch("SELECT id, NULL FROM users ORDER BY id LIMIT 3"), ordered=True)
 
 
 @check("dimension.type.geo.auto_bin")

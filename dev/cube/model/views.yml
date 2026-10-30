@@ -17,7 +17,7 @@ views:
 
   - name: customer_locations
     title: Customer locations
-    description: Where customers are. A geo dimension of a view works on a map.
+    description: Where customers are. Cube cannot read a geo dimension of a view.
     cubes:
       - join_path: users
         includes: [id, location, count]

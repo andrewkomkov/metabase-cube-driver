@@ -142,7 +142,7 @@
     "number"  :type/Decimal
     "boolean" :type/Boolean
     "time"    :type/DateTime
-    "geo"     :type/Text
+    ("geo" "geo-in-view") :type/Text
     ("geo-latitude" "geo-longitude") :type/Float
     :type/*))
 
@@ -202,6 +202,15 @@
       (with-part title)      (assoc :title (with-part title))
       (with-part shortTitle) (assoc :shortTitle (with-part shortTitle)))))
 
+(defn- with-geo-parts
+  "A dimension, with its number columns if it is a geo dimension. Cube v1.8.15 fails each query on a geo dimension of a
+  view with \"Cannot read properties of undefined\", so there it stays one hidden column that raw rows show as NULL."
+  [cube dimension]
+  (cond
+    (not= "geo" (:type dimension)) [dimension]
+    (= "view" (:type cube))        [(assoc dimension :type "geo-in-view")]
+    :else                          (cons dimension (geo-part-members dimension))))
+
 (defn- dimension->field
   [member]
   (cond-> {:name          (short-name (:name member))
@@ -211,7 +220,8 @@
     (format->semantic-type member) (assoc :semantic-type (format->semantic-type member))
     (geo-part-types (:type member)) (assoc :semantic-type (geo-part-types (:type member)))
     ;; Cube adds this column for a dimension link. A person has no use for it.
-    (:synthetic member)            (assoc :visibility-type :hidden)))
+    (or (:synthetic member)
+        (= "geo-in-view" (:type member))) (assoc :visibility-type :hidden)))
 
 (defn- measure->field
   [member]
@@ -358,7 +368,7 @@
   [cube]
   (let [fields (concat (for [dimension (:dimensions cube)
                              :when (public? dimension)
-                             m (cons dimension (when (= "geo" (:type dimension)) (geo-part-members dimension)))]
+                             m (with-geo-parts cube dimension)]
                          (with-member-info (dimension->field m) m :dimension))
                        (for [m (:measures cube) :when (public? m)]
                          (with-member-info (measure->field m) m :measure))
