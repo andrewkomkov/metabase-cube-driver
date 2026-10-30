@@ -778,7 +778,7 @@
     {
       "id": "preagg.rollup_lambda",
       "status": "partial",
-      "reason": "Inside the range of the rollup, the lambda gives the truth. With a range that reads source rows on the demo data, the REST API and the SQL API of Cube stop on ClickHouse with Stream query failed: aborted, see cube-js/cube#12285. The driver shows a clear message for this. dev/cube/model/rollups.yml has the model."
+      "reason": "Inside the range of the rollup, the lambda gives the truth. With a range that reads source rows on the demo data, the REST API and the SQL API of Cube can stop on ClickHouse with Stream query failed: aborted, see cube-js/cube#12285. A run gives the truth or this error. The driver shows a clear message for this. dev/cube/model/rollups.yml has the model."
     },
     {
       "id": "sqlapi.aggregate_function",
