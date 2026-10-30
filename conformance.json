@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 698,
+    "pass": 699,
     "partial": 17,
     "blocked": 22,
     "unsupported": 10,
     "fail": 1,
-    "total": 748
+    "total": 749
   },
-  "coverage": "coverage: 698/748 pass",
+  "coverage": "coverage: 699/749 pass",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -777,8 +777,8 @@
     },
     {
       "id": "preagg.rollup_lambda",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "the error has no 'Cube cannot read a rollup_lambda': "
     },
     {
       "id": "sqlapi.aggregate_function",
@@ -2487,8 +2487,8 @@
     },
     {
       "id": "compile.expr.in_breakout",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T22:36:32.302799128Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/mbql\",\"source-table\":30,\"aggregation\":[[\"measure\",{\"l"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.expr.in_filter",
@@ -3634,6 +3634,11 @@
       "id": "mcp.query.between_is_whole_days",
       "status": "partial",
       "reason": "Limit of Metabase: MCP execute_query makes between with a time part into whole days before the driver, so the driver cannot see the time part. In the demo, 15 rows have that range, and MCP gives 28. The query API /api/dataset keeps the time part. Use >= and <= in MCP for a range with a time part."
+    },
+    {
+      "id": "compile.expr.measure_with_expression_breakout",
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.access_policy_groups",

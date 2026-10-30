@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 698/748 pass** (698 pass, 17 partial, 22 blocked, 10 unsupported, 1 fail of 748)
+**coverage: 699/749 pass** (699 pass, 17 partial, 22 blocked, 10 unsupported, 1 fail of 749)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `b8a78bdaa570`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41137757016), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `c5ffb9b6cff8`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41140683349), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -161,7 +161,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `b8a78bd
 | `preagg.partitioned` | pass |  |
 | `preagg.rollup` | pass |  |
 | `preagg.rollup_join` | pass |  |
-| `preagg.rollup_lambda` | pass |  |
+| `preagg.rollup_lambda` | fail | the error has no 'Cube cannot read a rollup_lambda':  |
 | `sqlapi.aggregate_function` | pass |  |
 | `sqlapi.date_trunc` | pass |  |
 | `sqlapi.having` | pass |  |
@@ -503,7 +503,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `b8a78bd
 | `compile.expr.get_quarter` | pass |  |
 | `compile.expr.get_second` | pass |  |
 | `compile.expr.in_aggregation` | pass |  |
-| `compile.expr.in_breakout` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T22:36:32.302799128Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"lib/type":"mbql/query","stages":[{"lib/type":"mbql.stage/mbql","source-table":30,"aggregation":[["measure",{"l |
+| `compile.expr.in_breakout` | pass |  |
 | `compile.expr.in_filter` | pass |  |
 | `compile.expr.in_filter_measure` | pass |  |
 | `compile.expr.integer_division` | pass |  |
@@ -733,6 +733,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `b8a78bd
 | `nested.question_on_question.date_filter` | pass |  |
 | `nested.measure_column.filter_with_no_key_refused` | pass |  |
 | `mcp.query.between_is_whole_days` | partial | Limit of Metabase: MCP execute_query makes between with a time part into whole days before the driver, so the driver cannot see the time part. In the demo, 15 rows have that range, and MCP gives 28. The query API /api/dataset keeps the time part. Use >= and <= in MCP for a range with a time part. |
+| `compile.expr.measure_with_expression_breakout` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |
 | `security.security_context_row_filter` | pass |  |
