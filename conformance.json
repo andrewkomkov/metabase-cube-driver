@@ -1,0 +1,2039 @@
+{
+  "schema": 1,
+  "counts": {
+    "pass": 314,
+    "partial": 0,
+    "blocked": 23,
+    "unsupported": 6,
+    "fail": 62,
+    "total": 405
+  },
+  "coverage": "coverage: 314/405 pass",
+  "features": [
+    {
+      "id": "measure.format.abbr",
+      "status": "fail",
+      "reason": "column has no format settings"
+    },
+    {
+      "id": "measure.format.accounting",
+      "status": "fail",
+      "reason": "column settings {}: want decimals 2"
+    },
+    {
+      "id": "measure.format.currency",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.format.currency_code",
+      "status": "fail",
+      "reason": "column settings {}, semantic type/Currency: want number_style currency"
+    },
+    {
+      "id": "measure.format.d3",
+      "status": "fail",
+      "reason": "column has no format settings"
+    },
+    {
+      "id": "measure.format.number_n",
+      "status": "fail",
+      "reason": "column settings {}: want decimals 0"
+    },
+    {
+      "id": "measure.format.percent",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.format.percent_n",
+      "status": "fail",
+      "reason": "column settings {}, semantic None: want number_style percent"
+    },
+    {
+      "id": "measure.multi_stage.case_switch",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.multi_stage.filter_exclude",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.multi_stage.grain_exclude",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.multi_stage.grain_include",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.multi_stage.grain_keep_only",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.multi_stage.group_by_legacy",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.multi_stage.share_of_total",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.multi_stage.time_shift_named_calendar",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.multi_stage.time_shift_next",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.multi_stage.time_shift_prior",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.opt.cross_cube_reference",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.opt.description",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.opt.drill_members",
+      "status": "fail",
+      "reason": "metadata of orders has no text 'drill'"
+    },
+    {
+      "id": "measure.opt.filters",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.opt.filters_on_count",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.opt.mask",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.opt.meta",
+      "status": "fail",
+      "reason": "metadata of orders has no text 'Sum of order amount.'"
+    },
+    {
+      "id": "measure.opt.multi_stage",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.opt.public_false",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.opt.rolling_type_deprecated",
+      "status": "unsupported",
+      "reason": "year_to_date, quarter_to_date and month_to_date are deprecated and Tesseract does not read them. The demo model uses to_date."
+    },
+    {
+      "id": "measure.opt.time_shift",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.opt.title",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.rolling.leading_offset",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.rolling.to_date_month",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.rolling.to_date_year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.rolling.trailing",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.rolling.unbounded",
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:22:05.374231678Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual"
+    },
+    {
+      "id": "measure.type.avg",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.type.boolean",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.type.count",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.type.count_distinct",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.type.count_distinct_approx",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.type.max",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.type.min",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.type.number",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.type.number_agg",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.type.rank",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.type.string",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.type.sum",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.type.time",
+      "status": "fail",
+      "reason": "rows: got [None], truth ['2025-01-01T01:00:00']"
+    },
+    {
+      "id": "dimension.format.abbr",
+      "status": "fail",
+      "reason": "orders.amount_abbr has no format settings"
+    },
+    {
+      "id": "dimension.format.currency",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.format.currency_code",
+      "status": "fail",
+      "reason": "orders.amount_eur settings {}, want currency EUR"
+    },
+    {
+      "id": "dimension.format.id",
+      "status": "fail",
+      "reason": "orders.order_ref has no format settings"
+    },
+    {
+      "id": "dimension.format.image_url",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.format.link",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.format.link_label",
+      "status": "fail",
+      "reason": "metadata of orders has no text 'Open invoice'"
+    },
+    {
+      "id": "dimension.format.percent",
+      "status": "fail",
+      "reason": "orders.amount_pct has no format settings"
+    },
+    {
+      "id": "dimension.format.time",
+      "status": "fail",
+      "reason": "metadata of orders has no text '%Y-%m-%d %H:%M:%S'"
+    },
+    {
+      "id": "dimension.opt.case_label_sql",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.opt.case_sql",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.opt.description",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.opt.links",
+      "status": "fail",
+      "reason": "metadata of orders has no text 'Search status'"
+    },
+    {
+      "id": "dimension.opt.mask_sql",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.opt.mask_static",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.opt.meta",
+      "status": "fail",
+      "reason": "metadata of orders has no text 'Use for order lifecycle questions.'"
+    },
+    {
+      "id": "dimension.opt.order",
+      "status": "blocked",
+      "reason": "A Metabase field has no default sort order. The driver cannot apply this option without a Metabase change, which is out of scope."
+    },
+    {
+      "id": "dimension.opt.primary_key",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.opt.propagate_filters",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.opt.public_false",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.opt.sub_query",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.opt.synthetic_hidden",
+      "status": "fail",
+      "reason": "orders.status_linked___link_search_url is visible"
+    },
+    {
+      "id": "dimension.opt.time_shift_calendar",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.opt.title",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.type.boolean",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.type.geo",
+      "status": "fail",
+      "reason": "users has no fields with Latitude and Longitude semantic types"
+    },
+    {
+      "id": "dimension.type.number",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.type.string",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.type.switch",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.type.time",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "granularity.custom.interval_hours",
+      "status": "fail",
+      "reason": "rows: got ['2025-01-01T00:00:00', 13.0], truth ['2025-01-01T00:00:00', 7.0]"
+    },
+    {
+      "id": "granularity.custom.negative_offset",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "granularity.custom.offset",
+      "status": "fail",
+      "reason": "rows: got ['2025-02-01T00:00:00', 825.0], truth ['2024-11-01T00:00:00', 433.0]"
+    },
+    {
+      "id": "granularity.custom.origin",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "granularity.custom.title",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "granularity.proxy_default",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "segment.combined",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "segment.description",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "segment.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "segment.second",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "segment.title",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "segment.with_breakout",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "join.alias",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "join.fan_trap_avg",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "join.many_to_one",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "join.one_to_many_child_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "join.one_to_many_no_fanout",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "join.one_to_one",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "join.sql_cube_join_field",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "join.transitive",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.calendar",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.calendar_granularity_sql",
+      "status": "blocked",
+      "reason": "Needs a calendar table with SQL granularities in the demo model. Not modelled yet."
+    },
+    {
+      "id": "cube.data_source",
+      "status": "blocked",
+      "reason": "The demo stack has one data source. A second one needs a compose change and a Cube config, which do not exist yet."
+    },
+    {
+      "id": "cube.description",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.extends",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.meta",
+      "status": "fail",
+      "reason": "metadata of users has no text 'One row per customer account.'"
+    },
+    {
+      "id": "cube.public_false",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.refresh_key",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.sql",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.sql_alias",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.sql_table",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.title",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "context.compile_context",
+      "status": "blocked",
+      "reason": "Needs a security context. See security.compile_context."
+    },
+    {
+      "id": "context.filter_group",
+      "status": "blocked",
+      "reason": "FILTER_GROUP is not in the demo model yet."
+    },
+    {
+      "id": "context.filter_params",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "context.sql_utils_convert_tz",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "security.access_policy_groups",
+      "status": "blocked",
+      "reason": "Group policies need groups in the security context, so they need a cube.js. Policies for all groups are checked in view.access_*."
+    },
+    {
+      "id": "security.compile_context",
+      "status": "blocked",
+      "reason": "Needs a cube.js with contextToAppId and a mount in dev/docker-compose.yml. The stack mounts only the model."
+    },
+    {
+      "id": "security.security_context_row_filter",
+      "status": "blocked",
+      "reason": "Needs a cube.js with checkSqlAuth and a mount in dev/docker-compose.yml. The driver must also pass a Metabase user attribute to Cube."
+    },
+    {
+      "id": "security.sql_user_impersonation",
+      "status": "blocked",
+      "reason": "Needs CUBEJS_SQL_SUPER_USER and a virtual __user filter. The compose file sets no super user."
+    },
+    {
+      "id": "view.access_member_level",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.access_row_level",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.basic",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.default_filters",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.derived_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.description",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.excludes",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.extends",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.folders",
+      "status": "fail",
+      "reason": "metadata of sales has no text 'Money'"
+    },
+    {
+      "id": "view.folders_nested",
+      "status": "fail",
+      "reason": "metadata of paid_sales has no text 'Ratios'"
+    },
+    {
+      "id": "view.group",
+      "status": "fail",
+      "reason": "metadata of paid_sales has no text 'Revenue views'"
+    },
+    {
+      "id": "view.includes",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.member_alias",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.member_description",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.member_format",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.member_meta",
+      "status": "fail",
+      "reason": "metadata of paid_sales has no text 'curated'"
+    },
+    {
+      "id": "view.member_title",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.meta",
+      "status": "fail",
+      "reason": "metadata of sales has no text 'Preferred entry point for agents.'"
+    },
+    {
+      "id": "view.meta_auto_run",
+      "status": "unsupported",
+      "reason": "meta.auto_run controls Cube Cloud workbooks. Metabase has no such behaviour."
+    },
+    {
+      "id": "view.meta_default_ui_filters",
+      "status": "unsupported",
+      "reason": "meta.default_ui_filters controls Cube Cloud workbooks. Metabase has no such behaviour."
+    },
+    {
+      "id": "view.prefix",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.public_false",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.title",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "hierarchy.levels",
+      "status": "fail",
+      "reason": "metadata of orders has no text 'Fulfilment'"
+    },
+    {
+      "id": "hierarchy.public_false",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "preagg.indexes",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "preagg.original_sql",
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:22:39.101790975Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing:"
+    },
+    {
+      "id": "preagg.partitioned",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "preagg.rollup",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "preagg.rollup_join",
+      "status": "blocked",
+      "reason": "rollup_join needs two data sources. The demo stack has one."
+    },
+    {
+      "id": "preagg.rollup_lambda",
+      "status": "blocked",
+      "reason": "rollup_lambda needs streaming or partitioned source data. Not modelled yet."
+    },
+    {
+      "id": "sqlapi.aggregate_function",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "sqlapi.date_trunc",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "sqlapi.having",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "sqlapi.measure_function",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "sqlapi.order_limit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "sqlapi.post_processing",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "sqlapi.pushdown_window",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "sqlapi.segment_in_where",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "sqlapi.ungrouped",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "sqlapi.union",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "sqlapi.where_between",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "sqlapi.where_in",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "sqlapi.where_is_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "sqlapi.where_like",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "restapi.compare_date_range",
+      "status": "blocked",
+      "reason": "compareDateRange exists only in the REST API. No Metabase query shape maps to it."
+    },
+    {
+      "id": "restapi.total_query",
+      "status": "blocked",
+      "reason": "A total query exists only in the REST API. No Metabase query shape maps to it."
+    },
+    {
+      "id": "clickhouse.bool",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "clickhouse.datetime_utc",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "clickhouse.decimal",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "clickhouse.function_in_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "clickhouse.large_result",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "clickhouse.low_cardinality",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "clickhouse.nullable_expression",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "meta.base_types",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "meta.fingerprint_distinct_count",
+      "status": "fail",
+      "reason": "rows: got [None], truth [4.0]"
+    },
+    {
+      "id": "meta.fk_implicit_target",
+      "status": "fail",
+      "reason": "no foreign key from orders to users"
+    },
+    {
+      "id": "meta.measure_is_marked",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "meta.no_internal_columns",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "meta.resync_keeps_metadata",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "meta.semantic_types",
+      "status": "fail",
+      "reason": "users.name semantic_type None, want type/Name"
+    },
+    {
+      "id": "meta.tables_match_public_members",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.agg.avg_field",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.agg.count_rows",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.agg.count_where",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.agg.cum_count",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.agg.cum_sum",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.agg.custom_expression",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.agg.distinct",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.agg.max_field",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.agg.median",
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:22:56.755925997Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+    },
+    {
+      "id": "mb.agg.min_field",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.agg.offset_window",
+      "status": "fail",
+      "reason": "rows: got ['2025-01-01T00:00:00', 0.0], truth ['2025-01-01T00:00:00', None]"
+    },
+    {
+      "id": "mb.agg.percentile",
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:22:57.756033613Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+    },
+    {
+      "id": "mb.agg.share",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.agg.stddev",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.agg.sum_field",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.agg.sum_where",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.agg.two_measures",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.agg.variance",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.bucket.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.bucket.day-of-month",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.bucket.day-of-week",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.bucket.day-of-year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.bucket.hour",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.bucket.hour-of-day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.bucket.minute",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.bucket.minute-of-hour",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.bucket.month",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.bucket.month-of-year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.bucket.quarter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.bucket.quarter-of-year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.bucket.week",
+      "status": "fail",
+      "reason": "rows: got ['2024-12-30T00:00:00', 69.0], truth ['2024-12-29T00:00:00', 55.0]"
+    },
+    {
+      "id": "mb.bucket.week-of-year",
+      "status": "fail",
+      "reason": "rows: got [1.0, 98.0], truth [1.0, 55.0]"
+    },
+    {
+      "id": "mb.bucket.year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.breakout.bin_count",
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:23:05.209594572Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(20)'. Please check logs for additi"
+    },
+    {
+      "id": "mb.breakout.bin_width",
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:23:05.462964009Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(100)'. Please check logs for addit"
+    },
+    {
+      "id": "mb.breakout.boolean",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.breakout.limit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.breakout.sorted_by_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.breakout.two",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.and",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.between_number",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.boolean_false",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.boolean_true",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.contains",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.contains_ci",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.date_after",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.date_before",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.date_between",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.date_month",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.date_on",
+      "status": "fail",
+      "reason": "rows: got [None], truth [14.0]"
+    },
+    {
+      "id": "mb.filter.ends_with",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.eq_multi",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.eq_number",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.eq_string",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.exclude_day_of_week",
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:23:12.837550324Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+    },
+    {
+      "id": "mb.filter.exclude_month_of_year",
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:23:13.09731029Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional inf"
+    },
+    {
+      "id": "mb.filter.gt",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.gte",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.is_empty",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.is_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.lt",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.lte",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.neq_number",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.neq_string",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.not",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.not_contains",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.not_empty",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.not_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.or",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.relative_current",
+      "status": "fail",
+      "reason": "rows: got [None], truth [0.0]"
+    },
+    {
+      "id": "mb.filter.relative_past",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.starts_with",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.starts_with_ci",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.raw.fields_sorted",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.raw.sort_desc",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.abs",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.add",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.case",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.ceil",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.coalesce",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.concat",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.datetime_add",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.datetime_diff",
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:23:23.263245705Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_"
+    },
+    {
+      "id": "mb.expr.div",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.floor",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.get_month",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.get_year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.length",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.log",
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:23:25.276426451Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Planning Error: Initial planning error: Error during planning: Coercion from [Int64, Float64] to the signat"
+    },
+    {
+      "id": "mb.expr.lower",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.mul",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.power",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.replace",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.round",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.sqrt",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.substring",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.upper",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.join.explicit_inner",
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:23:28.350641005Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+    },
+    {
+      "id": "mb.join.explicit_left",
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:23:28.629141266Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+    },
+    {
+      "id": "mb.join.implicit",
+      "status": "fail",
+      "reason": "no foreign key from orders to users"
+    },
+    {
+      "id": "mb.join.implicit_filter",
+      "status": "fail",
+      "reason": "no foreign key from orders to users"
+    },
+    {
+      "id": "mb.join.measure_across_cubes",
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:23:28.882616444Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+    },
+    {
+      "id": "mb.nested.filter_on_aggregation",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.nested.question_as_source",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.card.metric",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.card.metric_with_breakout",
+      "status": "fail",
+      "reason": "rows: got ['cancelled', None], truth ['cancelled', 69970.0]"
+    },
+    {
+      "id": "mb.card.model",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.card.saved_question",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.entity.measure_custom",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.entity.segment_custom",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.export.csv",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.export.json",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.native.field_filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.native.field_filter_date",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.native.optional_clause",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.native.param_date",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.native.param_number",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.native.param_text",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.native.plain",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.native.saved_card_param",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.filter_date",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.filter_number",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.filter_search",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.filter_string",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.filter_values",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.linked_filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.native_field_filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.field_values.boolean",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.field_values.list",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.field_values.search",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.search.by_description",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.search.measure",
+      "status": "fail",
+      "reason": "search has no measure Revenue. Found: []"
+    },
+    {
+      "id": "mb.search.segment",
+      "status": "fail",
+      "reason": "search has no segment Paid. Found: []"
+    },
+    {
+      "id": "mb.search.table",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.xray.candidates",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.xray.table",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.xray.view",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.report_timezone",
+      "status": "fail",
+      "reason": "rows: got 1 rows, truth has 2. got=[['2025-01-01T00:00:00', 5000.0]] truth=[['2025-01-01T00:00:00', 4996.0], ['2026-01-01T00:00:00', 4.0]]"
+    },
+    {
+      "id": "mb.other.actions",
+      "status": "unsupported",
+      "reason": "Metabase actions write data. The Cube SQL API is read only."
+    },
+    {
+      "id": "mb.other.drill_through_ui",
+      "status": "blocked",
+      "reason": "Drill-through runs in the browser. The suite has no browser check yet."
+    },
+    {
+      "id": "mb.other.model_persistence",
+      "status": "unsupported",
+      "reason": "Model persistence needs CREATE TABLE. The Cube SQL API is read only."
+    },
+    {
+      "id": "mb.other.uploads",
+      "status": "unsupported",
+      "reason": "CSV uploads write tables. The Cube SQL API is read only."
+    },
+    {
+      "id": "mcp.agent_journey_no_cube_knowledge",
+      "status": "fail",
+      "reason": "no table from the search lists a revenue measure"
+    },
+    {
+      "id": "mcp.alert_write",
+      "status": "blocked",
+      "reason": "Needs an email or Slack channel. The demo stack has neither."
+    },
+    {
+      "id": "mcp.bookmark_content",
+      "status": "blocked",
+      "reason": "A bookmark holds no Cube value that a check can compare with the truth."
+    },
+    {
+      "id": "mcp.browse.descriptions_in_get_fields",
+      "status": "fail",
+      "reason": "get_fields does not show 'Revenue questions start here.'"
+    },
+    {
+      "id": "mcp.browse.get_fields_dimensions",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.browse.get_fields_measures",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.browse.get_fields_segments",
+      "status": "fail",
+      "reason": "get_fields lists no segment Paid. It lists: ['conformanceshipped']"
+    },
+    {
+      "id": "mcp.browse.list_databases",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.browse.list_tables",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.collection_write",
+      "status": "blocked",
+      "reason": "A collection holds no Cube value that a check can compare with the truth."
+    },
+    {
+      "id": "mcp.connect_oauth",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.dashboard_write",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.dashboard_write.create_and_filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.document_write",
+      "status": "blocked",
+      "reason": "A document holds no Cube value that a check can compare with the truth."
+    },
+    {
+      "id": "mcp.duplicate_content",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_query",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_query.breakout",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_query.date_bucket",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_query.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_query.implicit_join",
+      "status": "fail",
+      "reason": "no foreign key from orders to users"
+    },
+    {
+      "id": "mcp.execute_query.measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_query.paging",
+      "status": "fail",
+      "reason": "unexpected AttributeError: 'str' object has no attribute 'get'"
+    },
+    {
+      "id": "mcp.execute_query.segment",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_query.view",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_sql",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.get_content",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.get_content.question",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.get_parameter_values",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.get_parameter_values.dashboard",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.get_parameter_values.question",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.get_parameter_values.search",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.glossary",
+      "status": "blocked",
+      "reason": "The glossary holds no Cube value that a check can compare with the truth."
+    },
+    {
+      "id": "mcp.learn",
+      "status": "blocked",
+      "reason": "Skill text holds no Cube value that a check can compare with the truth."
+    },
+    {
+      "id": "mcp.measure_write",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.metric_write",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.question_write",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.question_write.native",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.question_write.query",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.question_write.query_handle",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.render_drill_through",
+      "status": "blocked",
+      "reason": "The tools/list reply for a session without MCP Apps support does not include this tool."
+    },
+    {
+      "id": "mcp.run_saved_question",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.search",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.search.measure",
+      "status": "fail",
+      "reason": "search has no measure Revenue: []"
+    },
+    {
+      "id": "mcp.search.segment",
+      "status": "fail",
+      "reason": "search has no segment Paid: []"
+    },
+    {
+      "id": "mcp.search.table_by_description",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.search.view_description",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.segment_write",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.subscription_write",
+      "status": "blocked",
+      "reason": "Needs an email or Slack channel. The demo stack has neither."
+    },
+    {
+      "id": "mcp.visualize_query",
+      "status": "blocked",
+      "reason": "The tools/list reply for a session without MCP Apps support does not include this tool."
+    },
+    {
+      "id": "inherit.cube.members",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.cube.override_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.cube.override_dimension",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.cube.add_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.cube.add_dimension",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.multi_level.rows",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.multi_level.add_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.multi_level.override",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.abstract_base",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.join",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.segment",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.pre_aggregation",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.view.members",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.view.adds",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.view.multi_level",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.includes_star",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.excludes_star",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.public_true",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.join_path_transitive",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.several_paths",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.same_name_two_cubes",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.on_extended_cube",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.prefix_sync",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.member_alias_sync",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.sql_sync",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.sql_alias_sync",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.data_source_default",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.polymorphic_first",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.polymorphic_second",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.polymorphic_base",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.generated_jinja",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.generated_jinja_second",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.generated_async",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.generated_async_second",
+      "status": "pass",
+      "reason": ""
+    }
+  ]
+}
