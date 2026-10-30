@@ -1,0 +1,26 @@
+cubes:
+  - name: users
+    title: Customers
+    description: People who have an account in the shop.
+    sql_table: public.users
+    meta: { owner: growth, ai_hint: "One row per customer account." }
+    joins: []
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true, title: Customer ID }
+      - { name: name, sql: name, type: string, title: Full name, description: Display name of the customer. }
+      - { name: email, sql: email, type: string, description: Contact email. }
+      - { name: city, sql: city, type: string, description: Billing city. }
+      - { name: state, sql: state, type: string, description: Two-letter US state code. }
+      - name: location
+        type: geo
+        description: Billing location.
+        latitude: { sql: latitude }
+        longitude: { sql: longitude }
+      - { name: is_vip, sql: is_vip, type: boolean, description: VIP program member. }
+      - { name: created_at, sql: created_at, type: time, description: Signup time. }
+    measures:
+      - { name: count, type: count, title: Customer count, description: Number of customers., drill_members: [id, name, city] }
+      - { name: vip_count, type: count, filters: [{ sql: "{CUBE}.is_vip" }], description: Number of VIP customers. }
+    segments:
+      - { name: vip, sql: "{CUBE}.is_vip", title: VIP, description: Members of the VIP program. }
+      - { name: texans, sql: "{CUBE}.state = 'TX'", description: Customers billed in Texas. }

@@ -1,0 +1,13 @@
+cubes:
+  - name: products
+    title: Products
+    description: The product catalog.
+    sql_table: public.products
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: name, sql: name, type: string, description: Product name. }
+      - { name: category, sql: category, type: string, description: Product category. }
+      - { name: price, sql: price, type: number, description: List price in USD., format: currency }
+    measures:
+      - { name: count, type: count, description: Number of products. }
+      - { name: avg_price, sql: price, type: avg, format: currency, description: Mean list price. }

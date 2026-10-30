@@ -1,0 +1,6 @@
+/dist/
+/dev/plugins/
+/.cpcache/
+/.nrepl-port
+__pycache__/
+.env

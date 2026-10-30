@@ -1,0 +1,58 @@
+cubes:
+  - name: orders
+    title: Orders
+    description: Customer orders. One row per order.
+    sql_table: public.orders
+    meta: { owner: finance, ai_hint: "Revenue questions start here." }
+    joins:
+      - { name: users, relationship: many_to_one, sql: "{CUBE}.user_id = {users.id}" }
+      - { name: products, relationship: many_to_one, sql: "{CUBE}.product_id = {products.id}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true, title: Order ID }
+      - { name: user_id, sql: user_id, type: number, description: Customer who placed the order. }
+      - { name: product_id, sql: product_id, type: number, description: Ordered product. }
+      - { name: status, sql: status, type: string, description: "One of completed, shipped, processing, cancelled." }
+      - name: size
+        type: string
+        description: Order size bucket.
+        case:
+          when:
+            - { sql: "{CUBE}.quantity >= 3", label: large }
+          else: { label: small }
+      - { name: quantity_dim, sql: quantity, type: number, title: Quantity, description: Units in the order. }
+      - { name: amount_dim, sql: amount, type: number, title: Amount, format: currency, description: Order amount in USD. }
+      - { name: is_paid, sql: "status IN ('completed','shipped')", type: boolean, description: Order was paid. }
+      - name: created_at
+        sql: created_at
+        type: time
+        description: When the order was placed.
+        granularities:
+          - { name: fiscal_quarter, interval: 3 months, offset: 1 month, title: Fiscal quarter }
+      - { name: internal_note, sql: "'x'", type: string, public: false }
+    measures:
+      - { name: count, type: count, title: Order count, description: Number of orders., drill_members: [id, status, created_at] }
+      - { name: unique_customers, sql: user_id, type: count_distinct, description: Distinct customers. }
+      - { name: approx_customers, sql: user_id, type: count_distinct_approx, description: Approximate distinct customers. }
+      - { name: revenue, sql: amount, type: sum, title: Revenue, format: currency, description: Total order amount in USD. }
+      - { name: avg_order_value, sql: amount, type: avg, title: AOV, format: currency, description: Mean order amount. }
+      - { name: min_amount, sql: amount, type: min, format: currency, description: Smallest order. }
+      - { name: max_amount, sql: amount, type: max, format: currency, description: Largest order. }
+      - { name: paid_revenue, sql: amount, type: sum, format: currency, filters: [{ sql: "{CUBE}.status IN ('completed','shipped')" }], description: Revenue from paid orders. }
+      - { name: paid_share, sql: "1.0 * {paid_revenue} / NULLIF({revenue}, 0)", type: number, format: percent, description: Share of revenue that was paid. }
+      - { name: first_order_at, sql: created_at, type: min, description: Time of the first order. }
+      - { name: last_order_at, sql: created_at, type: max, description: Time of the latest order. }
+      - { name: has_orders, sql: "COUNT(*) > 0", type: boolean, description: At least one order exists. }
+      - { name: statuses, sql: "STRING_AGG(DISTINCT status, ',' ORDER BY status)", type: string, description: Distinct statuses in the group. }
+      - { name: public_false_measure, sql: amount, type: sum, public: false }
+    segments:
+      - { name: paid, sql: "{CUBE}.status IN ('completed','shipped')", title: Paid, description: Completed or shipped orders. }
+      - { name: large, sql: "{CUBE}.quantity >= 3", title: Large orders, description: Three units or more. }
+    hierarchies:
+      - { name: fulfilment, title: Fulfilment, levels: [status, size] }
+    pre_aggregations:
+      - name: revenue_by_status_month
+        measures: [count, revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: month
+        refresh_key: { every: 1 hour }

@@ -1,0 +1,16 @@
+views:
+  - name: sales
+    title: Sales
+    description: Curated view of orders with customer and product attributes. Start here for sales analysis.
+    meta: { ai_hint: "Preferred entry point for agents." }
+    folders:
+      - { name: Money, includes: [revenue, avg_order_value] }
+    cubes:
+      - join_path: orders
+        includes: [id, status, created_at, count, revenue, avg_order_value, paid_share]
+      - join_path: orders.users
+        prefix: true
+        includes: [city, state, is_vip, count]
+      - join_path: orders.products
+        prefix: true
+        includes: [category, name]

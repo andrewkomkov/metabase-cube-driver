@@ -1,0 +1,43 @@
+# Local development stack. The credentials below are fixed, throwaway values for
+# fake demo data, and every port binds to the loopback interface only.
+name: metabase-cube-driver
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: shop, POSTGRES_USER: shop, POSTGRES_PASSWORD: shop-dev-only }
+    volumes: ["./postgres/seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro"]
+    healthcheck: { test: [CMD-SHELL, pg_isready -U shop -d shop], interval: 3s, retries: 30 }
+    restart: unless-stopped
+  cube:
+    image: cubejs/cube:${CUBE_VERSION:-v1.6.76}
+    depends_on: { postgres: { condition: service_healthy } }
+    environment:
+      CUBEJS_DEV_MODE: "true"
+      CUBEJS_API_SECRET: cube-dev-only-secret-0123456789abcdef
+      CUBEJS_DB_TYPE: postgres
+      CUBEJS_DB_HOST: postgres
+      CUBEJS_DB_NAME: shop
+      CUBEJS_DB_USER: shop
+      CUBEJS_DB_PASS: shop-dev-only
+      CUBEJS_PG_SQL_PORT: "15432"
+      CUBEJS_SQL_USER: cube
+      CUBEJS_SQL_PASSWORD: cube-dev-only
+      CUBEJS_TELEMETRY: "false"
+    volumes: ["./cube/model:/cube/conf/model:ro"]
+    ports: ["127.0.0.1:4400:4000", "127.0.0.1:15433:15432"]
+    restart: unless-stopped
+  metabase:
+    image: metabase/metabase:${METABASE_VERSION:-v0.64.3}
+    depends_on: [cube]
+    environment:
+      MB_DB_FILE: /data/metabase.db
+      MB_PLUGINS_DIR: /plugins
+      MB_SITE_URL: http://127.0.0.1:3300
+      MB_ANON_TRACKING_ENABLED: "false"
+      MB_CHECK_FOR_UPDATES: "false"
+      JAVA_OPTS: -Xmx2g
+    volumes: ["metabase-data:/data", "./plugins:/plugins"]
+    ports: ["127.0.0.1:3300:3000"]
+    restart: unless-stopped
+volumes:
+  metabase-data:
