@@ -1,0 +1,129 @@
+{
+ "steps": [
+  {
+   "id": "rest_alone",
+   "rest": {
+    "dimensions": [
+     "users.id",
+     "users.paid_orders"
+    ],
+    "filters": [
+     {
+      "member": "orders.status",
+      "operator": "equals",
+      "values": [
+       "early"
+      ]
+     }
+    ],
+    "order": {
+     "users.id": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_together",
+   "rest": {
+    "dimensions": [
+     "users.id",
+     "users.lifetime_orders",
+     "users.paid_orders"
+    ],
+    "filters": [
+     {
+      "member": "orders.status",
+      "operator": "equals",
+      "values": [
+       "early"
+      ]
+     }
+    ],
+    "order": {
+     "users.id": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_together_swapped",
+   "rest": {
+    "dimensions": [
+     "users.id",
+     "users.paid_orders",
+     "users.lifetime_orders"
+    ],
+    "filters": [
+     {
+      "member": "orders.status",
+      "operator": "equals",
+      "values": [
+       "early"
+      ]
+     }
+    ],
+    "order": {
+     "users.id": "asc"
+    }
+   }
+  },
+  {
+   "id": "rest_other_sql",
+   "rest": {
+    "dimensions": [
+     "users.id",
+     "users.lifetime_orders",
+     "users.paid_orders_other_sql"
+    ],
+    "filters": [
+     {
+      "member": "orders.status",
+      "operator": "equals",
+      "values": [
+       "early"
+      ]
+     }
+    ],
+    "order": {
+     "users.id": "asc"
+    }
+   },
+   "rest_sql": true,
+   "note": "the same value with another sql"
+  },
+  {
+   "id": "rest_no_filter_two_measures",
+   "rest": {
+    "dimensions": [
+     "users.id",
+     "users.lifetime_orders",
+     "users.total_ids"
+    ],
+    "order": {
+     "users.id": "asc"
+    }
+   }
+  },
+  {
+   "id": "rest_no_filter_same_sql",
+   "rest": {
+    "dimensions": [
+     "users.id",
+     "users.lifetime_orders",
+     "users.paid_orders"
+    ],
+    "order": {
+     "users.id": "asc"
+    }
+   }
+  },
+  {
+   "id": "sql_together",
+   "sql": "SELECT u.id, u.lifetime_orders, u.paid_orders FROM users u CROSS JOIN orders o WHERE u.__cubeJoinField = o.__cubeJoinField AND o.status = 'early' GROUP BY 1,2,3 ORDER BY 1"
+  },
+  {
+   "id": "truth",
+   "truth": "SELECT user_id AS id, count(*) AS lifetime, sum(CASE WHEN status='early' THEN 1 ELSE 0 END) AS filtered FROM repro.orders GROUP BY 1 ORDER BY 1"
+  }
+ ]
+}

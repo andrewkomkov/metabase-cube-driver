@@ -1,0 +1,81 @@
+{
+ "steps": [
+  {
+   "id": "rest_two_paths",
+   "rest": {
+    "measures": [
+     "two_paths.count"
+    ],
+    "dimensions": [
+     "two_paths.customer_region",
+     "two_paths.destination_region"
+    ],
+    "order": {
+     "two_paths.customer_region": "asc",
+     "two_paths.destination_region": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "sql_two_paths",
+   "sql": "SELECT customer_region, destination_region, MEASURE(count) c FROM two_paths GROUP BY 1, 2 ORDER BY 1, 2"
+  },
+  {
+   "id": "rest_customer_only",
+   "rest": {
+    "measures": [
+     "two_paths.count"
+    ],
+    "dimensions": [
+     "two_paths.customer_region"
+    ],
+    "order": {
+     "two_paths.customer_region": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_destination_only",
+   "rest": {
+    "measures": [
+     "two_paths.count"
+    ],
+    "dimensions": [
+     "two_paths.destination_region"
+    ],
+    "order": {
+     "two_paths.destination_region": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_two_aliases",
+   "rest": {
+    "measures": [
+     "two_aliases.count"
+    ],
+    "dimensions": [
+     "two_aliases.customer_region",
+     "two_aliases.destination_region"
+    ],
+    "order": {
+     "two_aliases.customer_region": "asc",
+     "two_aliases.destination_region": "asc"
+    }
+   },
+   "rest_sql": true,
+   "note": "the same data through join alias"
+  },
+  {
+   "id": "sql_two_aliases",
+   "sql": "SELECT customer_region, destination_region, MEASURE(count) c FROM two_aliases GROUP BY 1, 2 ORDER BY 1, 2"
+  },
+  {
+   "id": "truth",
+   "truth": "SELECT r1.region AS customer_region, r2.region AS destination_region, count(*) AS c FROM repro.orders o JOIN repro.users u ON o.user_id = u.id JOIN repro.regions r1 ON u.state = r1.state JOIN repro.shipments s ON o.id = s.order_id JOIN repro.regions r2 ON s.state = r2.state GROUP BY 1, 2 ORDER BY 1, 2"
+  }
+ ]
+}

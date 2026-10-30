@@ -1,0 +1,27 @@
+# sql-user-default-switch v1.8.15 clickhouse tesseract=on ready=True
+## set_user_once
+$ psql script:
+SET user = 'alice';
+SELECT current_user;
+SET user = 'bob';
+SELECT current_user;
+psql:<stdin>:1: ERROR:  Internal Error: Error calling authenticate: Internal Error: Incorrect user name "alice" or password
+QUERY: SET user = 'alice'
+current_user
+alice
+psql:<stdin>:3: ERROR:  Internal Error: Error calling authenticate: Internal Error: Incorrect user name "bob" or password
+QUERY: SET user = 'bob'
+current_user
+bob
+## set_user_back
+$ psql script:
+SET user = 'alice';
+SET user = 'repro';
+SELECT current_user;
+psql:<stdin>:1: ERROR:  Internal Error: Error calling authenticate: Internal Error: Incorrect user name "alice" or password
+QUERY: SET user = 'alice'
+current_user
+repro
+## where_user_super
+$ psql> SELECT __user, MEASURE(count) c FROM orders WHERE __user = 'alice' GROUP BY 1
+psql:<stdin>:1: ERROR:  Database Execution Error: Incorrect user name "alice" or password

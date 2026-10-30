@@ -1,0 +1,47 @@
+# M3-coalesce-bind-rollup v1.8.15 postgres tesseract=on ready=True
+## bind_coalesce_untyped
+$ psql script:
+SELECT COALESCE(MEASURE(count), 0) c FROM orders WHERE created_at >= $1 AND created_at < $2 \bind '2025-05-10 00:00:00' '2025-05-21 00:00:00' \g
+c
+1
+## bind_revenue_only_untyped
+$ psql script:
+SELECT MEASURE(revenue) r FROM orders WHERE created_at >= $1 AND created_at < $2 \bind '2025-05-10 00:00:00' '2025-05-21 00:00:00' \g
+r
+200
+## bind_revenue_and_coalesce_untyped
+$ psql script:
+SELECT MEASURE(revenue) r, COALESCE(MEASURE(count), 0) c FROM orders WHERE created_at >= $1 AND created_at < $2 \bind '2025-05-10 00:00:00' '2025-05-21 00:00:00' \g
+r | c
+200 | 1
+## literal_coalesce
+$ psql> SELECT COALESCE(MEASURE(count), 0) c FROM orders WHERE created_at >= timestamp '2025-05-10 00:00:00' AND created_at < timestamp '2025-05-21 00:00:00'
+c
+1
+$ psql> EXPLAIN SELECT COALESCE(MEASURE(count), 0) c FROM orders WHERE created_at >= timestamp '2025-05-10 00:00:00' AND created_at < timestamp '2025-05-21 00:00:00'
+plan_type | plan
+logical_plan | Projection: coalesce(#measure(orders.count), Int64(0)) AS c
+  CubeScan: request={
+  "measures": [
+    "orders.count"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "timeDimensions": [
+    {
+      "dimension": "orders.created_at",
+      "dateRange": [
+        "2025-05-10T00:00:00.000Z",
+        "2025-05-20T23:59:59.999Z"
+      ]
+    }
+  ],
+  "order": []
+}
+physical_plan | ProjectionExec: expr=[coalesce(measure(orders.count)@0, 0) as c]
+  CubeScanExecutionPlan, Request:
+{"measures":["orders.count"],"dimensions":[],"segments":[],"timeDimensions":[{"dimension":"orders.created_at","dateRange":["2025-05-10T00:00:00.000Z","2025-05-20T23:59:59.999Z"]}],"order":[]}
+## truth
+$ postgres> SELECT count(*) c, sum(amount) r FROM repro.orders WHERE created_at >= '2025-05-10 00:00:00' AND created_at < '2025-05-21 00:00:00'
+c | r
+1 | 200

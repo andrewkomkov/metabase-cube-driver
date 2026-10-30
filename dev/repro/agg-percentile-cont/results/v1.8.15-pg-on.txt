@@ -1,0 +1,28 @@
+# agg-percentile-cont v1.8.15 postgres tesseract=on ready=True
+## percentile_cont_raw_column
+$ psql> SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount_dim) p FROM orders
+p
+200
+$ psql> EXPLAIN SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount_dim) p FROM orders
+plan_type | plan
+logical_plan | CubeScanWrappedSql
+physical_plan | CubeScanExecutionPlan, SQL:
+SELECT "orders"."percentilecont_f" "p" 
+FROM (
+  SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY "orders".amount ASC NULLS LAST) "percentilecont_f" 
+  FROM  repro.orders  AS "orders"
+) AS "orders"
+LIMIT 50000
+## percentile_cont_by_status
+$ psql> SELECT status, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount_dim) p FROM orders GROUP BY 1 ORDER BY 1
+status | p
+a | 150
+b | 400
+## median_fn
+$ psql> SELECT MEDIAN(amount_dim) p FROM orders
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information
+QUERY: SELECT MEDIAN(amount_dim) AS p FROM orders
+## truth
+$ postgres> SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY amount) p FROM repro.orders
+p
+200

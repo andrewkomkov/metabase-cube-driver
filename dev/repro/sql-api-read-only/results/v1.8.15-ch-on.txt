@@ -1,0 +1,17 @@
+# sql-api-read-only v1.8.15 clickhouse tesseract=on ready=True
+## insert
+$ psql> INSERT INTO orders (id) VALUES (9)
+psql:<stdin>:1: ERROR:  Unsupported Error: Unsupported query type: INSERT INTO orders (id) VALUES (9)
+QUERY: INSERT INTO orders (id) VALUES (9)
+## create_table
+$ psql> CREATE TABLE x AS SELECT 1 a
+psql:<stdin>:1: ERROR:  Unsupported Error: Unsupported query type: CREATE TABLE x AS SELECT 1 AS a
+QUERY: CREATE TABLE x AS SELECT 1 AS a
+## update
+$ psql> UPDATE orders SET id = 1
+psql:<stdin>:1: ERROR:  Unsupported Error: Unsupported query type: UPDATE orders SET id = 1
+QUERY: UPDATE orders SET id = 1
+## delete
+$ psql> DELETE FROM orders
+psql:<stdin>:1: ERROR:  Unsupported Error: Unsupported query type: DELETE FROM orders
+QUERY: DELETE FROM orders

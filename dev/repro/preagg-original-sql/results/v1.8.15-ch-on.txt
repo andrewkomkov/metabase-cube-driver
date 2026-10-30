@@ -1,0 +1,55 @@
+# preagg-original-sql v1.8.15 clickhouse tesseract=on ready=True
+## rest_rollup_over_original
+$ POST /cubejs-api/v1/load {"measures": ["lambda_orders.revenue"], "dimensions": ["lambda_orders.status"], "order": {"lambda_orders.status": "asc"}}
+HTTP 400 ERROR Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing: '(lambda_orders__status)', required columns: 'lambda_orders__status', available columns: '_block_number' '_row_exists' '_distance' '_part_data_version' '_part_granule_offset' '_part_offset' '_disk_name' '_sample_factor' '_block_offset' '_table' '_part_uuid' '_database' 'status.size' '_part' '_part_index' 'created_at' '_part_starting_offset' 'amount' 'status' '_partition_id' 'id'. ; query id: 86e0f4a5-7013-4247-9351-76788491beab-2c0e76bf-25aa-43fc-bac4-8ee6e4a2df99
+SQL: SELECT "lambda_orders__status" "lambda_orders__status", sum("lambda_orders__revenue") "lambda_orders__revenue" 
+FROM  dev_pre_aggregations.lambda_orders_daily  AS "lambda_orders__daily"
+GROUP BY 1
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: []
+## rest_only_base
+$ POST /cubejs-api/v1/load {"measures": ["only_base.revenue"], "dimensions": ["only_base.status"], "order": {"only_base.status": "asc"}}
+HTTP 400 ERROR ClickHouse doesn't support pre-aggregations without indexes
+SQL ERROR: {"type":"UserError","error":"ClickHouse doesn't support pre-aggregations without indexes","stack":"Error: ClickHouse doesn't support pre-aggregations without indexes\n    at ClickHouseQuery.preAggregationLoadSql (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/ClickHouseQuery.ts:289:13)\n    at PreAggregations.preAggregationDescriptionFor (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/PreAggregations.ts:496:38)\n    at PreAggregations.preAggregationDescriptionsForRecursive (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/PreAggregations.ts:335:37)
+## rest_only_base_idx
+$ POST /cubejs-api/v1/load {"measures": ["only_base_idx.revenue"], "dimensions": ["only_base_idx.status"], "order": {"only_base_idx.status": "asc"}}
+HTTP 400 ERROR Error: Command failed: Error: Missing columns: 'only_base_idx__status' while processing: '(only_base_idx__status)', required columns: 'only_base_idx__status', available columns: '_block_number' '_row_exists' '_distance' '_part_data_version' '_part_granule_offset' '_part_offset' '_disk_name' '_sample_factor' '_block_offset' '_table' '_part_uuid' '_database' 'status.size' '_part' '_part_index' 'created_at' '_part_starting_offset' 'amount' 'status' '_partition_id' 'id'. ; query id: d45ddbfe-0b03-49ce-837f-4c01d586e09a-8d12e1af-050f-4eda-8611-01efe974dd32
+SQL: SELECT `only_base_idx`.status `only_base_idx__status`, sum(`only_base_idx`.amount) `only_base_idx__revenue` 
+FROM  dev_pre_aggregations.only_base_idx_base  AS `only_base_idx`
+GROUP BY 1
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: []
+## rest_rollup_internal
+$ POST /cubejs-api/v1/load {"measures": ["rollup_internal.revenue"], "dimensions": ["rollup_internal.status"], "order": {"rollup_internal.status": "asc"}}
+HTTP 400 ERROR Error: Command failed: Error: Missing columns: 'rollup_internal__id' while processing: '(rollup_internal__id)', required columns: 'rollup_internal__id', available columns: '_block_number' '_row_exists' '_distance' '_part_data_version' '_part_granule_offset' '_part_offset' '_disk_name' '_sample_factor' '_block_offset' '_table' '_part_uuid' '_database' 'status.size' '_part' '_part_index' 'created_at' '_part_starting_offset' 'amount' 'status' '_partition_id' 'id'. ; query id: fea48f42-d483-4acd-a532-61333af62352-1b581b9a-e852-4191-a0e6-37cb62f93597
+SQL: SELECT `rollup_internal__status` `rollup_internal__status`, sum(`rollup_internal__revenue`) `rollup_internal__revenue` 
+FROM  dev_pre_aggregations.rollup_internal_daily  AS `rollup_internal__daily`
+GROUP BY 1
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: []
+## rest_no_index
+$ POST /cubejs-api/v1/load {"measures": ["base_no_index.revenue"], "dimensions": ["base_no_index.status"], "order": {"base_no_index.status": "asc"}}
+HTTP 400 ERROR ClickHouse doesn't support pre-aggregations without indexes
+SQL ERROR: {"type":"UserError","error":"ClickHouse doesn't support pre-aggregations without indexes","stack":"Error: ClickHouse doesn't support pre-aggregations without indexes\n    at ClickHouseQuery.preAggregationLoadSql (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/ClickHouseQuery.ts:289:13)\n    at PreAggregations.preAggregationDescriptionFor (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/PreAggregations.ts:496:38)\n    at PreAggregations.preAggregationDescriptionsForRecursive (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/PreAggregations.ts:335:37)
+## sql_rollup_over_original
+$ psql> SELECT status, MEASURE(revenue) r FROM lambda_orders GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing: '(lambda_orders__status)', required columns: 'lambda_orders__status', available columns: '_block_number' '_row_exists' '_distance' '_part_data_version' '_part_granule_offset' '_part_offset' '_disk_name' '_sample_factor' '_block_offset' '_table' '_part_uuid' '_database' 'status.size' '_part' '_part_index' 'created_at' '_part_starting_offset' 'amount' 'status' '_partition_id' 'id'. ; query id: 984a4c3b-a2af-4765-89b9-344b8b6d7be0-f281c34b-5d83-4665-abbd-35eae9e3b749
+## truth
+$ clickhouse> SELECT status, sum(amount) r FROM repro.orders GROUP BY 1 ORDER BY 1
+status	r
+a	300
+b	400
+## log
+$ docker compose logs cube | grep -E 'Missing columns|Unknown identifier|UNKNOWN_IDENTIFIER|CREATE TABLE|ADD INDEX'
+          "ALTER TABLE dev_pre_aggregations.lambda_orders_base ADD INDEX lambda_orders_base_status_idx (`lambda_orders__status`) TYPE minmax GRANULARITY 1",
+      "CREATE TABLE dev_pre_aggregations.lambda_orders_base ENGINE = MergeTree() ORDER BY (`lambda_orders__status`) AS SELECT id, status, amount, created_at FROM repro.orders",
+          "ALTER TABLE dev_pre_aggregations.lambda_orders_base ADD INDEX lambda_orders_base_status_idx (`lambda_orders__status`) TYPE minmax GRANULARITY 1",
+Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing: '(lambda_orders__status)', required columns: 'lambda_orders__status', available columns: '_block_number' '_row_exists' '_distance' '_part_data_version' '_part_granule_offset' '_part_offset' '_disk_name' '_sample_factor' '_block_offset' '_table' '_part_uuid' '_database' 'status.size' '_part' '_part_index' 'created_at' '_part_starting_offset' 'amount' 'status' '_partition_id' 'id'. ; query id: 984a4c3b-a2af-4765-89b9-344b8b6d7be0-f281c34b-5d83-4665-abbd-35eae9e3b749
+Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing: '(lambda_orders__status)', required columns: 'lambda_orders__status', available columns: '_block_number' '_row_exists' '_distance' '_part_data_version' '_part_granule_offset' '_part_offset' '_disk_name' '_sample_factor' '_block_offset' '_table' '_part_uuid' '_database' 'status.size' '_part' '_part_index' 'created_at' '_part_starting_offset' 'amount' 'status' '_partition_id' 'id'. ; query id: 984a4c3b-a2af-4765-89b9-344b8b6d7be0-f281c34b-5d83-4665-abbd-35eae9e3b749
+Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing: '(lambda_orders__status)', required columns: 'lambda_orders__status', available columns: '_block_number' '_row_exists' '_distance' '_part_data_version' '_part_granule_offset' '_part_offset' '_disk_name' '_sample_factor' '_block_offset' '_table' '_part_uuid' '_database' 'status.size' '_part' '_part_index' 'created_at' '_part_starting_offset' 'amount' 'status' '_partition_id' 'id'. ; query id: 984a4c3b-a2af-4765-89b9-344b8b6d7be0-f281c34b-5d83-4665-abbd-35eae9e3b749
+Internal Error: Error during processing PostgreSQL message: DataFusionError: Arrow error: External error: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing: '(lambda_orders__status)', required columns: 'lambda_orders__status', available columns: '_block_number' '_row_exists' '_distance' '_part_data_version' '_part_granule_offset' '_part_offset' '_disk_name' '_sample_factor' '_block_offset' '_table' '_part_uuid' '_database' 'status.size' '_part' '_part_index' 'created_at' '_part_starting_offset' 'amount' 'status' '_partition_id' 'id'. ; q
+Internal Error: Error during processing PostgreSQL message: DataFusionError: Arrow error: External error: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing: '(lambda_orders__status)', required columns: 'lambda_orders__status', available columns: '_block_number' '_row_exists' '_distance' '_part_data_version' '_part_granule_offset' '_part_offset' '_disk_name' '_sample_factor' '_block_offset' '_table' '_part_uuid' '_database' 'status.size' '_part' '_part_index' 'created_at' '_part_starting_offset' 'amount' 'status' '_partition_id' 'id'. ; q
+matching lines: 34

@@ -1,0 +1,40 @@
+# minor-m3-count-no-rows-rollup v1.8.15 clickhouse tesseract=on ready=True
+## count_star
+$ psql> SELECT COUNT(*) c FROM orders WHERE status = 'nope'
+c
+$ psql> EXPLAIN SELECT COUNT(*) c FROM orders WHERE status = 'nope'
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.count"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "order": [],
+  "filters": [
+    {
+      "member": "orders.status",
+      "operator": "equals",
+      "values": [
+        "nope"
+      ]
+    }
+  ]
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.count"],"dimensions":[],"segments":[],"order":[],"filters":[{"member":"orders.status","operator":"equals","values":["nope"]}]}
+## measure_count
+$ psql> SELECT MEASURE(count) c FROM orders WHERE status = 'nope'
+c
+## rest_count
+$ POST /cubejs-api/v1/load {"measures": ["orders.count"], "filters": [{"member": "orders.status", "operator": "equals", "values": ["nope"]}]}
+HTTP 200 [{"orders.count": null}]
+SQL: SELECT sum("orders__count") "orders__count" 
+FROM  dev_pre_aggregations.orders_by_status  AS "orders__by_status"
+WHERE ("orders__status" = ?)
+LIMIT 10000
+PARAMS: ["nope"]
+## truth
+$ clickhouse> SELECT count(*) c FROM repro.orders WHERE status = 'nope'
+c
+0

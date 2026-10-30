@@ -1,0 +1,102 @@
+# join-on-condition v1.8.15 clickhouse tesseract=on ready=True
+## on_cube_join_field
+$ psql> SELECT o.id, u.vip FROM orders o LEFT JOIN users u ON o.__cubeJoinField = u.__cubeJoinField ORDER BY 1
+id | vip
+1 | 1
+2 | 0
+## on_other_columns -- SQL truth: order1->vip of user 2
+$ psql> SELECT o.id, u.vip FROM orders o LEFT JOIN users u ON o.other_id = u.id ORDER BY 1
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information
+QUERY: SELECT o.id, u.vip FROM orders o LEFT JOIN users u ON o.other_id = u.id ORDER BY 1
+$ psql> EXPLAIN SELECT o.id, u.vip FROM orders o LEFT JOIN users u ON o.other_id = u.id ORDER BY 1
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information
+QUERY: SELECT o.id, u.vip FROM orders o LEFT JOIN users u ON o.other_id = u.id ORDER BY 1
+## on_model_columns
+$ psql> SELECT o.id, u.vip FROM orders o LEFT JOIN users u ON o.user_id = u.id ORDER BY 1
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information
+QUERY: SELECT o.id, u.vip FROM orders o LEFT JOIN users u ON o.user_id = u.id ORDER BY 1
+## cross_other_where
+$ psql> SELECT o.id, u.vip FROM orders o CROSS JOIN users u WHERE o.other_id = u.id ORDER BY 1
+id | vip
+$ psql> EXPLAIN SELECT o.id, u.vip FROM orders o CROSS JOIN users u WHERE o.other_id = u.id ORDER BY 1
+plan_type | plan
+logical_plan | CubeScanWrappedSql
+physical_plan | CubeScanExecutionPlan, SQL:
+SELECT `orders`.id `id`, `users`.vip `vip` 
+FROM  repro.orders  AS `orders`
+LEFT JOIN  repro.users  AS `users` ON `orders`.user_id = `users`.id
+WHERE ((`orders`.other_id = `users`.id))
+ORDER BY  1  ASC
+LIMIT 50000
+## subquery_with_filter -- join of a filtered subquery
+$ psql> SELECT o.id, u.vip FROM orders o CROSS JOIN (SELECT * FROM users WHERE vip = 1) u WHERE o.__cubeJoinField = u.__cubeJoinField ORDER BY 1
+id | vip
+1 | 1
+## left_filtered_projected -- the shape from a saved question; SQL truth keeps order 2 with NULL
+$ psql> SELECT o.id, u.vip FROM orders o LEFT JOIN (SELECT id, vip FROM users WHERE vip = 1) u ON o.__cubeJoinField = u.__cubeJoinField ORDER BY 1
+psql:<stdin>:1: ERROR:  Planning Error: Initial planning error: Error during planning: No field named 'u.__cubeJoinField'. Valid fields are 'o.count', 'o.id', 'o.user_id', 'o.other_id', 'o.__user', 'o.__cubeJoinField', 'u.id', 'u.vip'.
+QUERY: SELECT o.id, u.vip FROM orders o LEFT JOIN (SELECT id, vip FROM users WHERE vip = 1) u ON o.__cubeJoinField = u.__cubeJoinField ORDER BY 1
+## left_filtered_star
+$ psql> SELECT o.id, u.vip FROM orders o LEFT JOIN (SELECT * FROM users WHERE vip = 1) u ON o.__cubeJoinField = u.__cubeJoinField ORDER BY 1
+id | vip
+1 | 1
+## subquery_plain
+$ psql> SELECT o.id, u.vip FROM orders o LEFT JOIN (SELECT id, vip, __cubeJoinField FROM users) u ON o.__cubeJoinField = u.__cubeJoinField ORDER BY 1
+id | vip
+1 | 1
+2 | 0
+## from_users_left_orders -- left join direction, truth user 3 has 0
+$ psql> SELECT u.id, MEASURE(o.count) c FROM users u LEFT JOIN orders o ON u.__cubeJoinField = o.__cubeJoinField GROUP BY 1 ORDER BY 1
+id | c
+1 | 1
+2 | 1
+$ psql> EXPLAIN SELECT u.id, MEASURE(o.count) c FROM users u LEFT JOIN orders o ON u.__cubeJoinField = o.__cubeJoinField GROUP BY 1 ORDER BY 1
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.count"
+  ],
+  "dimensions": [
+    "users.id"
+  ],
+  "segments": [],
+  "order": [
+    [
+      "users.id",
+      "asc"
+    ]
+  ],
+  "joinHints": [
+    [
+      "users",
+      "orders"
+    ]
+  ]
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.count"],"dimensions":["users.id"],"segments":[],"order":[["users.id","asc"]],"joinHints":[["users","orders"]]}
+## from_users_count_star
+$ psql> SELECT COUNT(*) c FROM users u LEFT JOIN orders o ON u.__cubeJoinField = o.__cubeJoinField
+psql:<stdin>:1: ERROR:  Internal Error: Can't find join path to join 'users,orders'
+QUERY: SELECT COUNT(*) AS c FROM users u LEFT JOIN orders o ON u.__cubeJoinField = o.__cubeJoinField
+## rest_users_with_order_count
+$ POST /cubejs-api/v1/load {"measures": ["orders.count"], "dimensions": ["users.id"], "order": {"users.id": "asc"}}
+HTTP 200 [{"users.id": "1", "orders.count": "1"}, {"users.id": "2", "orders.count": "1"}]
+SQL: SELECT `users`.id `users__id`, count(`orders`.id) `orders__count` 
+FROM  repro.orders  AS `orders`
+LEFT JOIN  repro.users  AS `users` ON `orders`.user_id = `users`.id
+GROUP BY 1
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: []
+## truth_on_other
+$ clickhouse> SELECT o.id, u.vip FROM repro.orders o LEFT JOIN repro.users u ON o.other_id = u.id ORDER BY 1
+id	vip
+1	0
+2	1
+## truth_left
+$ clickhouse> SELECT u.id, count(o.id) c FROM repro.users u LEFT JOIN repro.orders o ON o.user_id = u.id GROUP BY 1 ORDER BY 1
+id	c
+1	1
+2	1
+3	1

@@ -1,0 +1,29 @@
+{
+ "steps": [
+  {
+   "id": "wrong_jwt",
+   "http": {
+    "method": "GET",
+    "path": "/cubejs-api/v1/meta",
+    "token": "wrong"
+   }
+  },
+  {
+   "id": "good_jwt",
+   "http": {
+    "method": "GET",
+    "path": "/cubejs-api/v1/meta",
+    "token": "good"
+   }
+  },
+  {
+   "id": "log",
+   "logs": "invalid signature",
+   "tail": 2,
+   "mask": true
+  }
+ ],
+ "configs": [
+  "ch-on"
+ ]
+}

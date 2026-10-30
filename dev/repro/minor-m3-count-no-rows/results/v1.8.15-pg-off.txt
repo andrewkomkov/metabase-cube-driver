@@ -1,0 +1,45 @@
+# minor-m3-count-no-rows v1.8.15 postgres tesseract=off ready=True
+## count_star
+$ psql> SELECT COUNT(*) c FROM orders WHERE status = 'nope'
+c
+0
+$ psql> EXPLAIN SELECT COUNT(*) c FROM orders WHERE status = 'nope'
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.count"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "order": [],
+  "filters": [
+    {
+      "member": "orders.status",
+      "operator": "equals",
+      "values": [
+        "nope"
+      ]
+    }
+  ]
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.count"],"dimensions":[],"segments":[],"order":[],"filters":[{"member":"orders.status","operator":"equals","values":["nope"]}]}
+## measure_count
+$ psql> SELECT MEASURE(count) c FROM orders WHERE status = 'nope'
+c
+0
+## measure_sum
+$ psql> SELECT MEASURE(revenue) r FROM orders WHERE status = 'nope'
+r
+## rest_count
+$ POST /cubejs-api/v1/load {"measures": ["orders.count"], "filters": [{"member": "orders.status", "operator": "equals", "values": ["nope"]}]}
+HTTP 200 [{"orders.count": "0"}]
+SQL: SELECT
+      count("orders".id) "orders__count"
+    FROM
+      repro.orders AS "orders"  WHERE ("orders".status = $1) LIMIT 10000
+PARAMS: ["nope"]
+## truth
+$ postgres> SELECT count(*) c FROM repro.orders WHERE status = 'nope'
+c
+0

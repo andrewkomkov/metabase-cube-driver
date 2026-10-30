@@ -1,0 +1,41 @@
+# rolling-unbounded v1.8.15 clickhouse tesseract=off ready=True
+## two_months
+$ psql> SELECT DATE_TRUNC('month',created_at) m, MEASURE(cumulative_count) c FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-06-01' GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEquals(__table4.orders__created_at_month, __table2.date_to). ; query id: a74c7e72-6493-46f1-ad2e-2028c04b6fd8-b9eb018e-bc2f-4e03-8de0-aa589cd8cb1c
+## two_months_100y -- the same window with a far bound
+$ psql> SELECT DATE_TRUNC('month',created_at) m, MEASURE(cumulative_100y) c FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-06-01' GROUP BY 1 ORDER BY 1
+m | c
+2025-04-01 00:00:00.000000 | 5
+2025-05-01 00:00:00.000000 | 5
+## one_month
+$ psql> SELECT DATE_TRUNC('month',created_at) m, MEASURE(cumulative_count) c FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-05-01' GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEquals(__table4.orders__created_at_month, __table2.date_to). ; query id: f017a4fb-b8d8-4dae-af09-4a3fadb0bb5f-1bf6b2c9-42d0-4398-8a2f-e4e416decdac
+## rest_two_months
+$ POST /cubejs-api/v1/load {"measures": ["orders.cumulative_count"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month", "dateRange": ["2025-04-01", "2025-05-31"]}]}
+HTTP 400 ERROR Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEquals(__table4.orders__created_at_month, __table2.date_to). ; query id: fcec4cdc-8d19-40ee-8bb6-b919f7c390e8-0d1a5039-1577-419b-bb03-e8ff4cf77257
+SQL: SELECT q_0.`orders__created_at_month` `orders__created_at_month`, `orders__cumulative_count` `orders__cumulative_count` FROM (SELECT `orders.created_at_series`.`date_from` `orders__created_at_month`, sum(`orders__cumulative_count`) `orders__cumulative_count` FROM (SELECT parseDateTimeBestEffort(arrayJoin(['2025-04-01T00:00:00.000','2025-05-01T00:00:00.000'])) as date_from, parseDateTimeBestEffort(arrayJoin(['2025-04-30T23:59:59.999','2025-05-31T23:59:59.999'])) as date_to) AS `orders.created_at_series` LEFT JOIN (SELECT toDateTime64(toStartOfMonth(toTimeZone(toDateTime64(`orders_cumulative_count_cumulative__orders`.created_at, 0), 'UTC'), 'UTC'), 0, 'UTC') `orders__created_at_month`, count(`orders_cumulative_count_cumulative__orders`.id) `orders__cumulative_count` FROM repro.orders AS `orders_cumulative_count_cumulative__orders`  WHERE (toTimeZone(toDateTime64(`orders_cumulative_count_cumulative__orders`.created_at, 0), 'UTC') <= parseDateTimeBestEffort(?)) GROUP BY `orders__created_at_month`) AS `orders_cumulative_count_cumulative__base` ON `orders_cumulative_count_cumulative__base`.`orders__created_at_month` <= `orders.created_at_series`.`date_to` GROUP BY `orders__created_at_month`) AS q_0  ORDER BY `orders__created_at_month` ASC LIMIT 10000
+PARAMS: ["2025-05-31T23:59:59.999"]
+## rest_one_month
+$ POST /cubejs-api/v1/load {"measures": ["orders.cumulative_count"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month", "dateRange": ["2025-04-01", "2025-04-30"]}]}
+HTTP 400 ERROR Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEquals(__table4.orders__created_at_month, __table2.date_to). ; query id: aacaba56-55cf-432f-aba6-dce4cdc549cd-0cdb0cab-97a9-41a2-92c1-e0a5a1bc74d2
+SQL: SELECT q_0.`orders__created_at_month` `orders__created_at_month`, `orders__cumulative_count` `orders__cumulative_count` FROM (SELECT `orders.created_at_series`.`date_from` `orders__created_at_month`, sum(`orders__cumulative_count`) `orders__cumulative_count` FROM (SELECT parseDateTimeBestEffort(arrayJoin(['2025-04-01T00:00:00.000'])) as date_from, parseDateTimeBestEffort(arrayJoin(['2025-04-30T23:59:59.999'])) as date_to) AS `orders.created_at_series` LEFT JOIN (SELECT toDateTime64(toStartOfMonth(toTimeZone(toDateTime64(`orders_cumulative_count_cumulative__orders`.created_at, 0), 'UTC'), 'UTC'), 0, 'UTC') `orders__created_at_month`, count(`orders_cumulative_count_cumulative__orders`.id) `orders__cumulative_count` FROM repro.orders AS `orders_cumulative_count_cumulative__orders`  WHERE (toTimeZone(toDateTime64(`orders_cumulative_count_cumulative__orders`.created_at, 0), 'UTC') <= parseDateTimeBestEffort(?)) GROUP BY `orders__created_at_month`) AS `orders_cumulative_count_cumulative__base` ON `orders_cumulative_count_cumulative__base`.`orders__created_at_month` <= `orders.created_at_series`.`date_to` GROUP BY `orders__created_at_month`) AS q_0  ORDER BY `orders__created_at_month` ASC LIMIT 10000
+PARAMS: ["2025-04-30T23:59:59.999"]
+## truth
+$ clickhouse> SELECT d, (SELECT count() FROM repro.orders o WHERE o.created_at <= d) FROM (SELECT toDateTime('2025-04-30 23:59:59','UTC') d UNION ALL SELECT toDateTime('2025-05-31 23:59:59','UTC')) ORDER BY 1
+d	_subquery_2
+2025-04-30 23:59:59	2
+2025-05-31 23:59:59	3
+## ch_inequality_join -- a join with only an inequality on ClickHouse
+$ clickhouse> SELECT count() FROM (SELECT 1 a) l JOIN (SELECT 2 b) r ON l.a <= r.b
+count()
+1
+## ch_two_bound_join -- a second bound makes the join valid
+$ clickhouse> SELECT d, count() FROM (SELECT toDateTime('2025-04-30 23:59:59','UTC') d UNION ALL SELECT toDateTime('2025-05-31 23:59:59','UTC')) dates LEFT JOIN repro.orders o ON o.created_at <= dates.d AND o.created_at > toDateTime(0) GROUP BY 1 ORDER BY 1
+Received exception from server (version 26.8.36):
+Code: 403. DB::Exception: Received from localhost:9000. DB::Exception: Cannot determine join keys in JOIN ON expression lessOrEquals(__table6.created_at, __table1.d). (INVALID_JOIN_ON_EXPRESSION)
+(query: SELECT d, count() FROM (SELECT toDateTime('2025-04-30 23:59:59','UTC') d UNION ALL SELECT toDateTime('2025-05-31 23:59:59','UTC')) dates LEFT JOIN repro.orders o ON o.created_at <= dates.d AND o.created_at > toDateTime(0) GROUP BY 1 ORDER BY 1)
+## ch_inequality_join_named_table
+$ clickhouse> SELECT d, count() FROM (SELECT toDateTime('2025-04-30 23:59:59','UTC') d UNION ALL SELECT toDateTime('2025-05-31 23:59:59','UTC')) dates LEFT JOIN repro.orders o ON o.created_at <= dates.d GROUP BY 1 ORDER BY 1
+Received exception from server (version 26.8.36):
+Code: 403. DB::Exception: Received from localhost:9000. DB::Exception: Cannot determine join keys in JOIN ON expression lessOrEquals(__table6.created_at, __table1.d). (INVALID_JOIN_ON_EXPRESSION)
+(query: SELECT d, count() FROM (SELECT toDateTime('2025-04-30 23:59:59','UTC') d UNION ALL SELECT toDateTime('2025-05-31 23:59:59','UTC')) dates LEFT JOIN repro.orders o ON o.created_at <= dates.d GROUP BY 1 ORDER BY 1)

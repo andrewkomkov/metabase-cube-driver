@@ -1,0 +1,21 @@
+# other-aggregation-of-measure v1.8.15 postgres tesseract=off ready=True
+## max_of_sum
+$ psql> SELECT MAX(revenue) x FROM orders
+x
+400
+## sum_of_sum
+$ psql> SELECT SUM(revenue) x FROM orders
+x
+700
+## min_of_count
+$ psql> SELECT MIN(count) x FROM orders
+psql:<stdin>:1: ERROR:  Rewrite Error: Measure aggregation type doesn't match. The aggregation type for 'count' is 'COUNT()' but 'MIN()' was provided. Please check logs for additional information
+QUERY: SELECT MIN(count) AS x FROM orders
+## avg_of_avg
+$ psql> SELECT AVG(avg_amount) x FROM orders
+x
+233.33333333333334
+## count_distinct_status
+$ psql> SELECT COUNT(DISTINCT status) x FROM orders
+x
+2

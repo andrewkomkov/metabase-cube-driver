@@ -1,0 +1,46 @@
+{
+ "steps": [
+  {
+   "id": "bind_sum_outer",
+   "script": "SELECT SUM(amount_dim) s FROM (SELECT id, amount_dim, created_at FROM orders) q WHERE created_at >= $1::timestamp \\bind '2025-05-10 00:00:00' \\g\n"
+  },
+  {
+   "id": "literal_sum_outer",
+   "sql": "SELECT SUM(amount_dim) s FROM (SELECT id, amount_dim, created_at FROM orders) q WHERE created_at >= timestamp '2025-05-10 00:00:00'",
+   "explain": true
+  },
+  {
+   "id": "bind_count_between",
+   "script": "SELECT COUNT(*) c FROM (SELECT id, amount_dim, created_at FROM orders) q WHERE created_at BETWEEN $1::timestamp AND $2::timestamp \\bind '2025-05-10 00:00:00' '2025-05-20 00:00:00' \\g\n"
+  },
+  {
+   "id": "literal_count_between",
+   "sql": "SELECT COUNT(*) c FROM (SELECT id, amount_dim, created_at FROM orders) q WHERE created_at BETWEEN timestamp '2025-05-10 00:00:00' AND timestamp '2025-05-20 00:00:00'"
+  },
+  {
+   "id": "bind_direct_scan",
+   "script": "SELECT MEASURE(count) c FROM orders WHERE created_at >= $1::timestamp \\bind '2025-05-10 00:00:00' \\g\n"
+  },
+  {
+   "id": "bind_direct_scan_untyped",
+   "script": "SELECT MEASURE(count) c FROM orders WHERE created_at >= $1 \\bind '2025-05-10 00:00:00' \\g\n"
+  },
+  {
+   "id": "bind_untyped_text_filter",
+   "script": "SELECT SUM(amount_dim) s FROM (SELECT id, amount_dim, status FROM orders) q WHERE status = $1 \\bind 'a' \\g\n",
+   "note": "a text parameter on the same shape"
+  },
+  {
+   "id": "bind_untyped",
+   "script": "SELECT SUM(amount_dim) s FROM (SELECT id, amount_dim, created_at FROM orders) q WHERE created_at >= $1 \\bind '2025-05-10 00:00:00' \\g\n"
+  },
+  {
+   "id": "truth",
+   "truth": "SELECT sum(amount) s FROM repro.orders WHERE created_at >= '2025-05-10 00:00:00'"
+  },
+  {
+   "id": "truth_between",
+   "truth": "SELECT count(*) c FROM repro.orders WHERE created_at BETWEEN '2025-05-10 00:00:00' AND '2025-05-20 00:00:00'"
+  }
+ ]
+}

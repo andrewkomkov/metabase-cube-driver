@@ -1,0 +1,71 @@
+# propagate-filters-next-to-sub-query v1.8.15 clickhouse tesseract=off ready=True
+## rest_alone
+$ POST /cubejs-api/v1/load {"dimensions": ["users.id", "users.paid_orders"], "filters": [{"member": "orders.status", "operator": "equals", "values": ["early"]}], "order": {"users.id": "asc"}}
+HTTP 200 [{"users.id": "1", "users.paid_orders": "1"}]
+SQL: SELECT
+      `users`.id `users__id`, `users__paid_orders` `users__paid_orders`
+    FROM
+      repro.orders AS `orders`
+LEFT JOIN repro.users AS `users` ON `orders`.user_id = `users`.id
+LEFT JOIN (SELECT
+      `users_paid_orders_subquery__users`.id `users__id`, count(`users_paid_orders_subquery__orders`.id) `users__paid_orders`
+    FROM
+      repro.orders AS `users_paid_orders_subquery__orders`
+LEFT JOIN repro.users AS `users_paid_orders_subquery__users` ON `users_paid_orders_subquery__orders`.user_id = `users_paid_orders_subquery__users`.id  WHERE (`users_paid_orders_subquery__orders`.status = ?) GROUP BY `users__id`) AS `users_paid_orders_subquery` ON `users_paid_orders_subquery`.`users__id` = `users`.id  WHERE (`orders`.status = ?) GROUP BY `users__id`, `users__paid_orders` ORDER BY `users__id` ASC LIMIT 10000
+PARAMS: ["early", "early"]
+## rest_together
+$ POST /cubejs-api/v1/load {"dimensions": ["users.id", "users.lifetime_orders", "users.paid_orders"], "filters": [{"member": "orders.status", "operator": "equals", "values": ["early"]}], "order": {"users.id": "asc"}}
+HTTP 200 [{"users.id": "1", "users.lifetime_orders": "2", "users.paid_orders": "1"}]
+SQL: SELECT
+      `users`.id `users__id`, `users__lifetime_orders` `users__lifetime_orders`, `users__paid_orders` `users__paid_orders`
+    FROM
+      repro.orders AS `orders`
+LEFT JOIN repro.users AS `users` ON `orders`.user_id = `users`.id
+LEFT JOIN (SELECT
+      `users_lifetime_orders_subquery__users`.id `users__id`, count(`users_lifetime_orders_subquery__orders`.id) `users__lifetime_orders`
+    FROM
+      repro.orders AS `users_lifetime_orders_subquery__orders`
+LEFT JOIN repro.users AS `users_lifetime_orders_subquery__users` ON `users_lifetime_orders_subquery__orders`.user_id = `users_lifetime_orders_subquery__users`.id  GROUP BY `users__id`) AS `users_lifetime_orders_subquery` ON `users_lifetime_orders_subquery`.`users__id` = `users`.id
+LEFT JOIN (SELECT
+      `users_paid_orders_subquery__users`.id `users__id`, count(`users_paid_orders_subquery__orders`.id) `users__paid_orders`
+    FROM
+      repro.orders AS `users_paid_orders_subquery__orders`
+LEFT JOIN repro.users AS `users_paid_orders_subquery__users` ON `users_paid_orders_subquery__orders`.user_id = `users_paid_orders_subquery__users`.id  WHERE (`users_paid_orders_subquery__orders`.status = ?) GROUP BY `users__id`) AS `users_paid_orders_subquery` ON `users_paid_orders_subquery`.`users__id` = `users`.id  WHERE (`orders`.status = ?) GROUP BY `users__id`, `users__lifetime_orders`, `users__paid_orders` ORDER BY `users__id` ASC LIMIT 10000
+PARAMS: ["early", "early"]
+## rest_together_swapped
+$ POST /cubejs-api/v1/load {"dimensions": ["users.id", "users.paid_orders", "users.lifetime_orders"], "filters": [{"member": "orders.status", "operator": "equals", "values": ["early"]}], "order": {"users.id": "asc"}}
+HTTP 200 [{"users.id": "1", "users.paid_orders": "1", "users.lifetime_orders": "2"}]
+## rest_other_sql -- the same value with another sql
+$ POST /cubejs-api/v1/load {"dimensions": ["users.id", "users.lifetime_orders", "users.paid_orders_other_sql"], "filters": [{"member": "orders.status", "operator": "equals", "values": ["early"]}], "order": {"users.id": "asc"}}
+HTTP 200 [{"users.id": "1", "users.lifetime_orders": "2", "users.paid_orders_other_sql": "1"}]
+SQL: SELECT
+      `users`.id `users__id`, `users__lifetime_orders` `users__lifetime_orders`, `users__paid_orders_other_sql` `users__paid_orders_other_sql`
+    FROM
+      repro.orders AS `orders`
+LEFT JOIN repro.users AS `users` ON `orders`.user_id = `users`.id
+LEFT JOIN (SELECT
+      `users_lifetime_orders_subquery__users`.id `users__id`, count(`users_lifetime_orders_subquery__orders`.id) `users__lifetime_orders`
+    FROM
+      repro.orders AS `users_lifetime_orders_subquery__orders`
+LEFT JOIN repro.users AS `users_lifetime_orders_subquery__users` ON `users_lifetime_orders_subquery__orders`.user_id = `users_lifetime_orders_subquery__users`.id  GROUP BY `users__id`) AS `users_lifetime_orders_subquery` ON `users_lifetime_orders_subquery`.`users__id` = `users`.id
+LEFT JOIN (SELECT
+      `users_paid_orders_other_sql_subquery__users`.id `users__id`, count(`users_paid_orders_other_sql_subquery__orders`.id) + 0 `users__paid_orders_other_sql`
+    FROM
+      repro.orders AS `users_paid_orders_other_sql_subquery__orders`
+LEFT JOIN repro.users AS `users_paid_orders_other_sql_subquery__users` ON `users_paid_orders_other_sql_subquery__orders`.user_id = `users_paid_orders_other_sql_subquery__users`.id  WHERE (`users_paid_orders_other_sql_subquery__orders`.status = ?) GROUP BY `users__id`) AS `users_paid_orders_other_sql_subquery` ON `users_paid_orders_other_sql_subquery`.`users__id` = `users`.id  WHERE (`orders`.status = ?) GROUP BY `users__id`, `users__lifetime_orders`, `users__paid_orders_other_sql` ORDER BY `users__id` ASC LIMIT 10000
+PARAMS: ["early", "early"]
+## rest_no_filter_two_measures
+$ POST /cubejs-api/v1/load {"dimensions": ["users.id", "users.lifetime_orders", "users.total_ids"], "order": {"users.id": "asc"}}
+HTTP 200 [{"users.id": "1", "users.lifetime_orders": "2", "users.total_ids": "2"}, {"users.id": "2", "users.lifetime_orders": "1", "users.total_ids": "1"}]
+## rest_no_filter_same_sql
+$ POST /cubejs-api/v1/load {"dimensions": ["users.id", "users.lifetime_orders", "users.paid_orders"], "order": {"users.id": "asc"}}
+HTTP 200 [{"users.id": "1", "users.lifetime_orders": "2", "users.paid_orders": "2"}, {"users.id": "2", "users.lifetime_orders": "1", "users.paid_orders": "1"}]
+## sql_together
+$ psql> SELECT u.id, u.lifetime_orders, u.paid_orders FROM users u CROSS JOIN orders o WHERE u.__cubeJoinField = o.__cubeJoinField AND o.status = 'early' GROUP BY 1,2,3 ORDER BY 1
+id | lifetime_orders | paid_orders
+1 | 2 | 1
+## truth
+$ clickhouse> SELECT user_id AS id, count(*) AS lifetime, sum(CASE WHEN status='early' THEN 1 ELSE 0 END) AS filtered FROM repro.orders GROUP BY 1 ORDER BY 1
+id	lifetime	filtered
+1	2	1
+2	1	0

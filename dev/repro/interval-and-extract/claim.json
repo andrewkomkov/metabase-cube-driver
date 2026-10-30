@@ -1,0 +1,43 @@
+{
+ "steps": [
+  {
+   "id": "interval_raw",
+   "sql": "SELECT id, created_at + INTERVAL '1 day' d FROM orders ORDER BY 1"
+  },
+  {
+   "id": "interval_aggregated",
+   "sql": "SELECT created_at + INTERVAL '1 day' d, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1",
+   "explain": true
+  },
+  {
+   "id": "interval_trunc_aggregated",
+   "sql": "SELECT DATE_TRUNC('month', created_at + INTERVAL '1 day') d, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "extract_count",
+   "sql": "SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "extract_sum",
+   "sql": "SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(revenue) r FROM orders GROUP BY 1 ORDER BY 1",
+   "explain": true
+  },
+  {
+   "id": "extract_avg",
+   "sql": "SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(avg_amount) a FROM orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "extract_count_distinct",
+   "sql": "SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(distinct_status) a FROM orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "trunc_avg",
+   "sql": "SELECT DATE_TRUNC('month', created_at) m, MEASURE(avg_amount) a FROM orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "truth_extract_avg",
+   "truth_ch": "SELECT toMonth(created_at) m, avg(amount) a FROM repro.orders GROUP BY 1 ORDER BY 1",
+   "truth_pg": "SELECT extract(month from created_at) m, avg(amount) a FROM repro.orders GROUP BY 1 ORDER BY 1"
+  }
+ ]
+}

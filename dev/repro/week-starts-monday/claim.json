@@ -1,0 +1,26 @@
+{
+ "steps": [
+  {
+   "id": "sql_week",
+   "sql": "SELECT DATE_TRUNC('week',created_at) w, MEASURE(revenue) r FROM orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "rest_week",
+   "rest": {
+    "measures": [
+     "orders.revenue"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "week"
+     }
+    ],
+    "order": {
+     "orders.created_at": "asc"
+    }
+   },
+   "rest_sql": true
+  }
+ ]
+}

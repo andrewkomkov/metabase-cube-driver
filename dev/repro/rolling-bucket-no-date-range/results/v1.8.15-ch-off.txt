@@ -1,0 +1,8 @@
+# rolling-bucket-no-date-range v1.8.15 clickhouse tesseract=off ready=True
+## sql_bucket_no_filter
+$ psql> SELECT DATE_TRUNC('month',created_at) m, MEASURE(revenue_trailing_30d) r FROM orders GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Database Execution Error: Time series queries without dateRange aren't supported
+## rest_bucket_no_range
+$ POST /cubejs-api/v1/load {"measures": ["orders.revenue_trailing_30d"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month"}]}
+HTTP 400 ERROR Time series queries without dateRange aren't supported
+SQL ERROR: {"type":"UserError","error":"Time series queries without dateRange aren't supported","stack":"Error: Time series queries without dateRange aren't supported\n    at ClickHouseQuery.overTimeSeriesQuery (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:2270:13)\n    at /cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:1579:28\n    at ClickHouseQuery.evaluateSymbolSqlWithContext (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:4147:22)\n    at ClickHouseQuery.withCubeAliasPrefix (/cube/node_modules/@cubejs-backend/sch

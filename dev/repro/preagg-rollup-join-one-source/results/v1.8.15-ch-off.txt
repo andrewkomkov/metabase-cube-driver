@@ -1,0 +1,18 @@
+# preagg-rollup-join-one-source v1.8.15 clickhouse tesseract=off ready=True
+## rest_join
+$ POST /cubejs-api/v1/load {"measures": ["orders.revenue"], "dimensions": ["users.state"], "order": {"users.state": "asc"}}
+HTTP 200 [{"users.state": "TX", "orders.revenue": "10"}, {"users.state": "WA", "orders.revenue": "100"}]
+SQL: SELECT
+      `users`.state `users__state`, sum(`orders`.amount) `orders__revenue`
+    FROM
+      repro.orders AS `orders`
+LEFT JOIN repro.users AS `users` ON `orders`.user_id = `users`.id  GROUP BY `users__state` ORDER BY `users__state` ASC LIMIT 10000
+PARAMS: []
+## pre_aggs_used
+$ POST /cubejs-api/v1/sql token=good
+HTTP 200 {"sql":{"external":false,"sql":["SELECT\n      `users`.state `users__state`, sum(`orders`.amount) `orders__revenue`\n    FROM\n      repro.orders AS `orders`\nLEFT JOIN repro.users AS `users` ON `orders`.user_id = `users`.id  GROUP BY `users__state` ORDER BY `orders__revenue` DESC LIMIT 10000",[]],"lambdaQueries":{},"order":{"orders.revenue":"desc"},"cacheKeyQueries":[["SELECT FLOOR((UNIX_TIMESTAMP()) / 10) as refresh_key",[],{"external":true,"renewalThreshold":10}],["SELECT FLOOR((UNIX_TIMESTAM
+## truth
+$ clickhouse> SELECT u.state, sum(o.amount) r FROM repro.orders o JOIN repro.users u ON o.user_id=u.id GROUP BY 1 ORDER BY 1
+state	r
+TX	10
+WA	100

@@ -1,0 +1,41 @@
+{
+ "steps": [
+  {
+   "id": "set_time_zone",
+   "script": "SET TIME ZONE 'Asia/Tokyo';\nSHOW TIME ZONE;\nSELECT DATE_TRUNC('day', created_at) d, MEASURE(revenue) r FROM orders GROUP BY 1 ORDER BY 1;\n"
+  },
+  {
+   "id": "at_time_zone",
+   "sql": "SELECT DATE_TRUNC('day', created_at AT TIME ZONE 'Asia/Tokyo') d, MEASURE(revenue) r FROM orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "utc_default",
+   "sql": "SELECT DATE_TRUNC('day', created_at) d, MEASURE(revenue) r FROM orders GROUP BY 1 ORDER BY 1",
+   "explain": true
+  },
+  {
+   "id": "rest_timezone",
+   "rest": {
+    "timezone": "Asia/Tokyo",
+    "measures": [
+     "orders.revenue"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "day"
+     }
+    ],
+    "order": {
+     "orders.created_at": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "truth_tokyo",
+   "truth_ch": "SELECT toStartOfDay(created_at,'Asia/Tokyo') d, sum(amount) r FROM repro.orders GROUP BY 1 ORDER BY 1",
+   "truth_pg": "SELECT date_trunc('day',created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Tokyo') d, sum(amount) r FROM repro.orders GROUP BY 1 ORDER BY 1"
+  }
+ ]
+}

@@ -1,0 +1,86 @@
+{
+ "steps": [
+  {
+   "id": "b1_strict_bound",
+   "sql": "SELECT MEASURE(count) c, MEASURE(revenue) r FROM orders WHERE created_at > '2025-03-15 05:00:00' AND created_at <= '2025-03-16 05:00:00'",
+   "note": "truth 2, 1100"
+  },
+  {
+   "id": "millis_raw",
+   "sql": "SELECT id, ts FROM events ORDER BY 1",
+   "note": "truth .007 and .500"
+  },
+  {
+   "id": "millis_filter",
+   "sql": "SELECT MEASURE(count) c FROM events WHERE ts >= '2025-01-01 10:00:00.007' AND ts < '2025-01-01 10:00:00.008'",
+   "note": "truth 1"
+  },
+  {
+   "id": "rest_millis",
+   "rest": {
+    "dimensions": [
+     "events.id",
+     "events.ts"
+    ],
+    "order": {
+     "events.id": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "interval_raw",
+   "sql": "SELECT id, created_at + INTERVAL '1 day' d FROM orders ORDER BY 1"
+  },
+  {
+   "id": "interval_aggregated",
+   "sql": "SELECT created_at + INTERVAL '1 day' d, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "extract_avg",
+   "sql": "SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(avg_amount) a FROM orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "percentile_cont",
+   "sql": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount_dim) p FROM orders",
+   "note": "truth 100"
+  },
+  {
+   "id": "unbounded_two_months",
+   "sql": "SELECT DATE_TRUNC('month',created_at) m, MEASURE(cumulative_count) c FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-05-01' GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "truth_percentile",
+   "truth": "SELECT quantile(0.5)(amount) p FROM repro.orders"
+  },
+  {
+   "id": "original_sql_with_index",
+   "rest": {
+    "measures": [
+     "base_orders.revenue"
+    ],
+    "dimensions": [
+     "base_orders.status"
+    ],
+    "order": {
+     "base_orders.status": "asc"
+    }
+   },
+   "rest_sql": true,
+   "note": "truth a 11 b ... see truth_original_sql"
+  },
+  {
+   "id": "truth_original_sql",
+   "truth": "SELECT status, sum(amount) r FROM repro.orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "log_quantile",
+   "logs": "quantile",
+   "tail": 2
+  }
+ ],
+ "configs": [
+  "ch-on",
+  "ch-off"
+ ]
+}

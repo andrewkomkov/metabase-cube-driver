@@ -1,0 +1,51 @@
+{
+ "steps": [
+  {
+   "id": "meta_view",
+   "meta": "user_places"
+  },
+  {
+   "id": "meta_cube",
+   "meta": "users"
+  },
+  {
+   "id": "rest_cube",
+   "rest": {
+    "dimensions": [
+     "users.location"
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_view",
+   "rest": {
+    "dimensions": [
+     "user_places.location"
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_view_id_only",
+   "rest": {
+    "dimensions": [
+     "user_places.id"
+    ]
+   }
+  },
+  {
+   "id": "sql_cube",
+   "sql": "SELECT location FROM users ORDER BY 1"
+  },
+  {
+   "id": "sql_view",
+   "sql": "SELECT location FROM user_places ORDER BY 1"
+  },
+  {
+   "id": "log",
+   "logs": "reading 'sql'",
+   "mask": true
+  }
+ ]
+}

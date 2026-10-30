@@ -1,0 +1,17 @@
+# meta-view-joins-primary-key v1.8.15 clickhouse tesseract=on ready=True
+## meta_extended_view
+{"name": "order_users", "type": "view", "joins": [], "public": true, "measures": [{"name": "order_users.count", "type": "number", "public": true, "isVisible": true, "aggType": "count"}], "dimensions": [{"name": "order_users.id", "type": "number", "public": true, "isVisible": true, "primaryKey": false}, {"name": "order_users.users_vip", "type": "number", "public": true, "isVisible": true, "primaryKey": false}]}
+## meta_extended_cube
+{"name": "orders", "type": "cube", "joins": [{"name": "users", "relationship": "belongsTo", "sql": "`${CUBE}.user_id = ${users.id}`"}], "public": true, "connectedComponent": 1, "measures": [{"name": "orders.count", "type": "number", "public": true, "isVisible": true, "aggType": "count"}], "dimensions": [{"name": "orders.id", "type": "number", "public": true, "isVisible": true, "primaryKey": true}, {"name": "orders.user_id", "type": "number", "public": true, "isVisible": true, "primaryKey": false}, {"name": "orders.other_id", "type": "number", "public": true, "isVisible": true, "primaryKey": false}]}
+## meta_view
+{"name": "order_users", "type": "view", "public": true, "measures": [{"name": "order_users.count", "type": "number", "public": true, "isVisible": true, "aggType": "count"}], "dimensions": [{"name": "order_users.id", "type": "number", "public": true, "isVisible": true, "primaryKey": false}, {"name": "order_users.users_vip", "type": "number", "public": true, "isVisible": true, "primaryKey": false}]}
+## meta_orders
+{"name": "orders", "type": "cube", "public": true, "connectedComponent": 1, "measures": [{"name": "orders.count", "type": "number", "public": true, "isVisible": true, "aggType": "count"}], "dimensions": [{"name": "orders.id", "type": "number", "public": true, "isVisible": true, "primaryKey": true}, {"name": "orders.user_id", "type": "number", "public": true, "isVisible": true, "primaryKey": false}, {"name": "orders.other_id", "type": "number", "public": true, "isVisible": true, "primaryKey": false}]}
+## meta_users
+{"name": "users", "type": "cube", "public": true, "connectedComponent": 1, "measures": [{"name": "users.count", "type": "number", "public": true, "isVisible": true, "aggType": "count"}], "dimensions": [{"name": "users.id", "type": "number", "public": false, "isVisible": false, "primaryKey": true}, {"name": "users.vip", "type": "number", "public": true, "isVisible": true, "primaryKey": false}]}
+## sql_hidden_pk
+$ psql> SELECT id FROM users ORDER BY 1
+id
+1
+2
+3

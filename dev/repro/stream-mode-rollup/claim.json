@@ -1,0 +1,24 @@
+{
+ "steps": [
+  {
+   "id": "sql_rollup_month",
+   "sql": "SELECT DATE_TRUNC('month',created_at) m, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "sql_rollup_status",
+   "sql": "SELECT status, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "sql_no_rollup",
+   "sql": "SELECT id FROM orders ORDER BY 1"
+  },
+  {
+   "id": "sql_no_rollup_group",
+   "sql": "SELECT id, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1"
+  }
+ ],
+ "configs": [
+  "ch-on",
+  "pg-on"
+ ]
+}

@@ -1,0 +1,27 @@
+{
+ "steps": [
+  {
+   "id": "hidden_cube",
+   "sql": "SELECT COUNT(*) c FROM secret_audit"
+  },
+  {
+   "id": "hidden_measure",
+   "sql": "SELECT MEASURE(hidden_measure) x FROM orders"
+  },
+  {
+   "id": "rest_hidden_cube",
+   "rest": {
+    "measures": [
+     "secret_audit.count"
+    ]
+   }
+  },
+  {
+   "id": "meta_list",
+   "meta": "secret_audit"
+  }
+ ],
+ "configs": [
+  "ch-on"
+ ]
+}

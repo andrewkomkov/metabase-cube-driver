@@ -1,0 +1,51 @@
+{
+ "steps": [
+  {
+   "id": "sql_raw",
+   "sql": "SELECT id, ts FROM events ORDER BY 1"
+  },
+  {
+   "id": "sql_filter_ms",
+   "sql": "SELECT MEASURE(count) c FROM events WHERE ts >= '2025-01-01 10:00:00.007' AND ts < '2025-01-01 10:00:00.008'",
+   "explain": true
+  },
+  {
+   "id": "rest_raw",
+   "rest": {
+    "dimensions": [
+     "events.id",
+     "events.ts"
+    ],
+    "order": {
+     "events.id": "asc"
+    }
+   }
+  },
+  {
+   "id": "rest_filter_ms",
+   "rest": {
+    "measures": [
+     "events.count"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "events.ts",
+      "dateRange": [
+       "2025-01-01T10:00:00.007",
+       "2025-01-01T10:00:00.007"
+      ]
+     }
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "truth_raw",
+   "truth": "SELECT id, ts FROM repro.events ORDER BY 1"
+  },
+  {
+   "id": "truth_filter",
+   "truth": "SELECT count(*) c FROM repro.events WHERE ts >= '2025-01-01 10:00:00.007' AND ts < '2025-01-01 10:00:00.008'"
+  }
+ ]
+}

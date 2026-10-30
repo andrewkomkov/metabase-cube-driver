@@ -1,0 +1,25 @@
+# datediff-months v1.8.15 postgres tesseract=off ready=True
+## datediff_month
+$ psql> SELECT id, DATEDIFF('month', created_at, shipped_at) d FROM orders ORDER BY 1
+id | d
+1 | 1
+2 | 0
+## datediff_day
+$ psql> SELECT id, DATEDIFF('day', created_at, shipped_at) d FROM orders ORDER BY 1
+id | d
+1 | 1
+2 | 30
+## age_fn
+$ psql> SELECT id, EXTRACT(MONTH FROM AGE(shipped_at, created_at)) d FROM orders ORDER BY 1
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information
+QUERY: SELECT id, EXTRACT(MONTH FROM AGE(shipped_at, created_at)) AS d FROM orders ORDER BY 1
+## truth_boundaries -- boundaries
+$ postgres> SELECT id, (extract(year from shipped_at)-extract(year from created_at))*12+extract(month from shipped_at)-extract(month from created_at) d FROM repro.orders ORDER BY 1
+id | d
+1 | 1
+2 | 0
+## truth_whole_months
+$ postgres> SELECT id, extract(month from age(shipped_at,created_at)) d FROM repro.orders ORDER BY 1
+id | d
+1 | 0
+2 | 0

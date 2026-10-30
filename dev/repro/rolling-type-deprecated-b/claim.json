@@ -1,0 +1,17 @@
+{
+ "steps": [
+  {
+   "id": "meta",
+   "meta": "orders"
+  },
+  {
+   "id": "rest",
+   "rest": {
+    "measures": [
+     "orders.rev_mtd_measure_type"
+    ]
+   },
+   "rest_sql": true
+  }
+ ]
+}

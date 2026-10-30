@@ -1,0 +1,34 @@
+# count-distinct-approx-rollup v1.8.15 postgres tesseract=on ready=True
+## rest_exact_rollup_shape
+$ POST /cubejs-api/v1/load {"measures": ["orders.distinct_approx"], "dimensions": ["orders.status"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month"}], "order": {"orders.created_at": "asc"}}
+HTTP 400 ERROR Error: function hll_hash_any(text) does not exist
+SQL: SELECT "orders__status" "orders__status", date_trunc('month', "orders__created_at_month") "orders__created_at_month", cardinality(merge("orders__distinct_approx")) "orders__distinct_approx" 
+FROM  dev_pre_aggregations.orders_by_status_month  AS "orders__by_status_month"
+GROUP BY 1, 2
+ORDER BY  2  ASC
+LIMIT 10000
+PARAMS: []
+## rest_coarser
+$ POST /cubejs-api/v1/load {"measures": ["orders.distinct_approx"]}
+HTTP 400 ERROR Error: function hll_hash_any(text) does not exist
+SQL: SELECT cardinality(merge("orders__distinct_approx")) "orders__distinct_approx" 
+FROM  dev_pre_aggregations.orders_by_status_month  AS "orders__by_status_month"
+LIMIT 10000
+PARAMS: []
+## rest_no_rollup
+$ POST /cubejs-api/v1/load {"measures": ["plain.distinct_approx"]}
+HTTP 400 ERROR Error: function hll_hash_any(text) does not exist
+SQL: SELECT round(hll_cardinality(hll_add_agg(hll_hash_any("plain".status)))) "plain__distinct_approx" 
+FROM  repro.orders  AS "plain"
+LIMIT 10000
+PARAMS: []
+## log
+$ docker compose logs cube | grep -E 'by_status_month|hll|HLL|xxh|uniq'
+"SELECT round(hll_cardinality(hll_add_agg(hll_hash_any(\"plain\".status)))) \"plain__distinct_approx\" FROM repro.orders AS \"plain\" LIMIT 10000"
+Error: function hll_hash_any(text) does not exist
+Error: function hll_hash_any(text) does not exist
+matching lines: 50
+## truth
+$ postgres> SELECT count(distinct status) x FROM repro.orders
+x
+2

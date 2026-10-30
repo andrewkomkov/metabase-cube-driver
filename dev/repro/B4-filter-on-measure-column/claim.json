@@ -1,0 +1,91 @@
+{
+ "steps": [
+  {
+   "id": "subq_filter_grouped",
+   "sql": "SELECT SUM(amount_dim) s, COUNT(*) c FROM (SELECT id, amount_dim, MEASURE(revenue) AS revenue FROM orders GROUP BY 1, 2) q WHERE revenue > 150",
+   "explain": true,
+   "note": "truth: 500, 2"
+  },
+  {
+   "id": "subq_filter_rows",
+   "sql": "SELECT id, amount_dim, revenue FROM (SELECT id, amount_dim, MEASURE(revenue) AS revenue FROM orders GROUP BY 1, 2) q WHERE revenue > 150 ORDER BY 1"
+  },
+  {
+   "id": "subq_breakout",
+   "sql": "SELECT revenue, COUNT(*) c FROM (SELECT id, amount_dim, MEASURE(revenue) AS revenue FROM orders GROUP BY 1, 2) q GROUP BY 1 ORDER BY 1",
+   "explain": true,
+   "note": "truth: 3 groups"
+  },
+  {
+   "id": "subq_measure_no_group_filter",
+   "sql": "SELECT SUM(amount_dim) s, COUNT(*) c FROM (SELECT id, status, amount_dim, created_at, MEASURE(revenue) AS revenue FROM orders) q WHERE q.revenue > 150",
+   "explain": true,
+   "note": "the shape from the driver, truth 500, 2"
+  },
+  {
+   "id": "subq_measure_no_group_breakout",
+   "sql": "SELECT q.revenue, COUNT(*) c FROM (SELECT id, status, amount_dim, created_at, MEASURE(revenue) AS revenue FROM orders) q GROUP BY 1 ORDER BY 1",
+   "explain": true,
+   "note": "truth 3 groups"
+  },
+  {
+   "id": "subq_ungrouped_filter",
+   "sql": "SELECT SUM(amount_dim) s, COUNT(*) c FROM (SELECT id, amount_dim, revenue FROM orders) q WHERE revenue > 150",
+   "explain": true
+  },
+  {
+   "id": "subq_ungrouped_breakout",
+   "sql": "SELECT revenue, COUNT(*) c FROM (SELECT id, amount_dim, revenue FROM orders) q GROUP BY 1 ORDER BY 1",
+   "explain": true,
+   "note": "truth 3 groups"
+  },
+  {
+   "id": "subq_ungrouped_rows",
+   "sql": "SELECT id, amount_dim, revenue FROM (SELECT id, amount_dim, revenue FROM orders) q WHERE revenue > 150 ORDER BY 1",
+   "note": "truth 2 rows"
+  },
+  {
+   "id": "where_measure_by_status",
+   "sql": "SELECT status, MEASURE(count) c FROM orders WHERE revenue > 250 GROUP BY 1 ORDER BY 1",
+   "explain": true,
+   "note": "HAVING reading gives a=2 b=1; row reading gives b=1"
+  },
+  {
+   "id": "having_measure_by_status",
+   "sql": "SELECT status, MEASURE(count) c FROM orders GROUP BY 1 HAVING MEASURE(revenue) > 250 ORDER BY 1"
+  },
+  {
+   "id": "rest_measure_filter",
+   "rest": {
+    "measures": [
+     "orders.count"
+    ],
+    "dimensions": [
+     "orders.status"
+    ],
+    "filters": [
+     {
+      "member": "orders.revenue",
+      "operator": "gt",
+      "values": [
+       "250"
+      ]
+     }
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "truth_filter",
+   "truth": "SELECT sum(amount) s, count(*) c FROM repro.orders WHERE amount > 150"
+  },
+  {
+   "id": "truth_row_where",
+   "truth": "SELECT status, count(*) c FROM repro.orders WHERE amount > 250 GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "truth_group_having",
+   "truth": "SELECT status, count(*) c FROM repro.orders GROUP BY 1 HAVING sum(amount) > 250 ORDER BY 1"
+  }
+ ]
+}

@@ -1,0 +1,68 @@
+# minor-m2-fan-out v1.8.15 postgres tesseract=off ready=True
+## count_star_cross
+$ psql> SELECT COUNT(*) c FROM orders o CROSS JOIN payments p WHERE o.__cubeJoinField = p.__cubeJoinField
+c
+4
+$ psql> EXPLAIN SELECT COUNT(*) c FROM orders o CROSS JOIN payments p WHERE o.__cubeJoinField = p.__cubeJoinField
+plan_type | plan
+logical_plan | CubeScanWrappedSql
+physical_plan | CubeScanExecutionPlan, SQL:
+SELECT "o"."count_uint8_1__" "c" 
+FROM (
+  SELECT
+        COUNT(*) "count_uint8_1__"
+      FROM
+        repro.orders AS "orders"
+  LEFT JOIN repro.payments AS "payments" ON "orders".id = "payments".order_id 
+) AS "o"
+LIMIT 50000
+## sum_dim_cross
+$ psql> SELECT SUM(o.quantity_dim) s FROM orders o CROSS JOIN payments p WHERE o.__cubeJoinField = p.__cubeJoinField
+s
+12
+$ psql> EXPLAIN SELECT SUM(o.quantity_dim) s FROM orders o CROSS JOIN payments p WHERE o.__cubeJoinField = p.__cubeJoinField
+plan_type | plan
+logical_plan | CubeScanWrappedSql
+physical_plan | CubeScanExecutionPlan, SQL:
+SELECT "o"."sum_o_quantity_d" "s" 
+FROM (
+  SELECT "sum_o_quantity_d" "sum_o_quantity_d" FROM (SELECT SUM("orders_key__orders".quantity) "sum_o_quantity_d" FROM (SELECT DISTINCT "orders_key__orders".id "orders__id" FROM repro.orders AS "orders_key__orders"
+  LEFT JOIN repro.payments AS "orders_key__payments" ON "orders_key__orders".id = "orders_key__payments".order_id ) AS "keys"
+  LEFT JOIN repro.orders AS "orders_key__orders" ON "keys"."orders__id" = "orders_key__orders".id
+               ) AS q_0 
+) AS "o"
+LIMIT 50000
+## both_cross
+$ psql> SELECT COUNT(*) c, SUM(o.quantity_dim) s FROM orders o CROSS JOIN payments p WHERE o.__cubeJoinField = p.__cubeJoinField
+c | s
+2 | 12
+$ psql> EXPLAIN SELECT COUNT(*) c, SUM(o.quantity_dim) s FROM orders o CROSS JOIN payments p WHERE o.__cubeJoinField = p.__cubeJoinField
+plan_type | plan
+logical_plan | CubeScanWrappedSql
+physical_plan | CubeScanExecutionPlan, SQL:
+SELECT "o"."count_uint8_1__" "c", "o"."sum_o_quantity_d" "s" 
+FROM (
+  SELECT "count_uint8_1__" "count_uint8_1__", "sum_o_quantity_d" "sum_o_quantity_d" FROM (SELECT COUNT(*) "count_uint8_1__" FROM repro.orders AS "main__orders"
+  LEFT JOIN repro.payments AS "main__payments" ON "main__orders".id = "main__payments".order_id ) AS q_0 , (SELECT SUM("orders_key__orders".quantity) "sum_o_quantity_d" FROM (SELECT DISTINCT "orders_key__orders".id "orders__id" FROM repro.orders AS "orders_key__orders"
+  LEFT JOIN repro.payments AS "orders_key__payments" ON "orders_key__orders".id = "orders_key__payments".order_id ) AS "keys"
+  LEFT JOIN repro.orders AS "orders_key__orders" ON "keys"."orders__id" = "orders_key__orders".id
+               ) AS q_1
+) AS "o"
+LIMIT 50000
+## rest_measures
+$ POST /cubejs-api/v1/load {"measures": ["orders.quantity", "orders.count", "payments.count"]}
+HTTP 200 [{"orders.quantity": "12", "orders.count": "2", "payments.count": "4"}]
+SQL: SELECT "orders__quantity" "orders__quantity", "orders__count" "orders__count", "payments__count" "payments__count" FROM (SELECT count(distinct "main__orders".id) "orders__count", count("main__payments".id) "payments__count" FROM repro.orders AS "main__orders"
+LEFT JOIN repro.payments AS "main__payments" ON "main__orders".id = "main__payments".order_id ) AS q_0 , (SELECT sum("orders_key__orders".quantity) "orders__quantity" FROM (SELECT DISTINCT "orders_key__orders".id "orders__id" FROM repro.orders AS "orders_key__orders"
+LEFT JOIN repro.payments AS "orders_key__payments" ON "orders_key__orders".id = "orders_key__payments".order_id ) AS "keys"
+LEFT JOIN repro.orders AS "orders_key__orders" ON "keys"."orders__id" = "orders_key__orders".id
+             ) AS q_1 LIMIT 10000
+PARAMS: []
+## truth_sql_join
+$ postgres> SELECT count(*) c, sum(o.quantity) s FROM repro.orders o JOIN repro.payments p ON o.id = p.order_id
+c | s
+4 | 24
+## truth_order_total
+$ postgres> SELECT sum(quantity) s FROM repro.orders
+s
+12

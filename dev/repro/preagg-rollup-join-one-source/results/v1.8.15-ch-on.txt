@@ -1,0 +1,19 @@
+# preagg-rollup-join-one-source v1.8.15 clickhouse tesseract=on ready=True
+## rest_join
+$ POST /cubejs-api/v1/load {"measures": ["orders.revenue"], "dimensions": ["users.state"], "order": {"users.state": "asc"}}
+HTTP 200 [{"users.state": "TX", "orders.revenue": "10"}, {"users.state": "WA", "orders.revenue": "100"}]
+SQL: SELECT "users__state" "users__state", sum("orders__revenue") "orders__revenue" 
+FROM  dev_pre_aggregations.orders_orders_rollup  AS "orders__orders_rollup"
+LEFT JOIN  dev_pre_aggregations.users_users_rollup  AS "users__users_rollup" ON "orders__user_id" = "users__id"
+GROUP BY 1
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: []
+## pre_aggs_used
+$ POST /cubejs-api/v1/sql token=good
+HTTP 200 {"sql":{"external":true,"sql":["SELECT \"users__state\" \"users__state\", sum(\"orders__revenue\") \"orders__revenue\" \nFROM  dev_pre_aggregations.orders_orders_rollup  AS \"orders__orders_rollup\"\nLEFT JOIN  dev_pre_aggregations.users_users_rollup  AS \"users__users_rollup\" ON \"orders__user_id\" = \"users__id\"\nGROUP BY 1\nORDER BY  2  DESC\nLIMIT 10000",[]],"lambdaQueries":{},"order":{"orders.revenue":"desc"},"cacheKeyQueries":[],"preAggregations":[{"preAggregationId":"users.users_rollup"
+## truth
+$ clickhouse> SELECT u.state, sum(o.amount) r FROM repro.orders o JOIN repro.users u ON o.user_id=u.id GROUP BY 1 ORDER BY 1
+state	r
+TX	10
+WA	100

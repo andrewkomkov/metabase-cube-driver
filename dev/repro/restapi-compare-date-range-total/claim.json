@@ -1,0 +1,80 @@
+{
+ "steps": [
+  {
+   "id": "rest_compare",
+   "rest": {
+    "measures": [
+     "orders.count"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "month",
+      "compareDateRange": [
+       [
+        "2025-05-01",
+        "2025-05-31"
+       ],
+       [
+        "2025-06-01",
+        "2025-06-30"
+       ]
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "rest_compare_multi",
+   "http": {
+    "method": "POST",
+    "path": "/cubejs-api/v1/load",
+    "body": {
+     "queryType": "multi",
+     "query": {
+      "measures": [
+       "orders.count"
+      ],
+      "timeDimensions": [
+       {
+        "dimension": "orders.created_at",
+        "granularity": "month",
+        "compareDateRange": [
+         [
+          "2025-05-01",
+          "2025-05-31"
+         ],
+         [
+          "2025-06-01",
+          "2025-06-30"
+         ]
+        ]
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "rest_total",
+   "rest": {
+    "measures": [
+     "orders.count"
+    ],
+    "dimensions": [
+     "orders.status"
+    ],
+    "limit": 1,
+    "total": true
+   }
+  },
+  {
+   "id": "sql_tuple_date_range",
+   "sql": "SELECT DATE_TRUNC('month', created_at) m, MEASURE(count) c FROM orders WHERE created_at IN ('2025-05-01','2025-06-01') GROUP BY 1"
+  }
+ ],
+ "configs": [
+  "ch-on",
+  "pg-on"
+ ]
+}

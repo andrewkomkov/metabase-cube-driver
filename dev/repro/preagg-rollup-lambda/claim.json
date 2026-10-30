@@ -1,0 +1,39 @@
+{
+ "steps": [
+  {
+   "id": "rest_lambda",
+   "rest": {
+    "measures": [
+     "orders.revenue"
+    ],
+    "dimensions": [
+     "orders.status"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "month"
+     }
+    ],
+    "order": {
+     "orders.created_at": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "truth",
+   "truth": "SELECT status, created_at, amount FROM repro.orders ORDER BY id"
+  },
+  {
+   "id": "meta",
+   "meta": "orders"
+  },
+  {
+   "id": "log",
+   "logs": "[Ll]ambda",
+   "tail": 3,
+   "mask": true
+  }
+ ]
+}

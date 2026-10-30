@@ -1,0 +1,33 @@
+{
+ "steps": [
+  {
+   "id": "meta_extended_view",
+   "meta": "order_users",
+   "extended": true
+  },
+  {
+   "id": "meta_extended_cube",
+   "meta": "orders",
+   "extended": true
+  },
+  {
+   "id": "meta_view",
+   "meta": "order_users"
+  },
+  {
+   "id": "meta_orders",
+   "meta": "orders"
+  },
+  {
+   "id": "meta_users",
+   "meta": "users"
+  },
+  {
+   "id": "sql_hidden_pk",
+   "sql": "SELECT id FROM users ORDER BY 1"
+  }
+ ],
+ "configs": [
+  "ch-on"
+ ]
+}

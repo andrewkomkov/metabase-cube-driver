@@ -1,0 +1,14 @@
+# week-starts-monday v1.8.15 clickhouse tesseract=off ready=True
+## sql_week
+$ psql> SELECT DATE_TRUNC('week',created_at) w, MEASURE(revenue) r FROM orders GROUP BY 1 ORDER BY 1
+w | r
+2025-05-26 00:00:00.000000 | 1
+2025-06-02 00:00:00.000000 | 10
+## rest_week
+$ POST /cubejs-api/v1/load {"measures": ["orders.revenue"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "week"}], "order": {"orders.created_at": "asc"}}
+HTTP 200 [{"orders.created_at.week": "2025-05-26T00:00:00.000", "orders.revenue": "1", "orders.created_at": "2025-05-26T00:00:00.000"}, {"orders.created_at.week": "2025-06-02T00:00:00.000", "orders.revenue": "10", "orders.created_at": "2025-06-02T00:00:00.000"}]
+SQL: SELECT
+      toDateTime64(toMonday(toTimeZone(toDateTime64(`orders`.created_at, 0), 'UTC'), 'UTC'), 0, 'UTC') `orders__created_at_week`, sum(`orders`.amount) `orders__revenue`
+    FROM
+      repro.orders AS `orders`  GROUP BY `orders__created_at_week` ORDER BY `orders__created_at_week` ASC LIMIT 10000
+PARAMS: []

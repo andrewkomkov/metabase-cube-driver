@@ -1,0 +1,22 @@
+{
+ "steps": [
+  {
+   "id": "percentile_cont_raw_column",
+   "sql": "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount_dim) p FROM orders",
+   "explain": true
+  },
+  {
+   "id": "percentile_cont_by_status",
+   "sql": "SELECT status, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount_dim) p FROM orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "median_fn",
+   "sql": "SELECT MEDIAN(amount_dim) p FROM orders"
+  },
+  {
+   "id": "truth",
+   "truth_ch": "SELECT quantile(0.5)(amount) p FROM repro.orders",
+   "truth_pg": "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY amount) p FROM repro.orders"
+  }
+ ]
+}

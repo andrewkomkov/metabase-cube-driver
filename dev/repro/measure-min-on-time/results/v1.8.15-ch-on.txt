@@ -1,0 +1,40 @@
+# measure-min-on-time v1.8.15 clickhouse tesseract=on ready=True
+## meta
+{"name": "orders", "type": "cube", "public": true, "measures": [{"name": "orders.count", "type": "number", "public": true, "isVisible": true, "aggType": "count"}, {"name": "orders.revenue", "type": "number", "public": true, "isVisible": true, "aggType": "sum"}, {"name": "orders.first_min", "type": "number", "public": true, "isVisible": true, "aggType": "min"}, {"name": "orders.first_time", "type": "time", "public": true, "isVisible": true, "aggType": "time"}, {"name": "orders.amount_min", "type": "number", "public": true, "isVisible": true, "aggType": "min"}], "dimensions": [{"name": "orders.id", "type": "number", "public": true, "isVisible": true, "primaryKey": true}, {"name": "orders.status", "type": "string", "public": true, "isVisible": true, "primaryKey": false}, {"name": "orders.amount_dim", "type": "number", "public": true, "isVisible": true, "primaryKey": false}, {"name": "orders.created_at", "type": "time", "public": true, "isVisible": true, "primaryKey": false}]}
+## rest_min_time
+$ POST /cubejs-api/v1/load {"measures": ["orders.first_min"]}
+HTTP 200 [{"orders.first_min": "2025-05-05T00:00:00.000"}]
+SQL: SELECT min(`orders`.created_at) `orders__first_min` 
+FROM  repro.orders  AS `orders`
+LIMIT 10000
+PARAMS: []
+## rest_type_time
+$ POST /cubejs-api/v1/load {"measures": ["orders.first_time"]}
+HTTP 200 [{"orders.first_time": "2025-05-05T00:00:00.000"}]
+## sql_measure_min
+$ psql> SELECT MEASURE(first_min) x FROM orders
+x
+$ psql> EXPLAIN SELECT MEASURE(first_min) x FROM orders
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.first_min"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "order": []
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.first_min"],"dimensions":[],"segments":[],"order":[]}
+## sql_measure_time
+$ psql> SELECT MEASURE(first_time) x FROM orders
+x
+2025-05-05T00:00:00.000
+## sql_measure_min_num
+$ psql> SELECT MEASURE(amount_min) x FROM orders
+x
+100
+## truth
+$ clickhouse> SELECT min(created_at) x FROM repro.orders
+x
+2025-05-05 00:00:00

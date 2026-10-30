@@ -1,0 +1,72 @@
+{
+ "steps": [
+  {
+   "id": "sql_no_bucket",
+   "sql": "SELECT MEASURE(revenue_prior_month) x FROM orders"
+  },
+  {
+   "id": "rest_no_bucket",
+   "rest": {
+    "measures": [
+     "orders.revenue_prior_month"
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_date_range_no_granularity",
+   "rest": {
+    "measures": [
+     "orders.revenue_prior_month"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "dateRange": [
+       "2025-05-01",
+       "2025-05-31"
+      ]
+     }
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_by_month",
+   "rest": {
+    "measures": [
+     "orders.revenue_prior_month"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "month",
+      "dateRange": [
+       "2025-05-01",
+       "2025-06-30"
+      ]
+     }
+    ],
+    "order": {
+     "orders.created_at": "asc"
+    }
+   }
+  },
+  {
+   "id": "meta",
+   "meta": "orders"
+  },
+  {
+   "id": "truth_all",
+   "truth": "SELECT sum(amount) FROM repro.orders"
+  },
+  {
+   "id": "meta_mentions",
+   "meta_mentions": [
+    "timeShift",
+    "time_shift",
+    "multiStage"
+   ]
+  }
+ ]
+}

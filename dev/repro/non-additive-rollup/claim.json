@@ -1,0 +1,51 @@
+{
+ "steps": [
+  {
+   "id": "rest_same_dims",
+   "rest": {
+    "measures": [
+     "orders.avg_amount"
+    ],
+    "dimensions": [
+     "orders.status"
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_avg_other_dims",
+   "rest": {
+    "measures": [
+     "orders.avg_amount"
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_distinct_other_dims",
+   "rest": {
+    "measures": [
+     "orders.distinct_status"
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_sum_other_dims",
+   "rest": {
+    "measures": [
+     "orders.revenue"
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "truth_avg",
+   "truth": "SELECT avg(amount) a FROM repro.orders"
+  }
+ ],
+ "configs": [
+  "ch-on",
+  "pg-on"
+ ]
+}

@@ -1,0 +1,43 @@
+{
+ "steps": [
+  {
+   "id": "outer_filter_alias_m",
+   "sql": "SELECT m, revenue FROM (SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS revenue FROM orders GROUP BY 1) s WHERE m >= '2025-05-15' ORDER BY 1",
+   "explain": true
+  },
+  {
+   "id": "outer_filter_alias_same",
+   "sql": "SELECT created_at, revenue FROM (SELECT DATE_TRUNC('month', created_at) AS created_at, MEASURE(revenue) AS revenue FROM orders GROUP BY 1) s WHERE created_at >= timestamp '2025-05-15 00:00:00' ORDER BY 1",
+   "explain": true
+  },
+  {
+   "id": "outer_sum",
+   "sql": "SELECT SUM(revenue) FROM (SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS revenue FROM orders GROUP BY 1) s WHERE m >= '2025-05-15'",
+   "explain": true
+  },
+  {
+   "id": "direct_where_date_trunc",
+   "sql": "SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS revenue FROM orders WHERE DATE_TRUNC('month', created_at) >= '2025-05-15' GROUP BY 1 ORDER BY 1",
+   "explain": true,
+   "note": "the same condition with no subquery"
+  },
+  {
+   "id": "inner_only",
+   "sql": "SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS revenue FROM orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "outer_rolling",
+   "sql": "SELECT m, r FROM (SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue_trailing_30d) AS r FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-07-01' GROUP BY 1) s WHERE m >= '2025-05-15' ORDER BY 1",
+   "explain": true
+  },
+  {
+   "id": "rolling_inner_only",
+   "sql": "SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue_trailing_30d) AS r FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-07-01' GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "truth",
+   "truth_ch": "SELECT m, r FROM (SELECT toStartOfMonth(created_at) m, sum(amount) r FROM repro.orders GROUP BY 1) WHERE m >= '2025-05-15' ORDER BY 1",
+   "truth_pg": "SELECT m, r FROM (SELECT date_trunc('month',created_at) m, sum(amount) r FROM repro.orders GROUP BY 1) s WHERE m >= '2025-05-15' ORDER BY 1"
+  }
+ ]
+}

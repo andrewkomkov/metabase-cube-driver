@@ -1,0 +1,17 @@
+# minor-m4-rolling-max v1.8.15 clickhouse tesseract=off ready=True
+## max_of_rolling
+$ psql> SELECT MAX(revenue_trailing_30d) x FROM orders
+psql:<stdin>:1: ERROR:  Database Execution Error: Query failed: Error: Unknown expression or function identifier `amount` in scope SELECT max(amount) AS max_orders_reven FROM (SELECT sum(orders_revenue_trailing_30d_cumulative__orders.amount) AS orders__revenue_trailing_30d FROM repro.orders AS orders_revenue_trailing_30d_cumulative__orders) AS q_0. ; query id: 98c349d2-7801-425a-b42e-b5234aa73575-9ba70b3d-5f6a-43ea-bf09-89a6627d8c12
+## max_of_rolling_monthly
+$ psql> SELECT DATE_TRUNC('month',created_at) m, MAX(revenue_trailing_30d) x FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-05-01' GROUP BY 1
+psql:<stdin>:1: ERROR:  Database Execution Error: Query failed: Error: Unknown expression or function identifier `amount` in scope SELECT q_0.datetrunc_utf8__ AS datetrunc_utf8__, max(amount) AS max_orders_reven FROM (SELECT toDateTime64(toStartOfMonth(toTimeZone(toDateTime64(orders_revenue_trailing_30d_cumulative__orders.created_at, 0), 'UTC'), 'UTC'), 0, 'UTC') AS datetrunc_utf8__, sum(orders_revenue_trailing_30d_cumulative__orders.amount) AS orders__revenue_trailing_30d FROM repro.orders AS orders_revenue_trailing_30d_cumulative__orders WHERE ((toTimeZone(toDateTime64(orders_revenue_trailing_30d_cumulative__orders.created_at, 0), 'UTC') > subDate(toTimeZone(toDateTime64(parseDateTimeBestEffort('2025-04-30T23:59:59.999Z'), 0), 'UTC'), toIntervalDay(30))) AND (toTimeZone(toDateTime64(orders_revenue_trailing_30d_cumulative__orders.created_at, 0), 'UTC') <= toTimeZone(toDateTime64(parseDateTimeBestEffort('2025-04-30T23:59:59.999Z'), 0), 'UTC'))) GROUP BY datetrunc_utf8__) AS q_0. ; query id: 77aa2655-4437-4fc3-bc55-a5ef391c3f74-67fdd043-0dc3-4f8c-b38a-d7b0fc2606de
+## sum_of_rolling
+$ psql> SELECT SUM(revenue_trailing_30d) x FROM orders
+x
+111
+## raw_rolling_column
+$ psql> SELECT id, revenue_trailing_30d FROM orders ORDER BY 1
+id | revenue_trailing_30d
+1 | 1
+2 | 10
+3 | 100

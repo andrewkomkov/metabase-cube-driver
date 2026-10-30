@@ -1,0 +1,23 @@
+{
+ "steps": [
+  {
+   "id": "insert",
+   "sql": "INSERT INTO orders (id) VALUES (9)"
+  },
+  {
+   "id": "create_table",
+   "sql": "CREATE TABLE x AS SELECT 1 a"
+  },
+  {
+   "id": "update",
+   "sql": "UPDATE orders SET id = 1"
+  },
+  {
+   "id": "delete",
+   "sql": "DELETE FROM orders"
+  }
+ ],
+ "configs": [
+  "ch-on"
+ ]
+}
