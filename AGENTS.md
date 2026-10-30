@@ -15,9 +15,9 @@ dimensions and segments without knowledge of Cube.
 
 - Each entry names one Cube or Metabase feature, a status and an executable check.
 - Status `pass` requires a check that ran against the live stack and compared results with the truth.
-- The truth comes from a direct SQL query on the demo Postgres, not from Cube and not from Metabase.
+- Get the truth from a direct SQL query on the demo Postgres. Cube and Metabase cannot supply it.
 - Status `partial`, `blocked` or `unsupported` requires a reason in the entry.
-- Never report a coverage number that `conformance/run.py` did not print.
+- Report only the coverage number that `conformance/run.py` prints.
 
 ## Pinned versions
 
@@ -52,7 +52,7 @@ Deploy with git: commit on the Mac, push, then `git pull` on nettop. Do not comm
 Other production services run on this host.
 
 - Change only compose project `metabase-cube-driver`.
-- Do not stop, remove or change any other container, image, volume or network.
+- Leave every other container, image, volume and network as it is.
 - Do not run `docker system prune`, `docker volume prune` or `docker image prune`.
 - Stop and report if free disk space on `/` is below 15 GB.
 
@@ -60,6 +60,7 @@ Other production services run on this host.
 
 - Commit messages follow Conventional Commits, in lowercase imperative English.
 - Do not add AI attribution or `Co-Authored-By` lines.
-- Push to `main`. Do not open issues or pull requests on `metabase/metabase` or `cube-js/cube`.
+- Push to `main`.
+- Keep all issues and code changes inside this repository. Leave `metabase/metabase` and `cube-js/cube` as they are.
 - The demo stack uses fixed throwaway credentials for fake data. All other secrets go through the `secret` command.
 - Do not narrow a feature to make a check pass. Record the real status.
