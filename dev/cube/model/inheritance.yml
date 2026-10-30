@@ -29,6 +29,7 @@ cubes:
 
   - name: level_one
     extends: base_sales
+    public: true
     title: Level one
     description: Child cube. It overrides two members and adds two members.
     dimensions:
@@ -40,6 +41,7 @@ cubes:
 
   - name: level_two
     extends: level_one
+    public: true
     title: Level two
     description: Grandchild cube. It narrows the rows and adds a measure.
     sql: "SELECT * FROM shop.orders WHERE quantity >= 3"
@@ -59,12 +61,14 @@ cubes:
 
   - name: vip_people
     extends: people
+    public: true
     title: VIP people
     description: Polymorphic child. VIP rows only.
     sql: "SELECT * FROM {people.sql()} WHERE is_vip"
 
   - name: regular_people
     extends: people
+    public: true
     title: Regular people
     description: Polymorphic child. Other rows only.
     sql: "SELECT * FROM {people.sql()} WHERE NOT is_vip"
