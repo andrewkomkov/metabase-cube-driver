@@ -242,6 +242,13 @@ class Metabase:
             if time.time() > deadline:
                 raise Fail("first sync of the Cube database did not end in %d s" % seconds)
             time.sleep(3)
+        # The status says complete before the analysis ends. The checks of fingerprints and classified types need it.
+        while time.time() < deadline:
+            meta = self.api("GET", "/api/database/%d/metadata?include_hidden=true" % db["id"])
+            fields = [f for t in meta["tables"] if t["name"] == "users" for f in t["fields"] if f["name"] == "name"]
+            if fields and fields[0].get("fingerprint") and fields[0].get("semantic_type"):
+                return
+            time.sleep(3)
 
     def discover(self):
         dbs = self.api("GET", "/api/database")["data"]
@@ -1787,14 +1794,24 @@ def _(ctx):
 
 @check("mcp.execute_query.paging")
 def _(ctx):
-    query = mcp_query(ctx.mb, ORD, by=["d:orders.id"])
-    query["stages"][0]["order-by"] = [["asc", {}, to_mbql5(ctx.mb.ref("d:orders.id"))]]
-    query["stages"][0]["limit"] = 6
+    # Metabase mints no cursor for a breakout with its own limit, by design. See next-page-query in metabase.mcp.v2.query.
+    ref = to_mbql5(ctx.mb.ref("d:orders.id"))
+    query = mcp_stage(ctx.mb.table(ORD)["id"], fields=[ref], limit=6, **{"order-by": [["asc", {}, ref]]})
     page1 = ctx.mcp.call("execute_query", query=query, row_limit=3)
     if not page1.get("next_cursor"):
         raise Fail("no next_cursor: %s" % str(page1)[:200])
     page2 = ctx.mcp.call("execute_query", cursor=page1["next_cursor"])
     assert_rows(page1["rows"] + page2["rows"], ch("SELECT id FROM orders ORDER BY id LIMIT 6"), ordered=True)
+
+
+@check("mcp.execute_query.paging_measure")
+def _(ctx):
+    query = mcp_query(ctx.mb, ORD, agg=["m:orders.revenue"], by=[STA])
+    page1 = ctx.mcp.call("execute_query", query=query, row_limit=2)
+    if not page1.get("next_cursor"):
+        raise Fail("no next_cursor: %s" % str(page1)[:200])
+    page2 = ctx.mcp.call("execute_query", cursor=page1["next_cursor"], row_limit=2)
+    assert_rows(page1["rows"] + page2["rows"], ch(STATUS_REV))
 
 
 @check("mcp.execute_sql")

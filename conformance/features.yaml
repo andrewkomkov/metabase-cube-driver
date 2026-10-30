@@ -3326,3 +3326,8 @@
   title: "security metabase cache"
   status: todo
   check: security.metabase_cache
+- id: mcp.execute_query.paging_measure
+  area: mcp
+  title: "mcp execute query paging measure"
+  status: todo
+  check: mcp.execute_query.paging_measure
