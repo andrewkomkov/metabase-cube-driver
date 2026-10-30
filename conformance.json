@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 625,
+    "pass": 628,
     "partial": 0,
     "blocked": 26,
     "unsupported": 10,
-    "fail": 4,
-    "total": 665
+    "fail": 2,
+    "total": 666
   },
-  "coverage": "coverage: 625/665 pass",
+  "coverage": "coverage: 628/666 pass",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -272,8 +272,8 @@
     },
     {
       "id": "dimension.format.image_url",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "orders.thumb_url semantic_type='type/URL', want 'type/ImageURL'"
     },
     {
       "id": "dimension.format.link",
@@ -857,8 +857,8 @@
     },
     {
       "id": "meta.fingerprint_distinct_count",
-      "status": "fail",
-      "reason": "rows: got [None], truth [4.0]"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "meta.fk_implicit_target",
@@ -882,8 +882,8 @@
     },
     {
       "id": "meta.semantic_types",
-      "status": "fail",
-      "reason": "users.name semantic_type None, want type/Name"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "meta.tables_match_public_members",
@@ -1707,8 +1707,8 @@
     },
     {
       "id": "mcp.execute_query.paging",
-      "status": "fail",
-      "reason": "no next_cursor: {'query_handle': 'f4408c06-0df8-4550-8acd-189aa5a119bf', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.execute_query.segment",
@@ -3227,6 +3227,11 @@
     },
     {
       "id": "mcp.agent.error_join_on",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_query.paging_measure",
       "status": "pass",
       "reason": ""
     },

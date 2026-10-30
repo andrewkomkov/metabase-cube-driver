@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 625/665 pass** (625 pass, 0 partial, 26 blocked, 10 unsupported, 4 fail of 665)
+**coverage: 628/666 pass** (628 pass, 0 partial, 26 blocked, 10 unsupported, 2 fail of 666)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `52d77cf3413c`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41098082870), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `2e5c1225e409`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41099489471), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -60,7 +60,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `52d77cf
 | `dimension.format.currency` | pass |  |
 | `dimension.format.currency_code` | pass |  |
 | `dimension.format.id` | pass |  |
-| `dimension.format.image_url` | pass |  |
+| `dimension.format.image_url` | fail | orders.thumb_url semantic_type='type/URL', want 'type/ImageURL' |
 | `dimension.format.link` | pass |  |
 | `dimension.format.link_label` | pass |  |
 | `dimension.format.percent` | pass |  |
@@ -177,12 +177,12 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `52d77cf
 | `clickhouse.low_cardinality` | pass |  |
 | `clickhouse.nullable_expression` | pass |  |
 | `meta.base_types` | pass |  |
-| `meta.fingerprint_distinct_count` | fail | rows: got [None], truth [4.0] |
+| `meta.fingerprint_distinct_count` | pass |  |
 | `meta.fk_implicit_target` | pass |  |
 | `meta.measure_is_marked` | pass |  |
 | `meta.no_internal_columns` | pass |  |
 | `meta.resync_keeps_metadata` | pass |  |
-| `meta.semantic_types` | fail | users.name semantic_type None, want type/Name |
+| `meta.semantic_types` | pass |  |
 | `meta.tables_match_public_members` | pass |  |
 | `mb.agg.avg_field` | pass |  |
 | `mb.agg.count_rows` | pass |  |
@@ -347,7 +347,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `52d77cf
 | `mcp.execute_query.filter` | pass |  |
 | `mcp.execute_query.implicit_join` | pass |  |
 | `mcp.execute_query.measure` | pass |  |
-| `mcp.execute_query.paging` | fail | no next_cursor: {'query_handle': 'f4408c06-0df8-4550-8acd-189aa5a119bf', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float' |
+| `mcp.execute_query.paging` | pass |  |
 | `mcp.execute_query.segment` | pass |  |
 | `mcp.execute_query.view` | pass |  |
 | `mcp.execute_sql` | pass |  |
@@ -652,6 +652,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `52d77cf
 | `mcp.agent.filter_values` | pass |  |
 | `mcp.agent.error_unknown_column` | pass |  |
 | `mcp.agent.error_join_on` | pass |  |
+| `mcp.execute_query.paging_measure` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |
 | `security.security_context_row_filter` | pass |  |
