@@ -31,6 +31,8 @@ services:
       CUBEJS_SQL_USER: cube
       CUBEJS_SQL_PASSWORD: cube-dev-only
       CUBEJS_TELEMETRY: "false"
+      # Without this, a query with a date range that does not align with a rollup reads the rollup and returns a wrong number.
+      CUBEJS_PRE_AGGREGATIONS_ALLOW_NON_STRICT_DATE_RANGE_MATCH: "false"
     volumes: ["./cube/model:/cube/conf/model:ro"]
     ports: ["127.0.0.1:4400:4000", "127.0.0.1:15433:15432"]
     restart: unless-stopped

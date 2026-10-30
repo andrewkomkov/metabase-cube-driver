@@ -1,0 +1,40 @@
+cubes:
+  - name: typed_events
+    title: Typed events
+    description: One column of each ClickHouse type, as Cube sees it.
+    sql_table: shop.typed_events
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: dec_amount, sql: dec_amount, type: number, description: Decimal(18, 4). }
+      - { name: dec_big, sql: dec_big, type: number, description: Decimal(38, 8) above the range of a double. }
+      - { name: ui64, sql: ui64, type: number, description: UInt64 above 2^53. }
+      - { name: f32, sql: f32, type: number, description: Float32. }
+      - { name: ts_utc, sql: ts_utc, type: time, description: DateTime in UTC. }
+      - { name: ts_ny, sql: ts_ny, type: time, description: DateTime in New York. }
+      - { name: ts64_berlin, sql: ts64_berlin, type: time, description: DateTime64(3) in Berlin. }
+      - { name: day, sql: day, type: time, description: Date. }
+      - { name: day32, sql: day32, type: time, description: Date32. }
+      - { name: n_int, sql: n_int, type: number, description: Nullable(Int32). }
+      - { name: n_str, sql: n_str, type: string, description: Nullable(String). }
+      - { name: n_dec, sql: n_dec, type: number, description: Nullable(Decimal(12, 2)). }
+      - { name: n_ts, sql: n_ts, type: time, description: Nullable(DateTime). }
+      - { name: n_bool, sql: n_bool, type: boolean, description: Nullable(Bool). }
+      - { name: lc, sql: lc, type: string, description: LowCardinality(String). }
+      - { name: lc_n, sql: lc_n, type: string, description: LowCardinality(Nullable(String)). }
+      - { name: flag, sql: flag, type: boolean, description: Bool. }
+      - { name: en, sql: en, type: string, description: Enum8. }
+      - { name: uid, sql: toString(uid), type: string, description: UUID as text. }
+      - { name: tags_text, sql: "arrayStringConcat(tags, ',')", type: string, description: Array(String) as text. }
+      - { name: tags_raw, sql: tags, type: string, description: Array(String) with no conversion. }
+      - { name: nums_len, sql: length(nums), type: number, description: Length of an Array(Int32). }
+      - { name: has_t1, sql: "has(tags, 't1')", type: boolean, description: Array(String) contains t1. }
+    measures:
+      - { name: count, type: count, description: Number of rows. }
+      - { name: sum_dec, sql: dec_amount, type: sum, description: Sum of a Decimal(18, 4). }
+      - { name: sum_big, sql: dec_big, type: sum, description: Sum of a Decimal(38, 8). }
+      - { name: sum_ui64, sql: ui64, type: sum, description: Sum of a UInt64. }
+      - { name: avg_n_int, sql: n_int, type: avg, description: Mean of a Nullable(Int32). }
+      - { name: sum_n_dec, sql: n_dec, type: sum, description: Sum of a Nullable(Decimal). }
+      - { name: distinct_lc, sql: lc, type: count_distinct, description: Distinct of a LowCardinality(String). }
+      - { name: distinct_n_str, sql: n_str, type: count_distinct, description: Distinct of a Nullable(String). }
+      - { name: tags_total, sql: length(tags), type: sum, description: Sum of array lengths. }

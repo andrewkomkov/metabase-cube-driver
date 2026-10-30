@@ -1,0 +1,56 @@
+cubes:
+  - name: big_orders
+    title: Big orders
+    description: Ten million orders. Common queries hit the rollup.
+    sql_table: shop.big_orders
+    refresh_key: { every: 1 hour }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: user_id, sql: user_id, type: number, description: Customer. }
+      - { name: status, sql: status, type: string, description: Order status. }
+      - { name: quantity_dim, sql: quantity, type: number, description: Units. }
+      - { name: amount_dim, sql: amount, type: number, description: Amount. }
+      - name: created_at
+        sql: created_at
+        type: time
+        description: Creation time.
+        granularities:
+          - { name: week_from_sunday, interval: 1 week, offset: -1 day, title: Week from Sunday }
+    measures:
+      - { name: count, type: count, description: Number of orders. }
+      - { name: revenue, sql: amount, type: sum, description: Total amount. }
+      - { name: avg_amount, sql: amount, type: avg, description: Mean amount. }
+      - { name: min_amount, sql: amount, type: min, description: Smallest amount. }
+      - { name: max_amount, sql: amount, type: max, description: Largest amount. }
+      - { name: unique_users, sql: user_id, type: count_distinct, description: Exact distinct customers. }
+      - { name: approx_users, sql: user_id, type: count_distinct_approx, description: Approximate distinct customers. }
+      - { name: approx_ids, sql: id, type: count_distinct_approx, description: Approximate distinct orders. }
+    pre_aggregations:
+      - name: daily
+        measures: [count, revenue, avg_amount, min_amount, max_amount]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        partition_granularity: year
+        build_range_start: { sql: "SELECT toDateTime('2024-01-01 00:00:00', 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime('2026-01-01 00:00:00', 'UTC')" }
+        refresh_key: { every: 1 hour }
+
+  - name: big_orders_raw
+    title: Big orders without a rollup
+    description: The same table as big_orders with no pre-aggregation, to compare latency.
+    sql_table: shop.big_orders
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: user_id, sql: user_id, type: number, description: Customer. }
+      - { name: status, sql: status, type: string, description: Order status. }
+      - { name: quantity_dim, sql: quantity, type: number, description: Units. }
+      - { name: amount_dim, sql: amount, type: number, description: Amount. }
+      - { name: created_at, sql: created_at, type: time, description: Creation time. }
+    measures:
+      - { name: count, type: count, description: Number of orders. }
+      - { name: revenue, sql: amount, type: sum, description: Total amount. }
+      - { name: min_amount, sql: amount, type: min, description: Smallest amount. }
+      - { name: max_amount, sql: amount, type: max, description: Largest amount. }
+      - { name: avg_amount, sql: amount, type: avg, description: Mean amount. }
+      - { name: unique_users, sql: user_id, type: count_distinct, description: Exact distinct customers. }
