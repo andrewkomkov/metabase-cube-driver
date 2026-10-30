@@ -183,7 +183,7 @@
     {
       "id": "measure.rolling.unbounded",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:27:43.397221Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEquals(_"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:31:58.974672749Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual"
     },
     {
       "id": "measure.type.avg",
@@ -733,7 +733,7 @@
     {
       "id": "preagg.original_sql",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:28:13.018829923Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing:"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:32:27.812769296Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing:"
     },
     {
       "id": "preagg.partitioned",
@@ -953,7 +953,7 @@
     {
       "id": "mb.agg.median",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:28:29.339931312Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:32:43.602293527Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
     },
     {
       "id": "mb.agg.min_field",
@@ -968,7 +968,7 @@
     {
       "id": "mb.agg.percentile",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:28:30.287777764Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:32:44.484063754Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
     },
     {
       "id": "mb.agg.share",
@@ -1078,12 +1078,12 @@
     {
       "id": "mb.breakout.bin_count",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:28:36.846025756Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(20)'. Please check logs for additi"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:32:50.833500415Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(20)'. Please check logs for additi"
     },
     {
       "id": "mb.breakout.bin_width",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:28:37.085265019Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(100)'. Please check logs for addit"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:32:51.075247197Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(100)'. Please check logs for addit"
     },
     {
       "id": "mb.breakout.boolean",
@@ -1183,12 +1183,12 @@
     {
       "id": "mb.filter.exclude_day_of_week",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:28:43.677069308Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:32:57.350792204Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
     },
     {
       "id": "mb.filter.exclude_month_of_year",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:28:43.917837713Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:32:57.585747235Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
     },
     {
       "id": "mb.filter.gt",
@@ -1323,7 +1323,7 @@
     {
       "id": "mb.expr.datetime_diff",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:28:52.783479305Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:33:06.117484535Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_"
     },
     {
       "id": "mb.expr.div",
@@ -1353,7 +1353,7 @@
     {
       "id": "mb.expr.log",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:28:54.6091286Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Planning Error: Initial planning error: Error during planning: Coercion from [Int64, Float64] to the signatur"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:33:07.884549818Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Planning Error: Initial planning error: Error during planning: Coercion from [Int64, Float64] to the signat"
     },
     {
       "id": "mb.expr.lower",
@@ -1398,12 +1398,12 @@
     {
       "id": "mb.join.explicit_inner",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:28:57.539328095Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:33:10.646404317Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
     },
     {
       "id": "mb.join.explicit_left",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:28:57.803543542Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:33:10.891326256Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
     },
     {
       "id": "mb.join.implicit",
@@ -1418,7 +1418,7 @@
     {
       "id": "mb.join.measure_across_cubes",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:28:58.045077672Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:33:11.131696304Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
     },
     {
       "id": "mb.nested.filter_on_aggregation",
@@ -1728,7 +1728,7 @@
     {
       "id": "mcp.execute_query.paging",
       "status": "fail",
-      "reason": "no next_cursor: {'query_handle': '2d849f84-9329-450e-81d5-ab61a42e1e9c', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
+      "reason": "no next_cursor: {'query_handle': '807412ab-c54c-49d5-9d69-a811fa17ea06', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
     },
     {
       "id": "mcp.execute_query.segment",
