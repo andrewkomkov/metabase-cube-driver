@@ -8,8 +8,8 @@
     "conformance": "failure",
     "coverage": "coverage: 314/405 pass",
     "ok": false,
-    "sha": "fa7247a863585f3079ce5a57030fdcd0dea08df3",
-    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41070838910",
+    "sha": "0d131277771f771839c4f58d0db4ae0ab0617961",
+    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41072898647",
     "date": "2026-10-30"
   },
   {
@@ -21,8 +21,8 @@
     "conformance": "failure",
     "coverage": "coverage: 223/405 pass",
     "ok": false,
-    "sha": "fa7247a863585f3079ce5a57030fdcd0dea08df3",
-    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41070838910",
+    "sha": "0d131277771f771839c4f58d0db4ae0ab0617961",
+    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41072898647",
     "date": "2026-10-30"
   },
   {
@@ -34,8 +34,8 @@
     "conformance": "skipped",
     "coverage": null,
     "ok": false,
-    "sha": "fa7247a863585f3079ce5a57030fdcd0dea08df3",
-    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41070838910",
+    "sha": "0d131277771f771839c4f58d0db4ae0ab0617961",
+    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41072898647",
     "date": "2026-10-30"
   }
 ]
