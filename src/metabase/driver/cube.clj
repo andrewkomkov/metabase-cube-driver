@@ -8,6 +8,7 @@
    [metabase.driver-api.core :as driver-api]
    [metabase.driver.cube.identity :as cube.identity]
    [metabase.driver.cube.meta :as cube.meta]
+   [metabase.driver.cube.native :as cube.native]
    [metabase.driver.cube.semantic]
    [metabase.driver.postgres]
    [metabase.driver.sql-jdbc.connection :as sql-jdbc.conn]
@@ -17,7 +18,8 @@
    [metabase.util.honey-sql-2 :as h2x]
    [toucan2.core :as t2])
   (:import
-   (java.time DayOfWeek LocalDate LocalDateTime OffsetDateTime ZoneOffset ZonedDateTime)
+   (java.time DayOfWeek Instant LocalDate LocalDateTime OffsetDateTime ZoneOffset ZonedDateTime)
+   (java.time.format DateTimeFormatter)
    (java.time.temporal ChronoUnit TemporalAdjusters)))
 
 (set! *warn-on-reflection* true)
@@ -248,6 +250,22 @@
   [_driver value]
   [:inline value])
 
+;; With a query parameter for a time, a CubeScan under post-processing fails with "Can't parse date: 'replaced_placeholder'".
+(def ^:private ^DateTimeFormatter whole-second-format (DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm:ss"))
+(def ^:private ^DateTimeFormatter fraction-format (DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm:ss.SSS"))
+
+(declare utc-time)
+
+(defn- time-literal
+  [^LocalDateTime t]
+  (let [formatter (if (zero? (.getNano t)) whole-second-format fraction-format)]
+    (h2x/with-database-type-info [:raw (format "TIMESTAMP '%s'" (.format formatter t))] "timestamp")))
+
+(doseq [klass [LocalDateTime LocalDate OffsetDateTime ZonedDateTime Instant]]
+  (defmethod sql.qp/->honeysql [:cube klass]
+    [_driver value]
+    (time-literal (utc-time value))))
+
 (defmethod sql.qp/->honeysql [:cube :value]
   [driver [_ {:keys [database-type]} raw-value :as clause]]
   (if (and (boolean? raw-value)
@@ -257,6 +275,86 @@
            (not= database-type "cube.segment"))
     [:inline (if raw-value 1 0)]
     ((get-method sql.qp/->honeysql [:postgres :value]) driver clause)))
+
+;;; Date bounds. The SQL API makes a date range from two bounds, and it starts it 1 ms after the bound of `>`. Cube writes the
+;;; range for ClickHouse with parseDateTimeBestEffort, which drops the fraction, so the range includes the bound. The same
+;;; happens to a bound with a fraction. Cube reads a time as whole seconds, so each bound here is a whole second.
+
+(declare relative-time)
+
+(defn- plain-bound-time
+  "The time of the value in a comparison of a column with no time bucket, or nil."
+  ^LocalDateTime [field value]
+  (when (and (vector? field)
+             (= :field (first field))
+             (contains? #{nil :default} (:temporal-unit (second field))))
+    (let [[tag _ a unit] (when (vector? value) value)]
+      (case tag
+        :absolute-datetime (when (contains? #{nil :default} unit) (utc-time a))
+        :relative-datetime (when (number? a) (relative-time a unit))
+        nil))))
+
+(defn- at-time
+  [^LocalDateTime t]
+  [:absolute-datetime {} t :default])
+
+(defn- whole-second-up
+  ^LocalDateTime [^LocalDateTime t]
+  (if (zero? (.getNano t))
+    t
+    (.plusSeconds (.truncatedTo t ChronoUnit/SECONDS) 1)))
+
+(defn- whole-second-down
+  ^LocalDateTime [^LocalDateTime t]
+  (.truncatedTo t ChronoUnit/SECONDS))
+
+(defn- fraction?
+  [^LocalDateTime t]
+  (and t (not (zero? (.getNano t)))))
+
+(defn- postgres-clause
+  [driver clause]
+  ((get-method sql.qp/->honeysql [:postgres (first clause)]) driver clause))
+
+(defmethod sql.qp/->honeysql [:cube :>]
+  [driver [_ opts field value :as clause]]
+  (if-let [t (plain-bound-time field value)]
+    (postgres-clause driver [:>= opts field (at-time (.plusSeconds (whole-second-down t) 1))])
+    (postgres-clause driver clause)))
+
+(defmethod sql.qp/->honeysql [:cube :>=]
+  [driver [_ opts field value :as clause]]
+  (let [t (plain-bound-time field value)]
+    (postgres-clause driver (if (fraction? t) [:>= opts field (at-time (whole-second-up t))] clause))))
+
+(defmethod sql.qp/->honeysql [:cube :<]
+  [driver [_ opts field value :as clause]]
+  (let [t (plain-bound-time field value)]
+    (postgres-clause driver (if (fraction? t) [:<= opts field (at-time (whole-second-down t))] clause))))
+
+(defmethod sql.qp/->honeysql [:cube :<=]
+  [driver [_ opts field value :as clause]]
+  (let [t (plain-bound-time field value)]
+    (postgres-clause driver (if (fraction? t) [:<= opts field (at-time (whole-second-down t))] clause))))
+
+(defmethod sql.qp/->honeysql [:cube :between]
+  [driver [_ opts field low high :as clause]]
+  (let [low-time  (plain-bound-time field low)
+        high-time (plain-bound-time field high)]
+    (postgres-clause driver (if (or (fraction? low-time) (fraction? high-time))
+                              [:between opts field
+                               (if (fraction? low-time) (at-time (whole-second-up low-time)) low)
+                               (if (fraction? high-time) (at-time (whole-second-down high-time)) high)]
+                              clause))))
+
+(doseq [op [:= :!=]]
+  (defmethod sql.qp/->honeysql [:cube op]
+    [driver [_ _opts field value :as clause]]
+    (when (fraction? (plain-bound-time field value))
+      (throw (ex-info (str "Cube reads a time as whole seconds, so it cannot compare a column with a time that has a fraction "
+                           "of a second. Use a range with >= and <.")
+                      {:type :invalid-query})))
+    (postgres-clause driver clause)))
 
 (defn- zero-when-empty
   "Cube reads a rollup with SUM, so a count over no rows is NULL. SQL has 0 there. With a breakout there are no rows."
@@ -280,21 +378,6 @@
   "The units that make a time series, from small to large."
   {:minute 0, :hour 1, :day 2, :week 3, :month 4, :quarter 5, :year 6})
 
-(defn- rolling-measure?
-  [arg]
-  (str/starts-with? (str (:database-type (stored-field arg))) "cube.measure/cumulative-"))
-
-(defn- time-bucket
-  "The breakout that makes the time series of this stage, or nil."
-  []
-  (some (fn [clause]
-          (when (and (vector? clause)
-                     (= :field (first clause))
-                     (= :dimension (member-kind clause))
-                     (bucket-rank (:temporal-unit (second clause))))
-            clause))
-        (:breakout sql.qp/*inner-query*)))
-
 (defn- utc-time
   ^LocalDateTime [t]
   (condp instance? t
@@ -302,6 +385,7 @@
     LocalDate      (.atStartOfDay ^LocalDate t)
     OffsetDateTime (.toLocalDateTime (.withOffsetSameInstant ^OffsetDateTime t ZoneOffset/UTC))
     ZonedDateTime  (.toLocalDateTime (.withZoneSameInstant ^ZonedDateTime t ZoneOffset/UTC))
+    Instant        (LocalDateTime/ofInstant ^Instant t ZoneOffset/UTC)
     nil))
 
 (defn- bucket-start
@@ -351,19 +435,98 @@
 
       false)))
 
-(defn- mentions-field?
-  [clause field-id]
-  (some (fn [x] (and (vector? x) (= :field (first x)) (= field-id (nth x 2 nil))))
-        (tree-seq coll? seq clause)))
+;;; Checks of the query as a whole. A column of a model or of an earlier stage has no stored field in the outer stage: its
+;;; clause has a name. So these read the stages, and they find the member behind a name in the earlier stages.
+
+(defn- selected-as?
+  "True if the clause `selected` of a stage has the output name `column-name`."
+  [column-name [_ opts id]]
+  (let [output (or (get opts driver-api/qp.add.desired-alias)
+                   (when (string? id) id))]
+    (= column-name output)))
+
+(defn- column-field
+  "The stored field behind `clause`, a :field clause of the stage after `earlier`, or nil. An aggregation of an earlier
+  stage has no stored field, so a column with its name gives nil."
+  [earlier clause]
+  (when (and (vector? clause) (= :field (first clause)))
+    (let [id (nth clause 2 nil)]
+      (cond
+        (integer? id) (stored-field clause)
+        (and (string? id) (seq earlier))
+        (let [source (peek earlier)]
+          (when-let [selected (first (filter (partial selected-as? id)
+                                             (concat (:fields source) (:breakout source))))]
+            (column-field (pop earlier) selected)))))))
+
+(defn- field-kind
+  [field]
+  (let [database-type (str (:database-type field))]
+    (cond
+      (str/starts-with? database-type "cube.measure/")   :measure
+      (= database-type "cube.segment")                   :segment
+      (str/starts-with? database-type "cube.dimension/") :dimension)))
+
+(defn- field-clauses
+  [form]
+  (filter #(and (vector? %) (= :field (first %))) (tree-seq coll? seq form)))
+
+(defn- check-no-group-by-member!
+  "Cube accepts these, ignores the grouping and returns one total row, so stop here and tell the user."
+  [earlier {:keys [breakout]}]
+  (doseq [clause breakout
+          :let   [field (column-field earlier clause)
+                  kind  (field-kind field)]
+          :when  (#{:measure :segment} kind)]
+    (throw (ex-info (format "Cube cannot group by the %s %s. Use it as a %s."
+                            (name kind)
+                            (:name field)
+                            (if (= kind :segment) "filter" "metric"))
+                    {:type :invalid-query}))))
+
+(defn- check-no-filter-on-measure!
+  "Cube reads a filter on a measure column as a filter on the aggregate of the whole query, so it does not filter rows. In a
+  model the filter would have no effect at all."
+  [earlier {:keys [filters]}]
+  (doseq [clause (field-clauses filters)
+          :let   [field (column-field earlier clause)]
+          :when  (= :measure (field-kind field))]
+    (throw (ex-info (format (str "Cube cannot filter on the measure column %s here, because it reads this as a filter on the "
+                                 "aggregate and not on rows, so the number would be wrong. Filter on a dimension, or make a "
+                                 "question that aggregates %s and filter on its result.")
+                            (:name field) (:name field))
+                    {:type :invalid-query}))))
+
+(defn- rolling-field?
+  [field]
+  (str/starts-with? (str (:database-type field)) "cube.measure/cumulative-"))
+
+(defn- own-aggregation?
+  "True if `agg-type` is the clause that holds this measure. See cube.meta/aggregation-of-measure."
+  [agg-type field]
+  (let [member-type (-> (str (:database-type field))
+                        (str/replace-first "cube.measure/" "")
+                        (str/replace-first "cumulative-" ""))]
+    (= agg-type (cube.meta/aggregation-of-measure member-type :max))))
+
+(defn- time-bucket
+  "The field and the unit of the breakout that makes the time series of this stage, or nil."
+  [earlier {:keys [breakout]}]
+  (some (fn [clause]
+          (let [field (column-field earlier clause)
+                unit  (:temporal-unit (second clause))]
+            (when (and (= :dimension (field-kind field)) (bucket-rank unit))
+              {:field-id (:id field), :unit unit})))
+        breakout))
 
 (defn- filter-on-boundaries?
   "True if each date bound on the column of the bucket is a boundary of the bucket. Only an AND of plain comparisons can
   show this, so a filter with OR, NOT or a part of a date on that column is false."
-  [bucket field-id clause]
+  [bucket same-column? clause]
   (let [[op _ & args] clause]
     (cond
-      (= :and op)                       (every? #(filter-on-boundaries? bucket field-id %) args)
-      (not (mentions-field? clause field-id)) true
+      (= :and op)                        (every? #(filter-on-boundaries? bucket same-column? %) args)
+      (not-any? same-column? (field-clauses clause)) true
       :else
       (let [[field & values] args
             field-unit       (when (vector? field) (:temporal-unit (second field)))
@@ -376,20 +539,22 @@
           false)))))
 
 (defn- check-rolling-measure!
-  [arg]
-  (let [measure-name (:name (stored-field arg))
-        bucket       (time-bucket)]
-    (when-not bucket
+  "`stages` are the stages up to and including the one with the measure. A filter of an earlier stage goes to the same scan
+  of Cube, so it counts too."
+  [stages field]
+  (let [measure-name          (:name field)
+        {:keys [unit field-id]} (time-bucket (pop stages) (peek stages))]
+    (when-not unit
       (throw (ex-info (format (str "%s is a rolling window measure. With no time bucket, Cube returns the total of all "
                                    "rows, not the window. Group by a time bucket, for example by month, and add a date "
                                    "filter.")
                               measure-name)
                       {:type :invalid-query})))
-    (let [unit     (:temporal-unit (second bucket))
-          field-id (nth bucket 2)
-          filters  (concat (:filters sql.qp/*inner-query*)
-                           (some-> (:filter sql.qp/*inner-query*) list))]
-      (when-not (every? #(filter-on-boundaries? unit field-id %) filters)
+    (doseq [i     (range (count stages))
+            :let  [earlier (subvec stages 0 i)
+                   same?   #(= field-id (:id (column-field earlier %)))]
+            clause (:filters (nth stages i))]
+      (when-not (filter-on-boundaries? unit same? clause)
         (throw (ex-info (format (str "%s is a rolling window measure, and Cube computes it for each whole %s. This date "
                                      "filter starts or ends inside a %s, and Cube does not apply that part, so the number "
                                      "would count rows outside the filter. Use a filter on whole %ss, or a smaller time "
@@ -397,13 +562,73 @@
                                 measure-name (name unit) (name unit) (name unit))
                         {:type :invalid-query}))))))
 
-(defn- own-aggregation?
-  "True if `agg-type` is the clause that holds this measure. See cube.meta/aggregation-of-measure."
-  [agg-type arg]
-  (let [member-type (-> (str (:database-type (stored-field arg)))
-                        (str/replace-first "cube.measure/" "")
-                        (str/replace-first "cumulative-" ""))]
-    (= agg-type (cube.meta/aggregation-of-measure member-type :max))))
+(def ^:private aggregation-tags #{:sum :avg :min :max :count :distinct})
+
+(defn- aggregated-fields
+  "[agg-type field] for each aggregation in this stage of a column with a stored field."
+  [earlier {:keys [aggregation]}]
+  (for [form  (tree-seq coll? seq aggregation)
+        :when (and (vector? form) (aggregation-tags (first form)))
+        :let  [field (column-field earlier (nth form 2 nil))]
+        :when field]
+    [(first form) field]))
+
+(defn- check-aggregations!
+  [stages]
+  (doseq [[agg-type field] (aggregated-fields (pop stages) (peek stages))
+          :when (rolling-field? field)]
+    (when-not (own-aggregation? agg-type field)
+      (throw (ex-info (format (str "%s is a rolling window measure, and Cube cannot compute %s of it. Use the measure itself "
+                                   "by a time bucket.")
+                              (:name field) (name agg-type))
+                      {:type :invalid-query})))
+    (check-rolling-measure! stages field)))
+
+(defn- check-stages!
+  [stages]
+  (doseq [i (range (count stages))
+          :let [stage (nth stages i)]
+          :when (not= :mbql.stage/native (:lib/type stage))]
+    (let [upto (subvec stages 0 (inc i))]
+      (check-no-group-by-member! (pop upto) stage)
+      (check-no-filter-on-measure! (pop upto) stage)
+      (check-aggregations! upto))))
+
+(defn- aggregated-measure-names
+  "The measures that a later stage aggregates. Only these need the measure itself in a subquery."
+  [stages]
+  (into #{}
+        (mapcat (fn [i]
+                  (keep (fn [[_ field]]
+                          (when (= :measure (field-kind field)) (:name field)))
+                        (aggregated-fields (subvec stages 0 i) (nth stages i)))))
+        (range 1 (count stages))))
+
+;;; Cube pushes a filter of an outer stage below the aggregation of a subquery, also into a multi-stage measure, so the rows
+;;; of the subquery change. A limit on the subquery stops this. This limit is above any result, and CUBEJS_DB_QUERY_LIMIT
+;;; still applies to the rows of a subquery.
+(def ^:private subquery-limit 2147483647)
+
+(defn- aggregated-native?
+  [text]
+  (boolean (re-find #"(?i)\bgroup\s+by\b|\b(measure|count|sum|avg|min|max)\s*\(" text)))
+
+(defn- limit-native
+  [text]
+  (format "SELECT * FROM (\n%s\n) AS \"native_source\" LIMIT %d" (str/replace text #"[\s;]+$" "") subquery-limit))
+
+(defn- limit-subqueries
+  "Add the limit to each stage with an aggregation that has a next stage."
+  [stages]
+  (into []
+        (map-indexed (fn [i {:keys [aggregation breakout limit native] :as stage}]
+                       (cond
+                         (= (inc i) (count stages))                  stage
+                         (and (string? native) (aggregated-native? native)) (assoc stage :native (limit-native native))
+                         (string? native)                            stage
+                         (and (or (seq aggregation) (seq breakout)) (nil? limit)) (assoc stage :limit subquery-limit)
+                         :else                                       stage)))
+        stages))
 
 (doseq [agg-type [:sum :avg :min :max :count :distinct]]
   (let [parent (get-method sql.qp/->honeysql [:postgres agg-type])]
@@ -415,50 +640,57 @@
       (cond
         (and (= agg-type :count) (nil? arg)) (zero-when-empty (parent driver clause))
         (not= :measure (member-kind arg))    (parent driver clause)
-        (not (own-aggregation? agg-type arg)) (parent driver clause)
-        :else
-        (do
-          (when (rolling-measure? arg)
-            (check-rolling-measure! arg))
-          (if (count-measure? arg)
-            (zero-when-empty [:measure (sql.qp/->honeysql driver arg)])
-            [:measure (sql.qp/->honeysql driver arg)]))))))
+        (not (own-aggregation? agg-type (stored-field arg))) (parent driver clause)
+        (count-measure? arg)                 (zero-when-empty [:measure (sql.qp/->honeysql driver arg)])
+        :else                                [:measure (sql.qp/->honeysql driver arg)]))))
 
 (def ^:private ^:dynamic *raw-measures*
-  "An atom from column alias to the compiled measure, for measures that a stage of this query selects as raw rows."
+  "An atom from column alias to the compiled measure, for measures that a stage of this query selects as raw rows and a
+  later stage aggregates."
   nil)
+
+(def ^:private ^:dynamic *aggregated-measures*
+  "The names of the measures that a later stage of this query aggregates."
+  #{})
 
 (defn- raw-select-item
   "A measure has no value for one row, and a segment column on the SQL API is always NULL. Cube fails an ungrouped
   query that selects a measure with an aggregate in its SQL or a multi-stage measure, and one such measure would break
-  the whole table view. So raw rows show NULL for these columns, and for a geo dimension of a view, which Cube cannot read."
-  [driver clause]
+  the whole table view. So raw rows show NULL for these columns, and for a geo dimension of a view, which Cube cannot read.
+  The same rule applies to raw rows of a model. A column that repeats a member through another join path of a view is also
+  NULL, because Cube gives it the value of the first path."
+  [driver same-source clause]
   (let [[compiled alias-form :as selected] (sql.qp/as driver clause)
-        null-column (h2x/cast (physical-type (stored-field clause)) nil)]
-    (when (and *raw-measures* alias-form (= :measure (member-kind clause)))
+        field       (stored-field clause)
+        null-column (h2x/cast (physical-type field) nil)]
+    (when (and *raw-measures* alias-form (= :measure (member-kind clause))
+               (contains? *aggregated-measures* (:name field)))
       (swap! *raw-measures* assoc alias-form compiled))
     (cond
       (not (or (#{:measure :segment} (member-kind clause))
-               (= "cube.dimension/geo-in-view" (:database-type (stored-field clause))))) selected
+               (= "cube.dimension/geo-in-view" (:database-type field))
+               (contains? same-source (:name field)))) selected
       alias-form                                        [null-column alias-form]
       :else                                             [null-column])))
 
+(defn- later-same-source-fields
+  "The names of the fields in `fields` after the first one of each group of aliases of one member."
+  [fields]
+  (when-let [table-id (some #(:table-id (stored-field %)) fields)]
+    (let [provider (driver-api/metadata-provider)
+          groups   (try
+                     (cube.meta/same-source-groups-of-cube (cube.meta/cached-meta (:details (driver-api/database provider)))
+                                                           (:name (driver-api/table provider table-id)))
+                     (catch Exception _ nil))
+          selected (keep #(:name (stored-field %)) fields)]
+      (into #{}
+            (mapcat (fn [group] (rest (filter group selected))))
+            groups))))
+
 (defmethod sql.qp/apply-top-level-clause [:cube :fields]
   [driver _ honeysql-form {fields :fields}]
-  (update honeysql-form :select (fnil into []) (map (partial raw-select-item driver)) fields))
-
-(defmethod sql.qp/apply-top-level-clause [:cube :breakout]
-  [driver clause honeysql-form {breakout-fields :breakout :as query}]
-  (doseq [field-clause breakout-fields
-          :let  [kind (member-kind field-clause)]
-          :when (#{:measure :segment} kind)]
-    ;; Cube accepts these, ignores the grouping and returns one total row, so stop here and tell the user.
-    (throw (ex-info (format "Cube cannot group by the %s %s. Use it as a %s."
-                            (name kind)
-                            (:name (stored-field field-clause))
-                            (if (= kind :segment) "filter" "metric"))
-                    {:type :invalid-query})))
-  ((get-method sql.qp/apply-top-level-clause [:postgres :breakout]) driver clause honeysql-form query))
+  (let [same-source (later-same-source-fields fields)]
+    (update honeysql-form :select (fnil into []) (map (partial raw-select-item driver (set same-source))) fields)))
 
 ;; The SQL API plans a join only from __cubeJoinField on both sides. It takes the join condition from the data model.
 (defn- join-field
@@ -608,6 +840,32 @@
              [:+ [:* identifier [:inline (* 7 86400000)]]
               [:inline (* 86400000 (first-week-day-number start))]])])
 
+(defn- plus-units
+  ^LocalDateTime [^LocalDateTime t unit ^long amount]
+  (case unit
+    :minute  (.plusMinutes t amount)
+    :hour    (.plusHours t amount)
+    :day     (.plusDays t amount)
+    :week    (.plusWeeks t amount)
+    :month   (.plusMonths t amount)
+    :quarter (.plusMonths t (* 3 amount))
+    :year    (.plusYears t amount)
+    (.plusSeconds t amount)))
+
+(defn- relative-time
+  "The UTC time of a relative date, at the start of its unit, as the Postgres form does in SQL."
+  ^LocalDateTime [amount unit]
+  (let [now (.truncatedTo (LocalDateTime/now ZoneOffset/UTC) ChronoUnit/SECONDS)]
+    (plus-units (if (bucket-rank unit) (bucket-start unit now) now) unit amount)))
+
+;; A relative date in weeks has no column, so it cannot use a custom granularity, and a week number is not a time. The time
+;; of its first day is a plain literal on each first day of the week.
+(defmethod sql.qp/->honeysql [:cube :relative-datetime]
+  [driver [_ _opts amount unit :as clause]]
+  (if (and (= :week unit) (not= 1 (start-of-week-index)))
+    (time-literal (relative-time amount unit))
+    ((get-method sql.qp/->honeysql [:postgres :relative-datetime]) driver clause)))
+
 (defmethod sql.qp/date [:cube :week]
   [_driver _unit expr]
   (let [start (start-of-week-index)]
@@ -619,18 +877,10 @@
 
 (defn- nest-week-numbers
   "Move a query that groups by week number into a subquery, and turn the numbers into dates in the outer query."
-  [driver honeysql-form week-numbers]
+  [driver honeysql-form numbers]
   (let [{:keys [select order-by limit offset]} honeysql-form
-        numbers     (set week-numbers)
         expr->alias (into {} (map (juxt first second)) select)
         start       (start-of-week-index)]
-    (when (not-any? numbers (map first select))
-      (throw (ex-info (format (str "Cube cannot use a week that starts on %s here, because it cannot add an interval to "
-                                   "a time on ClickHouse. Set the first day of the week to Monday in Metabase, or add "
-                                   "a custom granularity with `interval: 1 week` and the offset of that day to the "
-                                   "time dimension.")
-                              (name (driver-api/start-of-week)))
-                      {:type :invalid-query})))
     (cond-> {:select (mapv (fn [[expr alias-form]]
                              (if (contains? numbers expr)
                                [(week-date start alias-form) alias-form]
@@ -641,6 +891,41 @@
       order-by (assoc :order-by (mapv (fn [[expr direction]] [(get expr->alias expr expr) direction]) order-by))
       limit    (assoc :limit limit)
       offset   (assoc :offset offset))))
+
+(defn- selects-week-number?
+  [numbers {:keys [select]}]
+  (some numbers (map first select)))
+
+(defn- nest-week-numbers-in-stages
+  "`seen` is an atom that turns true if a stage selects a week number. A subquery of a model or a question can select one."
+  [driver form numbers seen]
+  (if-not (map? form)
+    form
+    (let [form (cond-> form
+                 (:from form) (update :from (fn [from]
+                                              (mapv (fn [item]
+                                                      (if (and (vector? item) (map? (first item)))
+                                                        (update item 0 #(nest-week-numbers-in-stages driver % numbers seen))
+                                                        item))
+                                                    from))))]
+      (if (selects-week-number? numbers form)
+        (do (reset! seen true)
+            (nest-week-numbers driver form numbers))
+        form))))
+
+(defn- nest-all-week-numbers
+  [driver honeysql-form week-numbers]
+  (let [numbers (set week-numbers)
+        seen    (atom false)
+        form    (nest-week-numbers-in-stages driver honeysql-form numbers seen)]
+    (when-not @seen
+      (throw (ex-info (format (str "Cube cannot use a week that starts on %s here, because it cannot add an interval to "
+                                   "a time on ClickHouse. Set the first day of the week to Monday in Metabase, or add "
+                                   "a custom granularity with `interval: 1 week` and the offset of that day to the "
+                                   "time dimension, and group by that week.")
+                              (name (driver-api/start-of-week)))
+                      {:type :invalid-query})))
+    form))
 
 (defn- restore-nested-measures
   "A measure is an empty column in raw rows, see raw-select-item. An outer stage aggregates the column of a subquery, and
@@ -663,14 +948,40 @@
                from)))
     honeysql-form))
 
+(defn- current-meta
+  "The Cube data model, or nil. A check that needs it does not stop a query when the REST API is down."
+  []
+  (try
+    (cube.meta/cached-meta (:details (driver-api/database (driver-api/metadata-provider))))
+    (catch Exception _ nil)))
+
+(defn- check-native-stages!
+  [stages]
+  (when-let [cube-meta (current-meta)]
+    (doseq [{:keys [native params]} stages
+            :when (string? native)]
+      (cube.native/check-native! cube-meta native (or params [])))))
+
+(defn- query-with-stages
+  "`query` with the checks done and the limits added, and the names of the measures that a later stage aggregates."
+  [driver {:keys [stages] :as query}]
+  (if (:lib/type query)
+    (let [preprocessed (vec (sql.qp/preprocess driver query))]
+      (check-stages! preprocessed)
+      (check-native-stages! preprocessed)
+      [(assoc query :stages (limit-subqueries (vec stages))) (aggregated-measure-names preprocessed)])
+    [query #{}]))
+
 (defmethod driver/mbql->native :cube
   [driver query]
   (binding [*week-numbers* (atom [])
             *raw-measures* (atom {})]
-    (let [honeysql-form (-> (sql.qp/mbql->honeysql driver query)
-                            (restore-nested-measures @*raw-measures*))
+    (let [[query aggregated] (query-with-stages driver query)
+          honeysql-form (binding [*aggregated-measures* aggregated]
+                          (-> (sql.qp/mbql->honeysql driver query)
+                              (restore-nested-measures @*raw-measures*)))
           honeysql-form (if (and (map? honeysql-form) (seq @*week-numbers*))
-                          (nest-week-numbers driver honeysql-form @*week-numbers*)
+                          (nest-all-week-numbers driver honeysql-form @*week-numbers*)
                           honeysql-form)
           [sql & args]  (sql.qp/format-honeysql driver honeysql-form)]
       {:query sql, :params args})))
@@ -822,6 +1133,15 @@
          "aggregation in the first stage, or add a measure to the data model.")]
    ["Measure aggregation type doesn't match"
     "This measure has its aggregation in the data model. Use the measure, not another aggregation of its column."]
+   ["Can't use OR operator with segments"
+    (str "Cube cannot join a segment to another filter with OR. Use one segment, or add a segment with both conditions to "
+         "the data model.")]
+   ["No field named"
+    (str "This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, "
+         "or add it to the data model of this table.")]
+   ["Cannot determine join keys in JOIN ON expression"
+    (str "Cube cannot compute a rolling window with `trailing: unbounded` for more than one bucket on ClickHouse. Use one "
+         "bucket, or a window with a size in the data model.")]
    ["Date range is required for time series"
     (str "Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the "
          "same time column. Add a date filter.")]])
@@ -839,9 +1159,25 @@
             (str text " Cube said: " message)))
         cube-errors))
 
+(defn- native-only?
+  [{:keys [stages type]}]
+  (if (seq stages)
+    (every? #(= :mbql.stage/native (:lib/type %)) stages)
+    (= :native type)))
+
+(defn- check-sql!
+  "Stop a shape of SQL text that gives a wrong number. Sync reads samples of a table and does not need this."
+  [{{sql :query, params :params} :native, :as query}]
+  (when-not (= :table-rows-sample (-> query :info :context))
+    (when-let [cube-meta (current-meta)]
+      (if (native-only? query)
+        (cube.native/check-native! cube-meta sql (or params []))
+        (cube.native/check-paths! cube-meta sql)))))
+
 (defmethod driver/execute-reducible-query :cube
   [driver query context respond]
   (cube.identity/assert-person! (:details (driver-api/database (driver-api/metadata-provider))))
+  (check-sql! query)
   (try
     (sql-jdbc.execute/execute-reducible-query driver query context respond)
     (catch Exception e

@@ -468,6 +468,21 @@
                 join (own-and-inherited-joins name->cube cube)]
             (join->pair name->cube cube join)))))
 
+(defn same-source-groups
+  "Sets of short member names of a view that are aliases of one member of a cube. Each comes from another join path, or the
+  view would not need two names. `/v1/meta` has no join path, so this is the only sign of it."
+  [dimensions]
+  (into []
+        (comp (filter #(next (val %)))
+              (map (fn [[_ members]]
+                     (into #{} (map #(str/lower-case (last (str/split (:name %) #"\.")))) members))))
+        (group-by :aliasMember (filter :aliasMember dimensions))))
+
+(defn same-source-groups-of-cube
+  "The groups of `same-source-groups` for a cube or view by its name."
+  [cube-meta cube-name]
+  (same-source-groups (:dimensions (first (filter #(= cube-name (:name %)) (:cubes cube-meta))))))
+
 (defn time-granularities
   "The custom granularities of a time dimension, as Cube lists them, or nil."
   [cube-meta cube-name member-name]
