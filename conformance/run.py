@@ -4812,7 +4812,8 @@ def _(ctx):
     grid.done()
     # With the value of each row, a distinct count does not add up, so the driver stops it.
     expect_clear_error(ctx, over(model, aggregation=[["sum", named("unique_customers")]], filter=[">", named("revenue"), 150]), "do not add up")
-    expect_clear_error(ctx, over(model, aggregation=[["avg", named("avg_order_value")]], breakout=[named("revenue")]), "do not add up")
+    expect_clear_error(ctx, over(model, aggregation=[["sum", named("unique_customers")]], breakout=[named("revenue")]), "do not add up")
+    expect_rows(ctx, over(model, aggregation=[["avg", named("avg_order_value")]], filter=[">", named("revenue"), 150]), "SELECT avg(amount) FROM orders WHERE amount > 150", "avg of rows")
 
 
 @check("nested.measure_column.other_aggregation")
@@ -5307,11 +5308,25 @@ def _(ctx):
 
 @check("preagg.rollup_lambda")
 def _(ctx):
+    """The Cube REST API gives the truth through the lambda. The SQL API on ClickHouse gives it only inside the range of the rollup."""
     ensure_table(ctx, "lambda_sales")
-    query = ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.status", "d:lambda_sales.created_at@month"])
-    expect_rows(ctx, query, "SELECT status, toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1, 2", "lambda")
-    used_rollup({"measures": ["lambda_sales.revenue"], "dimensions": ["lambda_sales.status"],
-                 "timeDimensions": [{"dimension": "lambda_sales.created_at", "granularity": "month"}]}, "lambda")(ctx, None)
+    months = "SELECT status, toStartOfMonth(created_at), sum(amount) FROM orders %sGROUP BY 1, 2"
+    query = {"measures": ["lambda_sales.revenue"], "dimensions": ["lambda_sales.status"],
+             "timeDimensions": [{"dimension": "lambda_sales.created_at", "granularity": "month"}]}
+    used_rollup(query, "lambda")(ctx, None)
+    rows = []
+    for _i in range(40):
+        status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
+        res = json.loads(text)
+        if res.get("error") != "Continue wait":
+            rows = [[r["lambda_sales.status"], r["lambda_sales.created_at.month"], float(r["lambda_sales.revenue"])] for r in res["data"]]
+            break
+        time.sleep(1)
+    assert_rows(rows, ch(months % ""), label="REST")
+    expect_rows(ctx, ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.status", "d:lambda_sales.created_at@month"],
+                                  where=[[">=", "d:lambda_sales.created_at", "2025-02-01"], ["<", "d:lambda_sales.created_at", "2025-03-01"]]),
+                months % "WHERE created_at >= '2025-02-01' AND created_at < '2025-03-01' ", "inside the rollup")
+    expect_clear_error(ctx, ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.status"]), "Cube cannot read a rollup_lambda")
 
 
 @check("preagg.rollup_join")
@@ -5324,6 +5339,18 @@ def _(ctx):
 
 
 Q("semantic.measure.min_on_time_column", ORD, "SELECT min(created_at), max(created_at) FROM orders", agg=["m:orders.first_order_at", "m:orders.last_order_at"])
+
+
+@check("compile.expr.measure_with_expression_breakout")
+def _(ctx):
+    """A breakout on an expression makes a subquery of rows. Sum, avg, min and max of the rows are right, and a distinct count stops."""
+    big = {"k": ["case", [[[">", QTY, 2], "big"]], {"default": "small"}]}
+    key = "if(quantity > 2, 'big', 'small')"
+    grid = Grid(ctx)
+    for measure, expr in (("revenue", "sum(amount)"), ("count", "count()"), ("avg_order_value", "avg(amount)"), ("min_amount", "min(amount)"), ("max_amount", "max(amount)")):
+        grid.add(measure, ctx.mb.inner(ORD, agg=["m:orders.%s" % measure], by=[["expression", "k"]], exprs=big), "SELECT %s AS k, %s FROM orders GROUP BY k" % (key, expr))
+    grid.done()
+    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.unique_customers"], by=[["expression", "k"]], exprs=big), "do not add up")
 
 
 def run_suite(args):

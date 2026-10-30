@@ -801,6 +801,8 @@
   title: "preagg rollup lambda"
   status: todo
   check: preagg.rollup_lambda
+  cap: partial
+  reason: "The REST API of Cube gives the truth through the lambda. The SQL API on ClickHouse stops with Stream query failed: aborted when the range reads source rows, see cube-js/cube#12285, and it gives the truth inside the range of the rollup. The driver uses the SQL API, so it shows a clear message for the first form. dev/cube/model/rollups.yml has the model."
 - id: sqlapi.aggregate_function
   area: cube.sql_api
   title: "sqlapi aggregate function"
@@ -3775,3 +3777,8 @@
   check: mcp.query.between_is_whole_days
   cap: partial
   reason: "Limit of Metabase: MCP execute_query makes between with a time part into whole days before the driver, so the driver cannot see the time part. In the demo, 15 rows have that range, and MCP gives 28. The query API /api/dataset keeps the time part. Use >= and <= in MCP for a range with a time part."
+- id: compile.expr.measure_with_expression_breakout
+  area: mb.compile.expr
+  title: "measures with a breakout on an expression"
+  status: todo
+  check: compile.expr.measure_with_expression_breakout

@@ -617,10 +617,19 @@
         :when field]
     [(first form) field]))
 
-(defn- additive-field?
-  "True if the values of the rows of a measure add up to the measure."
+(defn- rows-give-measure?
+  "True if the own aggregation of the values of the rows is the measure. A distinct count or a measure with its own SQL has
+  no such rule."
   [field]
-  (contains? #{"cube.measure/sum" "cube.measure/count"} (str (:database-type field))))
+  (contains? #{"cube.measure/sum" "cube.measure/count" "cube.measure/avg" "cube.measure/min" "cube.measure/max"}
+             (str (:database-type field))))
+
+(defn- reads-row-values?
+  "True if this stage aggregates the values of rows: it filters or groups by a measure, or the earlier stage has an expression,
+  and Cube cannot plan MEASURE() of a subquery with an expression."
+  [earlier stage]
+  (or (some #(= :measure (field-kind (column-field earlier %))) (concat (row-value-clauses stage) (:breakout stage)))
+      (some :expressions earlier)))
 
 (defn- check-aggregations!
   [stages]
@@ -633,17 +642,17 @@
                       {:type :invalid-query})))
     (check-rolling-measure! stages field)))
 
-(defn- check-row-values-add-up!
-  "When a stage has the value of each row, an aggregation of the rows is right only for a measure whose rows add up."
+(defn- check-row-values-give-measure!
+  "When a stage aggregates the values of rows, the result is right only for a measure with rows-give-measure?."
   [earlier stage]
-  (when (some #(= :measure (field-kind (column-field earlier %))) (concat (row-value-clauses stage) (:breakout stage)))
+  (when (reads-row-values? earlier stage)
     (doseq [[agg-type field] (aggregated-fields earlier stage)
             :when (and (= :measure (field-kind field))
                        (own-aggregation? agg-type field)
-                       (not (additive-field? field)))]
-      (throw (ex-info (format (str "Cube cannot aggregate %s next to a filter or a group on a measure column, because the "
-                                   "values of the rows of this measure do not add up to it. Filter on a dimension, or make a "
-                                   "question for it.")
+                       (not (rows-give-measure? field)))]
+      (throw (ex-info (format (str "Cube cannot aggregate %s next to an expression, or a filter or a group on a measure "
+                                   "column, because the values of the rows of this measure do not add up to it. Filter on a "
+                                   "dimension, or make a question for it.")
                               (:name field))
                       {:type :invalid-query})))))
 
@@ -655,7 +664,7 @@
     (let [upto (subvec stages 0 (inc i))]
       (check-no-group-by-member! (pop upto) stage)
       (check-no-filter-on-measure! (pop upto) stage)
-      (check-row-values-add-up! (pop upto) stage)
+      (check-row-values-give-measure! (pop upto) stage)
       (check-aggregations! upto))))
 
 (defn- aggregated-measures
@@ -667,6 +676,19 @@
                   (keep (fn [[_ field]]
                           (when (= :measure (field-kind field)) [(:name field) field]))
                         (aggregated-fields (subvec stages 0 i) (nth stages i)))))
+        (range 1 (count stages))))
+
+(defn- named-measures
+  "A map from the name of a column to its measure, for the stages where Cube reads MEASURE() of that column of a subquery."
+  [stages]
+  (into {}
+        (mapcat (fn [i]
+                  (let [earlier (subvec stages 0 i)
+                        stage   (nth stages i)]
+                    (when-not (reads-row-values? earlier stage)
+                      (keep (fn [[_ field]]
+                              (when (= :measure (field-kind field)) [(:name field) field]))
+                            (aggregated-fields earlier stage))))))
         (range 1 (count stages))))
 
 (defn- row-measure-names
@@ -717,11 +739,10 @@
   #{})
 
 (defn- measure-of-clause
-  "The measure field of an aggregation argument: a stored field, or a column by the name of an earlier stage. In a query
-  with the value of each row, an aggregation of a column adds up those rows."
+  "The measure field of an aggregation argument: a stored field, or a column by the name of an earlier stage."
   [arg]
   (or (when (= :measure (member-kind arg)) (stored-field arg))
-      (when (and (vector? arg) (string? (nth arg 2 nil)) (empty? *row-measures*))
+      (when (and (vector? arg) (string? (nth arg 2 nil)))
         (get *named-measures* (nth arg 2)))))
 
 (doseq [agg-type [:sum :avg :min :max :count :distinct]]
@@ -1123,8 +1144,8 @@
       (cube.native/check-native! cube-meta native (or params [])))))
 
 (defn- query-with-stages
-  "`query` with the checks done and the limits added, the measures that a later stage aggregates, and the measures that a
-  later stage filters or groups by."
+  "`query` with the checks done and the limits added, the measures that a later stage aggregates, the columns that Cube reads as
+  MEASURE(), and the measures that a later stage filters or groups by."
   [driver {:keys [stages] :as query}]
   (if (:lib/type query)
     (let [preprocessed (vec (sql.qp/preprocess driver query))]
@@ -1132,8 +1153,9 @@
       (check-native-stages! preprocessed)
       [(assoc query :stages (limit-subqueries (vec stages)))
        (aggregated-measures preprocessed)
+       (named-measures preprocessed)
        (row-measure-names preprocessed)])
-    [query {} #{}]))
+    [query {} {} #{}]))
 
 (defmethod driver/mbql->native :cube
   [driver query]
@@ -1141,9 +1163,9 @@
             *raw-measures* (atom {})
             *null-columns* (atom #{})
             *row-measure-aliases* (atom #{})]
-    (let [[query aggregated row-measures] (query-with-stages driver query)
+    (let [[query aggregated named row-measures] (query-with-stages driver query)
           honeysql-form (binding [*aggregated-measures* (into (set (keys aggregated)) row-measures)
-                                  *named-measures*      aggregated
+                                  *named-measures*      named
                                   *row-measures*        row-measures]
                           (sql.qp/mbql->honeysql driver query))
           honeysql-form (restore-nested-measures honeysql-form @*raw-measures* @*row-measure-aliases* @*null-columns*)
@@ -1309,6 +1331,9 @@
    ["Cannot determine join keys in JOIN ON expression"
     (str "Cube cannot compute a rolling window with `trailing: unbounded` for more than one bucket on ClickHouse. Use one "
          "bucket, or a window with a size in the data model.")]
+   ["Stream query failed"
+    (str "Cube cannot read a rollup_lambda through the SQL API on ClickHouse with a range that reads source rows. Add a date "
+         "filter inside the range of the rollup, or read this measure from a plain rollup.")]
    ["Date range is required for time series"
     (str "Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the "
          "same time column. Add a date filter.")]])
