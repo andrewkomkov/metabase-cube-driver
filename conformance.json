@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 627,
+    "pass": 628,
     "partial": 12,
     "blocked": 26,
     "unsupported": 10,
-    "fail": 2,
+    "fail": 1,
     "total": 677
   },
-  "coverage": "coverage: 627/677 pass",
+  "coverage": "coverage: 628/677 pass",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -497,8 +497,8 @@
     },
     {
       "id": "join.transitive",
-      "status": "fail",
-      "reason": "rows: got 4 rows, truth has 3. got=[[None, 1.0], ['Gadget', 199.0], ['Gizmo', 199.0], ['Widget', 199.0]] truth=[['Gadget', 199.0], ['Gizmo', 199.0], ['Widget', 199.0]]"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "cube.calendar",

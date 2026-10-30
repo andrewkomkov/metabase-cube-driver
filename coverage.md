@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 627/677 pass** (627 pass, 12 partial, 26 blocked, 10 unsupported, 2 fail of 677)
+**coverage: 628/677 pass** (628 pass, 12 partial, 26 blocked, 10 unsupported, 1 fail of 677)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `b6f18731ce36`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41104841218), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `a474244ae8fc`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41106706843), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -105,7 +105,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `b6f1873
 | `join.one_to_many_no_fanout` | pass |  |
 | `join.one_to_one` | pass |  |
 | `join.sql_cube_join_field` | pass |  |
-| `join.transitive` | fail | rows: got 4 rows, truth has 3. got=[[None, 1.0], ['Gadget', 199.0], ['Gizmo', 199.0], ['Widget', 199.0]] truth=[['Gadget', 199.0], ['Gizmo', 199.0], ['Widget', 199.0]] |
+| `join.transitive` | pass |  |
 | `cube.calendar` | pass |  |
 | `cube.calendar_granularity_sql` | blocked | Needs a calendar table with SQL granularities in the demo model. Not modelled yet. |
 | `cube.data_source` | blocked | The demo stack has one data source. A second one needs a compose change and a Cube config, which do not exist yet. |
