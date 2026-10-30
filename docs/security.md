@@ -1,0 +1,58 @@
+# Security
+
+## Short answer
+
+Per-person data in Cube works on Metabase OSS, through this driver. It does not use a paid Metabase feature. It does not use
+a Metabase feature at all: the driver opens a connection to the Cube SQL API with the name of the person as the user name.
+
+The `security.*` entries in `conformance/features.yaml` test this against `dev/cube-secure`, with a row-level rule.
+
+## Metabase features
+
+| Feature | Plan | Can this driver use it |
+| --- | --- | --- |
+| Connection impersonation | Paid. Code in `enterprise/backend/src/metabase_enterprise/impersonation`. In OSS, `set-role-if-supported!` does nothing. | No. The driver turns off `:connection-impersonation`. It would send `SET ROLE`, and the pool could not give the connection back. Not tested, because the demo image is OSS. |
+| Row and column security (sandboxing) | Paid. Code in `enterprise/backend/src/metabase_enterprise/sandbox`. | It adds MBQL filters above the driver, so it can work. It has no effect on native SQL. Not tested, because the demo image is OSS. |
+| Database routing | Paid. | The driver turns it off. |
+| User attributes | The API `PUT /api/user/:id` with `login_attributes` works on OSS. The check `security.user_attribute` uses it. | Yes. |
+
+## What Cube offers
+
+| Cube feature | Live result on Cube v1.8.15 | Used |
+| --- | --- | --- |
+| `checkSqlAuth(req, username)` gives the password and the security context | Works. The security context is then fixed for the connection. | Yes |
+| `CUBEJS_SQL_SUPER_USER`, then `SET user = 'x'` | Works once. The session then is `x`. It cannot go back: `user 'x' is not allowed to switch`. So a connection pool cannot give the connection to the next person. | No |
+| `WHERE __user = 'x'` | On a super user connection, it works for each query. So a person who can write native SQL reads as anybody. | No |
+| A normal user tries `SET user`, `SET ROLE` or `__user` | Refused. | This is why the driver uses a normal user |
+
+## Set it up
+
+1. In `cube.js`, write `checkSqlAuth`. Give all people one password, which only Metabase and Cube know. Give each person a security context.
+2. In `cube.js`, write the rule, for example `queryRewrite`. See [`dev/cube-secure/cube.js`](https://github.com/andrewkomkov/metabase-cube-driver/blob/main/dev/cube-secure/cube.js).
+3. In `cube.js`, let the connection user see all members, because sync uses that user. Sync also sends this name as `user` in the JWT for the REST API.
+4. In Metabase, set **Cube SQL user for each person** on the connection. Write `email`, or the name of a user attribute.
+
+## What happens
+
+- A query opens its own connection with the person as the user name, so there is one connection per query.
+- A person with no attribute value gets an error. A person that `checkSqlAuth` refuses gets an error. The query does not run as somebody else.
+- MCP calls run as the person of the OAuth token.
+
+## Limits
+
+- **The shared password.** Each client that has it can sign in as any person on the Cube SQL API. Keep that port on a private network. Cube cannot check the person in another way, because Metabase has no password for that person.
+- **Public links and static embeds fail.** They have no person, and the account of the connection would show all rows.
+- **The Metabase result cache is off for this connection.** The cache key has no person, and a live test showed the rows of one person to another. A Metabase driver has no hook for this, so the driver wraps the internal var `maybe-return-cached-results`. The check `security.metabase_cache` guards it on the pinned version.
+- **Filter lists are search boxes.** Metabase keeps one list of values per field, so the driver sets each dimension to `search`, and the person's own query gives the values.
+- **Sync reads no rows, so fields have no real fingerprint.** Metabase keeps one fingerprint per field. Automatic numeric binning can be poorer. This is not tested.
+- **All people see one model.** Metabase keeps one set of tables, fields and measures per database. It comes from the connection user. A member that `access_policy` hides from a person stays visible in Metabase, and a query on it gives no rows or an error. `COMPILE_CONTEXT` changes values for each person, but not the list of members.
+- **Scheduled deliveries run as their creator.** This is how Metabase works. Recipients get the rows of the creator. This is not tested, because the demo has no email or Slack channel.
+- **Metabase permissions still apply on top.** This feature only limits what Cube returns.
+- **Other Cube data sources.** The live tests use ClickHouse.
+
+## Secrets
+
+- The API returns `**MetabasePass**` in place of the SQL password, and nothing for the API secret. The check `security.secret.not_in_api` reads the admin and non-admin API and MCP.
+- The check `security.secret.not_in_logs` forces wrong connections and reads the Metabase log. The log has no secret, no password that was sent, and no JWT. It reads the default log level only.
+- Post the API secret as `cube-api-secret-value`, as the Metabase UI does. A client that posts another key name has its value stored as plain connection details.
+- Dev mode of Cube accepts each JWT, also one with a wrong signature. A live test confirmed this. Run Cube with `CUBEJS_DEV_MODE=false`, or the API secret protects nothing.

@@ -82,8 +82,9 @@ of Cube:
 2. Read the descriptions of tables and fields with `get_content`.
 3. Query with `execute_query`.
 
-This flow is a goal and is not yet proven with this driver. See
-[`conformance/features.yaml`](conformance/features.yaml) for what passes.
+The `mcp.agent.*` entries in [`conformance/features.yaml`](conformance/features.yaml) run this flow. Agents can read
+[`docs/agents.md`](docs/agents.md). To send the Metabase person to the Cube security context, see
+[`docs/security.md`](docs/security.md).
 
 ## Development
 

@@ -26,6 +26,9 @@ METABASE_ADMIN_PASSWORD=... python3 conformance/run.py
 | `CUBE_SQL_HOST`, `CUBE_SQL_PORT` | `cube`, `15432`. Metabase uses this address. |
 | `CUBE_REST_INTERNAL_URL` | `http://cube:4000`. Metabase uses this address. |
 | `CUBE_SQL_API_HOST`, `CUBE_SQL_API_PORT` | `127.0.0.1`, `15433`. The runner uses this address for `EXPLAIN`. |
+| `CUBE_SECURE_SQL_HOST`, `CUBE_SECURE_SQL_PORT` | `cube-secure`, `15432`. Metabase uses this address for the `security.*` checks. |
+| `CUBE_SECURE_REST_INTERNAL_URL` | `http://cube-secure:4000`. Metabase uses this address. |
+| `METABASE_CONTAINER` | `metabase-cube-driver-metabase-1`. The runner reads its log for `security.secret.not_in_logs`. |
 
 If Metabase has no admin, the runner creates one and connects the Cube database. It generates a random password if `METABASE_ADMIN_PASSWORD` is not set.
 
@@ -50,6 +53,14 @@ The `semantic.*` checks for model changes write `dev/cube/model/zz_conformance_p
 ## Query compilation
 
 The `compile.*` checks compare each number with ClickHouse. They also run `EXPLAIN` on the Cube SQL API and check how Cube runs the query, and they send the request from the plan to the REST API to read `usedPreAggregations`. They need the `big_orders` table, which is 10 million rows. They change the `start-of-week` setting and set it back. See `docs/query-compilation.md`.
+
+## Per-person data
+
+The `security.*` checks need the service `cube-secure`. They run last, because they add databases and people to Metabase. They remove the databases at the end. The people stay. They set a root cache policy for one check and remove it. The truth for each person is ClickHouse with the filter of the row-level rule in `dev/cube-secure/cube.js`.
+
+## Agent path
+
+The `mcp.agent.*` checks find ids only through MCP tools, from the words of a question. The runner uses the REST API only to verify a dashboard filter, because no MCP tool runs a dashboard card with a parameter.
 
 ## Truth
 

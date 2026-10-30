@@ -4,7 +4,7 @@ package:
 
 .PHONY: up down load-check conformance tools lint docs
 up: package
-	cd dev && docker compose up -d --wait clickhouse cube
+	cd dev && docker compose up -d --wait clickhouse cube cube-secure
 	cd dev && docker compose up -d metabase
 
 down:

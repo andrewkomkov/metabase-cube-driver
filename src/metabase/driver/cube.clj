@@ -13,6 +13,7 @@
    [metabase.driver.sql-jdbc.connection :as sql-jdbc.conn]
    [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
    [metabase.driver.sql.query-processor :as sql.qp]
+   [metabase.query-processor.middleware.cache :as qp.middleware.cache]
    [metabase.util.honey-sql-2 :as h2x]))
 
 (set! *warn-on-reflection* true)
@@ -77,6 +78,28 @@
     (if-let [sql-user (some-> details cube.identity/sql-user)]
       (parent driver (sql-jdbc.conn/connection-details->spec driver (assoc details :user sql-user)) options f)
       (parent driver db-or-id-or-spec options f))))
+
+;; The Metabase result cache has one entry per query, with no person in the key. A live test showed the rows of one person
+;; to another person. A driver has no hook for this, so this wraps the middleware. Metabase rebuilds the query processor
+;; when this var changes. If a new Metabase has no such var, the driver does not load, which is the safe result.
+(defn- per-person-query?
+  []
+  (let [database (driver-api/database (driver-api/metadata-provider))]
+    (and (= :cube (:engine database))
+         (some? (cube.identity/attribute (:details database))))))
+
+(defn- skip-cache-for-per-person-data
+  [middleware]
+  (fn [qp]
+    (let [with-cache (middleware qp)]
+      (fn [query rff]
+        (if (and (:cache-strategy query) (per-person-query?))
+          (qp query rff)
+          (with-cache query rff))))))
+
+(defonce ^:private cache-wrapped
+  (do (alter-var-root #'qp.middleware.cache/maybe-return-cached-results skip-cache-for-per-person-data)
+      true))
 
 (defmethod driver/can-connect? :cube
   [driver details]

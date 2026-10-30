@@ -20,6 +20,9 @@ The step runs on the Metabase event `:event/sync-metadata-end`. The same data co
 | Numeric format | Field settings: number style, decimals, currency code. A Measure result inherits them. |
 | Join with one equality of two plain members | Foreign key, on the many side of the join |
 
+A table has no schema, because Cube has one namespace. The MCP tool `browse_data` then lists the tables with only a
+database id.
+
 These features have no Metabase object, so they are text in a description. The MCP tools `search`, `get_content` and
 `browse_data` return that text:
 
@@ -33,10 +36,14 @@ These features have no Metabase object, so they are text in a description. The M
 | Links | `Links: Search status.` | Field |
 | Link label | `Link label: Open invoice.` | Field |
 | Custom number or time format | `Number format: .2~s.`, `Time format: %Y-%m-%d.` | Field, Measure |
+| Members of a cube, with titles | `Measures: Revenue, Order count.`, `Dimensions: Status.`, `Segments: Paid.` | Table |
+| Joins of a cube | `Joins: users, products.` | Table |
+| Table of a member | `Table: Sales (sales, id 40).` | Measure, Segment |
+| How to query this database | `Cube semantic layer. Each table is a cube or a view...` | Database, if its description is empty |
 
 ## Keys
 
-Each Measure and Segment has a fixed `entity_id`, a hash of the Metabase database and the member name
+Each Measure and Segment has a fixed `entity_id`, a hash of the Metabase database id and the member name
 (`orders.revenue`). The creator is the Metabase internal user. So:
 
 - A second sync finds the same object and adds nothing. A sync writes only the values that changed.

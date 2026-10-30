@@ -20,6 +20,10 @@ Each release has a SHA-256 file, an SBOM and a build provenance attestation. To 
 gh attestation verify cube.metabase-driver.jar --repo andrewkomkov/metabase-cube-driver
 ```
 
+## Per-person data
+
+[docs/security.md](docs/security.md) tells how a Metabase person reaches the Cube security context, and the limits.
+
 ## Demo credentials
 
 The files in `dev/` contain throwaway credentials for fake data. Their ports bind to the loopback

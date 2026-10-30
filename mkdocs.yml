@@ -12,6 +12,8 @@ nav:
   - Home: index.md
   - Install and connect: install.md
   - Use with an AI agent: ai-agents.md
+  - Guide for agents: agents.md
+  - Security: security.md
   - Cube objects in Metabase: semantic-sync.md
   - How queries reach Cube: query-compilation.md
   - Coverage: coverage.md

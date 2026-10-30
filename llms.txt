@@ -8,6 +8,8 @@ Coverage has one source of truth: conformance/features.yaml and the output of co
 
 - [Agent guide](https://raw.githubusercontent.com/andrewkomkov/metabase-cube-driver/main/AGENTS.md): goal, definition of done, pinned versions and rules
 - [README](https://raw.githubusercontent.com/andrewkomkov/metabase-cube-driver/main/README.md): install, connect and use with an AI agent
+- [Guide for agents that use the plugin](https://raw.githubusercontent.com/andrewkomkov/metabase-cube-driver/main/docs/agents.md): how to find and query Cube members through the Metabase MCP server
+- [Security](https://raw.githubusercontent.com/andrewkomkov/metabase-cube-driver/main/docs/security.md): per-person data, which Metabase features are paid, and the limits
 - [Contributing](https://raw.githubusercontent.com/andrewkomkov/metabase-cube-driver/main/CONTRIBUTING.md): commands and CI
 
 ## Status from CI

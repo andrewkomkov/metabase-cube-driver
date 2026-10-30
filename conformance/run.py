@@ -3923,19 +3923,23 @@ def _(ctx):
     sec = secure(ctx)
     admin = sec._admin(SECURE_DB)
     card = admin.mbql_card("cache", "sales", agg=["m:sales.revenue"], by=["d:sales.users_city"])
+    plain = ctx.mb.mbql_card("cache control", "sales", agg=["m:sales.revenue"], by=["d:sales.users_city"])
     admin.api("PUT", "/api/cache", {"model": "root", "model_id": 0, "strategy": {"type": "ttl", "multiplier": 100000, "min_duration_ms": 0}})
     try:
-        alice = sec.person("alice@example.com")
+        # The control: the same question on the Cube with no per-person data comes from the cache, so the cache is on.
         for _i in range(20):
-            res = alice.api("POST", "/api/card/%d/query" % card["id"], {"parameters": []})
+            res = ctx.mb.api("POST", "/api/card/%d/query" % plain["id"], {"parameters": []})
             if res.get("cached"):
                 break
             time.sleep(1)
         else:
-            raise Fail("Metabase did not cache the result, so this check shows nothing: %s" % str(res.get("cache/details") or res.get("cached"))[:200])
-        assert_rows(res["data"]["rows"], city_rev("Austin"), label="alice from the cache")
-        res = sec.person("bob@example.com").api("POST", "/api/card/%d/query" % card["id"], {"parameters": []})
-        assert_rows(res["data"]["rows"], city_rev("Boston"), label="bob, cached=%s" % res.get("cached"))
+            raise Fail("Metabase did not cache the control question, so this check shows nothing")
+        assert_rows(res["data"]["rows"], ch(REV_BY_CITY), label="control from the cache")
+        for _i in range(4):
+            for email in CITY_OF:
+                res = sec.person(email).api("POST", "/api/card/%d/query" % card["id"], {"parameters": []})
+                assert_rows(res["data"]["rows"], city_rev(CITY_OF[email]), label="%s, cached=%s" % (email, res.get("cached")))
+            time.sleep(1)
     finally:
         admin.api("DELETE", "/api/cache", {"model": "root", "model_id": [0]})
 
