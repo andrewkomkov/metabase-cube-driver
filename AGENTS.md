@@ -47,8 +47,15 @@ The stack runs on host `nettop.local`, in `~/metabase-cube-driver`, with compose
 | Service | Address on nettop |
 | --- | --- |
 | Metabase | `127.0.0.1:3300` |
+| Metabase for conformance, service `metabase-conformance` | `127.0.0.1:3301` |
 | Cube REST | `127.0.0.1:4400` |
 | Cube SQL API | `127.0.0.1:15433` |
+| Cube with a row-level rule, service `cube-secure`, REST | `127.0.0.1:4401` |
+| Cube with a row-level rule, service `cube-secure`, SQL API | `127.0.0.1:15434` |
+
+Run the suite on nettop with `make conformance`. This command does not use the secret store. It uses
+`metabase-conformance`, with a new volume and a fixed throwaway admin. The service `metabase` and its volume
+`metabase-data` do not change.
 
 Deploy with git: commit on the Mac, push, then `git pull` on nettop. Do not commit on nettop.
 
