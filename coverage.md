@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 599/665 pass** (599 pass, 0 partial, 26 blocked, 10 unsupported, 30 fail of 665)
+**coverage: 618/665 pass** (618 pass, 0 partial, 26 blocked, 10 unsupported, 11 fail of 665)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e56410c8a797`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41091155348), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `edd43fd08cfc`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41092324058), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -60,7 +60,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e56410c
 | `dimension.format.currency` | pass |  |
 | `dimension.format.currency_code` | pass |  |
 | `dimension.format.id` | pass |  |
-| `dimension.format.image_url` | pass |  |
+| `dimension.format.image_url` | fail | orders.thumb_url semantic_type='type/URL', want 'type/ImageURL' |
 | `dimension.format.link` | pass |  |
 | `dimension.format.link_label` | pass |  |
 | `dimension.format.percent` | pass |  |
@@ -182,7 +182,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e56410c
 | `meta.measure_is_marked` | pass |  |
 | `meta.no_internal_columns` | pass |  |
 | `meta.resync_keeps_metadata` | pass |  |
-| `meta.semantic_types` | fail | users.name semantic_type None, want type/Name |
+| `meta.semantic_types` | fail | users.email semantic_type None, want type/Email |
 | `meta.tables_match_public_members` | pass |  |
 | `mb.agg.avg_field` | pass |  |
 | `mb.agg.count_rows` | pass |  |
@@ -217,8 +217,8 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e56410c
 | `mb.bucket.week` | pass |  |
 | `mb.bucket.week-of-year` | pass |  |
 | `mb.bucket.year` | pass |  |
-| `mb.breakout.bin_count` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T16:40:02.704459446Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error preprocessing query in #'metabase.query-processor.middleware.binning/update-binning-strategy: Unable to bin Field without a min/max |
-| `mb.breakout.bin_width` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T16:40:02.748271228Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error preprocessing query in #'metabase.query-processor.middleware.binning/update-binning-strategy: Unable to bin Field without a min/max |
+| `mb.breakout.bin_count` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T16:46:49.877380215Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error preprocessing query in #'metabase.query-processor.middleware.binning/update-binning-strategy: Unable to bin Field without a min/max |
+| `mb.breakout.bin_width` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T16:46:49.911919591Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error preprocessing query in #'metabase.query-processor.middleware.binning/update-binning-strategy: Unable to bin Field without a min/max |
 | `mb.breakout.boolean` | pass |  |
 | `mb.breakout.limit` | pass |  |
 | `mb.breakout.sorted_by_measure` | pass |  |
@@ -347,7 +347,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e56410c
 | `mcp.execute_query.filter` | pass |  |
 | `mcp.execute_query.implicit_join` | pass |  |
 | `mcp.execute_query.measure` | pass |  |
-| `mcp.execute_query.paging` | fail | no next_cursor: {'query_handle': '2c462699-c383-4c0e-881a-1cc549932927', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float' |
+| `mcp.execute_query.paging` | fail | no next_cursor: {'query_handle': 'a9d2d142-6298-4b61-b70a-20a6b4ebdf61', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float' |
 | `mcp.execute_query.segment` | pass |  |
 | `mcp.execute_query.view` | pass |  |
 | `mcp.execute_sql` | pass |  |
@@ -426,11 +426,11 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e56410c
 | `semantic.drill_members` | pass |  |
 | `semantic.agent_reads_notes` | pass |  |
 | `semantic.resync_no_duplicates` | pass |  |
-| `semantic.model_change_updates` | fail | the Measure did not follow the model: {'description': 'Second text.\n\nTable: Probe cube (conformance_probe_1793378474, id 45).', 'archived': False, 'table_id': 45, 'definition': {'lib/type': 'mbql/query', 'database': 2, 'stages': [{'source-table': 45, 'lib/type': 'mbql.stage/mbql', 'aggregation': [['sum', {'lib/uuid': 'a1ecc6d1-41be-4fff-98d1-b9033d416847', 'display-name': 'Probe total two'}, ['field', {'lib/uuid': 'a97dcb05-9bf0-4e77-b24d-5e466ed4514f'}, 396]]]}], 'lib/metadata': None}, 'creator': {'email': 'internal@metabase.com', 'first_name': 'Metabase', 'is_data_analyst': False, 'last_login': None, 'is_qbnewb': True, 'is_superuser': False, 'id': 13371338, 'last_name': 'Internal', 'tenant_id': None, 'date_joined': '2026-10-30T16:38:34.329518Z', 'common_name': 'Metabase Internal'}, 'definition_description': 'Probe total two', 'name': 'Probe total two', 'dimensions': None, 'creator_id': 13371338, 'updated_at': '2026-10-30T16:41:36.544086Z', 'dimension_mappings': None, 'id': 144, 'entity_id': 'M8i-rtwDP35qKNmlzKY8a', 'created_at': '2026-10-30T16:41:17.495757Z'} |
+| `semantic.model_change_updates` | fail | the Measure did not follow the model: {'description': 'Second text.\n\nTable: Probe cube (conformance_probe_1793378866, id 45).', 'archived': False, 'table_id': 45, 'definition': {'lib/type': 'mbql/query', 'database': 2, 'stages': [{'source-table': 45, 'lib/type': 'mbql.stage/mbql', 'aggregation': [['sum', {'lib/uuid': 'e8063fca-f339-4ef7-a44e-d4e4db14e822', 'display-name': 'Probe total two'}, ['field', {'lib/uuid': '8fa9a7e2-4a70-4060-82c3-8ef1fe83b923'}, 396]]]}], 'lib/metadata': None}, 'creator': {'email': 'internal@metabase.com', 'first_name': 'Metabase', 'is_data_analyst': False, 'last_login': None, 'is_qbnewb': True, 'is_superuser': False, 'id': 13371338, 'last_name': 'Internal', 'tenant_id': None, 'date_joined': '2026-10-30T16:45:41.358902Z', 'common_name': 'Metabase Internal'}, 'definition_description': 'Probe total two', 'name': 'Probe total two', 'dimensions': None, 'creator_id': 13371338, 'updated_at': '2026-10-30T16:48:06.098548Z', 'dimension_mappings': None, 'id': 144, 'entity_id': '068D_5azEVJDQK8WpB-2V', 'created_at': '2026-10-30T16:47:47.976399Z'} |
 | `semantic.removed_archived` | pass |  |
 | `semantic.restored_member` | pass |  |
 | `semantic.user_edit_kept` | pass |  |
-| `semantic.user_edit_reset` | fail | the Measure did not take the Cube values: Probe edited, Cube text.  Table: Probe cube (conformance_probe_1793378474, id 45). |
+| `semantic.user_edit_reset` | fail | the Measure did not take the Cube values: Probe edited, Cube text.  Table: Probe cube (conformance_probe_1793378866, id 45). |
 | `semantic.drill_members_native` | unsupported | Metabase has no column that lists the drill columns of a measure. Its drill-through uses all visible fields. The text in the description is the only place, see semantic.drill_members. |
 | `semantic.measure.min_on_time_column` | blocked | Cube REST returns the time, but /v1/meta types the measure as number and the SQL API returns NULL for MEASURE(). The driver reads only the SQL API, so the demo measure first_order_at gives NULL. Use a measure of type time, see semantic.measure.type_time. |
 | `compile.agg.median_gives_error` | pass |  |
@@ -652,24 +652,24 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `e56410c
 | `mcp.agent.filter_values` | pass |  |
 | `mcp.agent.error_unknown_column` | pass |  |
 | `mcp.agent.error_join_on` | pass |  |
-| `security.access_policy_groups` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.compile_context` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.security_context_row_filter` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
+| `security.access_policy_groups` | pass |  |
+| `security.compile_context` | pass |  |
+| `security.security_context_row_filter` | pass |  |
 | `security.sql_user_impersonation` | unsupported | The driver does not use CUBEJS_SQL_SUPER_USER, SET user or __user. A live test on Cube v1.8.15 shows that a session of the super user accepts __user from native SQL, so a person who writes SQL reads as anybody. SET user works in one direction, so a pool cannot give the connection back. The driver connects as the person instead. See docs/security.md. |
-| `security.row_filter.measure_with_no_dimension` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.row_filter.native` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.row_filter.push_down` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.row_filter.mcp` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.row_filter.saved_question` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.row_filter.filter_values` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.row_filter.no_fingerprint_of_all_rows` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.no_switch.native_user_filter` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.no_switch.native_set_user` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.no_mixing_of_people` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.unknown_person_fails` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.user_attribute` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.public_link_fails` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.secret.not_in_api` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.secret.rest_requires_it` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.secret.not_in_logs` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
-| `security.metabase_cache` | fail | POST /api/database: HTTP 400: {"message":"The connection attempt failed."} |
+| `security.row_filter.measure_with_no_dimension` | pass |  |
+| `security.row_filter.native` | pass |  |
+| `security.row_filter.push_down` | pass |  |
+| `security.row_filter.mcp` | pass |  |
+| `security.row_filter.saved_question` | pass |  |
+| `security.row_filter.filter_values` | pass |  |
+| `security.row_filter.no_fingerprint_of_all_rows` | pass |  |
+| `security.no_switch.native_user_filter` | pass |  |
+| `security.no_switch.native_set_user` | pass |  |
+| `security.no_mixing_of_people` | pass |  |
+| `security.unknown_person_fails` | pass |  |
+| `security.user_attribute` | pass |  |
+| `security.public_link_fails` | pass |  |
+| `security.secret.not_in_api` | pass |  |
+| `security.secret.rest_requires_it` | pass |  |
+| `security.secret.not_in_logs` | pass |  |
+| `security.metabase_cache` | pass |  |

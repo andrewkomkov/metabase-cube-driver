@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 599,
+    "pass": 618,
     "partial": 0,
     "blocked": 26,
     "unsupported": 10,
-    "fail": 30,
+    "fail": 11,
     "total": 665
   },
-  "coverage": "coverage: 599/665 pass",
+  "coverage": "coverage: 618/665 pass",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -272,8 +272,8 @@
     },
     {
       "id": "dimension.format.image_url",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "orders.thumb_url semantic_type='type/URL', want 'type/ImageURL'"
     },
     {
       "id": "dimension.format.link",
@@ -883,7 +883,7 @@
     {
       "id": "meta.semantic_types",
       "status": "fail",
-      "reason": "users.name semantic_type None, want type/Name"
+      "reason": "users.email semantic_type None, want type/Email"
     },
     {
       "id": "meta.tables_match_public_members",
@@ -1058,12 +1058,12 @@
     {
       "id": "mb.breakout.bin_count",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T16:40:02.704459446Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error preprocessing query in #'metabase.query-processor.middleware.binning/update-binning-strategy: Unable to bin Field without a min/max"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T16:46:49.877380215Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error preprocessing query in #'metabase.query-processor.middleware.binning/update-binning-strategy: Unable to bin Field without a min/max"
     },
     {
       "id": "mb.breakout.bin_width",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T16:40:02.748271228Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error preprocessing query in #'metabase.query-processor.middleware.binning/update-binning-strategy: Unable to bin Field without a min/max"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T16:46:49.911919591Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error preprocessing query in #'metabase.query-processor.middleware.binning/update-binning-strategy: Unable to bin Field without a min/max"
     },
     {
       "id": "mb.breakout.boolean",
@@ -1708,7 +1708,7 @@
     {
       "id": "mcp.execute_query.paging",
       "status": "fail",
-      "reason": "no next_cursor: {'query_handle': '2c462699-c383-4c0e-881a-1cc549932927', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
+      "reason": "no next_cursor: {'query_handle': 'a9d2d142-6298-4b61-b70a-20a6b4ebdf61', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
     },
     {
       "id": "mcp.execute_query.segment",
@@ -2103,7 +2103,7 @@
     {
       "id": "semantic.model_change_updates",
       "status": "fail",
-      "reason": "the Measure did not follow the model: {'description': 'Second text.\\n\\nTable: Probe cube (conformance_probe_1793378474, id 45).', 'archived': False, 'table_id': 45, 'definition': {'lib/type': 'mbql/query', 'database': 2, 'stages': [{'source-table': 45, 'lib/type': 'mbql.stage/mbql', 'aggregation': [['sum', {'lib/uuid': 'a1ecc6d1-41be-4fff-98d1-b9033d416847', 'display-name': 'Probe total two'}, ['field', {'lib/uuid': 'a97dcb05-9bf0-4e77-b24d-5e466ed4514f'}, 396]]]}], 'lib/metadata': None}, 'creator': {'email': 'internal@metabase.com', 'first_name': 'Metabase', 'is_data_analyst': False, 'last_login': None, 'is_qbnewb': True, 'is_superuser': False, 'id': 13371338, 'last_name': 'Internal', 'tenant_id': None, 'date_joined': '2026-10-30T16:38:34.329518Z', 'common_name': 'Metabase Internal'}, 'definition_description': 'Probe total two', 'name': 'Probe total two', 'dimensions': None, 'creator_id': 13371338, 'updated_at': '2026-10-30T16:41:36.544086Z', 'dimension_mappings': None, 'id': 144, 'entity_id': 'M8i-rtwDP35qKNmlzKY8a', 'created_at': '2026-10-30T16:41:17.495757Z'}"
+      "reason": "the Measure did not follow the model: {'description': 'Second text.\\n\\nTable: Probe cube (conformance_probe_1793378866, id 45).', 'archived': False, 'table_id': 45, 'definition': {'lib/type': 'mbql/query', 'database': 2, 'stages': [{'source-table': 45, 'lib/type': 'mbql.stage/mbql', 'aggregation': [['sum', {'lib/uuid': 'e8063fca-f339-4ef7-a44e-d4e4db14e822', 'display-name': 'Probe total two'}, ['field', {'lib/uuid': '8fa9a7e2-4a70-4060-82c3-8ef1fe83b923'}, 396]]]}], 'lib/metadata': None}, 'creator': {'email': 'internal@metabase.com', 'first_name': 'Metabase', 'is_data_analyst': False, 'last_login': None, 'is_qbnewb': True, 'is_superuser': False, 'id': 13371338, 'last_name': 'Internal', 'tenant_id': None, 'date_joined': '2026-10-30T16:45:41.358902Z', 'common_name': 'Metabase Internal'}, 'definition_description': 'Probe total two', 'name': 'Probe total two', 'dimensions': None, 'creator_id': 13371338, 'updated_at': '2026-10-30T16:48:06.098548Z', 'dimension_mappings': None, 'id': 144, 'entity_id': '068D_5azEVJDQK8WpB-2V', 'created_at': '2026-10-30T16:47:47.976399Z'}"
     },
     {
       "id": "semantic.removed_archived",
@@ -2123,7 +2123,7 @@
     {
       "id": "semantic.user_edit_reset",
       "status": "fail",
-      "reason": "the Measure did not take the Cube values: Probe edited, Cube text.\n\nTable: Probe cube (conformance_probe_1793378474, id 45)."
+      "reason": "the Measure did not take the Cube values: Probe edited, Cube text.\n\nTable: Probe cube (conformance_probe_1793378866, id 45)."
     },
     {
       "id": "semantic.drill_members_native",
@@ -3232,18 +3232,18 @@
     },
     {
       "id": "security.access_policy_groups",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.compile_context",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.security_context_row_filter",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.sql_user_impersonation",
@@ -3252,88 +3252,88 @@
     },
     {
       "id": "security.row_filter.measure_with_no_dimension",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.row_filter.native",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.row_filter.push_down",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.row_filter.mcp",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.row_filter.saved_question",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.row_filter.filter_values",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.row_filter.no_fingerprint_of_all_rows",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.no_switch.native_user_filter",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.no_switch.native_set_user",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.no_mixing_of_people",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.unknown_person_fails",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.user_attribute",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.public_link_fails",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.secret.not_in_api",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.secret.rest_requires_it",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.secret.not_in_logs",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "security.metabase_cache",
-      "status": "fail",
-      "reason": "POST /api/database: HTTP 400: {\"message\":\"The connection attempt failed.\"}"
+      "status": "pass",
+      "reason": ""
     }
   ]
 }
