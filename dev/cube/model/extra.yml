@@ -34,8 +34,8 @@ cubes:
       ['TX','IL','WA','MA'][1 + id % 4] AS dest_state
       FROM shop.orders
     joins:
-      - { name: regions, relationship: many_to_one, sql: "{CUBE}.dest_state = {regions.state}" }
       - { name: regions, alias: destination_regions, relationship: many_to_one, sql: "{CUBE}.dest_state = {destination_regions.state}" }
+      - { name: region_labels, relationship: many_to_one, sql: "{CUBE}.dest_state = {region_labels.state}" }
     dimensions:
       - { name: order_id, sql: order_id, type: number, primary_key: true, public: false }
       - { name: carrier_mode, sql: carrier_mode, type: string, description: Shipping mode. }

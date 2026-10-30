@@ -70,7 +70,9 @@ A `DateTime64` column stays a limit of Cube, see `compile.bound.datetime64_whole
 
 Cube pushes a filter of an outer stage below the aggregation of a subquery. A filter on a saved question then changes the rows of the question: a month becomes a part of that month, and a share of the total becomes 1. A limit on the subquery stops this, so the driver adds one to each stage with an aggregation that has a next stage, and to a native question with an aggregation. `CUBEJS_DB_QUERY_LIMIT` still applies to the rows of that subquery.
 
-A subquery with raw rows has no limit, because Cube reads the outer filter correctly there. Its measure columns are NULL unless a later stage aggregates them. The driver then selects the measure, so `sum(revenue)` through a model is the measure. So raw rows of a table and raw rows of a model show the same values.
+A subquery with raw rows has no limit, because Cube reads the outer filter correctly there. Its measure columns are NULL unless a later stage uses them, so raw rows of a table and raw rows of a model show the same values. If a later stage aggregates a measure column, the driver selects the measure, so `sum(revenue)` through a model is the measure.
+
+If a later stage filters or groups by a measure column, and the model has the primary key of the cube, the driver writes `MEASURE(x)` and `GROUP BY` of the dimensions in the subquery. Each group is then one row, so `revenue > 150` filters rows, and a breakout on `revenue` has one group for each value. With no primary key in the model, a group is more than one row, so the driver stops the query.
 
 ### Fan-out
 
@@ -86,20 +88,20 @@ These queries fail with a message that tells what to do. The message includes th
 
 | Query | Reason |
 | --- | --- |
-| Join on columns that no join of the model compares | Cube ignores the `ON` columns and would use the model join. |
-| Join of a question, or with a filter inside the join | Cube has `__cubeJoinField` only on a whole cube. |
+| Join on columns that no join of the model compares | The driver writes `__cubeJoinField`, so Cube would use the model join. Cube refuses `JOIN ... ON a = b` on other columns in native SQL with `Can't detect Cube query`, and `CROSS JOIN ... WHERE o.other_id = u.id` applies the model join and then the filter. |
+| Join of a question, or with a filter inside the join | A subquery that lists its columns has no `__cubeJoinField`. A subquery with `SELECT *` has it, but a filter inside it applies to the whole query, so it has no use here. |
 | `median`, `percentile` | The Cube templates for ClickHouse have no `PERCENTILE_CONT`. |
 | `datetime-diff` in months, quarters, years | Cube has no form for whole months. Its `DATEDIFF` counts boundaries. |
-| `datetime-add` in an aggregated query | Cube cannot generate SQL for an interval on ClickHouse. It works on raw rows. |
-| `EXTRACT` in native SQL next to a measure that is not additive | Cube cannot plan it. |
+| `datetime-add` | The ClickHouse dialect of Cube has no template for an interval: `Can't generate SQL for interval`. The form `x + INTERVAL` fails on raw rows too. |
+| `EXTRACT` in native SQL next to a measure | The ClickHouse dialect of Cube has no template for it, so it fails with each measure. It works on Postgres. |
 | Rolling window measure with no time bucket | Cube returns the total of all rows, with no error. |
 | Rolling window measure with a date filter that starts or ends inside a bucket, also a filter inside the model | Cube computes the whole bucket and does not apply that part of the filter, with no error. Use whole buckets, or a smaller bucket. |
 | Rolling window measure by a time bucket with no date filter | Cube fails with `Date range is required for time series`. |
 | Another aggregation of a rolling window measure, such as `max` | Cube cannot compute it. |
 | `trailing: unbounded` for more than one bucket | Cube writes a join that ClickHouse rejects: `Cannot determine join keys in JOIN ON expression`. One bucket works. |
 | Another aggregation of a measure column that Cube rejects, such as `max` of a count | Cube fails with `Measure aggregation type doesn't match`. |
-| Filter on a measure column of a table or a model | Cube reads this as a filter on the aggregate, so it does not filter rows. In a model it has no effect. |
-| Breakout on a measure or a segment column, also of a model | Cube ignores the grouping and returns one total row. |
+| Filter on a measure column of a table, or of a model with no primary key, or on a rolling window measure | Cube reads this as a filter on the aggregate, so it does not filter rows. |
+| Breakout on a measure or a segment column, except a measure of a model with the primary key | Cube ignores the grouping and returns one total row. |
 | Two columns of a view that come from one member through different join paths, in one query | Cube joins a cube once in a query, so both columns show one value. `aliasMember` in `/v1/meta` shows these columns. Raw rows show the first column and NULL in the others. |
 | Comparison with `=` or `!=` of a time that has a fraction of a second | Cube drops the fraction. |
 | `OR` of two segments | Cube fails with `Can't use OR operator with segments`. |
@@ -113,9 +115,9 @@ The driver does not change native SQL. It makes a cheap scan of the text, and it
 
 | Shape | Reason |
 | --- | --- |
-| A rolling window measure with no `DATE_TRUNC` on a time column | Cube returns the total of all rows. |
-| A rolling window measure with a filter inside a bucket, with `OR` or `NOT`, or with a custom granularity as the bucket | Cube computes whole buckets. The scan cannot show that this filter keeps whole buckets. |
-| `x BETWEEN a AND 'yyyy-mm-dd'`, also `NOT BETWEEN` and a date parameter | Cube pads a date with no time at the end of a date range to the end of that day, which [its REST API docs](https://github.com/cube-js/cube/blob/master/docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx) describe. SQL reads it as midnight. Write the time, use `DATE 'yyyy-mm-dd'`, or use `>=` and `<`. |
+| A rolling window measure with no `DATE_TRUNC` on a time column | Cube returns the total of all rows. Its docs require a time dimension, so this has unclear intent. |
+| A rolling window measure with a filter inside a bucket, with `OR` or `NOT`, or with a custom granularity as the bucket | Cube computes whole buckets, because a date range selects buckets. The result does not agree with the filter, so the driver stops it. The scan cannot show that this filter keeps whole buckets. |
+| `x BETWEEN a AND 'yyyy-mm-dd'`, also `NOT BETWEEN` and a date parameter | This is documented behaviour of Cube: it pads a date with no time at the end of a date range to the end of that day, as [its REST API docs](https://github.com/cube-js/cube/blob/master/docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx) describe. SQL reads it as midnight, and the SQL API docs do not warn about it. Write the time, use `DATE 'yyyy-mm-dd'`, or use `>=` and `<`. |
 | `x > a AND x <= b` or `x < b` | See [Date bounds](#date-bounds). Write `>=` with the next second. |
 | Two columns from one member through different join paths | See the table above. |
 
@@ -128,6 +130,10 @@ Cube [resolves a diamond](https://github.com/cube-js/cube/blob/master/docs-mintl
 ### Another aggregation of a measure column
 
 A measure column has one clause that holds the measure: `sum` for sums and counts, `avg`, `min`, `max`, and `max` for other types. This clause compiles to `MEASURE()`. Another clause stays a SQL aggregation, and Cube computes it from the rows: `max` of `revenue` is the largest order, not the revenue. Sync hides these columns, so only the query API and MCP can name them.
+
+### A measure on a time column
+
+A measure with `type: min` or `type: max` on a time column is NULL on the SQL API, because `/v1/meta` types it as a number. Write it with `type: time` and `sql: min(column)`, as `first_order_at` in `dev/cube/model/orders.yml` does.
 
 ## Latency
 
@@ -142,12 +148,12 @@ ClickHouse is fast on this table, and Metabase adds most of the time to a small 
 
 ## Limits of Cube that the driver cannot change
 
-- A number above 2^53 or with more than 15 digits loses digits, because Cube returns numbers through JavaScript. `SELECT ui64` gave 9007199254740996 where the truth is 9007199254740995. A dimension with `sql: toString(column)` keeps the digits.
-- All times are in UTC. The Cube SQL API has no time zone for a query, and `SET TIME ZONE` has no effect. The report time zone of Metabase does not move a bucket.
-- A custom granularity with an offset in months is wrong on a measure that a rollup of months serves, see `granularity.custom.offset` in `conformance/features.yaml`.
+- A number above 2^53 or with more than 15 digits loses digits, because the Cube SQL API has the type Double, and the ClickHouse driver of Cube sends JSON numbers. `SELECT ui64` gave 9007199254740996 where the truth is 9007199254740995. A dimension with `sql: toString(column)` keeps the digits.
+- The driver sends `SET TIME ZONE` with the report time zone of Metabase, so Cube makes each bucket and reads each time literal in that zone. With no report time zone it is UTC. A rollup serves only the zones in its `scheduled_refresh_timezones`, so a query in another zone reads the source. `DATEDIFF` in the week number form compares with a literal, so it is tested on the zones of the check `mb.report_timezone` only.
+- A custom granularity with an offset can give a wrong bin on a measure that a rollup serves, see `granularity.custom.offset` in `conformance/features.yaml`.
 - A time shift measure with no time bucket gives the total of all rows. See [Known wrong numbers](#known-wrong-numbers).
-- A `DateTime64` loses its milliseconds, because Cube reads a time as whole seconds. A filter on milliseconds finds no row. A dimension with `sql: toString(column)` keeps the text. See `clickhouse.datetime64_millis`.
-- In one query, a `propagate_filters_to_sub_query` dimension next to a second `sub_query` dimension ignores the filter. See `dimension.opt.propagate_filters_next_to_another_sub_query`.
+- A `DateTime64` loses its milliseconds, because the ClickHouse dialect of Cube reads a time as whole seconds. Postgres keeps them. A filter on milliseconds finds no row. A dimension with `sql: toString(column)` keeps the text. See `clickhouse.datetime64_millis`.
+- In one query, a `propagate_filters_to_sub_query` dimension next to a second `sub_query` dimension with equal SQL reads the first subquery. See `dimension.opt.propagate_filters_next_to_another_sub_query`.
 - A rolling window with `trailing: unbounded` for more than one bucket fails on ClickHouse, see above. One bucket works.
 - Native `COUNT(*)` on no rows gives NULL, where SQL gives 0. A query from the query builder gives 0. See `native.count_on_no_rows_limit`.
 - `count_distinct_approx` is `uniq()` on ClickHouse. A rollup cannot store it on ClickHouse, so these queries read the table.
@@ -158,13 +164,13 @@ ClickHouse is fast on this table, and Metabase adds most of the time to a small 
 
 ## Known wrong numbers
 
-The driver cannot stop these. Each number comes with no error. `conformance/features.yaml` records each one as `partial`, with its reason.
+The driver cannot stop these. Each number comes with no error. Some are defects of Cube, and some have an intent that Cube does not define. [Cube findings](cube-findings.md) has the verdict and a clean repro for each. `conformance/features.yaml` records each one as `partial`, with its reason.
 
 | Query | What you get | Entry |
 | --- | --- | --- |
-| A time shift measure with no time bucket | The total of all rows. `/v1/meta` does not tell which measure has a time shift. Use a time bucket. | `measure.multi_stage.time_shift_no_bucket_limit` |
-| A custom granularity with an offset in months, on a measure that a rollup of months serves | The bucket of the rollup. | `granularity.custom.offset` |
+| A time shift measure with no time bucket | The total of all rows. This has unclear intent in Cube: a sum over all time does not change after a shift. `/v1/meta` does not tell which measure has a time shift, so the driver cannot ask for a bucket. Use a time bucket. | `measure.multi_stage.time_shift_no_bucket_limit` |
+| A custom granularity with an offset, on a measure that a rollup serves, for a time before the origin | A wrong bin from Cube Store. Use an `origin` before all rows in place of an `offset`. | `granularity.custom.offset` |
 | A filter on a `DateTime64` column | A row in the first second after a bound of `>` is out, and a filter on milliseconds finds no row. Cube reads whole seconds. | `compile.bound.datetime64_whole_seconds_limit`, `clickhouse.datetime64_millis` |
-| A number above 2^53 | It loses digits, because Cube returns numbers through JavaScript. | See the limits above. |
-| A `propagate_filters_to_sub_query` dimension next to a second `sub_query` dimension | The filter has no effect. | `dimension.opt.propagate_filters_next_to_another_sub_query` |
+| A number above 2^53 | It loses digits, because the Cube SQL API has the type Double. | See the limits above. |
+| A `propagate_filters_to_sub_query` dimension next to a second `sub_query` dimension with equal SQL | Both columns read the first subquery. Other SQL, such as `{orders.count} + 0`, gives the truth. | `dimension.opt.propagate_filters_next_to_another_sub_query` |
 | Native SQL in a shape that the scan does not read, such as `'2025-01-01' < created_at`, `(created_at) > x`, a rolling window measure with `created_at IN (...)`, or a filter with a function on the time column | The same wrong numbers that the scan stops in the plain shape. | `native.bound.strict_lower_refused`, `measure.rolling.native_refused`, `native.between_date_text_refused` |

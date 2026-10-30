@@ -165,6 +165,8 @@ def measure_column_of_model():
 def view_with_two_paths():
     show("both regions", Q("region_sales", agg=["m:region_sales.count"],
                            by=["d:region_sales.customer_region", "d:region_sales.destination_region"]), 4)
+    show("view with one join", Q("region_sales_one_join", agg=["m:region_sales_one_join.count"],
+                                 by=["d:region_sales_one_join.customer_region", "d:region_sales_one_join.destination_region"]), 4)
     truth("SELECT count() FROM (SELECT u.state, ['TX','IL','WA','MA'][1+o.id%4] d FROM orders o JOIN users u ON o.user_id=u.id GROUP BY 1,2)")
 
 
@@ -263,7 +265,9 @@ def raw_errors_of_rolling():
 
 @finding("m5")
 def lambda_cube():
-    show("lambda_orders revenue", Q("lambda_orders", agg=["m:lambda_orders.revenue"]))
+    print("  %-26s %s" % ("table lambda_orders", "public" if "lambda_orders" in mb.tables else "not public, so a person sees no table that fails"))
+    show("lambda_sales by status", Q("lambda_sales", agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.status"]))
+    truth("SELECT status,sum(amount) FROM orders GROUP BY 1")
 
 
 @finding("m6")

@@ -179,7 +179,7 @@
   area: cube.measures
   title: "measure rolling unbounded"
   status: blocked
-  reason: "Cube writes the window as a join with only an inequality, and ClickHouse 26.8 rejects it: Cannot determine join keys in JOIN ON expression lessOrEquals(__table10.ord__created_at_month, __table2.date_to). allow_experimental_join_condition=1 does not change this. Bounded windows work, see measure.rolling.trailing."
+  reason: "For more than one bucket, Cube writes the window as a join with only an inequality, and ClickHouse 26.8 rejects it: Cannot determine join keys in JOIN ON expression. allow_experimental_join_condition=1 does not change this. One bucket works, and more buckets stop with a clear message, see measure.rolling.unbounded_one_bucket. trailing: 100 year in the data model works for more buckets. Bounded windows work, see measure.rolling.trailing."
 - id: measure.type.avg
   area: cube.measures
   title: "measure type avg"
@@ -458,7 +458,7 @@
   area: cube.dimensions
   title: "granularity custom offset"
   status: blocked
-  reason: "Wrong number from Cube Store. A custom granularity with an offset in months, on a measure that a rollup of months serves, gets DATE_BIN(INTERVAL '3 MONTH', month, to_timestamp('2026-02-01')). Cube gives 2025-02-01 825 and 2025-05-01 1288. The truth is 2024-11-01 433 and 2025-02-01 1246. A measure that the rollup does not serve is right, see compile.granularity.native_offset_no_rollup. The driver cannot see this. Do not put such a measure in a rollup of months."
+  reason: "Wrong number from Cube Store: a time before the origin of a custom granularity gets the wrong bin. An offset uses an origin in the current year, so old rows on a rollup of months go wrong: Cube gives 2025-02-01 825 and 2025-05-01 1288, and the truth is 2024-11-01 433 and 2025-02-01 1246. A measure that the rollup does not serve is right, see compile.granularity.native_offset_no_rollup. The driver cannot see this. Use an origin before all rows, such as 2000-02-01, in place of an offset."
 - id: granularity.custom.origin
   area: cube.dimensions
   title: "granularity custom origin"
@@ -780,7 +780,7 @@
   area: cube.pre_aggregations
   title: "preagg original sql"
   status: blocked
-  reason: "Cube fails to build the rollup on an original_sql pre-aggregation on ClickHouse: Missing columns: 'lambda_orders__status'."
+  reason: "Any original_sql pre-aggregation with an index fails on ClickHouse, also with no rollup on it: Missing columns: 'lambda_orders__status'. With no index, Cube refuses it. So the ClickHouse dialect has no working form. A subclass of ClickHouseQuery can drop the index, see docs/cube-findings.md."
 - id: preagg.partitioned
   area: cube.pre_aggregations
   title: "preagg partitioned"
@@ -794,13 +794,13 @@
 - id: preagg.rollup_join
   area: cube.pre_aggregations
   title: "preagg rollup join"
-  status: blocked
-  reason: "rollup_join needs two data sources. The demo stack has one."
+  status: todo
+  check: preagg.rollup_join
 - id: preagg.rollup_lambda
   area: cube.pre_aggregations
   title: "preagg rollup lambda"
-  status: blocked
-  reason: "Each query on lambda_orders fails on ClickHouse with the error of preagg.original_sql, Missing columns: 'lambda_orders__status', so this cube is not public in the demo. rollup_lambda also needs streaming or partitioned source data, which the demo does not have."
+  status: todo
+  check: preagg.rollup_lambda
 - id: sqlapi.aggregate_function
   area: cube.sql_api
   title: "sqlapi aggregate function"
@@ -2198,9 +2198,9 @@
   reason: "Metabase has no column that lists the drill columns of a measure. Its drill-through uses all visible fields. The text in the description is the only place, see semantic.drill_members."
 - id: semantic.measure.min_on_time_column
   area: semantic.sync
-  title: "Measure of type min or max on a time column"
-  status: blocked
-  reason: "Cube REST returns the time, but /v1/meta types the measure as number and the SQL API returns NULL for MEASURE(). The driver reads only the SQL API, so the demo measure first_order_at gives NULL. Use a measure of type time, see semantic.measure.type_time."
+  title: "Time of the first order as a measure of type time"
+  status: todo
+  check: semantic.measure.min_on_time_column
 - id: compile.agg.median_gives_error
   area: mb.compile.agg
   title: "agg median gives error"
@@ -2310,7 +2310,7 @@
   area: mb.compile.ch
   title: "ch decimal above double"
   status: blocked
-  reason: "Cube returns numbers through JavaScript. SELECT dec_big FROM typed_events WHERE id = 3 gives 3000000000000 where the truth is 3000000000000.00000003. A dimension with SQL toString(column) keeps the digits."
+  reason: "The SQL API of Cube has the type Double for numbers, and the ClickHouse driver of Cube sends JSON numbers. SELECT dec_big FROM typed_events WHERE id = 3 gives 3000000000000 where the truth is 3000000000000.00000003. A dimension with SQL toString(column) keeps the digits."
 - id: compile.ch.decimal_row
   area: mb.compile.ch
   title: "ch decimal row"
@@ -2380,7 +2380,7 @@
   area: mb.compile.ch
   title: "ch uint64 above double"
   status: blocked
-  reason: "Cube returns numbers through JavaScript. SELECT ui64 FROM typed_events WHERE id = 2 gives 9007199254740996 where the truth is 9007199254740995, and MEASURE(sum_ui64) gives 9007199254741494000. A dimension with SQL toString(column) keeps the digits."
+  reason: "The SQL API of Cube has the type Double for numbers, and the ClickHouse driver of Cube sends JSON numbers. SELECT ui64 FROM typed_events WHERE id = 2 gives 9007199254740996 where the truth is 9007199254740995, and MEASURE(sum_ui64) gives 9007199254741494000. A dimension with SQL toString(column) keeps the digits."
 - id: compile.ch.uuid_filter
   area: mb.compile.ch
   title: "ch uuid filter"
@@ -3395,21 +3395,21 @@
   status: partial
   check: dimension.opt.propagate_filters_next_to_another_sub_query
   cap: partial
-  reason: "Wrong number from Cube. In one SQL API query with a second sub_query dimension, the propagated dimension ignores the filter and shows all orders. Alone, it is right, see dimension.opt.propagate_filters. Do not select the two together."
+  reason: "Wrong number from Cube with the Tesseract planner. When two sub_query dimensions have equal SQL, the generated SQL joins both subqueries and selects the first for both columns, so the propagated dimension shows the other value. Alone, it is right, see dimension.opt.propagate_filters. With other SQL, such as {orders.count} + 0, it gives the truth."
 - id: measure.multi_stage.time_shift_no_bucket_limit
   area: cube.measures
   title: "time shift with no time bucket"
   status: partial
   check: measure.multi_stage.time_shift_no_bucket_limit
   cap: partial
-  reason: "Wrong number from Cube. With no time bucket, a time shift measure gives the total of all rows. /v1/meta does not tell which measure has a time shift, so the driver cannot stop this query. Group by a time bucket."
+  reason: "Unclear intent. With no time bucket, a time shift measure gives the total of all rows, because a sum over all time does not change after a shift. With a date range it gives the value of the earlier month. /v1/meta does not tell which measure has a time shift, so the driver cannot ask for a time bucket here. Group by a time bucket."
 - id: clickhouse.datetime64_millis
   area: cube.clickhouse
   title: "DateTime64 milliseconds"
   status: partial
   check: clickhouse.datetime64_millis
   cap: partial
-  reason: "Cube reads a time as whole seconds. A raw value has no milliseconds, and a filter on them finds no row. Buckets of a second and above are right. A dimension with sql: toString(column) keeps the text."
+  reason: "The ClickHouse dialect of Cube reads a time as whole seconds. A raw value has no milliseconds, and a filter on them finds no row. Postgres keeps them. Buckets of a second and above are right. A dimension with sql: toString(column) keeps the text. A subclass of ClickHouseQuery can fix this, see docs/cube-findings.md."
 - id: compile.rolling.by_day_on_boundaries
   area: mb.compile.rolling
   title: "rolling window by day"
@@ -3696,7 +3696,7 @@
   status: todo
   check: compile.bound.datetime64_whole_seconds_limit
   cap: partial
-  reason: "Wrong number from Cube, which reads a DateTime64 as whole seconds in a filter: a row in the first second after a bound of > is out of the result. Cube sends no fraction to ClickHouse and /v1/meta does not show the column type, so the driver cannot avoid this. A dimension with sql: toString(column) keeps the text."
+  reason: "The ClickHouse dialect of Cube reads a time as whole seconds in a filter, so a row in the first second after a bound of > is out of the result. /v1/meta does not show the column type, so the driver cannot avoid this. A dimension with sql: toString(column) keeps the text. A subclass of ClickHouseQuery can fix this, see docs/cube-findings.md."
 - id: native.count_on_no_rows_limit
   area: mb.native
   title: "native COUNT(*) on no rows"

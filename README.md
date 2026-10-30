@@ -69,11 +69,11 @@ for fake data, and every port binds to the loopback interface only. Do not use t
 Most shapes where Cube gives a wrong number now stop with a clear message. See the list of what the driver stops in
 [How queries reach Cube](docs/query-compilation.md#what-the-driver-stops). The driver cannot stop these, so each gives a number with no error:
 
-- A time shift measure with no time bucket gives the total of all rows.
-- A custom granularity with an offset in months is wrong on a measure that a rollup of months serves.
+- A time shift measure with no time bucket gives the total of all rows. Cube has no clear intent for this.
+- A custom granularity with an offset can give a wrong bin on a measure that a rollup serves. Use an `origin` before all rows.
 - A filter on a `DateTime64` column reads whole seconds, so a row in the first second after a bound of `>` is out.
 - A number above 2^53 loses digits.
-- A `propagate_filters_to_sub_query` dimension next to a second `sub_query` dimension ignores the filter.
+- A `propagate_filters_to_sub_query` dimension next to a second `sub_query` dimension with equal SQL reads the first subquery.
 - Native SQL in a shape that the scan of the text does not read. See [Known wrong numbers](docs/query-compilation.md#known-wrong-numbers).
 
 ## Use with an AI agent

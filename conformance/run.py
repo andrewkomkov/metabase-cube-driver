@@ -4869,7 +4869,7 @@ def _(ctx):
 
 @check("measure.rolling.native_refused")
 def _(ctx):
-    """Finding B6: the scan of native text finds a rolling measure with no bucket, or with a filter inside a bucket."""
+    """Finding B6, of unclear intent in Cube: the scan of native text finds a rolling measure with no bucket, or with a filter inside a bucket."""
     for sql in ("SELECT MEASURE(revenue_trailing_30d) FROM orders",
                 "SELECT status, MEASURE(revenue_mtd) FROM orders GROUP BY 1",
                 'SELECT MEASURE("orders"."revenue_trailing_30d") FROM "public"."orders"',
@@ -5285,6 +5285,16 @@ def _(ctx):
     expect_rows(ctx, over(second, filter=["<", named("created_at", "type/DateTime"), "2025-05-15"]),
                 "SELECT toStartOfMonth(d) AS m, sum(r) FROM (SELECT toStartOfDay(created_at) d, sum(amount) r FROM orders WHERE status = 'shipped' GROUP BY d) "
                 "WHERE d >= '2025-02-15' GROUP BY m HAVING m < '2025-05-15'", "three stages")
+
+
+Q("preagg.rollup_lambda", "lambda_sales", "SELECT status, toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1, 2",
+  agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.status", "d:lambda_sales.created_at@month"],
+  post=used_rollup({"measures": ["lambda_sales.revenue"], "dimensions": ["lambda_sales.status"],
+                    "timeDimensions": [{"dimension": "lambda_sales.created_at", "granularity": "month"}]}, "lambda"))
+Q("preagg.rollup_join", "join_sales", "SELECT u.state, sum(o.amount) FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1",
+  agg=["m:join_sales.revenue"], by=["d:join_sales>join_customers.state"],
+  post=used_rollup({"measures": ["join_sales.revenue"], "dimensions": ["join_customers.state"]}, "joined"))
+Q("semantic.measure.min_on_time_column", ORD, "SELECT min(created_at), max(created_at) FROM orders", agg=["m:orders.first_order_at", "m:orders.last_order_at"])
 
 
 def run_suite(args):

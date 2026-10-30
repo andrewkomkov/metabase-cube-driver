@@ -21,7 +21,7 @@ The `security.*` entries in `conformance/features.yaml` test this against `dev/c
 | Cube feature | Live result on Cube v1.8.15 | Used |
 | --- | --- | --- |
 | `checkSqlAuth(req, username)` gives the password and the security context | Works. The security context is then fixed for the connection. | Yes |
-| `CUBEJS_SQL_SUPER_USER`, then `SET user = 'x'` | Works once. The session then is `x`. It cannot go back: `user 'x' is not allowed to switch`. So a connection pool cannot give the connection to the next person. | No |
+| `CUBEJS_SQL_SUPER_USER`, then `SET user = 'x'` | Works. With the default `canSwitchSqlUser`, the session then is `x`, and it cannot go back: `user 'x' is not allowed to switch`. So a connection pool cannot give the connection to the next person. A custom `canSwitchSqlUser` lets it go back, but each person who writes native SQL can then read as anybody. | No |
 | `WHERE __user = 'x'` | On a super user connection, it works for each query. So a person who can write native SQL reads as anybody. | No |
 | A normal user tries `SET user`, `SET ROLE` or `__user` | Refused. | This is why the driver uses a normal user |
 
