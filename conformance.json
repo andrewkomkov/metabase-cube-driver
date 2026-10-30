@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 628,
+    "pass": 629,
     "partial": 0,
     "blocked": 26,
     "unsupported": 10,
-    "fail": 2,
+    "fail": 1,
     "total": 666
   },
-  "coverage": "coverage: 628/666 pass",
+  "coverage": "coverage: 629/666 pass",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -272,8 +272,8 @@
     },
     {
       "id": "dimension.format.image_url",
-      "status": "fail",
-      "reason": "orders.thumb_url semantic_type='type/URL', want 'type/ImageURL'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.format.link",

@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 628/666 pass** (628 pass, 0 partial, 26 blocked, 10 unsupported, 2 fail of 666)
+**coverage: 629/666 pass** (629 pass, 0 partial, 26 blocked, 10 unsupported, 1 fail of 666)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `2e5c1225e409`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41099489471), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `ca17ea428655`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41100945332), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -60,7 +60,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `2e5c122
 | `dimension.format.currency` | pass |  |
 | `dimension.format.currency_code` | pass |  |
 | `dimension.format.id` | pass |  |
-| `dimension.format.image_url` | fail | orders.thumb_url semantic_type='type/URL', want 'type/ImageURL' |
+| `dimension.format.image_url` | pass |  |
 | `dimension.format.link` | pass |  |
 | `dimension.format.link_label` | pass |  |
 | `dimension.format.percent` | pass |  |
