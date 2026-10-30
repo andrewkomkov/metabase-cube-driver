@@ -3378,35 +3378,35 @@
 - id: compile.rolling.by_day_on_boundaries
   area: mb.compile.rolling
   title: "rolling window by day"
-  status: todo
+  status: pass
   check: compile.rolling.by_day_on_boundaries
 - id: compile.rolling.no_time_bucket_gives_error
   area: mb.compile.rolling
   title: "rolling window with no time bucket gives an error"
-  status: todo
+  status: pass
   check: compile.rolling.no_time_bucket_gives_error
 - id: compile.rolling.filter_inside_bucket_gives_error
   area: mb.compile.rolling
   title: "rolling window with a filter inside a bucket gives an error"
-  status: todo
+  status: pass
   check: compile.rolling.filter_inside_bucket_gives_error
 - id: compile.rolling.no_date_filter_gives_clear_error
   area: mb.compile.rolling
   title: "rolling window with no date filter gives a clear error"
-  status: todo
+  status: pass
   check: compile.rolling.no_date_filter_gives_clear_error
 - id: compile.agg.other_aggregation_of_measure
   area: mb.compile.agg
   title: "max of a measure column is the max of its rows"
-  status: todo
+  status: pass
   check: compile.agg.other_aggregation_of_measure
 - id: compile.agg.count_of_measure
   area: mb.compile.agg
   title: "count of a measure column is the count of its rows"
-  status: todo
+  status: pass
   check: compile.agg.count_of_measure
 - id: compile.agg.other_aggregation_can_give_error
   area: mb.compile.agg
   title: "other aggregation that Cube rejects gives a clear error"
-  status: todo
+  status: pass
   check: compile.agg.other_aggregation_can_give_error
