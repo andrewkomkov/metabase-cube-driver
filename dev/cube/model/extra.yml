@@ -3,18 +3,18 @@ cubes:
     title: Payments
     description: Two payment rows per order, from a SQL query.
     sql: >
-      SELECT id AS id, id AS order_id, 'card' AS method, amount AS amount
+      SELECT id AS payment_id, id AS order_id, 'card' AS method, amount AS paid
       FROM shop.orders
       UNION ALL
-      SELECT id + 100000 AS id, id AS order_id, 'fee' AS method, toDecimal64(1, 2) AS amount
+      SELECT id + 100000 AS payment_id, id AS order_id, 'fee' AS method, toDecimal64(1, 2) AS paid
       FROM shop.orders
     dimensions:
-      - { name: id, sql: id, type: number, primary_key: true, public: false }
+      - { name: id, sql: payment_id, type: number, primary_key: true, public: false }
       - { name: order_id, sql: order_id, type: number, description: Paid order. }
       - { name: method, sql: method, type: string, description: Payment method. }
     measures:
       - { name: count, type: count, description: Number of payments. }
-      - { name: total, sql: amount, type: sum, format: currency, description: Total paid. }
+      - { name: total, sql: paid, type: sum, format: currency, description: Total paid. }
 
   - name: promos
     title: Promos

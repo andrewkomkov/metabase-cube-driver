@@ -61,6 +61,17 @@ cubes:
         type: string
         description: Status with member meta.
         meta: { pii: false, ai_hint: "Use for order lifecycle questions." }
+      - name: status_linked
+        sql: status
+        type: string
+        description: Status with a link.
+        links:
+          - name: search
+            label: Search status
+            url: "'https://example.com/search'"
+            icon: external-link
+            target: blank
+            primary: true
       - { name: masked_status, sql: status, type: string, mask: { sql: "'hidden'" }, description: Status with a mask. }
       - { name: display_currency, type: switch, values: [USD, EUR] }
     measures:
@@ -78,6 +89,17 @@ cubes:
       - { name: has_orders, sql: "COUNT(*) > 0", type: boolean, description: At least one order exists. }
       - { name: statuses, sql: "arrayStringConcat(arraySort(groupUniqArray(status)), ',')", type: string, description: Distinct statuses in the group. }
       - { name: public_false_measure, sql: amount, type: sum, public: false }
+      - name: p50_amount
+        multi_stage: true
+        sql: "quantile(0.5)({CUBE}.amount)"
+        type: number_agg
+        description: Median order amount.
+      - name: revenue_rank
+        multi_stage: true
+        type: rank
+        order_by:
+          - { sql: "{revenue}", dir: desc }
+        description: Rank by revenue.
       - name: revenue_trailing_30d
         sql: amount
         type: sum
@@ -189,6 +211,8 @@ cubes:
         time_dimension: created_at
         granularity: month
         refresh_key: { every: 1 hour }
+        indexes:
+          - { name: status_idx, columns: [status] }
       - name: count_by_day_partitioned
         measures: [count]
         time_dimension: created_at
@@ -197,6 +221,8 @@ cubes:
         build_range_start: { sql: "SELECT toDateTime('2025-01-01 00:00:00', 'UTC')" }
         build_range_end: { sql: "SELECT toDateTime('2026-01-01 00:00:00', 'UTC')" }
         refresh_key: { every: 1 hour }
+        indexes:
+          - { name: created_idx, columns: [created_at] }
       - name: revenue_by_status_indexed
         measures: [paid_revenue]
         dimensions: [status]
