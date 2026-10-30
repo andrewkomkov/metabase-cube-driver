@@ -22,4 +22,8 @@ else
   mv "$out.zip" "$out"
 fi
 
+# The Metabase container runs as uid 2000. It ignores the plugins directory if it cannot write to it.
+chmod 644 "$out"
+chmod 777 "$(dirname "$out")"
+
 echo "built $out"
