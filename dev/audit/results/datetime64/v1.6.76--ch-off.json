@@ -1,0 +1,39 @@
+[
+ {
+  "rows": [
+   [
+    "1",
+    "2025-01-01T10:00:00.000"
+   ],
+   [
+    "2",
+    "2025-01-01T10:00:00.000"
+   ],
+   [
+    "3",
+    "2025-01-01T10:00:00.000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      `e`.id `e__id`, toTimeZone(toDateTime64(`e`.ts, 0), 'UTC') `e__ts`\n    FROM\n      audit.e AS `e`  WHERE (`e`.id IN (toFloat64(?), toFloat64(?), toFloat64(?))) GROUP BY `e__id`, `e__ts` ORDER BY `e__id` ASC LIMIT 10000 PARAMS [\"1\", \"2\", \"3\"]",
+  "verdict": "diff",
+  "truth": null,
+  "id": "raw_rest"
+ },
+ {
+  "rows": [
+   [
+    "0"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      sum(`e`.amt) `e__total`\n    FROM\n      audit.e AS `e`  WHERE (`e`.ts >= parseDateTimeBestEffort(?) AND `e`.ts <= parseDateTimeBestEffort(?)) LIMIT 10000 PARAMS [\"2025-01-01T10:00:00.500Z\", \"2025-01-01T10:00:00.500Z\"]",
+  "verdict": "diff",
+  "truth": null,
+  "id": "filter_ms_window_rest"
+ }
+]

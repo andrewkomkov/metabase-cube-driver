@@ -1,0 +1,354 @@
+[
+ {
+  "rows": [
+   [
+    "1",
+    "2025-01-01 10:00:00.007000"
+   ],
+   [
+    "2",
+    "2025-01-01 10:00:00.500000"
+   ],
+   [
+    "3",
+    "2025-01-01 10:00:00.999000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"e.id\",\n    \"e.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [\n    [\n      \"e.id\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"e.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"1\",\n        \"2\",\n        \"3\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"e.id\",\"e.ts\"],\"segments\":[],\"order\":[[\"e.id\",\"asc\"]],\"filters\":[{\"member\":\"e.id\",\"operator\":\"equals\",\"values\":[\"1\",\"2\",\"3\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": "1\t2025-01-01 10:00:00.007\n2\t2025-01-01 10:00:00.5\n3\t2025-01-01 10:00:00.999",
+  "id": "raw_sql"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2025-01-01T10:00:00.007"
+   ],
+   [
+    "2",
+    "2025-01-01T10:00:00.500"
+   ],
+   [
+    "3",
+    "2025-01-01T10:00:00.999"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT \"e\".id \"e__id\", (\"e\".ts::timestamptz AT TIME ZONE 'UTC') \"e__ts\" \nFROM  audit.e  AS \"e\"\nWHERE (\"e\".id IN ($1, $2, $3))\nGROUP BY 1, 2\nORDER BY  1  ASC\nLIMIT 10000 PARAMS [\"1\", \"2\", \"3\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_rest"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2025-01-01T10:00:00.007"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT \"e\".id \"e__id\", (\"e\".us::timestamptz AT TIME ZONE 'UTC') \"e__us\" \nFROM  audit.e  AS \"e\"\nWHERE (\"e\".id = $1)\nGROUP BY 1, 2\nORDER BY  1  ASC\nLIMIT 10000 PARAMS [\"1\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "micro_rest"
+ },
+ {
+  "rows": [
+   [
+    "10"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"e.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"e.ts\",\n      \"dateRange\": [\n        \"2025-01-01T10:00:00.500Z\",\n        \"2025-01-01T10:00:00.500Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"e.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"e.ts\",\"dateRange\":[\"2025-01-01T10:00:00.500Z\",\"2025-01-01T10:00:00.500Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": "10",
+  "id": "filter_ms_window_sql"
+ },
+ {
+  "rows": [
+   [
+    "10"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT sum(\"e\".amt) \"e__total\" \nFROM  audit.e  AS \"e\"\nWHERE (\"e\".ts >= $1::timestamptz AND \"e\".ts <= $2::timestamptz)\nLIMIT 10000 PARAMS [\"2025-01-01T10:00:00.500Z\", \"2025-01-01T10:00:00.500Z\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "filter_ms_window_rest"
+ },
+ {
+  "rows": [
+   [
+    "1000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"e.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"e.ts\",\n      \"dateRange\": [\n        \"2025-01-01T10:00:01.000Z\",\n        \"2025-01-01T10:00:01.000Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"e.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"e.ts\",\"dateRange\":[\"2025-01-01T10:00:01.000Z\",\"2025-01-01T10:00:01.000Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "filter_gt_last_ms"
+ },
+ {
+  "rows": [
+   [
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"e.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"e.ts\",\n      \"dateRange\": [\n        \"2025-01-01T10:00:00.000Z\",\n        \"2025-01-01T10:00:00.007Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"e.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"e.ts\",\"dateRange\":[\"2025-01-01T10:00:00.000Z\",\"2025-01-01T10:00:00.007Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "filter_le_ms"
+ },
+ {
+  "rows": [
+   [
+    "0"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"e.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"e.ts\",\n      \"operator\": \"beforeOrOnDate\",\n      \"values\": [\n        \"2024-12-31T23:59:59.998Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"e.n\"],\"dimensions\":[],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"e.ts\",\"operator\":\"beforeOrOnDate\",\"values\":[\"2024-12-31T23:59:59.998Z\"]}]}\n",
+  "verdict": "match",
+  "truth": "0",
+  "id": "filter_year_end"
+ },
+ {
+  "rows": [
+   [
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"e.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"e.ts\",\n      \"operator\": \"beforeOrOnDate\",\n      \"values\": [\n        \"2024-12-31T23:59:59.999Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"e.n\"],\"dimensions\":[],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"e.ts\",\"operator\":\"beforeOrOnDate\",\"values\":[\"2024-12-31T23:59:59.999Z\"]}]}\n",
+  "verdict": "match",
+  "truth": "1",
+  "id": "filter_on_ms_upper"
+ },
+ {
+  "rows": [
+   [
+    "1111"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"e.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"e.ts\",\n      \"dateRange\": [\n        \"2025-01-01T00:00:00.000Z\",\n        \"2025-01-01T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"e.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"e.ts\",\"dateRange\":[\"2025-01-01T00:00:00.000Z\",\"2025-01-01T23:59:59.999Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": "1111",
+  "id": "midnight_day_filter"
+ },
+ {
+  "rows": [
+   [
+    "2025-01-01 10:00:00.000000",
+    "111"
+   ],
+   [
+    "2025-01-01 10:00:01.000000",
+    "1000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"e.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"e.ts\",\n      \"granularity\": \"second\"\n    }\n  ],\n  \"order\": [\n    [\n      \"e.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"e.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"1\",\n        \"2\",\n        \"3\",\n        \"4\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"e.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"e.ts\",\"granularity\":\"second\"}],\"order\":[[\"e.ts\",\"asc\"]],\"filters\":[{\"member\":\"e.id\",\"operator\":\"equals\",\"values\":[\"1\",\"2\",\"3\",\"4\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "bucket_second_control"
+ },
+ {
+  "rows": [
+   [
+    "2024-12-31 00:00:00.000000",
+    "10000"
+   ],
+   [
+    "2025-01-01 00:00:00.000000",
+    "1111"
+   ],
+   [
+    "2025-01-02 00:00:00.000000",
+    "100000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"e.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"e.ts\",\n      \"granularity\": \"day\"\n    }\n  ],\n  \"order\": [\n    [\n      \"e.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"e.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"e.ts\",\"granularity\":\"day\"}],\"order\":[[\"e.ts\",\"asc\"]]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "bucket_day_control"
+ },
+ {
+  "rows": [
+   [
+    "3",
+    "2025-01-01 10:00:00.999"
+   ],
+   [
+    "2",
+    "2025-01-01 10:00:00.5"
+   ],
+   [
+    "1",
+    "2025-01-01 10:00:00.007"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701,
+   25
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"e.id\",\n    \"e.ts_text\"\n  ],\n  \"segments\": [],\n  \"order\": [\n    [\n      \"e.ts_text\",\n      \"desc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"e.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"1\",\n        \"2\",\n        \"3\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"e.id\",\"e.ts_text\"],\"segments\":[],\"order\":[[\"e.ts_text\",\"desc\"]],\"filters\":[{\"member\":\"e.id\",\"operator\":\"equals\",\"values\":[\"1\",\"2\",\"3\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "order_by_ms"
+ },
+ {
+  "rows": [
+   [
+    "3",
+    "2025-01-01 10:00:00.999000"
+   ],
+   [
+    "2",
+    "2025-01-01 10:00:00.500000"
+   ],
+   [
+    "1",
+    "2025-01-01 10:00:00.007000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"e.id\",\n    \"e.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [\n    [\n      \"e.ts\",\n      \"desc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"e.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"1\",\n        \"2\",\n        \"3\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"e.id\",\"e.ts\"],\"segments\":[],\"order\":[[\"e.ts\",\"desc\"]],\"filters\":[{\"member\":\"e.id\",\"operator\":\"equals\",\"values\":[\"1\",\"2\",\"3\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "order_by_time_selected"
+ },
+ {
+  "rows": [
+   [
+    "2025-01-01T10:00:00.999"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT max(\"e\".ts) \"e__last_time\" \nFROM  audit.e  AS \"e\"\nWHERE (\"e\".id IN ($1, $2, $3))\nLIMIT 10000 PARAMS [\"1\", \"2\", \"3\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "max_time_measure_rest"
+ },
+ {
+  "rows": [
+   [
+    "2025-01-01T10:00:00.999"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   25
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"e.last_time\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"e.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"1\",\n        \"2\",\n        \"3\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"e.last_time\"],\"dimensions\":[],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"e.id\",\"operator\":\"equals\",\"values\":[\"1\",\"2\",\"3\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "max_time_measure_sql"
+ },
+ {
+  "rows": [
+   [
+    "2025-01-01T10:00:00.999"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT max(\"e\".ts) \"e__last_at\" \nFROM  audit.e  AS \"e\"\nWHERE (\"e\".id IN ($1, $2, $3))\nLIMIT 10000 PARAMS [\"1\", \"2\", \"3\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "max_measure_rest"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2025-01-01 05:00:00.007000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"e.id\",\n    \"e.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"e.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"1\"\n      ]\n    }\n  ],\n  \"ungrouped\": true,\n  \"timezone\": \"America/New_York\"\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"e.id\",\"e.ts\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"e.id\",\"operator\":\"equals\",\"values\":[\"1\"]}],\"ungrouped\":true,\"timezone\":\"America/New_York\"}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "time_zone_sql"
+ },
+ {
+  "rows": [
+   [
+    "2025-01-01 10:00:00.007"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   25
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"e.ts_text\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"e.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"1\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"e.ts_text\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"e.id\",\"operator\":\"equals\",\"values\":[\"1\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "text_workaround"
+ }
+]

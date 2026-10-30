@@ -1,0 +1,28 @@
+[
+ {
+  "rows": [
+   [
+    "11"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"rt\".\"max_rt_rev_\" \"x\" \nFROM (\n  SELECT\n        max(amt) \"max_rt_rev_\"\n      FROM\n        audit.rt AS \"rt\" \n) AS \"rt\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "max_of_regular_sum"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: column \"amt\" does not exist",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"rt\".\"max_rt_rev_30d_\" \"x\" \nFROM (\n  SELECT max(amt) \"max_rt_rev_30d_\" FROM (SELECT sum(\"rt_rev_30d_cumulative__rt\".amt) \"rt__rev_30d\" FROM audit.rt AS \"rt_rev_30d_cumulative__rt\" ) AS q_0 \n) AS \"rt\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "max_of_rolling_sum"
+ }
+]

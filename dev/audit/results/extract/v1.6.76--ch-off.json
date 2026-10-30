@@ -1,0 +1,41 @@
+[
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT EXTRACT(MONTH FROM ts) AS p, MEASURE(total) AS v FROM xt GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": "1\t11\n2\t5\n3\t7\n12\t13",
+  "id": "month_sum"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2"
+   ],
+   [
+    "2",
+    "3"
+   ],
+   [
+    "3",
+    "1"
+   ],
+   [
+    "4",
+    "12"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nSort: #xt.id ASC NULLS LAST\n  Projection: #xt.id, datepart(Utf8(\"month\"), #datepart(Utf8(\"month\"),xt.ts)) AS datepart(Utf8(\"month\"),xt.ts) AS p\n    CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"xt.id\"\n  ],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"xt.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [],\n  \"ungrouped\": true\n}\nphysical_plan\nSortExec: [id@0 ASC NULLS LAST]\n  ProjectionExec: expr=[id@0 as id, datepart(month, datepart(Utf8(\"month\"),xt.ts)@1) as p]\n    CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"xt.id\"],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"xt.ts\",\"granularity\":\"month\"}],\"order\":[],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_rows"
+ }
+]

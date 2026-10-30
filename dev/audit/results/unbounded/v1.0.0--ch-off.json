@@ -1,0 +1,22 @@
+[
+ {
+  "rows": [],
+  "error": "Arrow error: Compute error: Error: Code: 403. DB::Exception: Cannot determine join keys in JOIN ON expression lessOrEquals(__table4.u__ts_month, __table2.date_to). (INVALID_JOIN_ON_EXPRESSION)\n",
+  "shape": "regular",
+  "oids": [],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"u.cum\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"u.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-04-01\",\n        \"2025-06-01\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"u.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"u.cum\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"u.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-04-01\",\"2025-06-01\"]}],\"order\":[[\"u.ts\",\"asc\"]]}\n",
+  "verdict": "diff",
+  "truth": "1111",
+  "id": "two_months_sql"
+ },
+ {
+  "rows": [],
+  "error": "Arrow error: Compute error: Error: Code: 403. DB::Exception: Cannot determine join keys in JOIN ON expression lessOrEquals(__table4.u__ts_month, __table2.date_to). (INVALID_JOIN_ON_EXPRESSION)\n",
+  "shape": "regular",
+  "oids": [],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"u.cum\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"u.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-04-01\",\n        \"2025-05-01\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"u.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"u.cum\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"u.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-04-01\",\"2025-05-01\"]}],\"order\":[[\"u.ts\",\"asc\"]]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "one_month_sql"
+ }
+]

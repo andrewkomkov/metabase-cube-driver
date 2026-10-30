@@ -1,0 +1,162 @@
+[
+ {
+  "rows": [
+   [
+    "11"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `rt`.`max_rt_rev_` `x` \nFROM (\n  SELECT max(`rt`.amt) `max_rt_rev_` \n  FROM  audit.rt  AS `rt`\n) AS `rt`\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "max_of_regular_sum"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: Query failed: Error: Unknown expression or function identifier `rt.amt` in scope WITH cte_0 AS (SELECT max(rt.amt) AS rt__rev_30d FROM audit.rt AS rt), cte_1 AS (SELECT * FROM cte_0 AS fk_aggregate) SELECT max(rt.amt) AS max_rt_rev_30d_: Note: the query does not have the FROM clause. Did you forget to add it?. ; query id: 22585558-9ac3-412b-a290-27d7fcfe5564-81107265-6684-4cd0-af91-91ba9c1690cb",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `rt`.`max_rt_rev_30d_` `x` \nFROM (\n   WITH \n  cte_0 AS (  SELECT max(`rt`.amt) `rt__rev_30d` \n    FROM  audit.rt  AS `rt`),\n  cte_1 AS (  SELECT * \n    FROM  cte_0  AS `fk_aggregate`)\n  SELECT max(`rt`.amt) `max_rt_rev_30d_` \n) AS `rt`\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "max_of_rolling_sum"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: Query failed: Error: Unknown expression or function identifier `rt.amt` in scope WITH cte_0 AS (SELECT min(rt.amt) AS rt__rev_30d FROM audit.rt AS rt), cte_1 AS (SELECT * FROM cte_0 AS fk_aggregate) SELECT min(rt.amt) AS min_rt_rev_30d_: Note: the query does not have the FROM clause. Did you forget to add it?. ; query id: 33428297-1108-48bb-9037-555440807bf2-6379fadd-6ade-4351-809f-42b8aeb578dd",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `rt`.`min_rt_rev_30d_` `x` \nFROM (\n   WITH \n  cte_0 AS (  SELECT min(`rt`.amt) `rt__rev_30d` \n    FROM  audit.rt  AS `rt`),\n  cte_1 AS (  SELECT * \n    FROM  cte_0  AS `fk_aggregate`)\n  SELECT min(`rt`.amt) `min_rt_rev_30d_` \n) AS `rt`\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "min_of_rolling_sum"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: Query failed: Error: Unknown expression or function identifier `rt.amt` in scope WITH cte_0 AS (SELECT avg(rt.amt) AS rt__rev_30d FROM audit.rt AS rt), cte_1 AS (SELECT * FROM cte_0 AS fk_aggregate) SELECT avg(rt.amt) AS avg_rt_rev_30d_: Note: the query does not have the FROM clause. Did you forget to add it?. ; query id: d5c335d0-402d-4169-89ec-f1127e09e19b-9264075a-6a09-4288-a4db-6d1c4c4c0dc5",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `rt`.`avg_rt_rev_30d_` `x` \nFROM (\n   WITH \n  cte_0 AS (  SELECT avg(`rt`.amt) `rt__rev_30d` \n    FROM  audit.rt  AS `rt`),\n  cte_1 AS (  SELECT * \n    FROM  cte_0  AS `fk_aggregate`)\n  SELECT avg(`rt`.amt) `avg_rt_rev_30d_` \n) AS `rt`\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "avg_of_rolling_sum"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Date range is required for time series\nQUERY: SELECT DATE_TRUNC('month', ts) AS m, MAX(rev_30d) AS x FROM rt WHERE ts >= '2025-01-01' AND ts < '2025-03-01' GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "max_of_rolling_by_bucket"
+ },
+ {
+  "rows": [
+   [
+    "21"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"rt.rev_30d\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"rt.rev_30d\"],\"dimensions\":[],\"segments\":[],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "sum_of_rolling_sum_control"
+ },
+ {
+  "rows": [
+   [
+    "11"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"rt.top_30d\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"rt.top_30d\"],\"dimensions\":[],\"segments\":[],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "max_of_rolling_max_control"
+ },
+ {
+  "rows": [
+   [
+    "11"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"rt.top\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"rt.top\"],\"dimensions\":[],\"segments\":[],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "max_of_max_control"
+ },
+ {
+  "rows": [
+   [
+    "2025-01-01 00:00:00.000000",
+    "12"
+   ],
+   [
+    "2025-02-01 00:00:00.000000",
+    "9"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"rt.rev_30d\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"rt.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-01-01T00:00:00.000Z\",\n        \"2025-02-28T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"rt.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"rt.rev_30d\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"rt.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-01-01T00:00:00.000Z\",\"2025-02-28T23:59:59.999Z\"]}],\"order\":[[\"rt.ts\",\"asc\"]]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "measure_by_bucket_control"
+ },
+ {
+  "rows": [
+   [
+    "12"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nProjection: #MAX(q.x) AS y\n  Aggregate: groupBy=[[]], aggr=[[MAX(#q.x)]]\n    CubeScan: request={\n  \"measures\": [\n    \"rt.rev_30d\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"rt.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-01-01T00:00:00.000Z\",\n        \"2025-02-28T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nProjectionExec: expr=[MAX(q.x)@0 as y]\n  HashAggregateExec: mode=Final, gby=[], aggr=[MAX(q.x)]\n    HashAggregateExec: mode=Partial, gby=[], aggr=[MAX(q.x)]\n      CubeScanExecutionPlan, Request:\n{\"measures\":[\"rt.rev_30d\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"rt.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-01-01T00:00:00.000Z\",\"2025-02-28T23:59:59.999Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "max_over_subquery_control"
+ },
+ {
+  "rows": [
+   [
+    "2025-01-01T00:00:00.000",
+    "12"
+   ],
+   [
+    "2025-02-01T00:00:00.000",
+    "9"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": " WITH \ntime_series AS (  SELECT parseDateTimeBestEffort(dates.f) date_from, parseDateTimeBestEffort(dates.t) date_to \n  FROM (\n      select '2025-01-01T00:00:00.000' f, '2025-01-31T23:59:59.999' t \n   UNION ALL\n      select '2025-02-01T00:00:00.000' f, '2025-02-28T23:59:59.999' t \n  ) AS dates),\ncte_0 AS (  SELECT toDateTime64(toStartOfDay(toTimeZone(toDateTime64(`rt`.ts, 0), 'UTC'), 'UTC'), 0, 'UTC') `rt__ts_day`, sum(`rt`.amt) `rt__rev_30d` \n  FROM  audit.rt  AS `rt`\n  WHERE (toTimeZone(toDateTime64(`rt`.ts, 0), 'UTC') >= parseDateTimeBestEffort(?) AND toTimeZone(toDateTime64(`rt`.ts, 0), 'UTC') <= parseDateTimeBestEffort(?))\n  GROUP BY 1\n  ORDER BY  1  ASC),\ncte_1 AS (  SELECT `time_series`.`date_from` `rt__ts_month`, sum(`rolling_source`.`rt__rev_30d`) `rt__rev_30d` \n  FROM  time_series  AS `time_series`\n  LEFT JOIN  cte_0  AS `rolling_source` ON `rolling_source`.`rt__ts_day` > subDate(`time_series`.`date_to`, INTERVAL 30 DAY) AND `rolling_source`.`rt__ts_day` <= `time_series`.`date_to`\n  GROUP BY 1\n  ORDER BY  1  ASC)\nSELECT `fk_aggregate`.`rt__ts_month` `rt__ts_month`, `fk_aggregate`.`rt__rev_30d` `rt__rev_30d` \nFROM  cte_1  AS `fk_aggregate`\nORDER BY  1  ASC\nLIMIT 10000 PARAMS [\"2024-12-02T00:00:00.000\", \"2025-02-28T23:59:59.999\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "rest_control"
+ }
+]

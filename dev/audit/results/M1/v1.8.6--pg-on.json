@@ -1,0 +1,18 @@
+[
+ {
+  "rows": [
+   [
+    "1400"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\" \nFROM (\n  SELECT SUM(\"ev\".amt) \"sum_q_amt_dim_\" \n  FROM  audit.ev  AS \"ev\"\n  WHERE (((\"ev\".ts::timestamptz AT TIME ZONE 'UTC') >= timestamptz '2025-05-10T00:00:00.000Z'))\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": "1400",
+  "id": "no_oid"
+ }
+]

@@ -1,0 +1,331 @@
+[
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT SUM(amt_dim) AS s FROM (SELECT id, amt_dim, ts FROM ev) q WHERE ts >= 'replaced_placeholder'",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\" \nFROM (\n  SELECT\n        SUM(\"ev\".amt) \"sum_q_amt_dim_\"\n      FROM\n        audit.ev AS \"ev\"  WHERE (\"ev\".ts >= $1::timestamptz)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": "1400",
+  "id": "no_oid"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT SUM(amt_dim) AS s FROM (SELECT id, amt_dim, ts FROM ev) q WHERE ts >= 'replaced_placeholder'",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\" \nFROM (\n  SELECT\n        SUM(\"ev\".amt) \"sum_q_amt_dim_\"\n      FROM\n        audit.ev AS \"ev\"  WHERE (\"ev\".ts >= $1::timestamptz)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "oid_unspecified"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT SUM(amt_dim) AS s FROM (SELECT id, amt_dim, ts FROM ev) q WHERE ts >= 'replaced_placeholder'",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\" \nFROM (\n  SELECT\n        SUM(\"ev\".amt) \"sum_q_amt_dim_\"\n      FROM\n        audit.ev AS \"ev\"  WHERE (\"ev\".ts >= $1::timestamptz)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "oid_timestamp"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT SUM(amt_dim) AS s FROM (SELECT id, amt_dim, ts FROM ev) q WHERE ts >= 'replaced_placeholder'",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\" \nFROM (\n  SELECT\n        SUM(\"ev\".amt) \"sum_q_amt_dim_\"\n      FROM\n        audit.ev AS \"ev\"  WHERE (\"ev\".ts >= $1::timestamptz)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "oid_timestamptz"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT SUM(amt_dim) AS s FROM (SELECT id, amt_dim, ts FROM ev) q WHERE ts >= 'replaced_placeholder'",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\" \nFROM (\n  SELECT\n        SUM(\"ev\".amt) \"sum_q_amt_dim_\"\n      FROM\n        audit.ev AS \"ev\"  WHERE (\"ev\".ts >= $1::timestamptz)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "oid_date"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT SUM(amt_dim) AS s FROM (SELECT id, amt_dim, ts FROM ev) q WHERE ts >= 'replaced_placeholder'",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\" \nFROM (\n  SELECT\n        SUM(\"ev\".amt) \"sum_q_amt_dim_\"\n      FROM\n        audit.ev AS \"ev\"  WHERE (\"ev\".ts >= $1::timestamptz)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "oid_varchar"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT SUM(amt_dim) AS s FROM (SELECT id, amt_dim, ts FROM ev) q WHERE ts >= 'replaced_placeholder'",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\" \nFROM (\n  SELECT\n        SUM(\"ev\".amt) \"sum_q_amt_dim_\"\n      FROM\n        audit.ev AS \"ev\"  WHERE (\"ev\".ts >= $1::timestamptz)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "iso_text"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT SUM(amt_dim) AS s FROM (SELECT id, amt_dim, ts FROM ev) q WHERE ts < 'replaced_placeholder'",
+  "shape": null,
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "lt_bound"
+ },
+ {
+  "rows": [
+   [
+    "600"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   701
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "two_params"
+ },
+ {
+  "rows": [
+   [
+    "200"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   701
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "eq_param"
+ },
+ {
+  "rows": [
+   [
+    "1000"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   701
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "in_params"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT SUM(amt_dim) AS s FROM (SELECT id, amt_dim, ts FROM ev) q WHERE ts >= 'replaced_placeholder'",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\" \nFROM (\n  SELECT\n        SUM(\"ev\".amt) \"sum_q_amt_dim_\"\n      FROM\n        audit.ev AS \"ev\"  WHERE (\"ev\".ts >= $1::timestamptz)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "null_param"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT SUM(amt_dim) AS s FROM (SELECT id, amt_dim, d FROM ev) q WHERE d >= 'replaced_placeholder'",
+  "shape": null,
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "date_column"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT DATE_TRUNC('month', ts) AS m, SUM(amt_dim) AS s FROM (SELECT id, amt_dim, ts FROM ev) q WHERE ts >= 'replaced_placeholder' GROUP BY 1 ORDER BY 1",
+  "shape": null,
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "grouped_wrapper"
+ },
+ {
+  "rows": [
+   [
+    "3"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   20
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "trunc_in_filter"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT DATE_TRUNC('month', ts) AS m, label, SUM(total) * 0.5 AS x FROM ev WHERE ts >= 'replaced_placeholder' GROUP BY 1, 2 ORDER BY 1, 2",
+  "shape": null,
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "issue_12459_form"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-01 00:00:00.000000",
+    "a",
+    "100"
+   ],
+   [
+    "2025-05-01 00:00:00.000000",
+    "b",
+    "200"
+   ],
+   [
+    "2025-06-01 00:00:00.000000",
+    "b",
+    "400"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   1114,
+   25,
+   701
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "issue_12459_form_no_order"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT SUM(amt_dim) AS s FROM (SELECT id, amt_dim, ts FROM ev) q WHERE ts >= 'replaced_placeholder' LIMIT 10",
+  "shape": null,
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "no_oid_limit"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT DATE_TRUNC('month', ts) AS m, label, SUM(total) * 0.5 AS x FROM ev WHERE ts >= 'replaced_placeholder' GROUP BY 1, 2 ORDER BY 1, 2 LIMIT 10",
+  "shape": null,
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "issue_12459_form_limit"
+ },
+ {
+  "rows": [
+   [
+    "1400"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   701
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "cast_control"
+ },
+ {
+  "rows": [
+   [
+    "1400"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   701
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "cast_fn_control"
+ },
+ {
+  "rows": [
+   [
+    "1400"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   701
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "cast_date_control"
+ },
+ {
+  "rows": [
+   [
+    "1400"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\" \nFROM (\n  SELECT\n        SUM(\"ev\".amt) \"sum_q_amt_dim_\"\n      FROM\n        audit.ev AS \"ev\"  WHERE (\"ev\".ts >= $1::timestamptz)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "literal_control"
+ },
+ {
+  "rows": [
+   [
+    "3"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   20
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "direct_scan_control"
+ },
+ {
+  "rows": [
+   [
+    "300"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   701
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "text_param_control"
+ },
+ {
+  "rows": [
+   [
+    "1200"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   701
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "number_param_control"
+ }
+]

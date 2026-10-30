@@ -1,0 +1,261 @@
+[
+ {
+  "rows": [
+   [
+    "1",
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      \"customers\".id \"customers__id\", \"customers__filt_n\" \"customers__filt_n\"\n    FROM\n      audit.customers AS \"customers\"\nLEFT JOIN (SELECT\n      \"customers_filt_n_subquery__customers\".id \"customers__id\", count(\"customers_filt_n_subquery__purchases\".id) \"customers__filt_n\"\n    FROM\n      audit.customers AS \"customers_filt_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_filt_n_subquery__purchases\" ON \"customers_filt_n_subquery__customers\".id = \"customers_filt_n_subquery__purchases\".customer_id  WHERE (\"customers_filt_n_subquery__purchases\".st = $1) GROUP BY 1) AS \"customers_filt_n_subquery\" ON \"customers_filt_n_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN audit.purchases AS \"purchases\" ON \"customers\".id = \"purchases\".customer_id  WHERE (\"purchases\".st = $2) GROUP BY 1, 2 ORDER BY 1 ASC LIMIT 10000 PARAMS [\"paid\", \"paid\"]",
+  "verdict": "match",
+  "truth": "1\t2",
+  "id": "propagated_alone"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "3"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      \"customers\".id \"customers__id\", \"customers__all_n\" \"customers__all_n\"\n    FROM\n      audit.customers AS \"customers\"\nLEFT JOIN (SELECT\n      \"customers_all_n_subquery__customers\".id \"customers__id\", count(\"customers_all_n_subquery__purchases\".id) \"customers__all_n\"\n    FROM\n      audit.customers AS \"customers_all_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_all_n_subquery__purchases\" ON \"customers_all_n_subquery__customers\".id = \"customers_all_n_subquery__purchases\".customer_id  GROUP BY 1) AS \"customers_all_n_subquery\" ON \"customers_all_n_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN audit.purchases AS \"purchases\" ON \"customers\".id = \"purchases\".customer_id  WHERE (\"purchases\".st = $1) GROUP BY 1, 2 ORDER BY 1 ASC LIMIT 10000 PARAMS [\"paid\"]",
+  "verdict": "match",
+  "truth": "3",
+  "id": "plain_alone"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "3",
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      \"customers\".id \"customers__id\", \"customers__all_n\" \"customers__all_n\", \"customers__filt_n\" \"customers__filt_n\"\n    FROM\n      audit.customers AS \"customers\"\nLEFT JOIN (SELECT\n      \"customers_all_n_subquery__customers\".id \"customers__id\", count(\"customers_all_n_subquery__purchases\".id) \"customers__all_n\"\n    FROM\n      audit.customers AS \"customers_all_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_all_n_subquery__purchases\" ON \"customers_all_n_subquery__customers\".id = \"customers_all_n_subquery__purchases\".customer_id  GROUP BY 1) AS \"customers_all_n_subquery\" ON \"customers_all_n_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN (SELECT\n      \"customers_filt_n_subquery__customers\".id \"customers__id\", count(\"customers_filt_n_subquery__purchases\".id) \"customers__filt_n\"\n    FROM\n      audit.customers AS \"customers_filt_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_filt_n_subquery__purchases\" ON \"customers_filt_n_subquery__customers\".id = \"customers_filt_n_subquery__purchases\".customer_id  WHERE (\"customers_filt_n_subquery__purchases\".st = $1) GROUP BY 1) AS \"customers_filt_n_subquery\" ON \"customers_filt_n_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN audit.purchases AS \"purchases\" ON \"customers\".id = \"purchases\".customer_id  WHERE (\"purchases\".st = $2) GROUP BY 1, 2, 3 ORDER BY 1 ASC LIMIT 10000 PARAMS [\"paid\", \"paid\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "plain_then_propagated"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2",
+    "3"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      \"customers\".id \"customers__id\", \"customers__filt_n\" \"customers__filt_n\", \"customers__all_n\" \"customers__all_n\"\n    FROM\n      audit.customers AS \"customers\"\nLEFT JOIN (SELECT\n      \"customers_filt_n_subquery__customers\".id \"customers__id\", count(\"customers_filt_n_subquery__purchases\".id) \"customers__filt_n\"\n    FROM\n      audit.customers AS \"customers_filt_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_filt_n_subquery__purchases\" ON \"customers_filt_n_subquery__customers\".id = \"customers_filt_n_subquery__purchases\".customer_id  WHERE (\"customers_filt_n_subquery__purchases\".st = $1) GROUP BY 1) AS \"customers_filt_n_subquery\" ON \"customers_filt_n_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN (SELECT\n      \"customers_all_n_subquery__customers\".id \"customers__id\", count(\"customers_all_n_subquery__purchases\".id) \"customers__all_n\"\n    FROM\n      audit.customers AS \"customers_all_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_all_n_subquery__purchases\" ON \"customers_all_n_subquery__customers\".id = \"customers_all_n_subquery__purchases\".customer_id  GROUP BY 1) AS \"customers_all_n_subquery\" ON \"customers_all_n_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN audit.purchases AS \"purchases\" ON \"customers\".id = \"purchases\".customer_id  WHERE (\"purchases\".st = $2) GROUP BY 1, 2, 3 ORDER BY 1 ASC LIMIT 10000 PARAMS [\"paid\", \"paid\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "propagated_then_plain"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "70",
+    "30"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      \"customers\".id \"customers__id\", \"customers__all_total\" \"customers__all_total\", \"customers__filt_total\" \"customers__filt_total\"\n    FROM\n      audit.customers AS \"customers\"\nLEFT JOIN (SELECT\n      \"customers_all_total_subquery__customers\".id \"customers__id\", sum(\"customers_all_total_subquery__purchases\".amt) \"customers__all_total\"\n    FROM\n      audit.customers AS \"customers_all_total_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_all_total_subquery__purchases\" ON \"customers_all_total_subquery__customers\".id = \"customers_all_total_subquery__purchases\".customer_id  GROUP BY 1) AS \"customers_all_total_subquery\" ON \"customers_all_total_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN (SELECT\n      \"customers_filt_total_subquery__customers\".id \"customers__id\", sum(\"customers_filt_total_subquery__purchases\".amt) \"customers__filt_total\"\n    FROM\n      audit.customers AS \"customers_filt_total_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_filt_total_subquery__purchases\" ON \"customers_filt_total_subquery__customers\".id = \"customers_filt_total_subquery__purchases\".customer_id  WHERE (\"customers_filt_total_subquery__purchases\".st = $1) GROUP BY 1) AS \"customers_filt_total_subquery\" ON \"customers_filt_total_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN audit.purchases AS \"purchases\" ON \"customers\".id = \"purchases\".customer_id  WHERE (\"purchases\".st = $2) GROUP BY 1, 2, 3 ORDER BY 1 ASC LIMIT 10000 PARAMS [\"paid\", \"paid\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "sums_same_sql"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "3",
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      \"customers\".id \"customers__id\", \"customers__all_n\" \"customers__all_n\", \"customers__filt_other\" \"customers__filt_other\"\n    FROM\n      audit.customers AS \"customers\"\nLEFT JOIN (SELECT\n      \"customers_all_n_subquery__customers\".id \"customers__id\", count(\"customers_all_n_subquery__purchases\".id) \"customers__all_n\"\n    FROM\n      audit.customers AS \"customers_all_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_all_n_subquery__purchases\" ON \"customers_all_n_subquery__customers\".id = \"customers_all_n_subquery__purchases\".customer_id  GROUP BY 1) AS \"customers_all_n_subquery\" ON \"customers_all_n_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN (SELECT\n      \"customers_filt_other_subquery__customers\".id \"customers__id\", count(\"customers_filt_other_subquery__purchases\".id) + 0 \"customers__filt_other\"\n    FROM\n      audit.customers AS \"customers_filt_other_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_filt_other_subquery__purchases\" ON \"customers_filt_other_subquery__customers\".id = \"customers_filt_other_subquery__purchases\".customer_id  WHERE (\"customers_filt_other_subquery__purchases\".st = $1) GROUP BY 1) AS \"customers_filt_other_subquery\" ON \"customers_filt_other_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN audit.purchases AS \"purchases\" ON \"customers\".id = \"purchases\".customer_id  WHERE (\"purchases\".st = $2) GROUP BY 1, 2, 3 ORDER BY 1 ASC LIMIT 10000 PARAMS [\"paid\", \"paid\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "other_sql"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "70",
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      \"customers\".id \"customers__id\", \"customers__all_total\" \"customers__all_total\", \"customers__filt_n\" \"customers__filt_n\"\n    FROM\n      audit.customers AS \"customers\"\nLEFT JOIN (SELECT\n      \"customers_all_total_subquery__customers\".id \"customers__id\", sum(\"customers_all_total_subquery__purchases\".amt) \"customers__all_total\"\n    FROM\n      audit.customers AS \"customers_all_total_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_all_total_subquery__purchases\" ON \"customers_all_total_subquery__customers\".id = \"customers_all_total_subquery__purchases\".customer_id  GROUP BY 1) AS \"customers_all_total_subquery\" ON \"customers_all_total_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN (SELECT\n      \"customers_filt_n_subquery__customers\".id \"customers__id\", count(\"customers_filt_n_subquery__purchases\".id) \"customers__filt_n\"\n    FROM\n      audit.customers AS \"customers_filt_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_filt_n_subquery__purchases\" ON \"customers_filt_n_subquery__customers\".id = \"customers_filt_n_subquery__purchases\".customer_id  WHERE (\"customers_filt_n_subquery__purchases\".st = $1) GROUP BY 1) AS \"customers_filt_n_subquery\" ON \"customers_filt_n_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN audit.purchases AS \"purchases\" ON \"customers\".id = \"purchases\".customer_id  WHERE (\"purchases\".st = $2) GROUP BY 1, 2, 3 ORDER BY 1 ASC LIMIT 10000 PARAMS [\"paid\", \"paid\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "different_measures"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2",
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      \"customers\".id \"customers__id\", \"customers__filt_n\" \"customers__filt_n\", \"customers__filt_n2\" \"customers__filt_n2\"\n    FROM\n      audit.customers AS \"customers\"\nLEFT JOIN (SELECT\n      \"customers_filt_n_subquery__customers\".id \"customers__id\", count(\"customers_filt_n_subquery__purchases\".id) \"customers__filt_n\"\n    FROM\n      audit.customers AS \"customers_filt_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_filt_n_subquery__purchases\" ON \"customers_filt_n_subquery__customers\".id = \"customers_filt_n_subquery__purchases\".customer_id  WHERE (\"customers_filt_n_subquery__purchases\".st = $1) GROUP BY 1) AS \"customers_filt_n_subquery\" ON \"customers_filt_n_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN (SELECT\n      \"customers_filt_n2_subquery__customers\".id \"customers__id\", count(\"customers_filt_n2_subquery__purchases\".id) \"customers__filt_n2\"\n    FROM\n      audit.customers AS \"customers_filt_n2_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_filt_n2_subquery__purchases\" ON \"customers_filt_n2_subquery__customers\".id = \"customers_filt_n2_subquery__purchases\".customer_id  WHERE (\"customers_filt_n2_subquery__purchases\".st = $2) GROUP BY 1) AS \"customers_filt_n2_subquery\" ON \"customers_filt_n2_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN audit.purchases AS \"purchases\" ON \"customers\".id = \"purchases\".customer_id  WHERE (\"purchases\".st = $3) GROUP BY 1, 2, 3 ORDER BY 1 ASC LIMIT 10000 PARAMS [\"paid\", \"paid\", \"paid\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "two_propagated_control"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "3",
+    "3"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      \"customers\".id \"customers__id\", \"customers__all_n\" \"customers__all_n\", \"customers__all_n2\" \"customers__all_n2\"\n    FROM\n      audit.customers AS \"customers\"\nLEFT JOIN (SELECT\n      \"customers_all_n_subquery__customers\".id \"customers__id\", count(\"customers_all_n_subquery__purchases\".id) \"customers__all_n\"\n    FROM\n      audit.customers AS \"customers_all_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_all_n_subquery__purchases\" ON \"customers_all_n_subquery__customers\".id = \"customers_all_n_subquery__purchases\".customer_id  GROUP BY 1) AS \"customers_all_n_subquery\" ON \"customers_all_n_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN (SELECT\n      \"customers_all_n2_subquery__customers\".id \"customers__id\", count(\"customers_all_n2_subquery__purchases\".id) \"customers__all_n2\"\n    FROM\n      audit.customers AS \"customers_all_n2_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_all_n2_subquery__purchases\" ON \"customers_all_n2_subquery__customers\".id = \"customers_all_n2_subquery__purchases\".customer_id  GROUP BY 1) AS \"customers_all_n2_subquery\" ON \"customers_all_n2_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN audit.purchases AS \"purchases\" ON \"customers\".id = \"purchases\".customer_id  WHERE (\"purchases\".st = $1) GROUP BY 1, 2, 3 ORDER BY 1 ASC LIMIT 10000 PARAMS [\"paid\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "two_plain_control"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "3",
+    "1"
+   ],
+   [
+    "2",
+    "1",
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      \"customers\".id \"customers__id\", \"customers__all_n\" \"customers__all_n\", \"customers__filt_n\" \"customers__filt_n\"\n    FROM\n      audit.customers AS \"customers\"\nLEFT JOIN (SELECT\n      \"customers_all_n_subquery__customers\".id \"customers__id\", count(\"customers_all_n_subquery__purchases\".id) \"customers__all_n\"\n    FROM\n      audit.customers AS \"customers_all_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_all_n_subquery__purchases\" ON \"customers_all_n_subquery__customers\".id = \"customers_all_n_subquery__purchases\".customer_id  GROUP BY 1) AS \"customers_all_n_subquery\" ON \"customers_all_n_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN (SELECT\n      \"customers_filt_n_subquery__customers\".id \"customers__id\", count(\"customers_filt_n_subquery__purchases\".id) \"customers__filt_n\"\n    FROM\n      audit.customers AS \"customers_filt_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_filt_n_subquery__purchases\" ON \"customers_filt_n_subquery__customers\".id = \"customers_filt_n_subquery__purchases\".customer_id  WHERE (\"customers_filt_n_subquery__purchases\".st = $1) GROUP BY 1) AS \"customers_filt_n_subquery\" ON \"customers_filt_n_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN audit.purchases AS \"purchases\" ON \"customers\".id = \"purchases\".customer_id  WHERE (\"purchases\".st = $2) GROUP BY 1, 2, 3 ORDER BY 1 ASC LIMIT 10000 PARAMS [\"open\", \"open\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "other_status"
+ },
+ {
+  "rows": [],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      \"customers\".id \"customers__id\", \"customers__all_n\" \"customers__all_n\", \"customers__filt_n\" \"customers__filt_n\"\n    FROM\n      audit.customers AS \"customers\"\nLEFT JOIN (SELECT\n      \"customers_all_n_subquery__customers\".id \"customers__id\", count(\"customers_all_n_subquery__purchases\".id) \"customers__all_n\"\n    FROM\n      audit.customers AS \"customers_all_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_all_n_subquery__purchases\" ON \"customers_all_n_subquery__customers\".id = \"customers_all_n_subquery__purchases\".customer_id  GROUP BY 1) AS \"customers_all_n_subquery\" ON \"customers_all_n_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN (SELECT\n      \"customers_filt_n_subquery__customers\".id \"customers__id\", count(\"customers_filt_n_subquery__purchases\".id) \"customers__filt_n\"\n    FROM\n      audit.customers AS \"customers_filt_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_filt_n_subquery__purchases\" ON \"customers_filt_n_subquery__customers\".id = \"customers_filt_n_subquery__purchases\".customer_id  WHERE (\"customers_filt_n_subquery__purchases\".st = $1) GROUP BY 1) AS \"customers_filt_n_subquery\" ON \"customers_filt_n_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN audit.purchases AS \"purchases\" ON \"customers\".id = \"purchases\".customer_id  WHERE (\"purchases\".st = $2) GROUP BY 1, 2, 3 ORDER BY 1 ASC LIMIT 10000 PARAMS [\"nope\", \"nope\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "no_match"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "3",
+    "3"
+   ],
+   [
+    "2",
+    "1",
+    "1"
+   ],
+   [
+    "3",
+    "0",
+    "0"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      \"customers\".id \"customers__id\", \"customers__all_n\" \"customers__all_n\", \"customers__filt_n\" \"customers__filt_n\"\n    FROM\n      audit.customers AS \"customers\"\nLEFT JOIN (SELECT\n      \"customers_all_n_subquery__customers\".id \"customers__id\", count(\"customers_all_n_subquery__purchases\".id) \"customers__all_n\"\n    FROM\n      audit.customers AS \"customers_all_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_all_n_subquery__purchases\" ON \"customers_all_n_subquery__customers\".id = \"customers_all_n_subquery__purchases\".customer_id  GROUP BY 1) AS \"customers_all_n_subquery\" ON \"customers_all_n_subquery\".\"customers__id\" = \"customers\".id\nLEFT JOIN (SELECT\n      \"customers_filt_n_subquery__customers\".id \"customers__id\", count(\"customers_filt_n_subquery__purchases\".id) \"customers__filt_n\"\n    FROM\n      audit.customers AS \"customers_filt_n_subquery__customers\"\nLEFT JOIN audit.purchases AS \"customers_filt_n_subquery__purchases\" ON \"customers_filt_n_subquery__customers\".id = \"customers_filt_n_subquery__purchases\".customer_id  GROUP BY 1) AS \"customers_filt_n_subquery\" ON \"customers_filt_n_subquery\".\"customers__id\" = \"customers\".id  GROUP BY 1, 2, 3 ORDER BY 1 ASC LIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "no_filter_control"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "3",
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701,
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"cv.id\",\n    \"cv.all_n\",\n    \"cv.filt_n\"\n  ],\n  \"segments\": [],\n  \"order\": [\n    [\n      \"cv.id\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"cv.st\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"paid\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"cv.id\",\"cv.all_n\",\"cv.filt_n\"],\"segments\":[],\"order\":[[\"cv.id\",\"asc\"]],\"filters\":[{\"member\":\"cv.st\",\"operator\":\"equals\",\"values\":[\"paid\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "sql_view_together"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2",
+    "3"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701,
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"cv.id\",\n    \"cv.filt_n\",\n    \"cv.all_n\"\n  ],\n  \"segments\": [],\n  \"order\": [\n    [\n      \"cv.id\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"cv.st\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"paid\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"cv.id\",\"cv.filt_n\",\"cv.all_n\"],\"segments\":[],\"order\":[[\"cv.id\",\"asc\"]],\"filters\":[{\"member\":\"cv.st\",\"operator\":\"equals\",\"values\":[\"paid\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "sql_view_swapped"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "3",
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701,
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"cv.id\",\n    \"cv.all_n\",\n    \"cv.filt_other\"\n  ],\n  \"segments\": [],\n  \"order\": [\n    [\n      \"cv.id\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"cv.st\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"paid\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"cv.id\",\"cv.all_n\",\"cv.filt_other\"],\"segments\":[],\"order\":[[\"cv.id\",\"asc\"]],\"filters\":[{\"member\":\"cv.st\",\"operator\":\"equals\",\"values\":[\"paid\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "sql_view_other_sql"
+ }
+]

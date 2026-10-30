@@ -1,0 +1,11 @@
+[
+ {
+  "rows": [],
+  "error": "Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_date_part template: template not found: template \"expressions/interval_single_date_part\" does not exist\nQUERY: SELECT id, ts + INTERVAL '1 day' AS x FROM it ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": "1\t2024-02-01 10:00:00\n2\t2024-03-01 00:00:00\n3\t2025-03-10 01:30:00\n4\t2026-01-01 23:59:59",
+  "id": "raw_plus_day"
+ }
+]

@@ -1,0 +1,197 @@
+[
+ {
+  "rows": [
+   [
+    "2025-04-01T00:00:00.000",
+    "11"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "1100"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": " WITH \ntime_series AS (  SELECT \"d\"::timestamptz AS \"date_from\",\n  (\"d\"::timestamptz + interval '1 month') - interval '1 millisecond' AS \"date_to\" \n  FROM generate_series('2025-04-01T00:00:00.000'::timestamp, '2025-05-31T23:59:59.999':: timestamp, '1 month'::interval) d ),\ncte_0 AS (  SELECT date_trunc('day', (\"lt\".ts::timestamptz AT TIME ZONE 'UTC')) \"lt__ts_day\", sum(\"lt\".amt) \"lt__r30\" \n  FROM  audit.lt  AS \"lt\"\n  WHERE ((\"lt\".ts::timestamptz AT TIME ZONE 'UTC') >= $1::timestamptz AND (\"lt\".ts::timestamptz AT TIME ZONE 'UTC') <= $2::timestamptz)\n  GROUP BY 1\n  ORDER BY  1  ASC),\ncte_1 AS (  SELECT \"time_series\".\"date_from\" \"lt__ts_month\", sum(\"rolling_source\".\"lt__r30\") \"lt__r30\" \n  FROM  time_series  AS \"time_series\"\n  LEFT JOIN  cte_0  AS \"rolling_source\" ON \"rolling_source\".\"lt__ts_day\" > \"time_series\".\"date_to\" - interval '30 days' AND \"rolling_source\".\"lt__ts_day\" <= \"time_series\".\"date_to\"\n  GROUP BY 1\n  ORDER BY  1  ASC)\nSELECT \"fk_aggregate\".\"lt__ts_month\" \"lt__ts_month\", \"fk_aggregate\".\"lt__r30\" \"lt__r30\" \nFROM  cte_1  AS \"fk_aggregate\"\nORDER BY  1  ASC\nLIMIT 10000 PARAMS [\"2025-03-02T00:00:00.000\", \"2025-06-30T23:59:58.999\"]",
+  "verdict": "match",
+  "truth": "1100",
+  "id": "two_months_rest"
+ },
+ {
+  "rows": [
+   [
+    "2025-04-01 00:00:00.000000",
+    "11"
+   ],
+   [
+    "2025-05-01 00:00:00.000000",
+    "1100"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"lt.r30\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"lt.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-04-01T00:00:00.000Z\",\n        \"2025-05-31T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"lt.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"lt.r30\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"lt.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-04-01T00:00:00.000Z\",\"2025-05-31T23:59:59.999Z\"]}],\"order\":[[\"lt.ts\",\"asc\"]]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "two_months_sql"
+ },
+ {
+  "rows": [
+   [
+    "2025-04-01T00:00:00.000",
+    "11"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "1100"
+   ],
+   [
+    "2025-06-01T00:00:00.000",
+    "10000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": " WITH \ntime_series AS (  SELECT \"d\"::timestamptz AS \"date_from\",\n  (\"d\"::timestamptz + interval '1 month') - interval '1 millisecond' AS \"date_to\" \n  FROM generate_series('2025-04-01T00:00:00.000'::timestamp, '2025-06-30T23:59:59.999':: timestamp, '1 month'::interval) d ),\ncte_0 AS (  SELECT date_trunc('day', (\"lt\".ts::timestamptz AT TIME ZONE 'UTC')) \"lt__ts_day\", sum(\"lt\".amt) \"lt__r30\" \n  FROM  audit.lt  AS \"lt\"\n  WHERE ((\"lt\".ts::timestamptz AT TIME ZONE 'UTC') >= $1::timestamptz AND (\"lt\".ts::timestamptz AT TIME ZONE 'UTC') <= $2::timestamptz)\n  GROUP BY 1\n  ORDER BY  1  ASC),\ncte_1 AS (  SELECT \"time_series\".\"date_from\" \"lt__ts_month\", sum(\"rolling_source\".\"lt__r30\") \"lt__r30\" \n  FROM  time_series  AS \"time_series\"\n  LEFT JOIN  cte_0  AS \"rolling_source\" ON \"rolling_source\".\"lt__ts_day\" > \"time_series\".\"date_to\" - interval '30 days' AND \"rolling_source\".\"lt__ts_day\" <= \"time_series\".\"date_to\"\n  GROUP BY 1\n  ORDER BY  1  ASC)\nSELECT \"fk_aggregate\".\"lt__ts_month\" \"lt__ts_month\", \"fk_aggregate\".\"lt__r30\" \"lt__r30\" \nFROM  cte_1  AS \"fk_aggregate\"\nORDER BY  1  ASC\nLIMIT 10000 PARAMS [\"2025-03-02T00:00:00.000\", \"2025-07-30T23:59:58.999\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "three_months"
+ },
+ {
+  "rows": [
+   [
+    "2025-04-01T00:00:00.000",
+    "11"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": " WITH \ntime_series AS (  SELECT \"d\"::timestamptz AS \"date_from\",\n  (\"d\"::timestamptz + interval '1 month') - interval '1 millisecond' AS \"date_to\" \n  FROM generate_series('2025-04-01T00:00:00.000'::timestamp, '2025-04-30T23:59:59.999':: timestamp, '1 month'::interval) d ),\ncte_0 AS (  SELECT date_trunc('day', (\"lt\".ts::timestamptz AT TIME ZONE 'UTC')) \"lt__ts_day\", sum(\"lt\".amt) \"lt__r30\" \n  FROM  audit.lt  AS \"lt\"\n  WHERE ((\"lt\".ts::timestamptz AT TIME ZONE 'UTC') >= $1::timestamptz AND (\"lt\".ts::timestamptz AT TIME ZONE 'UTC') <= $2::timestamptz)\n  GROUP BY 1\n  ORDER BY  1  ASC),\ncte_1 AS (  SELECT \"time_series\".\"date_from\" \"lt__ts_month\", sum(\"rolling_source\".\"lt__r30\") \"lt__r30\" \n  FROM  time_series  AS \"time_series\"\n  LEFT JOIN  cte_0  AS \"rolling_source\" ON \"rolling_source\".\"lt__ts_day\" > \"time_series\".\"date_to\" - interval '30 days' AND \"rolling_source\".\"lt__ts_day\" <= \"time_series\".\"date_to\"\n  GROUP BY 1\n  ORDER BY  1  ASC)\nSELECT \"fk_aggregate\".\"lt__ts_month\" \"lt__ts_month\", \"fk_aggregate\".\"lt__r30\" \"lt__r30\" \nFROM  cte_1  AS \"fk_aggregate\"\nORDER BY  1  ASC\nLIMIT 10000 PARAMS [\"2025-03-02T00:00:00.000\", \"2025-05-30T23:59:58.999\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "one_month_control"
+ },
+ {
+  "rows": [
+   [
+    "2025-04-24T00:00:00.000",
+    "1"
+   ],
+   [
+    "2025-04-25T00:00:00.000",
+    "11"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": " WITH \ntime_series AS (  SELECT \"d\"::timestamptz AS \"date_from\",\n  (\"d\"::timestamptz + interval '1 day') - interval '1 millisecond' AS \"date_to\" \n  FROM generate_series('2025-04-24T00:00:00.000'::timestamp, '2025-04-25T23:59:59.999':: timestamp, '1 day'::interval) d ),\ncte_0 AS (  SELECT date_trunc('day', (\"lt\".ts::timestamptz AT TIME ZONE 'UTC')) \"lt__ts_day\", sum(\"lt\".amt) \"lt__r30\" \n  FROM  audit.lt  AS \"lt\"\n  WHERE ((\"lt\".ts::timestamptz AT TIME ZONE 'UTC') >= $1::timestamptz AND (\"lt\".ts::timestamptz AT TIME ZONE 'UTC') <= $2::timestamptz)\n  GROUP BY 1\n  ORDER BY  1  ASC),\ncte_1 AS (  SELECT \"time_series\".\"date_from\" \"lt__ts_day\", sum(\"rolling_source\".\"lt__r30\") \"lt__r30\" \n  FROM  time_series  AS \"time_series\"\n  LEFT JOIN  cte_0  AS \"rolling_source\" ON \"rolling_source\".\"lt__ts_day\" > \"time_series\".\"date_to\" - interval '30 days' AND \"rolling_source\".\"lt__ts_day\" <= \"time_series\".\"date_to\"\n  GROUP BY 1\n  ORDER BY  1  ASC)\nSELECT \"fk_aggregate\".\"lt__ts_day\" \"lt__ts_day\", \"fk_aggregate\".\"lt__r30\" \"lt__r30\" \nFROM  cte_1  AS \"fk_aggregate\"\nORDER BY  1  ASC\nLIMIT 10000 PARAMS [\"2025-03-25T00:00:00.000\", \"2025-04-26T23:59:58.999\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "two_days"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-05T00:00:00.000",
+    "110"
+   ],
+   [
+    "2025-05-12T00:00:00.000",
+    "110"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": " WITH \ntime_series AS (  SELECT \"d\"::timestamptz AS \"date_from\",\n  (\"d\"::timestamptz + interval '1 week') - interval '1 millisecond' AS \"date_to\" \n  FROM generate_series('2025-05-05T00:00:00.000'::timestamp, '2025-05-18T23:59:59.999':: timestamp, '1 week'::interval) d ),\ncte_0 AS (  SELECT date_trunc('day', (\"lt\".ts::timestamptz AT TIME ZONE 'UTC')) \"lt__ts_day\", sum(\"lt\".amt) \"lt__r30\" \n  FROM  audit.lt  AS \"lt\"\n  WHERE ((\"lt\".ts::timestamptz AT TIME ZONE 'UTC') >= $1::timestamptz AND (\"lt\".ts::timestamptz AT TIME ZONE 'UTC') <= $2::timestamptz)\n  GROUP BY 1\n  ORDER BY  1  ASC),\ncte_1 AS (  SELECT \"time_series\".\"date_from\" \"lt__ts_week\", sum(\"rolling_source\".\"lt__r30\") \"lt__r30\" \n  FROM  time_series  AS \"time_series\"\n  LEFT JOIN  cte_0  AS \"rolling_source\" ON \"rolling_source\".\"lt__ts_day\" > \"time_series\".\"date_to\" - interval '30 days' AND \"rolling_source\".\"lt__ts_day\" <= \"time_series\".\"date_to\"\n  GROUP BY 1\n  ORDER BY  1  ASC)\nSELECT \"fk_aggregate\".\"lt__ts_week\" \"lt__ts_week\", \"fk_aggregate\".\"lt__r30\" \"lt__r30\" \nFROM  cte_1  AS \"fk_aggregate\"\nORDER BY  1  ASC\nLIMIT 10000 PARAMS [\"2025-04-05T00:00:00.000\", \"2025-05-25T23:59:58.999\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "two_weeks"
+ },
+ {
+  "rows": [
+   [
+    "2025-04-01T00:00:00.000",
+    "2"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": " WITH \ntime_series AS (  SELECT \"d\"::timestamptz AS \"date_from\",\n  (\"d\"::timestamptz + interval '1 month') - interval '1 millisecond' AS \"date_to\" \n  FROM generate_series('2025-04-01T00:00:00.000'::timestamp, '2025-05-31T23:59:59.999':: timestamp, '1 month'::interval) d ),\ncte_0 AS (  SELECT date_trunc('day', (\"lt\".ts::timestamptz AT TIME ZONE 'UTC')) \"lt__ts_day\", count(\"lt\".id) \"lt__c30\" \n  FROM  audit.lt  AS \"lt\"\n  WHERE ((\"lt\".ts::timestamptz AT TIME ZONE 'UTC') >= $1::timestamptz AND (\"lt\".ts::timestamptz AT TIME ZONE 'UTC') <= $2::timestamptz)\n  GROUP BY 1\n  ORDER BY  1  ASC),\ncte_1 AS (  SELECT \"time_series\".\"date_from\" \"lt__ts_month\", sum(\"rolling_source\".\"lt__c30\") \"lt__c30\" \n  FROM  time_series  AS \"time_series\"\n  LEFT JOIN  cte_0  AS \"rolling_source\" ON \"rolling_source\".\"lt__ts_day\" > \"time_series\".\"date_to\" - interval '30 days' AND \"rolling_source\".\"lt__ts_day\" <= \"time_series\".\"date_to\"\n  GROUP BY 1\n  ORDER BY  1  ASC)\nSELECT \"fk_aggregate\".\"lt__ts_month\" \"lt__ts_month\", \"fk_aggregate\".\"lt__c30\" \"lt__c30\" \nFROM  cte_1  AS \"fk_aggregate\"\nORDER BY  1  ASC\nLIMIT 10000 PARAMS [\"2025-03-02T00:00:00.000\", \"2025-06-30T23:59:58.999\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "count_two_months"
+ },
+ {
+  "rows": [
+   [
+    "2025-04-01T00:00:00.000",
+    "11"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "1111"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": " WITH \ntime_series AS (  SELECT \"d\"::timestamptz AS \"date_from\",\n  (\"d\"::timestamptz + interval '1 month') - interval '1 millisecond' AS \"date_to\" \n  FROM generate_series('2025-04-01T00:00:00.000'::timestamp, '2025-05-31T23:59:59.999':: timestamp, '1 month'::interval) d ),\ncte_0 AS (  SELECT date_trunc('month', (\"lt\".ts::timestamptz AT TIME ZONE 'UTC')) \"lt__ts_month\", sum(\"lt\".amt) \"lt__r100y\" \n  FROM  audit.lt  AS \"lt\"\n  WHERE ((\"lt\".ts::timestamptz AT TIME ZONE 'UTC') >= $1::timestamptz AND (\"lt\".ts::timestamptz AT TIME ZONE 'UTC') <= $2::timestamptz)\n  GROUP BY 1\n  ORDER BY  1  ASC),\ncte_1 AS (  SELECT \"time_series\".\"date_from\" \"lt__ts_month\", sum(\"rolling_source\".\"lt__r100y\") \"lt__r100y\" \n  FROM  time_series  AS \"time_series\"\n  LEFT JOIN  cte_0  AS \"rolling_source\" ON \"rolling_source\".\"lt__ts_month\" > \"time_series\".\"date_to\" - interval '100 years' AND \"rolling_source\".\"lt__ts_month\" <= \"time_series\".\"date_to\"\n  GROUP BY 1\n  ORDER BY  1  ASC)\nSELECT \"fk_aggregate\".\"lt__ts_month\" \"lt__ts_month\", \"fk_aggregate\".\"lt__r100y\" \"lt__r100y\" \nFROM  cte_1  AS \"fk_aggregate\"\nORDER BY  1  ASC\nLIMIT 10000 PARAMS [\"1925-04-01T00:00:00.000\", \"2025-06-30T23:59:58.999\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "far_bound_two_months"
+ },
+ {
+  "rows": [
+   [
+    "2025-04-01T00:00:00.000",
+    "11"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "1100"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT date_trunc('month', (\"lt\".ts::timestamptz AT TIME ZONE 'UTC')) \"lt__ts_month\", sum(\"lt\".amt) \"lt__rev\" \nFROM  audit.lt  AS \"lt\"\nWHERE (\"lt\".ts >= $1::timestamptz AND \"lt\".ts <= $2::timestamptz)\nGROUP BY 1\nORDER BY  1  ASC\nLIMIT 10000 PARAMS [\"2025-04-01T00:00:00.000Z\", \"2025-05-31T23:59:59.999Z\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "plain_sum_control"
+ },
+ {
+  "rows": [
+   [
+    "2025-04-01T00:00:00.000",
+    "11"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "1100"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.lr_by_day"
+  ],
+  "generated": " WITH \ntime_series AS (  select to_timestamp('2025-04-01T00:00:00.000') date_from, to_timestamp('2025-04-30T23:59:59.999') date_to \n   UNION ALL\n  select to_timestamp('2025-05-01T00:00:00.000') date_from, to_timestamp('2025-05-31T23:59:59.999') date_to ),\ncte_0 AS (  SELECT date_trunc('day', \"lr__ts_day\") \"lr__ts_day\", sum(\"lr__r30\") \"lr__r30\" \n  FROM  dev_pre_aggregations.lr_by_day  AS \"lr__by_day\"\n  WHERE (CONVERT_TZ(\"lr__ts_day\", '+00:00') >= CAST(? as TIMESTAMP) AND CONVERT_TZ(\"lr__ts_day\", '+00:00') <= CAST(? as TIMESTAMP))\n  GROUP BY 1\n  ORDER BY  1  ASC),\ncte_1 AS (  SELECT \"time_series\".\"date_from\" \"lr__ts_month\", sum(\"rolling_source\".\"lr__r30\") \"lr__r30\" \n  FROM  time_series  AS \"time_series\"\n  LEFT JOIN  cte_0  AS \"rolling_source\" ON \"rolling_source\".\"lr__ts_day\" > \"time_series\".\"date_to\" - interval '30 day' AND \"rolling_source\".\"lr__ts_day\" <= \"time_series\".\"date_to\"\n  GROUP BY 1\n  ORDER BY  1  ASC)\nSELECT \"fk_aggregate\".\"lr__ts_month\" \"lr__ts_month\", \"fk_aggregate\".\"lr__r30\" \"lr__r30\" \nFROM  cte_1  AS \"fk_aggregate\"\nORDER BY  1  ASC\nLIMIT 10000 PARAMS [\"2025-03-02T00:00:00.000\", \"2025-05-31T23:59:59.999\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "rollup_two_months"
+ }
+]

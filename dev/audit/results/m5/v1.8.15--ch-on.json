@@ -1,0 +1,121 @@
+[
+ {
+  "rows": null,
+  "error": "HTTP 400 ClickHouse doesn't support pre-aggregations without indexes",
+  "shape": "rest",
+  "used": null,
+  "verdict": "match",
+  "truth": "a\t30\nb\t40",
+  "id": "db_no_index"
+ },
+ {
+  "rows": null,
+  "error": "HTTP 400 Error: Command failed: Error: Missing columns: 'c_db_idx__st' while processing: '(c_db_idx__st)', required columns: 'c_db_idx__st', available columns: '_block_number' '_row_exists' '_database' '_distance' '_part_data_version' '_part_granule_offset' '_part_offset' '_disk_name' '_sample_factor' '_block_offset' '_table' '_part_uuid' '_part_index' '_part' 'id' 'st.size' 'amt' 'st' 'ts' '_part_starting_offset' '_partition_id'. ; query id: 0dd7575c-5354-4619-8de9-1c0c4ce8cc1f-69503b3f-b869-4188-9cd5-b317caf814ae",
+  "shape": "rest",
+  "used": null,
+  "generated": "SELECT `c_db_idx`.st `c_db_idx__st`, sum(`c_db_idx`.amt) `c_db_idx__rev` \nFROM  dev_pre_aggregations.c_db_idx_base  AS `c_db_idx`\nGROUP BY 1\nORDER BY  1  ASC\nLIMIT 10000 PARAMS []",
+  "verdict": "diff",
+  "truth": "a\t30\nb\t40",
+  "id": "db_index"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: Command failed: Error: Missing columns: 'c_db_idx__st' while processing: '(c_db_idx__st)', required columns: 'c_db_idx__st', available columns: '_block_number' '_row_exists' '_database' '_distance' '_part_data_version' '_part_granule_offset' '_part_offset' '_disk_name' '_sample_factor' '_block_offset' '_table' '_part_uuid' '_part_index' '_part' 'id' 'st.size' 'amt' 'st' 'ts' '_part_starting_offset' '_partition_id'. ; query id: c788b860-3245-4d6c-8a62-2e20de91bbff-5b9c95da-d9be-4df3-8747-d0086fe0434a",
+  "shape": "regular",
+  "oids": [],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"c_db_idx.rev\"\n  ],\n  \"dimensions\": [\n    \"c_db_idx.st\"\n  ],\n  \"segments\": [],\n  \"order\": [\n    [\n      \"c_db_idx.st\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"c_db_idx.rev\"],\"dimensions\":[\"c_db_idx.st\"],\"segments\":[],\"order\":[[\"c_db_idx.st\",\"asc\"]]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "db_index_sql"
+ },
+ {
+  "rows": null,
+  "error": "HTTP 400 ClickHouse doesn't support pre-aggregations without indexes",
+  "shape": "rest",
+  "used": null,
+  "verdict": "diff",
+  "truth": null,
+  "id": "ext_no_index"
+ },
+ {
+  "rows": null,
+  "error": "HTTP 400 Error: Error during create table dev_pre_aggregations.c_ext_idx_base_nxmzbxek_kttw5y5z_1lea64i: Column 'c_ext_idx__st' in index 'c_ext_idx_base_st_i_nxmzbxek_kttw5y5z_1lea64i' is not found in table 'c_ext_idx_base_nxmzbxek_kttw5y5z_1lea64i'",
+  "shape": "rest",
+  "used": null,
+  "generated": "SELECT `c_ext_idx`.st `c_ext_idx__st`, sum(`c_ext_idx`.amt) `c_ext_idx__rev` \nFROM  dev_pre_aggregations.c_ext_idx_base  AS `c_ext_idx`\nGROUP BY 1\nORDER BY  1  ASC\nLIMIT 10000 PARAMS []",
+  "verdict": "diff",
+  "truth": null,
+  "id": "ext_index"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: Error during create table dev_pre_aggregations.c_ext_idx_base_nxmzbxek_kttw5y5z_1lea64i: Column 'c_ext_idx__st' in index 'c_ext_idx_base_st_i_nxmzbxek_kttw5y5z_1lea64i' is not found in table 'c_ext_idx_base_nxmzbxek_kttw5y5z_1lea64i'",
+  "shape": "regular",
+  "oids": [],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"c_ext_idx.rev\"\n  ],\n  \"dimensions\": [\n    \"c_ext_idx.st\"\n  ],\n  \"segments\": [],\n  \"order\": [\n    [\n      \"c_ext_idx.st\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"c_ext_idx.rev\"],\"dimensions\":[\"c_ext_idx.st\"],\"segments\":[],\"order\":[[\"c_ext_idx.st\",\"asc\"]]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "ext_index_sql"
+ },
+ {
+  "rows": null,
+  "error": "HTTP 400 Error: Command failed: Error: Missing columns: 'c_db_roll__st' while processing: '(c_db_roll__st)', required columns: 'c_db_roll__st', available columns: '_block_number' '_row_exists' '_database' '_distance' '_part_data_version' '_part_granule_offset' '_part_offset' '_disk_name' '_sample_factor' '_block_offset' '_table' '_part_uuid' '_part_index' '_part' 'id' 'st.size' 'amt' 'st' 'ts' '_part_starting_offset' '_partition_id'. ; query id: b9b88683-ccae-48f2-a817-bc504399cb70-7b2a74b8-ed12-4ea7-be09-07b33f8ff0a7",
+  "shape": "rest",
+  "used": null,
+  "generated": "SELECT \"c_db_roll__st\" \"c_db_roll__st\", sum(\"c_db_roll__rev\") \"c_db_roll__rev\" \nFROM  dev_pre_aggregations.c_db_roll_roll  AS \"c_db_roll__roll\"\nGROUP BY 1\nORDER BY  1  ASC\nLIMIT 10000 PARAMS []",
+  "verdict": "diff",
+  "truth": null,
+  "id": "db_rollup_over"
+ },
+ {
+  "rows": null,
+  "error": "HTTP 400 ClickHouse doesn't support pre-aggregations without indexes",
+  "shape": "rest",
+  "used": null,
+  "verdict": "diff",
+  "truth": null,
+  "id": "ext_rollup_over"
+ },
+ {
+  "rows": [
+   [
+    "a",
+    "30"
+   ],
+   [
+    "b",
+    "40"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.c_plain_roll_roll"
+  ],
+  "generated": "SELECT \"c_plain_roll__st\" \"c_plain_roll__st\", sum(\"c_plain_roll__rev\") \"c_plain_roll__rev\" \nFROM  dev_pre_aggregations.c_plain_roll_roll  AS \"c_plain_roll__roll\"\nGROUP BY 1\nORDER BY  1  ASC\nLIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "plain_rollup_control"
+ },
+ {
+  "rows": [
+   [
+    "a",
+    "30"
+   ],
+   [
+    "b",
+    "40"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.c_aliased_base"
+  ],
+  "generated": "SELECT `c_aliased`.c_aliased__st `c_aliased__st`, sum(`c_aliased`.amt) `c_aliased__rev` \nFROM  dev_pre_aggregations.c_aliased_base  AS `c_aliased`\nGROUP BY 1\nORDER BY  1  ASC\nLIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "alias_column_workaround"
+ }
+]

@@ -1,0 +1,278 @@
+[
+ {
+  "rows": [
+   [
+    "9007199254740992"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"bn.u\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"bn.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"1\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"bn.u\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"bn.id\",\"operator\":\"equals\",\"values\":[\"1\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "sql_2p53_control"
+ },
+ {
+  "rows": [
+   [
+    "9007199254740992"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"bn.u\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"bn.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"2\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"bn.u\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"bn.id\",\"operator\":\"equals\",\"values\":[\"2\"]}],\"ungrouped\":true}\n",
+  "verdict": "diff",
+  "truth": "9007199254740993",
+  "id": "sql_2p53_plus1"
+ },
+ {
+  "rows": [
+   [
+    "18446744073709552000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"bn.u\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"bn.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"3\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"bn.u\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"bn.id\",\"operator\":\"equals\",\"values\":[\"3\"]}],\"ungrouped\":true}\n",
+  "verdict": "diff",
+  "truth": "18446744073709551615",
+  "id": "sql_uint64_max"
+ },
+ {
+  "rows": [
+   [
+    "-9007199254740992"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"bn.i\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"bn.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"2\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"bn.i\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"bn.id\",\"operator\":\"equals\",\"values\":[\"2\"]}],\"ungrouped\":true}\n",
+  "verdict": "diff",
+  "truth": "-9007199254740993",
+  "id": "sql_negative"
+ },
+ {
+  "rows": [
+   [
+    "3000000000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"bn.dc\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"bn.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"2\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"bn.dc\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"bn.id\",\"operator\":\"equals\",\"values\":[\"2\"]}],\"ungrouped\":true}\n",
+  "verdict": "diff",
+  "truth": "3000000000000.00000003",
+  "id": "sql_decimal"
+ },
+ {
+  "rows": [
+   [
+    "0.00000001"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"bn.dc\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"bn.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"3\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"bn.dc\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"bn.id\",\"operator\":\"equals\",\"values\":[\"3\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "sql_small_decimal_control"
+ },
+ {
+  "rows": [
+   [
+    "-9007199254740992"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"bn.sum_i\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"bn.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"2\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"bn.sum_i\"],\"dimensions\":[],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"bn.id\",\"operator\":\"equals\",\"values\":[\"2\"]}]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "sql_measure_sum"
+ },
+ {
+  "rows": [
+   [
+    "9007199254740992"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nProjection: #bn.u + #Int64(0) AS Int64(0) AS x\n  CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"bn.u\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"bn.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"2\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nProjectionExec: expr=[u@0 + CAST(Int64(0)@1 AS Float64) as x]\n  CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"bn.u\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"bn.id\",\"operator\":\"equals\",\"values\":[\"2\"]}],\"ungrouped\":true}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "sql_expression_pushdown"
+ },
+ {
+  "rows": [
+   [
+    "9007199254740992"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"bn.f\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"bn.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"3\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"bn.f\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"bn.id\",\"operator\":\"equals\",\"values\":[\"3\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": "9007199254740992",
+  "id": "sql_float_control"
+ },
+ {
+  "rows": [
+   [
+    "9007199254740993"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   25
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"bn.u_text\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"bn.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"2\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"bn.u_text\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"bn.id\",\"operator\":\"equals\",\"values\":[\"2\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "sql_text_workaround"
+ },
+ {
+  "rows": [
+   [
+    "3000000000000.00000003"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   25
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"bn.dc_text\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"bn.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"2\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"bn.dc_text\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"bn.id\",\"operator\":\"equals\",\"values\":[\"2\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "sql_text_decimal_workaround"
+ },
+ {
+  "rows": [
+   [
+    "9007199254740992"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      `bn`.u `bn__u`\n    FROM\n      audit.bn AS `bn`  WHERE (`bn`.id = toFloat64(?)) GROUP BY `bn__u` ORDER BY `bn__u` ASC LIMIT 10000 PARAMS [\"2\"]",
+  "verdict": "diff",
+  "truth": null,
+  "id": "rest_2p53_plus1"
+ },
+ {
+  "rows": [
+   [
+    "18446744073709552000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      `bn`.u `bn__u`\n    FROM\n      audit.bn AS `bn`  WHERE (`bn`.id = toFloat64(?)) GROUP BY `bn__u` ORDER BY `bn__u` ASC LIMIT 10000 PARAMS [\"3\"]",
+  "verdict": "diff",
+  "truth": null,
+  "id": "rest_uint64_max"
+ },
+ {
+  "rows": [
+   [
+    "-9007199254740992"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      `bn`.i `bn__i`\n    FROM\n      audit.bn AS `bn`  WHERE (`bn`.id = toFloat64(?)) GROUP BY `bn__i` ORDER BY `bn__i` ASC LIMIT 10000 PARAMS [\"2\"]",
+  "verdict": "diff",
+  "truth": null,
+  "id": "rest_negative"
+ },
+ {
+  "rows": [
+   [
+    "3000000000000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      `bn`.dc `bn__dc`\n    FROM\n      audit.bn AS `bn`  WHERE (`bn`.id = toFloat64(?)) GROUP BY `bn__dc` ORDER BY `bn__dc` ASC LIMIT 10000 PARAMS [\"2\"]",
+  "verdict": "diff",
+  "truth": null,
+  "id": "rest_decimal"
+ },
+ {
+  "rows": [
+   [
+    "-9007199254740992"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      sum(`bn`.i) `bn__sum_i`\n    FROM\n      audit.bn AS `bn`  WHERE (`bn`.id = toFloat64(?)) LIMIT 10000 PARAMS [\"2\"]",
+  "verdict": "diff",
+  "truth": null,
+  "id": "rest_measure_sum"
+ },
+ {
+  "rows": [
+   [
+    "6"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      sum(`bn`.small) `bn__sum_small`\n    FROM\n      audit.bn AS `bn`  LIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "rest_small_control"
+ },
+ {
+  "rows": [
+   [
+    "6"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"bn.sum_small\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"bn.sum_small\"],\"dimensions\":[],\"segments\":[],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "sql_small_control"
+ }
+]

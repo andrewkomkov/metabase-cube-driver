@@ -1,0 +1,22 @@
+[
+ {
+  "rows": [],
+  "error": "Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEquals(__table4.u__ts_month, __table2.date_to). ; query id: a5ffddf9-92aa-4657-8f7d-51f2cca78d04",
+  "shape": "regular",
+  "oids": [],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"u.cum\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"u.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-04-01\",\n        \"2025-05-31T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"u.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"u.cum\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"u.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-04-01\",\"2025-05-31T23:59:59.999Z\"]}],\"order\":[[\"u.ts\",\"asc\"]]}\n",
+  "verdict": "diff",
+  "truth": "1111",
+  "id": "two_months_sql"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEquals(__table4.u__ts_month, __table2.date_to). ; query id: 8e44339f-2294-4437-a8ce-b88105c53054",
+  "shape": "regular",
+  "oids": [],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"u.cum\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"u.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-04-01\",\n        \"2025-04-30T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"u.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"u.cum\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"u.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-04-01\",\"2025-04-30T23:59:59.999Z\"]}],\"order\":[[\"u.ts\",\"asc\"]]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "one_month_sql"
+ }
+]

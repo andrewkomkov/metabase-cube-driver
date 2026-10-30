@@ -1,0 +1,38 @@
+[
+ {
+  "rows": [
+   [
+    "550",
+    "6"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrapper\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"sum_q_amt_dim_\" \"s\", \"count_uint8_1__\" \"c\" \nFROM (\n  SELECT\n        SUM(\"items\".amt) \"sum_q_amt_dim_\", COUNT(*) \"count_uint8_1__\"\n      FROM\n        audit.items AS \"items\"  HAVING (sum(\"items\".amt) > $1)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": "500\t2",
+  "id": "gt_between"
+ },
+ {
+  "rows": [
+   [
+    "550",
+    "6"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrapper\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"sum_q_amt_dim_\" \"s\", \"count_uint8_1__\" \"c\" \nFROM (\n  SELECT\n        SUM(\"items\".amt) \"sum_q_amt_dim_\", COUNT(*) \"count_uint8_1__\"\n      FROM\n        audit.items AS \"items\"  HAVING (sum(\"items\".amt) > $1)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": "\\N\t0",
+  "id": "above_each_row_below_total"
+ }
+]

@@ -1,0 +1,482 @@
+[
+ {
+  "rows": [
+   [
+    "1",
+    "2024-02-01 10:00:00.000000"
+   ],
+   [
+    "2",
+    "2024-03-01 00:00:00.000000"
+   ],
+   [
+    "3",
+    "2025-03-10 01:30:00.000000"
+   ],
+   [
+    "4",
+    "2026-01-01 23:59:59.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"it\".id \"id\", ((\"it\".ts::timestamptz AT TIME ZONE 'UTC') + INTERVAL '1 DAY') \"x\" \nFROM  audit.it  AS \"it\"\nORDER BY  1  ASC\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": "1\t2024-02-01 10:00:00\n2\t2024-03-01 00:00:00\n3\t2025-03-10 01:30:00\n4\t2026-01-01 23:59:59",
+  "id": "raw_plus_day"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2024-02-01 10:00:00.000000"
+   ],
+   [
+    "2",
+    "2024-03-01 00:00:00.000000"
+   ],
+   [
+    "3",
+    "2025-03-10 01:30:00.000000"
+   ],
+   [
+    "4",
+    "2026-01-01 23:59:59.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nProjection: #it.id, #it.ts + #IntervalDayTime(\"4294967296\") AS IntervalDayTime(\"4294967296\") AS x\n  CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"ungrouped\": true\n}\nphysical_plan\nProjectionExec: expr=[id@0 as id, ts@1 + IntervalDayTime(\"4294967296\")@2 as x]\n  CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.ts\"],\"segments\":[],\"order\":[],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_plus_day_no_order"
+ },
+ {
+  "rows": [
+   [
+    "2",
+    "2024-03-01 00:00:00.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"it\".id \"id\", ((\"it\".ts::timestamptz AT TIME ZONE 'UTC') + INTERVAL '1 DAY') \"x\" \nFROM  audit.it  AS \"it\"\nWHERE (\"it\".id = $1)\nORDER BY  1  ASC\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_plus_day_where_order"
+ },
+ {
+  "rows": [
+   [
+    "2",
+    "2024-03-01 00:00:00.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nProjection: #it.id, #it.ts + #IntervalDayTime(\"4294967296\") AS IntervalDayTime(\"4294967296\") AS x\n  CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"2\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nProjectionExec: expr=[id@0 as id, ts@1 + IntervalDayTime(\"4294967296\")@2 as x]\n  CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.ts\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.id\",\"operator\":\"equals\",\"values\":[\"2\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_plus_day_where"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2024-02-01 10:00:00.000000"
+   ],
+   [
+    "2",
+    "2024-03-01 00:00:00.000000"
+   ],
+   [
+    "3",
+    "2025-03-10 01:30:00.000000"
+   ],
+   [
+    "4",
+    "2026-01-01 23:59:59.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"it\".id \"id\", ((\"it\".ts::timestamptz AT TIME ZONE 'UTC') + INTERVAL '1 DAY') \"x\" \nFROM  audit.it  AS \"it\"\nORDER BY  2  ASC\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_plus_day_order_time"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-01 10:00:00.000000",
+    "1"
+   ],
+   [
+    "2025-03-10 01:30:00.000000",
+    "1"
+   ],
+   [
+    "2024-03-01 00:00:00.000000",
+    "1"
+   ],
+   [
+    "2026-01-01 23:59:59.000000",
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   1114,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"it\".\"it_ts___interval\" \"x\", \"it\".\"measure_it_n_\" \"c\" \nFROM (\n  SELECT ((\"it\".ts::timestamptz AT TIME ZONE 'UTC') + INTERVAL '1 DAY') \"it_ts___interval\", count(\"it\".id) \"measure_it_n_\" \n  FROM  audit.it  AS \"it\"\n  GROUP BY 1\n) AS \"it\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "aggregated_no_order"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2024-02-01 10:00:00.000000"
+   ],
+   [
+    "2",
+    "2024-03-01 00:00:00.000000"
+   ],
+   [
+    "3",
+    "2025-03-10 01:30:00.000000"
+   ],
+   [
+    "4",
+    "2026-01-01 23:59:59.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"it\".id \"id\", ((\"it\".ts::timestamptz AT TIME ZONE 'UTC') + INTERVAL '1 DAY') \"x\" \nFROM  audit.it  AS \"it\"\nORDER BY  1  ASC\nLIMIT 10\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_plus_day_order_limit"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-01 10:00:00.000000",
+    "1"
+   ],
+   [
+    "2024-03-01 00:00:00.000000",
+    "1"
+   ],
+   [
+    "2025-03-10 01:30:00.000000",
+    "1"
+   ],
+   [
+    "2026-01-01 23:59:59.000000",
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   1114,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"it\".\"it_ts___interval\" \"x\", \"it\".\"measure_it_n_\" \"c\" \nFROM (\n  SELECT ((\"it\".ts::timestamptz AT TIME ZONE 'UTC') + INTERVAL '1 DAY') \"it_ts___interval\", count(\"it\".id) \"measure_it_n_\" \n  FROM  audit.it  AS \"it\"\n  GROUP BY 1\n) AS \"it\"\nORDER BY \"it\".\"it_ts___interval\" ASC NULLS LAST\nLIMIT 10\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "aggregated_order_limit"
+ },
+ {
+  "rows": [
+   [
+    "2",
+    "2024-02-28 00:00:00.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nProjection: #it.id, #it.ts - #IntervalDayTime(\"4294967296\") AS IntervalDayTime(\"4294967296\") AS x\n  CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"2\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nProjectionExec: expr=[id@0 as id, ts@1 - IntervalDayTime(\"4294967296\")@2 as x]\n  CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.ts\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.id\",\"operator\":\"equals\",\"values\":[\"2\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_minus_day"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2024-02-29 10:00:00.000000"
+   ],
+   [
+    "2",
+    "2024-03-29 00:00:00.000000"
+   ],
+   [
+    "3",
+    "2025-04-09 01:30:00.000000"
+   ],
+   [
+    "4",
+    "2026-01-31 23:59:59.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"it\".id \"id\", ((\"it\".ts::timestamptz AT TIME ZONE 'UTC') + INTERVAL '1 MONTH') \"x\" \nFROM  audit.it  AS \"it\"\nORDER BY  1  ASC\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_plus_month"
+ },
+ {
+  "rows": [
+   [
+    "3",
+    "2025-03-10 03:30:00.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nProjection: #it.id, #it.ts + #IntervalDayTime(\"4302167296\") AS IntervalDayTime(\"4302167296\") AS x\n  CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"3\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nProjectionExec: expr=[id@0 as id, ts@1 + IntervalDayTime(\"4302167296\")@2 as x]\n  CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.ts\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.id\",\"operator\":\"equals\",\"values\":[\"3\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_two_units"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2024-02-01 00:00:00.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nProjection: #it.id, #it.d + #IntervalDayTime(\"4294967296\") AS IntervalDayTime(\"4294967296\") AS x\n  CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.d\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"1\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nProjectionExec: expr=[id@0 as id, d@1 + IntervalDayTime(\"4294967296\")@2 as x]\n  CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.d\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.id\",\"operator\":\"equals\",\"values\":[\"1\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "date_column"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-01 10:00:00.000000",
+    "1"
+   ],
+   [
+    "2024-03-01 00:00:00.000000",
+    "1"
+   ],
+   [
+    "2025-03-10 01:30:00.000000",
+    "1"
+   ],
+   [
+    "2026-01-01 23:59:59.000000",
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   1114,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"it\".\"it_ts___interval\" \"x\", \"it\".\"measure_it_n_\" \"c\" \nFROM (\n  SELECT ((\"it\".ts::timestamptz AT TIME ZONE 'UTC') + INTERVAL '1 DAY') \"it_ts___interval\", count(\"it\".id) \"measure_it_n_\" \n  FROM  audit.it  AS \"it\"\n  GROUP BY 1\n) AS \"it\"\nORDER BY \"it\".\"it_ts___interval\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "aggregated"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-01 00:00:00.000000",
+    "1"
+   ],
+   [
+    "2024-03-01 00:00:00.000000",
+    "1"
+   ],
+   [
+    "2025-04-01 00:00:00.000000",
+    "1"
+   ],
+   [
+    "2026-01-01 00:00:00.000000",
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   1114,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"it\".\"datetrunc_utf8__\" \"x\", \"it\".\"measure_it_n_\" \"c\" \nFROM (\n  SELECT (date_trunc('month', (\"it\".ts::timestamptz AT TIME ZONE 'UTC')) + INTERVAL '1 MONTH') \"datetrunc_utf8__\", count(\"it\".id) \"measure_it_n_\" \n  FROM  audit.it  AS \"it\"\n  GROUP BY 1\n) AS \"it\"\nORDER BY \"it\".\"datetrunc_utf8__\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "bucket_plus"
+ },
+ {
+  "rows": [
+   [
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"it\".\"measure_it_n_\" \"c\" \nFROM (\n  SELECT count(\"it\".id) \"measure_it_n_\" \n  FROM  audit.it  AS \"it\"\n  WHERE ((((\"it\".ts::timestamptz AT TIME ZONE 'UTC') + INTERVAL '1 DAY') >= timestamptz '2025-12-31T00:00:00.000Z'))\n) AS \"it\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "filter_column_plus"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2024-02-01 10:00:00.000000"
+   ],
+   [
+    "2",
+    "2024-03-01 00:00:00.000000"
+   ],
+   [
+    "3",
+    "2025-03-10 01:30:00.000000"
+   ],
+   [
+    "4",
+    "2026-01-01 23:59:59.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"it\".id \"id\", ((\"it\".ts::timestamptz AT TIME ZONE 'UTC') + '1 DAY'::interval) \"x\" \nFROM  audit.it  AS \"it\"\nORDER BY  1  ASC\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "date_add_function"
+ },
+ {
+  "rows": [
+   [
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"it.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-01-01T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"it.n\"],\"dimensions\":[],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-01-01T00:00:00.000Z\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "filter_constant_control"
+ },
+ {
+  "rows": [
+   [
+    "2024-01-02 00:00:00.000000",
+    "2"
+   ],
+   [
+    "2025-01-02 00:00:00.000000",
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   1114,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT (\"q\".\"m\" + INTERVAL '1 DAY') \"x\", \"q\".\"c\" \"c\" \nFROM (\n  SELECT date_trunc('year', (\"it\".ts::timestamptz AT TIME ZONE 'UTC')) \"m\", count(\"it\".id) \"c\" \n  FROM  audit.it  AS \"it\"\n  GROUP BY 1\n) AS \"q\"\nORDER BY (\"q\".\"m\" + INTERVAL '1 DAY') ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "outer_over_scan"
+ },
+ {
+  "rows": [
+   [
+    "3",
+    "2025-03-09 20:30:00.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nProjection: #it.id, #it.ts + #IntervalDayTime(\"4294967296\") AS IntervalDayTime(\"4294967296\") AS x\n  CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"3\"\n      ]\n    }\n  ],\n  \"ungrouped\": true,\n  \"timezone\": \"America/New_York\"\n}\nphysical_plan\nProjectionExec: expr=[id@0 as id, ts@1 + IntervalDayTime(\"4294967296\")@2 as x]\n  CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.ts\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.id\",\"operator\":\"equals\",\"values\":[\"3\"]}],\"ungrouped\":true,\"timezone\":\"America/New_York\"}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "time_zone_dst"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2024-01-31 10:00:00.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"1\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.ts\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.id\",\"operator\":\"equals\",\"values\":[\"1\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "no_interval_control"
+ }
+]

@@ -1,0 +1,175 @@
+[
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT w, c FROM (SELECT CAST(floor(DATEDIFF('day', TIMESTAMP '2001-01-07 00:00:00', ts) / 7.0) AS BIGINT) AS w, MEASURE(n) AS c FROM wk WHERE ts >= 'replaced_placeholder' GROUP BY 1) q ORDER BY 1",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `q`.`w` `w`, `q`.`c` `c` \nFROM (\n  SELECT `wk`.`cast_floor_dated` `w`, `wk`.`measure_wk_n_` `c` \n  FROM (\n    SELECT\n          CAST(FLOOR((DATEDIFF(day, parseDateTimeBestEffort('2001-01-07T00:00:00.000Z'), toTimeZone(toDateTime64(`wk`.ts, 0), 'UTC')) / 7)) AS BIGINT) `cast_floor_dated`, count(`wk`.id) `measure_wk_n_`\n        FROM\n          audit.wk AS `wk`  WHERE (`wk`.ts >= parseDateTimeBestEffort(?)) GROUP BY `cast_floor_dated`\n  ) AS `wk`\n  ORDER BY `wk`.`cast_floor_dated` ASC NULLS LAST\n) AS `q`\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "untyped"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT w, c FROM (SELECT CAST(floor(DATEDIFF('day', TIMESTAMP '2001-01-07 00:00:00', ts) / 7.0) AS BIGINT) AS w, MEASURE(n) AS c FROM wk WHERE ts >= 'replaced_placeholder' GROUP BY 1) q ORDER BY 1",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `q`.`w` `w`, `q`.`c` `c` \nFROM (\n  SELECT `wk`.`cast_floor_dated` `w`, `wk`.`measure_wk_n_` `c` \n  FROM (\n    SELECT\n          CAST(FLOOR((DATEDIFF(day, parseDateTimeBestEffort('2001-01-07T00:00:00.000Z'), toTimeZone(toDateTime64(`wk`.ts, 0), 'UTC')) / 7)) AS BIGINT) `cast_floor_dated`, count(`wk`.id) `measure_wk_n_`\n        FROM\n          audit.wk AS `wk`  WHERE (`wk`.ts >= parseDateTimeBestEffort(?)) GROUP BY `cast_floor_dated`\n  ) AS `wk`\n  ORDER BY `wk`.`cast_floor_dated` ASC NULLS LAST\n) AS `q`\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "oid_timestamp"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT w, c FROM (SELECT CAST(floor(DATEDIFF('day', TIMESTAMP '2001-01-07 00:00:00', ts) / 7.0) AS BIGINT) AS w, MEASURE(n) AS c FROM wk WHERE ts >= 'replaced_placeholder' GROUP BY 1) q ORDER BY 1",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `q`.`w` `w`, `q`.`c` `c` \nFROM (\n  SELECT `wk`.`cast_floor_dated` `w`, `wk`.`measure_wk_n_` `c` \n  FROM (\n    SELECT\n          CAST(FLOOR((DATEDIFF(day, parseDateTimeBestEffort('2001-01-07T00:00:00.000Z'), toTimeZone(toDateTime64(`wk`.ts, 0), 'UTC')) / 7)) AS BIGINT) `cast_floor_dated`, count(`wk`.id) `measure_wk_n_`\n        FROM\n          audit.wk AS `wk`  WHERE (`wk`.ts >= parseDateTimeBestEffort(?)) GROUP BY `cast_floor_dated`\n  ) AS `wk`\n  ORDER BY `wk`.`cast_floor_dated` ASC NULLS LAST\n) AS `q`\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "oid_varchar"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT w, c FROM (SELECT CAST(floor(DATEDIFF('day', TIMESTAMP '2001-01-07 00:00:00', ts) / 7.0) AS BIGINT) AS w, MEASURE(n) AS c FROM wk WHERE ts >= 'replaced_placeholder' GROUP BY 1) q ORDER BY 1",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `q`.`w` `w`, `q`.`c` `c` \nFROM (\n  SELECT `wk`.`cast_floor_dated` `w`, `wk`.`measure_wk_n_` `c` \n  FROM (\n    SELECT\n          CAST(FLOOR((DATEDIFF(day, parseDateTimeBestEffort('2001-01-07T00:00:00.000Z'), toTimeZone(toDateTime64(`wk`.ts, 0), 'UTC')) / 7)) AS BIGINT) `cast_floor_dated`, count(`wk`.id) `measure_wk_n_`\n        FROM\n          audit.wk AS `wk`  WHERE (`wk`.ts >= parseDateTimeBestEffort(?)) GROUP BY `cast_floor_dated`\n  ) AS `wk`\n  ORDER BY `wk`.`cast_floor_dated` ASC NULLS LAST\n) AS `q`\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "one_second_before"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT w, c FROM (SELECT CAST(floor(DATEDIFF('day', TIMESTAMP '2001-01-07 00:00:00', ts) / 7.0) AS BIGINT) AS w, MEASURE(n) AS c FROM wk WHERE ts >= 'replaced_placeholder' GROUP BY 1) q ORDER BY 1",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `q`.`w` `w`, `q`.`c` `c` \nFROM (\n  SELECT `wk`.`cast_floor_dated` `w`, `wk`.`measure_wk_n_` `c` \n  FROM (\n    SELECT\n          CAST(FLOOR((DATEDIFF(day, parseDateTimeBestEffort('2001-01-07T00:00:00.000Z'), toTimeZone(toDateTime64(`wk`.ts, 0), 'UTC')) / 7)) AS BIGINT) `cast_floor_dated`, count(`wk`.id) `measure_wk_n_`\n        FROM\n          audit.wk AS `wk`  WHERE (`wk`.ts >= parseDateTimeBestEffort(?)) GROUP BY `cast_floor_dated`\n  ) AS `wk`\n  ORDER BY `wk`.`cast_floor_dated` ASC NULLS LAST\n) AS `q`\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "empty_result"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: Query failed: Error: A value of illegal type was provided as 2nd argument 'startdate' to function 'dateDiff'. Expected: Date[32] or DateTime[64], got: String: In scope SELECT CAST(FLOOR((dateDiff('day', '2025-01-05 00:00:00', toTimeZone(toDateTime64(wk.ts, 0), 'UTC')) / 7)), 'BIGINT') AS cast_floor_dated, count(wk.id) AS measure_wk_n_ FROM audit.wk AS wk GROUP BY cast_floor_dated. ; query id: 188bd3f3-2381-422e-90a3-4339cb56d246-809443a9-0117-43f9-95be-08aa486880c2",
+  "shape": null,
+  "oids": [
+   20,
+   20
+  ],
+  "verdict": "diff",
+  "truth": null,
+  "id": "in_inner_and_diff"
+ },
+ {
+  "rows": [
+   [
+    "1252",
+    "2"
+   ],
+   [
+    "1253",
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   20,
+   20
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "cast_control"
+ },
+ {
+  "rows": [
+   [
+    "1252",
+    "2"
+   ],
+   [
+    "1253",
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   20,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `q`.`w` `w`, `q`.`c` `c` \nFROM (\n  SELECT `wk`.`cast_floor_dated` `w`, `wk`.`measure_wk_n_` `c` \n  FROM (\n    SELECT\n          CAST(FLOOR((DATEDIFF(day, parseDateTimeBestEffort('2001-01-07T00:00:00.000Z'), toTimeZone(toDateTime64(`wk`.ts, 0), 'UTC')) / 7)) AS BIGINT) `cast_floor_dated`, count(`wk`.id) `measure_wk_n_`\n        FROM\n          audit.wk AS `wk`  WHERE (`wk`.ts >= parseDateTimeBestEffort(?)) GROUP BY `cast_floor_dated`\n  ) AS `wk`\n  ORDER BY `wk`.`cast_floor_dated` ASC NULLS LAST\n) AS `q`\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "literal_control"
+ },
+ {
+  "rows": [
+   [
+    "1251",
+    "1"
+   ],
+   [
+    "1252",
+    "2"
+   ],
+   [
+    "1253",
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   20,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `wk`.`cast_floor_dated` `w`, `wk`.`measure_wk_n_` `c` \nFROM (\n  SELECT\n        CAST(FLOOR((DATEDIFF(day, parseDateTimeBestEffort('2001-01-07T00:00:00.000Z'), toTimeZone(toDateTime64(`wk`.ts, 0), 'UTC')) / 7)) AS BIGINT) `cast_floor_dated`, count(`wk`.id) `measure_wk_n_`\n      FROM\n        audit.wk AS `wk`  GROUP BY `cast_floor_dated`\n) AS `wk`\nORDER BY `wk`.`cast_floor_dated` ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "no_param_control"
+ },
+ {
+  "rows": [
+   [
+    "1252",
+    "1"
+   ],
+   [
+    "1253",
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   20,
+   20
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "text_param_control"
+ },
+ {
+  "rows": [
+   [
+    "2024-12-30 00:00:00.000000",
+    "1"
+   ],
+   [
+    "2025-01-06 00:00:00.000000",
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   1114,
+   20
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "date_trunc_week_param"
+ }
+]

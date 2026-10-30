@@ -1,0 +1,163 @@
+[
+ {
+  "rows": [
+   [
+    "11"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"rt\".\"max_rt_rev_\" \"x\" \nFROM (\n  SELECT max(\"rt\".amt) \"max_rt_rev_\" \n  FROM  audit.rt  AS \"rt\"\n) AS \"rt\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "max_of_regular_sum"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: missing FROM-clause entry for table \"rt\"",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"rt\".\"max_rt_rev_30d_\" \"x\" \nFROM (\n   WITH \n  cte_0 AS (  SELECT max(\"rt\".amt) \"rt__rev_30d\" \n    FROM  audit.rt  AS \"rt\"),\n  cte_1 AS (  SELECT * \n    FROM  cte_0  AS \"fk_aggregate\")\n  SELECT max(\"rt\".amt) \"max_rt_rev_30d_\" \n) AS \"rt\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "max_of_rolling_sum"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: missing FROM-clause entry for table \"rt\"",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"rt\".\"min_rt_rev_30d_\" \"x\" \nFROM (\n   WITH \n  cte_0 AS (  SELECT min(\"rt\".amt) \"rt__rev_30d\" \n    FROM  audit.rt  AS \"rt\"),\n  cte_1 AS (  SELECT * \n    FROM  cte_0  AS \"fk_aggregate\")\n  SELECT min(\"rt\".amt) \"min_rt_rev_30d_\" \n) AS \"rt\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "min_of_rolling_sum"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: missing FROM-clause entry for table \"rt\"",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"rt\".\"avg_rt_rev_30d_\" \"x\" \nFROM (\n   WITH \n  cte_0 AS (  SELECT avg(\"rt\".amt) \"rt__rev_30d\" \n    FROM  audit.rt  AS \"rt\"),\n  cte_1 AS (  SELECT * \n    FROM  cte_0  AS \"fk_aggregate\")\n  SELECT avg(\"rt\".amt) \"avg_rt_rev_30d_\" \n) AS \"rt\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "avg_of_rolling_sum"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: missing FROM-clause entry for table \"rt\"",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"rt\".\"datetrunc_utf8__\" \"m\", \"rt\".\"max_rt_rev_30d_\" \"x\" \nFROM (\n   WITH \n  time_series_get_range AS (  SELECT MAX(date_trunc('month', (\"rt\".ts::timestamptz AT TIME ZONE 'UTC'))) \"max_date\", MIN(date_trunc('month', (\"rt\".ts::timestamptz AT TIME ZONE 'UTC'))) \"min_date\" \n    FROM  audit.rt  AS \"rt\"),\n  time_series AS (  SELECT d AS \"date_from\",\n    d + interval '1 month' - interval '1 millisecond' AS \"date_to\" \n    FROM time_series_get_range, LATERAL generate_series(time_series_get_range.min_date, time_series_get_range.max_date, '1 month'::interval) d ),\n  cte_0 AS (  SELECT date_trunc('day', (\"rt\".ts::timestamptz AT TIME ZONE 'UTC')) \"rt__ts_day\", max(\"rt\".amt) \"rt__rev_30d\" \n    FROM  audit.rt  AS \"rt\"\n    WHERE ((\"rt\".ts::timestamptz AT TIME ZONE 'UTC') >= (SELECT min(\"date_from\") \"value\" \n    FROM time_series) - interval '30 days' AND (\"rt\".ts::timestamptz AT TIME ZONE 'UTC') <= (SELECT max(\"date_to\") \"value\" \n    FROM time_series))\n    GROUP BY 1\n    ORDER BY  1  ASC),\n  cte_1 AS (  SELECT \"time_series\".\"date_from\" \"datetrunc_utf8__\", max(\"rolling_source\".\"rt__rev_30d\") \"rt__rev_30d\" \n    FROM  time_series  AS \"time_series\"\n    LEFT JOIN  cte_0  AS \"rolling_source\" ON \"rolling_source\".\"rt__ts_day\" > \"time_series\".\"date_to\" - interval '30 days' AND \"rolling_source\".\"rt__ts_day\" <= \"time_series\".\"date_to\"\n    GROUP BY 1\n    ORDER BY  2  DESC),\n  cte_2 AS (  SELECT \"fk_aggregate\".\"datetrunc_utf8__\" \"datetrunc_utf8__\", date_trunc('day', (\"rt\".ts::timestamptz AT TIME ZONE 'UTC')) \"rt__ts_day\" \n    FROM  cte_1  AS \"fk_aggregate\"\n    GROUP BY 1, 2)\n  SELECT date_trunc('month', (\"rt\".ts::timestamptz AT TIME ZONE 'UTC')) \"datetrunc_utf8__\", max(\"rt\".amt) \"max_rt_rev_30d_\" \n  GROUP BY 1\n) AS \"rt\"\nORDER BY \"rt\".\"datetrunc_utf8__\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "max_of_rolling_by_bucket"
+ },
+ {
+  "rows": [
+   [
+    "21"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"rt.rev_30d\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"rt.rev_30d\"],\"dimensions\":[],\"segments\":[],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "sum_of_rolling_sum_control"
+ },
+ {
+  "rows": [
+   [
+    "11"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"rt.top_30d\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"rt.top_30d\"],\"dimensions\":[],\"segments\":[],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "max_of_rolling_max_control"
+ },
+ {
+  "rows": [
+   [
+    "11"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"rt.top\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"rt.top\"],\"dimensions\":[],\"segments\":[],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "max_of_max_control"
+ },
+ {
+  "rows": [
+   [
+    "2025-01-01 00:00:00.000000",
+    "12"
+   ],
+   [
+    "2025-02-01 00:00:00.000000",
+    "9"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"rt.rev_30d\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"rt.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-01-01T00:00:00.000Z\",\n        \"2025-02-28T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"rt.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"rt.rev_30d\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"rt.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-01-01T00:00:00.000Z\",\"2025-02-28T23:59:59.999Z\"]}],\"order\":[[\"rt.ts\",\"asc\"]]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "measure_by_bucket_control"
+ },
+ {
+  "rows": [
+   [
+    "12"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nProjection: #MAX(q.x) AS y\n  Aggregate: groupBy=[[]], aggr=[[MAX(#q.x)]]\n    CubeScan: request={\n  \"measures\": [\n    \"rt.rev_30d\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"rt.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-01-01T00:00:00.000Z\",\n        \"2025-02-28T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nProjectionExec: expr=[MAX(q.x)@0 as y]\n  HashAggregateExec: mode=Final, gby=[], aggr=[MAX(q.x)]\n    HashAggregateExec: mode=Partial, gby=[], aggr=[MAX(q.x)]\n      CubeScanExecutionPlan, Request:\n{\"measures\":[\"rt.rev_30d\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"rt.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-01-01T00:00:00.000Z\",\"2025-02-28T23:59:59.999Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "max_over_subquery_control"
+ },
+ {
+  "rows": [
+   [
+    "2025-01-01T00:00:00.000",
+    "12"
+   ],
+   [
+    "2025-02-01T00:00:00.000",
+    "9"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": " WITH \ntime_series AS (  SELECT \"d\"::timestamptz AS \"date_from\",\n  (\"d\"::timestamptz + interval '1 month') - interval '1 millisecond' AS \"date_to\" \n  FROM generate_series('2025-01-01T00:00:00.000'::timestamp, '2025-02-28T23:59:59.999':: timestamp, '1 month'::interval) d ),\ncte_0 AS (  SELECT date_trunc('day', (\"rt\".ts::timestamptz AT TIME ZONE 'UTC')) \"rt__ts_day\", sum(\"rt\".amt) \"rt__rev_30d\" \n  FROM  audit.rt  AS \"rt\"\n  WHERE ((\"rt\".ts::timestamptz AT TIME ZONE 'UTC') >= $1::timestamptz AND (\"rt\".ts::timestamptz AT TIME ZONE 'UTC') <= $2::timestamptz)\n  GROUP BY 1\n  ORDER BY  1  ASC),\ncte_1 AS (  SELECT \"time_series\".\"date_from\" \"rt__ts_month\", sum(\"rolling_source\".\"rt__rev_30d\") \"rt__rev_30d\" \n  FROM  time_series  AS \"time_series\"\n  LEFT JOIN  cte_0  AS \"rolling_source\" ON \"rolling_source\".\"rt__ts_day\" > \"time_series\".\"date_to\" - interval '30 days' AND \"rolling_source\".\"rt__ts_day\" <= \"time_series\".\"date_to\"\n  GROUP BY 1\n  ORDER BY  1  ASC)\nSELECT \"fk_aggregate\".\"rt__ts_month\" \"rt__ts_month\", \"fk_aggregate\".\"rt__rev_30d\" \"rt__rev_30d\" \nFROM  cte_1  AS \"fk_aggregate\"\nORDER BY  1  ASC\nLIMIT 10000 PARAMS [\"2024-12-02T00:00:00.000\", \"2025-03-28T23:59:58.999\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "rest_control"
+ }
+]

@@ -1,0 +1,442 @@
+[
+ {
+  "rows": [
+   [
+    "1",
+    "11"
+   ],
+   [
+    "2",
+    "5"
+   ],
+   [
+    "3",
+    "7"
+   ],
+   [
+    "12",
+    "13"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"xt\".\"datepart_utf8__m\" \"p\", \"xt\".\"measure_xt_total\" \"v\" \nFROM (\n  SELECT\n        EXTRACT(month FROM (\"xt\".ts::timestamptz AT TIME ZONE 'UTC')) \"datepart_utf8__m\", sum(\"xt\".amt) \"measure_xt_total\"\n      FROM\n        audit.xt AS \"xt\"  GROUP BY 1\n) AS \"xt\"\nORDER BY \"xt\".\"datepart_utf8__m\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": "1\t11\n2\t5\n3\t7\n12\t13",
+  "id": "month_sum"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "1"
+   ],
+   [
+    "2",
+    "1"
+   ],
+   [
+    "3",
+    "1"
+   ],
+   [
+    "12",
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"xt\".\"datepart_utf8__m\" \"p\", \"xt\".\"measure_xt_n_\" \"v\" \nFROM (\n  SELECT\n        EXTRACT(month FROM (\"xt\".ts::timestamptz AT TIME ZONE 'UTC')) \"datepart_utf8__m\", count(\"xt\".id) \"measure_xt_n_\"\n      FROM\n        audit.xt AS \"xt\"  GROUP BY 1\n) AS \"xt\"\nORDER BY \"xt\".\"datepart_utf8__m\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "month_count"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "11"
+   ],
+   [
+    "2",
+    "5"
+   ],
+   [
+    "3",
+    "7"
+   ],
+   [
+    "12",
+    "13"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"xt\".\"datepart_utf8__m\" \"p\", \"xt\".\"measure_xt_avg_a\" \"v\" \nFROM (\n  SELECT\n        EXTRACT(month FROM (\"xt\".ts::timestamptz AT TIME ZONE 'UTC')) \"datepart_utf8__m\", avg(\"xt\".amt) \"measure_xt_avg_a\"\n      FROM\n        audit.xt AS \"xt\"  GROUP BY 1\n) AS \"xt\"\nORDER BY \"xt\".\"datepart_utf8__m\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "month_avg"
+ },
+ {
+  "rows": [
+   [
+    "2024",
+    "12"
+   ],
+   [
+    "2025",
+    "24"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"xt\".\"datepart_utf8__y\" \"p\", \"xt\".\"measure_xt_total\" \"v\" \nFROM (\n  SELECT\n        EXTRACT(year FROM (\"xt\".ts::timestamptz AT TIME ZONE 'UTC')) \"datepart_utf8__y\", sum(\"xt\".amt) \"measure_xt_total\"\n      FROM\n        audit.xt AS \"xt\"  GROUP BY 1\n) AS \"xt\"\nORDER BY \"xt\".\"datepart_utf8__y\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "year"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "11"
+   ],
+   [
+    "3",
+    "7"
+   ],
+   [
+    "29",
+    "5"
+   ],
+   [
+    "31",
+    "13"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"xt\".\"datepart_utf8__d\" \"p\", \"xt\".\"measure_xt_total\" \"v\" \nFROM (\n  SELECT\n        EXTRACT(day FROM (\"xt\".ts::timestamptz AT TIME ZONE 'UTC')) \"datepart_utf8__d\", sum(\"xt\".amt) \"measure_xt_total\"\n      FROM\n        audit.xt AS \"xt\"  GROUP BY 1\n) AS \"xt\"\nORDER BY \"xt\".\"datepart_utf8__d\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "day"
+ },
+ {
+  "rows": [
+   [
+    "0",
+    "18"
+   ],
+   [
+    "23",
+    "18"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"xt\".\"datepart_utf8__h\" \"p\", \"xt\".\"measure_xt_total\" \"v\" \nFROM (\n  SELECT\n        EXTRACT(hour FROM (\"xt\".ts::timestamptz AT TIME ZONE 'UTC')) \"datepart_utf8__h\", sum(\"xt\".amt) \"measure_xt_total\"\n      FROM\n        audit.xt AS \"xt\"  GROUP BY 1\n) AS \"xt\"\nORDER BY \"xt\".\"datepart_utf8__h\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "hour"
+ },
+ {
+  "rows": [
+   [
+    "0",
+    "7"
+   ],
+   [
+    "3",
+    "24"
+   ],
+   [
+    "4",
+    "5"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"xt\".\"datepart_utf8__d\" \"p\", \"xt\".\"measure_xt_total\" \"v\" \nFROM (\n  SELECT\n        EXTRACT(dow FROM (\"xt\".ts::timestamptz AT TIME ZONE 'UTC')) \"datepart_utf8__d\", sum(\"xt\".amt) \"measure_xt_total\"\n      FROM\n        audit.xt AS \"xt\"  GROUP BY 1\n) AS \"xt\"\nORDER BY \"xt\".\"datepart_utf8__d\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "dow"
+ },
+ {
+  "rows": [
+   [
+    "0",
+    "7"
+   ],
+   [
+    "3",
+    "12"
+   ],
+   [
+    "4",
+    "5"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"xt\".\"datepart_utf8__d\" \"p\", \"xt\".\"measure_xt_avg_a\" \"v\" \nFROM (\n  SELECT\n        EXTRACT(dow FROM (\"xt\".ts::timestamptz AT TIME ZONE 'UTC')) \"datepart_utf8__d\", avg(\"xt\".amt) \"measure_xt_avg_a\"\n      FROM\n        audit.xt AS \"xt\"  GROUP BY 1\n) AS \"xt\"\nORDER BY \"xt\".\"datepart_utf8__d\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "dow_avg_no_nested_form"
+ },
+ {
+  "rows": [
+   [
+    "0",
+    "7"
+   ],
+   [
+    "3",
+    "12"
+   ],
+   [
+    "4",
+    "5"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"datepart_utf8__d\" \"p\", \"q\".\"avg_q_v_\" \"a\" \nFROM (\n  SELECT EXTRACT(dow FROM \"q\".\"d\") \"datepart_utf8__d\", AVG(\"q\".\"v\") \"avg_q_v_\" \n  FROM (\n    SELECT\n          date_trunc('day', (\"xt\".ts::timestamptz AT TIME ZONE 'UTC')) \"d\", avg(\"xt\".amt) \"v\"\n        FROM\n          audit.xt AS \"xt\"  GROUP BY 1\n  ) AS \"q\"\n  GROUP BY 1\n  ORDER BY EXTRACT(dow FROM \"q\".\"d\") ASC NULLS LAST\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "nested_avg_wrong_by_docs"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "23"
+   ],
+   [
+    "4",
+    "13"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"xt\".\"datepart_utf8__q\" \"p\", \"xt\".\"measure_xt_total\" \"v\" \nFROM (\n  SELECT\n        EXTRACT(quarter FROM (\"xt\".ts::timestamptz AT TIME ZONE 'UTC')) \"datepart_utf8__q\", sum(\"xt\".amt) \"measure_xt_total\"\n      FROM\n        audit.xt AS \"xt\"  GROUP BY 1\n) AS \"xt\"\nORDER BY \"xt\".\"datepart_utf8__q\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "quarter"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "11"
+   ],
+   [
+    "2",
+    "5"
+   ],
+   [
+    "3",
+    "7"
+   ],
+   [
+    "12",
+    "13"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"xt\".\"datepart_utf8__m\" \"p\", \"xt\".\"measure_xt_total\" \"v\" \nFROM (\n  SELECT\n        EXTRACT(month FROM (\"xt\".ts::timestamptz AT TIME ZONE 'UTC')) \"datepart_utf8__m\", sum(\"xt\".amt) \"measure_xt_total\"\n      FROM\n        audit.xt AS \"xt\"  GROUP BY 1\n) AS \"xt\"\nORDER BY \"xt\".\"datepart_utf8__m\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "date_part_fn"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2"
+   ],
+   [
+    "2",
+    "3"
+   ],
+   [
+    "3",
+    "1"
+   ],
+   [
+    "4",
+    "12"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT\n      \"xt\".id \"id\", EXTRACT(month FROM (\"xt\".ts::timestamptz AT TIME ZONE 'UTC')) \"p\"\n    FROM\n      audit.xt AS \"xt\"  ORDER BY 1 ASC LIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_rows"
+ },
+ {
+  "rows": [
+   [
+    "12"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"xt.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"xt.ts\",\n      \"dateRange\": [\n        \"2024-01-01\",\n        \"2024-12-31\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"xt.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"xt.ts\",\"dateRange\":[\"2024-01-01\",\"2024-12-31\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "in_filter"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "11"
+   ],
+   [
+    "2",
+    "5"
+   ],
+   [
+    "3",
+    "7"
+   ],
+   [
+    "12",
+    "13"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"xt\".\"datepart_utf8__m\" \"p\", \"xt\".\"measure_xt_total\" \"v\" \nFROM (\n  SELECT\n        EXTRACT(month FROM (\"xt\".d::timestamptz AT TIME ZONE 'UTC')) \"datepart_utf8__m\", sum(\"xt\".amt) \"measure_xt_total\"\n      FROM\n        audit.xt AS \"xt\"  GROUP BY 1\n) AS \"xt\"\nORDER BY \"xt\".\"datepart_utf8__m\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "date_column"
+ },
+ {
+  "rows": [
+   [
+    "2024",
+    "12"
+   ],
+   [
+    "2025",
+    "24"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"datepart_utf8__y\" \"y\", \"q\".\"sum_q_v_\" \"s\" \nFROM (\n  SELECT EXTRACT(year FROM \"q\".\"m\") \"datepart_utf8__y\", SUM(\"q\".\"v\") \"sum_q_v_\" \n  FROM (\n    SELECT\n          date_trunc('month', (\"xt\".ts::timestamptz AT TIME ZONE 'UTC')) \"m\", sum(\"xt\".amt) \"v\"\n        FROM\n          audit.xt AS \"xt\"  GROUP BY 1\n  ) AS \"q\"\n  GROUP BY 1\n  ORDER BY EXTRACT(year FROM \"q\".\"m\") ASC NULLS LAST\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "outer_over_scan"
+ },
+ {
+  "rows": [
+   [
+    "2",
+    "5"
+   ],
+   [
+    "3",
+    "7"
+   ],
+   [
+    "12",
+    "24"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"xt\".\"datepart_utf8__m\" \"p\", \"xt\".\"measure_xt_total\" \"v\" \nFROM (\n  SELECT\n        EXTRACT(month FROM (\"xt\".ts::timestamptz AT TIME ZONE 'America/New_York')) \"datepart_utf8__m\", sum(\"xt\".amt) \"measure_xt_total\"\n      FROM\n        audit.xt AS \"xt\"  GROUP BY 1\n) AS \"xt\"\nORDER BY \"xt\".\"datepart_utf8__m\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "time_zone"
+ },
+ {
+  "rows": [
+   [
+    "2024-01-01 00:00:00.000000",
+    "12"
+   ],
+   [
+    "2025-01-01 00:00:00.000000",
+    "24"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"xt.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"xt.ts\",\n      \"granularity\": \"year\"\n    }\n  ],\n  \"order\": [\n    [\n      \"xt.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"xt.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"xt.ts\",\"granularity\":\"year\"}],\"order\":[[\"xt.ts\",\"asc\"]]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "trunc_control"
+ }
+]
