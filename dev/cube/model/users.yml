@@ -6,6 +6,7 @@ cubes:
     meta: { owner: growth, ai_hint: "One row per customer account." }
     joins:
       - { name: orders, relationship: one_to_many, sql: "{CUBE}.id = {orders.user_id}" }
+      - { name: regions, relationship: many_to_one, sql: "{CUBE}.state = {regions.state}" }
     dimensions:
       - { name: id, sql: id, type: number, primary_key: true, public: true, title: Customer ID }
       - { name: name, sql: name, type: string, title: Full name, description: Display name of the customer. }

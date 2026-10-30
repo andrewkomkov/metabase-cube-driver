@@ -29,7 +29,12 @@ cubes:
   - name: shipments
     title: Shipments
     description: One shipment per order. Joined one to one.
-    sql: "SELECT id AS order_id, ['air','ground','sea'][1 + id % 3] AS carrier_mode FROM shop.orders"
+    sql: >
+      SELECT id AS order_id, ['air','ground','sea'][1 + id % 3] AS carrier_mode,
+      ['TX','IL','WA','MA'][1 + id % 4] AS dest_state
+      FROM shop.orders
+    joins:
+      - { name: regions, relationship: many_to_one, sql: "{CUBE}.dest_state = {regions.state}" }
     dimensions:
       - { name: order_id, sql: order_id, type: number, primary_key: true, public: false }
       - { name: carrier_mode, sql: carrier_mode, type: string, description: Shipping mode. }

@@ -1,0 +1,131 @@
+cubes:
+  - name: base_sales
+    public: false
+    title: Base sales
+    description: Abstract base cube. Children inherit from it.
+    sql_table: shop.orders
+    joins:
+      - { name: products, relationship: many_to_one, sql: "{CUBE}.product_id = {products.id}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: product_id, sql: product_id, type: number, description: Inherited product key. }
+      - { name: status, sql: status, type: string, description: Inherited status. }
+      - { name: quantity, sql: quantity, type: number, description: Inherited quantity. }
+      - { name: created_at, sql: created_at, type: time, description: Inherited creation time. }
+    measures:
+      - { name: count, type: count, description: Inherited count. }
+      - { name: revenue, sql: amount, type: sum, description: Inherited revenue. }
+    segments:
+      - { name: large, sql: "{CUBE}.quantity >= 3", description: Inherited segment. }
+    pre_aggregations:
+      - name: monthly
+        measures: [count, revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: month
+        refresh_key: { every: 1 hour }
+        indexes:
+          - { name: status_idx, columns: [status] }
+
+  - name: level_one
+    extends: base_sales
+    title: Level one
+    description: Child cube. It overrides two members and adds two members.
+    dimensions:
+      - { name: status, sql: "upper(status)", type: string, description: Overridden status in upper case. }
+      - { name: quantity_band, sql: "if(quantity >= 3, 'high', 'low')", type: string, description: Added by the child. }
+    measures:
+      - { name: revenue, sql: "amount * 2", type: sum, description: Overridden revenue. It doubles the amount. }
+      - { name: avg_quantity, sql: quantity, type: avg, description: Added by the child. }
+
+  - name: level_two
+    extends: level_one
+    title: Level two
+    description: Grandchild cube. It narrows the rows and adds a measure.
+    sql: "SELECT * FROM shop.orders WHERE quantity >= 3"
+    measures:
+      - { name: max_quantity, sql: quantity, type: max, description: Added by the grandchild. }
+
+  - name: people
+    public: false
+    title: People
+    description: Abstract base of the polymorphic customer cubes.
+    sql_table: shop.users
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: city, sql: city, type: string, description: Billing city. }
+    measures:
+      - { name: count, type: count, description: Number of people. }
+
+  - name: vip_people
+    extends: people
+    title: VIP people
+    description: Polymorphic child. VIP rows only.
+    sql: "SELECT * FROM {people.sql()} WHERE is_vip"
+
+  - name: regular_people
+    extends: people
+    title: Regular people
+    description: Polymorphic child. Other rows only.
+    sql: "SELECT * FROM {people.sql()} WHERE NOT is_vip"
+
+  - name: explicit_source
+    title: Explicit source
+    description: Cube that names its data source.
+    data_source: default
+    sql_table: shop.products
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: category, sql: category, type: string, description: Product category. }
+    measures:
+      - { name: count, type: count, description: Number of products. }
+
+  - name: regions
+    title: Regions
+    description: Maps a state to a region. Reached through two join paths.
+    sql: >
+      SELECT 'TX' AS state, 'South' AS region
+      UNION ALL SELECT 'IL', 'Midwest'
+      UNION ALL SELECT 'WA', 'West'
+      UNION ALL SELECT 'MA', 'East'
+    dimensions:
+      - { name: state, sql: state, type: string, primary_key: true }
+      - { name: region, sql: region, type: string, description: Region name. }
+    measures:
+      - { name: count, type: count, description: Number of regions. }
+
+views:
+  - name: products_lite
+    title: Products lite
+    description: All product members except price.
+    public: true
+    cubes:
+      - { join_path: products, includes: "*", excludes: [price] }
+
+  - name: region_sales
+    title: Region sales
+    description: Two paths reach regions. Two cubes supply a count.
+    cubes:
+      - { join_path: orders, includes: [count, revenue] }
+      - join_path: orders.users
+        includes:
+          - { name: count, alias: customer_count }
+      - join_path: orders.users.regions
+        includes:
+          - { name: region, alias: customer_region }
+      - join_path: orders.shipments.regions
+        includes:
+          - { name: region, alias: destination_region }
+
+  - name: level_two_view
+    title: Level two view
+    description: View on an extended cube.
+    cubes:
+      - { join_path: level_two, includes: "*" }
+
+  - name: deep_extended_sales
+    extends: extended_sales
+    title: Deep extended sales
+    description: Second level of view inheritance.
+    cubes:
+      - { join_path: orders.shipments, prefix: true, includes: [carrier_mode] }
