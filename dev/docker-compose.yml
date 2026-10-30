@@ -35,7 +35,7 @@ services:
     ports: ["127.0.0.1:4400:4000", "127.0.0.1:15433:15432"]
     restart: unless-stopped
   metabase:
-    image: metabase/metabase:${METABASE_VERSION:-v0.64.3}
+    image: metabase/metabase:${METABASE_VERSION:-v0.65.2.3}
     depends_on: [cube]
     environment:
       MB_DB_FILE: /data/metabase.db
