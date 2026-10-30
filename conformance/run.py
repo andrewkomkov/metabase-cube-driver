@@ -3249,7 +3249,7 @@ P("compile.rollup.month", BIG, "SELECT toStartOfMonth(created_at), sum(amount) F
 P("compile.rollup.day_status", BIG, "SELECT toDate(created_at), status, count() FROM big_orders GROUP BY 1, 2", "daily", agg=[["count"]], by=[BCT + "@day", "d:big_orders.status"])
 P("compile.rollup.week_monday", BIG, "SELECT toStartOfWeek(created_at, 1), sum(amount) FROM big_orders GROUP BY 1", "daily", setting=MON, agg=["m:big_orders.revenue"], by=[BCT + "@week"])
 P("compile.rollup.week_sunday", BIG, "SELECT toStartOfWeek(created_at, 0), sum(amount) FROM big_orders GROUP BY 1", "daily", setting=SUN, agg=["m:big_orders.revenue"], by=[BCT + "@week"])
-P("compile.rollup.avg", BIG, "SELECT status, avg(amount) FROM big_orders GROUP BY 1", "daily", agg=["m:big_orders.avg_amount"], by=["d:big_orders.status"])
+C("compile.rollup.avg_reads_the_table", BIG, "SELECT status, avg(amount) FROM big_orders GROUP BY 1", kind="regular", agg=["m:big_orders.avg_amount"], by=["d:big_orders.status"])
 P("compile.rollup.filter_status_month", BIG, "SELECT toStartOfQuarter(created_at), sum(amount) FROM big_orders WHERE status = 'shipped' GROUP BY 1", "daily",
   agg=["m:big_orders.revenue"], by=[BCT + "@quarter"], where=[["=", "d:big_orders.status", "shipped"]])
 P("compile.rollup.date_range_aligned", BIG, "SELECT sum(amount) FROM big_orders WHERE toDate(created_at) BETWEEN '2024-03-05' AND '2024-03-09'", "daily",
@@ -3274,15 +3274,6 @@ def _(ctx):
     assert_rows(ctx.mb.raw(query)["rows"], ch("SELECT sum(amount) FROM orders WHERE toDate(created_at) = '2025-02-03'"))
 
 
-def median_seconds(fn, runs=5):
-    times = []
-    for i in range(runs):
-        started = time.time()
-        fn(i)
-        times.append(time.time() - started)
-    return sorted(times)[len(times) // 2]
-
-
 @check("compile.latency.ten_million_rows")
 def _(ctx):
     ensure_table(ctx, BIG)
@@ -3297,13 +3288,21 @@ def _(ctx):
             start = "2024-%02d-01" % (1 + i)
             end = "2024-%02d-28" % (8 + i)
             query = ctx.mb.inner(table, agg=["m:%s.revenue" % table], by=["d:%s.status" % table], where=[["between", "d:%s.created_at" % table, start, end]])
+            started = time.time()
             rows = ctx.mb.raw(query)["rows"]
+            times.append(time.time() - started)
             truth = ch("SELECT status, sum(amount) FROM big_orders WHERE toDate(created_at) BETWEEN '%s' AND '%s' GROUP BY 1" % (start, end))
             assert_rows(rows, truth)
         return one
 
-    with_rollup = median_seconds(run(BIG))
-    without = median_seconds(run(BIGR))
+    times = []
+    for i in range(5):
+        run(BIG)(i)
+    with_rollup = sorted(times)[2]
+    times = []
+    for i in range(5):
+        run(BIGR)(i)
+    without = sorted(times)[2]
     print("         latency over 10000000 rows, median of 5, with truth check: with rollup %.3f s, without rollup %.3f s" % (with_rollup, without))
     query = ctx.mb.inner(BIG, agg=["m:big_orders.revenue"], by=["d:big_orders.status"], where=[["between", BCT, "2024-01-01", "2024-08-28"]])
     load_used(request_of(compile_query(ctx, query)), "daily")

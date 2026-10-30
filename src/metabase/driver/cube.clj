@@ -12,9 +12,7 @@
    [metabase.driver.sql-jdbc.connection :as sql-jdbc.conn]
    [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
    [metabase.driver.sql.query-processor :as sql.qp]
-   [metabase.util.honey-sql-2 :as h2x])
-  (:import
-   (java.sql SQLException)))
+   [metabase.util.honey-sql-2 :as h2x]))
 
 (set! *warn-on-reflection* true)
 
@@ -161,9 +159,25 @@
 
 ;; ClickHouse rejects the filter that Cube makes from `= TRUE` when the dimension SQL is an expression:
 ;; "Cannot convert string 'true' to type UInt8". Cube accepts 1 and 0 for boolean members on all columns.
+(def ^:private ^:dynamic *inside-case*
+  "True inside a CASE, where Cube plans the comparison itself and needs a real boolean."
+  false)
+
+(defmethod sql.qp/->honeysql [:cube :case]
+  [driver clause]
+  (binding [*inside-case* true]
+    ((get-method sql.qp/->honeysql [:postgres :case]) driver clause)))
+
+;; With a query parameter for a string, Cube names each column of its plan after the placeholder. Two of them in one
+;; expression make it fail with "duplicate unqualified field name 'Utf8("replaced_placeholder")'".
+(defmethod sql.qp/->honeysql [:cube String]
+  [_driver value]
+  [:inline value])
+
 (defmethod sql.qp/->honeysql [:cube :value]
   [driver [_ {:keys [database-type]} raw-value :as clause]]
   (if (and (boolean? raw-value)
+           (not *inside-case*)
            (str/starts-with? (str database-type) "cube.")
            ;; Cube turns `segment = TRUE` into a segment of the CubeScan, which a rollup can serve. `= 1` goes to push-down.
            (not= database-type "cube.segment"))
@@ -550,10 +564,12 @@
 
 (def ^:private cube-errors
   "Texts of Cube errors, and what they mean for a person who built a question."
-  [["Can't detect Cube query"
-    (str "Cube cannot plan this query. A filter on a part of a date, such as a day of the week or a month of the year, "
-         "and other expressions on a time dimension in a filter are the common cause. Add a dimension for that part to "
-         "the data model, and filter on the dimension.")]
+  [["PERCENTILE_CONT"
+    (str "Cube cannot compute a median or a percentile on this data source. Add a measure with the SQL of the database "
+         "to the data model.")]
+   ["Can't detect Cube query"
+    (str "Cube cannot plan this query. EXTRACT on a time dimension next to a measure, and a function that the SQL API "
+         "does not know, are the common cause. Use a time bucket, or add a dimension for it to the data model.")]
    ["Can't generate SQL for interval"
     (str "Cube cannot add an interval to a time in an aggregated query on this data source. Remove the date arithmetic, "
          "or add a dimension with that SQL to the data model.")]
@@ -561,21 +577,26 @@
     (str "Cube cannot run this query, because it needs MEASURE() and post-processing at the same time. Use a plain "
          "aggregation in the first stage, or add a measure to the data model.")]
    ["Measure aggregation type doesn't match"
-    (str "This measure has its aggregation in the data model. Use the measure, not another aggregation of its column.")]])
+    "This measure has its aggregation in the data model. Use the measure, not another aggregation of its column."]])
+
+(defn- exception-text
+  "The messages of an exception and its causes."
+  [^Throwable e]
+  (str/join " " (keep (fn [^Throwable t] (.getMessage t))
+                      (take-while some? (iterate (fn [^Throwable t] (.getCause t)) e)))))
 
 (defn- clear-error
-  [^SQLException e]
-  (let [message (str (.getMessage e))]
-    (some (fn [[needle text]]
-            (when (str/includes? message needle)
-              (str text " Cube said: " message)))
-          cube-errors)))
+  [message]
+  (some (fn [[needle text]]
+          (when (str/includes? message needle)
+            (str text " Cube said: " message)))
+        cube-errors))
 
 (defmethod driver/execute-reducible-query :cube
   [driver query context respond]
   (try
     (sql-jdbc.execute/execute-reducible-query driver query context respond)
-    (catch SQLException e
-      (if-let [text (clear-error e)]
-        (throw (ex-info text {:type :invalid-query} e))
+    (catch Exception e
+      (if-let [text (clear-error (exception-text e))]
+        (throw (ex-info text {:type :invalid-query}))
         (throw e)))))

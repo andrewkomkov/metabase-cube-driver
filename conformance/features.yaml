@@ -2966,11 +2966,11 @@
   title: "rolling with status filter"
   status: todo
   check: compile.rolling.with_status_filter
-- id: compile.rollup.avg
+- id: compile.rollup.avg_reads_the_table
   area: mb.compile.rollup
-  title: "rollup avg"
+  title: "rollup avg reads the table"
   status: todo
-  check: compile.rollup.avg
+  check: compile.rollup.avg_reads_the_table
 - id: compile.rollup.count_rows
   area: mb.compile.rollup
   title: "rollup count rows"
