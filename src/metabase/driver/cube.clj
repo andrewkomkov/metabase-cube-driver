@@ -520,6 +520,21 @@
   [driver [_ _opts arg]]
   [:/ [:ln (sql.qp/->honeysql driver arg)] [:ln [:inline 10]]])
 
+;; ClickHouse LAG gives the default of the type on the first row of a column with no Nullable, so an earlier month that
+;; does not exist would show 0. SQL has NULL there.
+(defmethod sql.qp/->honeysql [:cube :offset]
+  [driver [_ _opts _expr n :as clause]]
+  (let [compiled ((get-method sql.qp/->honeysql [:postgres :offset]) driver clause)
+        [op [_ window]] (h2x/unwrap-typed-honeysql-form compiled)]
+    (if (and (= :over op) (neg? n))
+      [:case [:> [:over [[:row_number] window]] [:inline (- n)]] compiled]
+      compiled)))
+
+;; TRIM makes Cube fail with "Date range is required for time series" on a plain select. The two sided form does not.
+(defmethod sql.qp/->honeysql [:cube :trim]
+  [driver [_ _opts arg]]
+  [:ltrim [:rtrim (sql.qp/->honeysql driver arg)]])
+
 ;; DATEDIFF counts the boundaries between two times. That is the Metabase result for days. For smaller units, Metabase
 ;; counts whole units, so the driver divides the seconds. The Cube templates have no way to count whole months.
 (defn- whole-units

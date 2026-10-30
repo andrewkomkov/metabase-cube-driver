@@ -944,8 +944,8 @@
 - id: mb.agg.median
   area: metabase.aggregation
   title: "mb agg median"
-  status: fail
-  check: mb.agg.median
+  status: unsupported
+  reason: "The Cube template for ClickHouse has no PERCENTILE_CONT: Rewrite Error: Can't detect Cube query. The driver turns off :percentile-aggregations, so Metabase rejects the query with a message. See compile.agg.median_gives_error. Use a measure with quantile() in the model."
 - id: mb.agg.min_field
   area: metabase.aggregation
   title: "mb agg min field"
@@ -959,8 +959,8 @@
 - id: mb.agg.percentile
   area: metabase.aggregation
   title: "mb agg percentile"
-  status: fail
-  check: mb.agg.percentile
+  status: unsupported
+  reason: "The Cube template for ClickHouse has no PERCENTILE_CONT: Rewrite Error: Can't detect Cube query. The driver turns off :percentile-aggregations, so Metabase rejects the query with a message. Use a measure with quantile() in the model."
 - id: mb.agg.share
   area: metabase.aggregation
   title: "mb agg share"
@@ -1589,8 +1589,8 @@
 - id: mb.report_timezone
   area: metabase.settings
   title: "mb report timezone"
-  status: fail
-  check: mb.report_timezone
+  status: blocked
+  reason: "The Cube SQL API has no time zone for a query. The REST API has one, but the driver uses the SQL API. So all buckets stay in UTC whatever the report timezone is, and compile.tz.report_timezone_keeps_utc checks that. A bucket in another zone needs a dimension in the data model."
 - id: mb.other.actions
   area: metabase.other
   title: "mb other actions"
@@ -2254,8 +2254,8 @@
 - id: compile.ch.decimal_above_double
   area: mb.compile.ch
   title: "ch decimal above double"
-  status: todo
-  check: compile.ch.decimal_above_double
+  status: blocked
+  reason: "Cube returns numbers through JavaScript. SELECT dec_big FROM typed_events WHERE id = 3 gives 3000000000000 where the truth is 3000000000000.00000003. A dimension with SQL toString(column) keeps the digits."
 - id: compile.ch.decimal_row
   area: mb.compile.ch
   title: "ch decimal row"
@@ -2324,8 +2324,8 @@
 - id: compile.ch.uint64_above_double
   area: mb.compile.ch
   title: "ch uint64 above double"
-  status: todo
-  check: compile.ch.uint64_above_double
+  status: blocked
+  reason: "Cube returns numbers through JavaScript. SELECT ui64 FROM typed_events WHERE id = 2 gives 9007199254740996 where the truth is 9007199254740995, and MEASURE(sum_ui64) gives 9007199254741494000. A dimension with SQL toString(column) keeps the digits."
 - id: compile.ch.uuid_filter
   area: mb.compile.ch
   title: "ch uuid filter"
@@ -3126,3 +3126,8 @@
   title: "join explicit measure regular"
   status: todo
   check: compile.join.explicit_measure_regular
+- id: compile.ch.integer_within_double
+  area: mb.compile.ch
+  title: "ch integer within double"
+  status: todo
+  check: compile.ch.integer_within_double
