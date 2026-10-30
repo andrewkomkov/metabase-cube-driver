@@ -163,7 +163,10 @@
 ;; "Cannot convert string 'true' to type UInt8". Cube accepts 1 and 0 for boolean members on all columns.
 (defmethod sql.qp/->honeysql [:cube :value]
   [driver [_ {:keys [database-type]} raw-value :as clause]]
-  (if (and (boolean? raw-value) (str/starts-with? (str database-type) "cube."))
+  (if (and (boolean? raw-value)
+           (str/starts-with? (str database-type) "cube.")
+           ;; Cube turns `segment = TRUE` into a segment of the CubeScan, which a rollup can serve. `= 1` goes to push-down.
+           (not= database-type "cube.segment"))
     [:inline (if raw-value 1 0)]
     ((get-method sql.qp/->honeysql [:postgres :value]) driver clause)))
 

@@ -2663,7 +2663,7 @@ for _unit, _truth in [("minute-of-hour", "toMinute(created_at)"), ("second-of-mi
     C("compile.part.%s" % _unit, BIGR, "SELECT %s, count(), uniqExact(user_id) FROM big_orders GROUP BY 1" % _truth, kind="pushdown", setting=SUN,
       agg=[["count"], "m:big_orders_raw.unique_users"], by=["%s@%s" % (BC, _unit)])
 C("compile.part.non_additive_avg", ORD, "SELECT toMonth(created_at), avg(amount) FROM orders GROUP BY 1", kind="pushdown", agg=["m:orders.avg_order_value"], by=["d:orders.created_at@month-of-year"])
-C("compile.part.number_measure", ORD, "SELECT toMonth(created_at), sumIf(amount, %s) / sum(amount) FROM orders GROUP BY 1" % PAID, kind="pushdown", agg=["m:orders.paid_share"], by=["d:orders.created_at@month-of-year"])
+C("compile.part.number_measure", ORD, "SELECT toMonth(created_at), toFloat64(sumIf(amount, %s)) / toFloat64(sum(amount)) FROM orders GROUP BY 1" % PAID, kind="pushdown", agg=["m:orders.paid_share"], by=["d:orders.created_at@month-of-year"])
 C("compile.part.filter_measure", ORD, "SELECT sum(amount) FROM orders WHERE toHour(created_at) != 3", kind="pushdown", agg=["m:orders.revenue"], where=[["!=", "d:orders.created_at@hour-of-day", 3]])
 C("compile.part.filter_with_breakout", ORD, "SELECT status, count() FROM orders WHERE toQuarter(created_at) = 2 GROUP BY 1", kind="pushdown", agg=[["count"]], by=["d:orders.status"], where=[["=", "d:orders.created_at@quarter-of-year", 2]])
 
@@ -2747,7 +2747,7 @@ def _(ctx):
 # joins
 
 _JO = "SELECT u.%s, count() FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1"
-C("compile.join.implicit_uses_join_field", ORD, _JO % "city", kind="regular", sql_has="__cubeJoinField", agg=[["count"]], by=["d:orders>users.city"])
+C("compile.join.implicit_uses_join_field", ORD, _JO % "city", kind=("regular", "pushdown"), sql_has="__cubeJoinField", agg=[["count"]], by=["d:orders>users.city"])
 C("compile.join.implicit_two_tables", ORD, "SELECT u.city, p.category, sum(o.amount) FROM orders o JOIN users u ON o.user_id = u.id JOIN products p ON o.product_id = p.id GROUP BY 1, 2", kind="regular", sql_has="__cubeJoinField",
   agg=["m:orders.revenue"], by=["d:orders>users.city", "d:orders>products.category"])
 C("compile.join.filter_on_both_sides", ORD, "SELECT u.city, sum(o.amount) FROM orders o JOIN users u ON o.user_id = u.id WHERE u.is_vip AND o.status = 'completed' GROUP BY 1", kind="regular",
@@ -2769,7 +2769,8 @@ def J(check_id, table, sql, join_table, alias, strategy, left, right, kind=None,
     check(check_id)(run)
 
 
-J("compile.join.explicit_two_cubes", ORD, _JO % "state", "users", "U", "left-join", "d:orders.user_id", "d:users.id|U", kind="regular", agg=[["count"]], by=["d:users.state|U"])
+J("compile.join.explicit_two_cubes", ORD, _JO % "state", "users", "U", "left-join", "d:orders.user_id", "d:users.id|U", kind="pushdown", agg=[["count"]], by=["d:users.state|U"])
+J("compile.join.explicit_measure_regular", ORD, "SELECT u.state, sum(o.amount) FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1", "users", "U", "left-join", "d:orders.user_id", "d:users.id|U", kind="regular", agg=["m:orders.revenue"], by=["d:users.state|U"])
 J("compile.join.left_keeps_rows_with_no_match", "orphan_orders", "SELECT c.name, count() FROM orphan_orders o LEFT JOIN orphan_customers c ON o.customer_id = c.id GROUP BY 1 SETTINGS join_use_nulls = 1",
   "orphan_customers", "C", "left-join", "d:orphan_orders.customer_id", "d:orphan_customers.id|C", agg=[["count"]], by=["d:orphan_customers.name|C"])
 J("compile.join.inner_drops_rows_with_no_match", "orphan_orders", "SELECT c.name, count() FROM orphan_orders o INNER JOIN orphan_customers c ON o.customer_id = c.id GROUP BY 1",

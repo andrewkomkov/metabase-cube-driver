@@ -3121,3 +3121,8 @@
   title: "week week of year monday"
   status: todo
   check: compile.week.week_of_year_monday
+- id: compile.join.explicit_measure_regular
+  area: mb.compile.join
+  title: "join explicit measure regular"
+  status: todo
+  check: compile.join.explicit_measure_regular
