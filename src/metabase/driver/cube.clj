@@ -89,6 +89,12 @@
               (map #(dissoc % ::cube.meta/title)))
         (sort-by :name (cube.meta/public-cubes (cube.meta/fetch-meta (:details database))))))
 
+;; Fingerprinting wraps each text column in SUBSTRING. On a wide cube or view, this makes the SQL API fail with
+;; "Can't find rewrite due to AST node limit reached".
+(defmethod driver/table-rows-sample :cube
+  [driver table fields rff opts]
+  ((get-method driver/table-rows-sample :postgres) driver table fields rff (dissoc opts :truncation-size)))
+
 (defn- apply-model-metadata!
   "Sync has no input for a field title, so this step writes titles to the app DB after sync. A display name that an
   admin changed is not the humanized name, and stays. Measures and segments get no field values, because the SQL API
