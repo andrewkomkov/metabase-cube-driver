@@ -5315,7 +5315,10 @@ def _(ctx):
                  "timeDimensions": [{"dimension": "lambda_sales.created_at", "granularity": "month", "dateRange": ["2025-02-01", "2025-02-28"]}]}, "lambda")(ctx, None)
     expect_rows(ctx, ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.status", "d:lambda_sales.created_at@month"],
                                   where=[[">=", "d:lambda_sales.created_at", "2025-02-01"], ["<", "d:lambda_sales.created_at", "2025-03-01"]]), inside, "inside the rollup")
-    expect_clear_error(ctx, ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.status"]), "Cube cannot read a rollup_lambda")
+    # On ClickHouse, the whole range fails or not with the state of the rollup. So this is the truth, or the clear message.
+    grid = Grid(ctx, refusal="Cube cannot read a rollup_lambda")
+    grid.add("whole range", ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.status"]), "SELECT status, sum(amount) FROM orders GROUP BY status")
+    grid.done()
 
 
 @check("preagg.rollup_join")
