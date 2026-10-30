@@ -244,11 +244,14 @@ class Metabase:
             if time.time() > deadline:
                 raise Fail("first sync of the Cube database did not end in %d s" % seconds)
             time.sleep(3)
-        # The status says complete before the analysis ends. The checks of fingerprints and classified types need it.
+        # The status says complete before the analysis ends. The checks of fingerprints and classified types need it, and also
+        # the semantic sync after the analysis, which puts back the format type of thumb_url. At the deadline the checks run and
+        # tell what is missing.
         while time.time() < deadline:
             meta = self.api("GET", "/api/database/%d/metadata?include_hidden=true" % db["id"])
-            fields = [f for t in meta["tables"] if t["name"] == "users" for f in t["fields"] if f["name"] == "name"]
-            if fields and fields[0].get("fingerprint") and fields[0].get("semantic_type"):
+            fields = {(t["name"], f["name"]): f for t in meta["tables"] for f in t["fields"]}
+            name = fields.get(("users", "name"), {})
+            if name.get("fingerprint") and name.get("semantic_type") and fields.get(("orders", "thumb_url"), {}).get("semantic_type") == "type/ImageURL":
                 return
             time.sleep(3)
 
@@ -941,8 +944,8 @@ def _(ctx):
         raise Fail("the view has a latitude field that Cube cannot read")
     if ctx.mb.field("customer_locations", "location").get("visibility_type") != "hidden":
         raise Fail("customer_locations.location is visible, and Cube cannot read it")
-    if not ctx.mb.field("customer_locations", "id").get("fingerprint"):
-        raise Fail("the sample of the view failed: customer_locations.id has no fingerprint")
+    if not ctx.mb.field("customer_locations", "location").get("fingerprint"):
+        raise Fail("the sample of the view failed: customer_locations.location has no fingerprint")
     data = ctx.mb.mbql("customer_locations", order=[["asc", "d:customer_locations.id"]], limit=3)
     assert_rows([r[:1] for r in data["rows"]], ch("SELECT id FROM users ORDER BY id LIMIT 3"), ordered=True)
     # A person can ask for the hidden column too.
