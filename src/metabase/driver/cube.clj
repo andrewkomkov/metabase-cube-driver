@@ -1332,7 +1332,7 @@
     (str "Cube cannot compute a rolling window with `trailing: unbounded` for more than one bucket on ClickHouse. Use one "
          "bucket, or a window with a size in the data model.")]
    ["Stream query failed"
-    (str "Cube cannot read a rollup_lambda through the SQL API on ClickHouse with a range that reads source rows. Add a date "
+    (str "Cube cannot read a rollup_lambda on ClickHouse with a range that reads source rows. Add a date "
          "filter inside the range of the rollup, or read this measure from a plain rollup.")]
    ["Date range is required for time series"
     (str "Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the "

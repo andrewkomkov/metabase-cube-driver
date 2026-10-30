@@ -105,7 +105,7 @@ These queries fail with a message that tells what to do. The message includes th
 | Two columns of a view that come from one member through different join paths, in one query | Cube joins a cube once in a query, so both columns show one value. `aliasMember` in `/v1/meta` shows these columns. Raw rows show the first column and NULL in the others. |
 | Comparison with `=` or `!=` of a time that has a fraction of a second | Cube drops the fraction. |
 | A distinct count or a measure with its own SQL, next to a breakout on an expression, or a filter or a group on a measure column | The driver reads the values of rows here, and these values do not add up to the measure. |
-| `rollup_lambda` through the SQL API on ClickHouse, when the range reads source rows | Cube fails with `Stream query failed: aborted`. Inside the range of the rollup it works. See `preagg.rollup_lambda`. |
+| `rollup_lambda` on ClickHouse, when the range reads source rows | Cube fails with `Stream query failed: aborted`. Inside the range of the rollup it works. See `preagg.rollup_lambda`. |
 | `OR` of two segments | Cube fails with `Can't use OR operator with segments`. |
 | A segment of another cube | Cube fails with `No field named`. Use a view that has it. |
 

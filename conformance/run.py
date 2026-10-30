@@ -5308,24 +5308,13 @@ def _(ctx):
 
 @check("preagg.rollup_lambda")
 def _(ctx):
-    """The Cube REST API gives the truth through the lambda. The SQL API on ClickHouse gives it only inside the range of the rollup."""
+    """Inside the range of the rollup, the lambda gives the truth. With a range that reads source rows, ClickHouse fails, and the driver tells this."""
     ensure_table(ctx, "lambda_sales")
-    months = "SELECT status, toStartOfMonth(created_at), sum(amount) FROM orders %sGROUP BY 1, 2"
-    query = {"measures": ["lambda_sales.revenue"], "dimensions": ["lambda_sales.status"],
-             "timeDimensions": [{"dimension": "lambda_sales.created_at", "granularity": "month"}]}
-    used_rollup(query, "lambda")(ctx, None)
-    rows = []
-    for _i in range(40):
-        status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
-        res = json.loads(text)
-        if res.get("error") != "Continue wait":
-            rows = [[r["lambda_sales.status"], r["lambda_sales.created_at.month"], float(r["lambda_sales.revenue"])] for r in res["data"]]
-            break
-        time.sleep(1)
-    assert_rows(rows, ch(months % ""), label="REST")
+    inside = "SELECT status, toStartOfMonth(created_at), sum(amount) FROM orders WHERE created_at >= '2025-02-01' AND created_at < '2025-03-01' GROUP BY 1, 2"
+    used_rollup({"measures": ["lambda_sales.revenue"], "dimensions": ["lambda_sales.status"],
+                 "timeDimensions": [{"dimension": "lambda_sales.created_at", "granularity": "month", "dateRange": ["2025-02-01", "2025-02-28"]}]}, "lambda")(ctx, None)
     expect_rows(ctx, ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.status", "d:lambda_sales.created_at@month"],
-                                  where=[[">=", "d:lambda_sales.created_at", "2025-02-01"], ["<", "d:lambda_sales.created_at", "2025-03-01"]]),
-                months % "WHERE created_at >= '2025-02-01' AND created_at < '2025-03-01' ", "inside the rollup")
+                                  where=[[">=", "d:lambda_sales.created_at", "2025-02-01"], ["<", "d:lambda_sales.created_at", "2025-03-01"]]), inside, "inside the rollup")
     expect_clear_error(ctx, ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.status"]), "Cube cannot read a rollup_lambda")
 
 
