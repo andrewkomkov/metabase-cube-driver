@@ -56,7 +56,7 @@ views:
         includes:
           - net_sales
           - name: Ratios
-            includes: [revenue_per_order]
+            includes: [count]
       - name: Customers
         includes:
           - join_path: orders.users

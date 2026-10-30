@@ -88,7 +88,6 @@ cubes:
       - { name: has_orders, sql: "COUNT(*) > 0", type: boolean, description: At least one order exists. }
       - { name: statuses, sql: "arrayStringConcat(arraySort(groupUniqArray(status)), ',')", type: string, description: Distinct statuses in the group. }
       - { name: public_false_measure, sql: amount, type: sum, public: false }
-      - { name: p50_amount, sql: "quantile(0.5)(amount)", type: number_agg, description: Median order amount. }
       - name: revenue_trailing_30d
         sql: amount
         type: sum
