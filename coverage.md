@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 699/749 pass** (699 pass, 17 partial, 22 blocked, 10 unsupported, 1 fail of 749)
+**coverage: 699/749 pass** (699 pass, 18 partial, 22 blocked, 10 unsupported, 0 fail of 749)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `c5ffb9b6cff8`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41140683349), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `661aec098e92`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41141112024), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -161,7 +161,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `c5ffb9b
 | `preagg.partitioned` | pass |  |
 | `preagg.rollup` | pass |  |
 | `preagg.rollup_join` | pass |  |
-| `preagg.rollup_lambda` | fail | the error has no 'Cube cannot read a rollup_lambda':  |
+| `preagg.rollup_lambda` | partial | Inside the range of the rollup, the lambda gives the truth. With a range that reads source rows on the demo data, the REST API and the SQL API of Cube stop on ClickHouse with Stream query failed: aborted, see cube-js/cube#12285. The driver shows a clear message for this. dev/cube/model/rollups.yml has the model. |
 | `sqlapi.aggregate_function` | pass |  |
 | `sqlapi.date_trunc` | pass |  |
 | `sqlapi.having` | pass |  |

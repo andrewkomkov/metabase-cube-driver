@@ -2,5 +2,5 @@
   "schemaVersion": 1,
   "label": "coverage",
   "message": "699/749 pass",
-  "color": "red"
+  "color": "brightgreen"
 }
