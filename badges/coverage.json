@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "label": "coverage",
-  "message": "no data",
-  "color": "lightgrey"
+  "message": "376/429 pass",
+  "color": "red"
 }
