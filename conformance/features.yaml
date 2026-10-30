@@ -375,32 +375,32 @@
 - id: dimension.type.geo
   area: cube.dimensions
   title: "dimension type geo"
-  status: fail
+  status: pass
   check: dimension.type.geo
 - id: dimension.type.geo.map_points
   area: cube.dimensions
   title: "dimension type geo: points on a map"
-  status: todo
+  status: pass
   check: dimension.type.geo.map_points
 - id: dimension.type.geo.map_grid
   area: cube.dimensions
   title: "dimension type geo: grid map with bins"
-  status: todo
+  status: pass
   check: dimension.type.geo.map_grid
 - id: dimension.type.geo.raw_rows
   area: cube.dimensions
   title: "dimension type geo: raw rows"
-  status: todo
+  status: pass
   check: dimension.type.geo.raw_rows
 - id: dimension.type.geo.filter
   area: cube.dimensions
   title: "dimension type geo: filter on coordinates"
-  status: todo
+  status: pass
   check: dimension.type.geo.filter
 - id: dimension.type.geo.implicit_join
   area: cube.dimensions
   title: "dimension type geo: coordinates through a foreign key"
-  status: todo
+  status: pass
   check: dimension.type.geo.implicit_join
 - id: dimension.type.geo.view
   area: cube.dimensions
@@ -412,17 +412,17 @@
 - id: dimension.type.geo.auto_bin
   area: cube.dimensions
   title: "dimension type geo: automatic bins"
-  status: todo
+  status: pass
   check: dimension.type.geo.auto_bin
 - id: dimension.type.geo.second_stage
   area: cube.dimensions
   title: "dimension type geo: coordinates in a second query stage"
-  status: todo
+  status: pass
   check: dimension.type.geo.second_stage
 - id: dimension.type.geo.fingerprint
   area: cube.dimensions
   title: "dimension type geo: fingerprint of coordinates"
-  status: todo
+  status: pass
   check: dimension.type.geo.fingerprint
 - id: dimension.type.number
   area: cube.dimensions
