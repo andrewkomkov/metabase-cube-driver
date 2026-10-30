@@ -4,7 +4,7 @@ CI generates this page from `conformance/run.py`. Do not edit it.
 
 **coverage: 629/666 pass** (629 pass, 0 partial, 26 blocked, 10 unsupported, 1 fail of 666)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `ca17ea428655`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41100945332), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `9bbe10949137`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41102142613), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
