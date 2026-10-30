@@ -2,20 +2,20 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 314/405 pass** (314 pass, 0 partial, 23 blocked, 6 unsupported, 62 fail of 405)
+**coverage: 375/429 pass** (375 pass, 0 partial, 24 blocked, 7 unsupported, 23 fail of 429)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e3299b69f`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41074903342), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `8f750c0a400d`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41076304867), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
-| `measure.format.abbr` | fail | column has no format settings |
-| `measure.format.accounting` | fail | column settings {}: want decimals 2 |
+| `measure.format.abbr` | pass |  |
+| `measure.format.accounting` | pass |  |
 | `measure.format.currency` | pass |  |
-| `measure.format.currency_code` | fail | column settings {}, semantic type/Currency: want number_style currency |
-| `measure.format.d3` | fail | column has no format settings |
-| `measure.format.number_n` | fail | column settings {}: want decimals 0 |
+| `measure.format.currency_code` | pass |  |
+| `measure.format.d3` | pass |  |
+| `measure.format.number_n` | pass |  |
 | `measure.format.percent` | pass |  |
-| `measure.format.percent_n` | fail | column settings {}, semantic None: want number_style percent |
+| `measure.format.percent_n` | pass |  |
 | `measure.multi_stage.case_switch` | pass |  |
 | `measure.multi_stage.filter_exclude` | pass |  |
 | `measure.multi_stage.grain_exclude` | pass |  |
@@ -28,11 +28,11 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `measure.multi_stage.time_shift_prior` | pass |  |
 | `measure.opt.cross_cube_reference` | pass |  |
 | `measure.opt.description` | pass |  |
-| `measure.opt.drill_members` | fail | metadata of orders has no text 'drill' |
+| `measure.opt.drill_members` | pass |  |
 | `measure.opt.filters` | pass |  |
 | `measure.opt.filters_on_count` | pass |  |
 | `measure.opt.mask` | pass |  |
-| `measure.opt.meta` | fail | metadata of orders has no text 'Sum of order amount.' |
+| `measure.opt.meta` | pass |  |
 | `measure.opt.multi_stage` | pass |  |
 | `measure.opt.public_false` | pass |  |
 | `measure.opt.rolling_type_deprecated` | unsupported | year_to_date, quarter_to_date and month_to_date are deprecated and Tesseract does not read them. The demo model uses to_date. |
@@ -42,7 +42,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `measure.rolling.to_date_month` | pass |  |
 | `measure.rolling.to_date_year` | pass |  |
 | `measure.rolling.trailing` | pass |  |
-| `measure.rolling.unbounded` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:50:21.538848021Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual |
+| `measure.rolling.unbounded` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:59:32.103670104Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual |
 | `measure.type.avg` | pass |  |
 | `measure.type.boolean` | pass |  |
 | `measure.type.count` | pass |  |
@@ -55,29 +55,29 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `measure.type.rank` | pass |  |
 | `measure.type.string` | pass |  |
 | `measure.type.sum` | pass |  |
-| `measure.type.time` | fail | rows: got [None], truth ['2025-01-01T01:00:00'] |
-| `dimension.format.abbr` | fail | orders.amount_abbr has no format settings |
+| `measure.type.time` | pass |  |
+| `dimension.format.abbr` | pass |  |
 | `dimension.format.currency` | pass |  |
-| `dimension.format.currency_code` | fail | orders.amount_eur settings {}, want currency EUR |
-| `dimension.format.id` | fail | orders.order_ref has no format settings |
+| `dimension.format.currency_code` | pass |  |
+| `dimension.format.id` | pass |  |
 | `dimension.format.image_url` | pass |  |
 | `dimension.format.link` | pass |  |
-| `dimension.format.link_label` | fail | metadata of orders has no text 'Open invoice' |
-| `dimension.format.percent` | fail | orders.amount_pct has no format settings |
-| `dimension.format.time` | fail | metadata of orders has no text '%Y-%m-%d %H:%M:%S' |
+| `dimension.format.link_label` | pass |  |
+| `dimension.format.percent` | pass |  |
+| `dimension.format.time` | pass |  |
 | `dimension.opt.case_label_sql` | pass |  |
 | `dimension.opt.case_sql` | pass |  |
 | `dimension.opt.description` | pass |  |
-| `dimension.opt.links` | fail | metadata of orders has no text 'Search status' |
+| `dimension.opt.links` | pass |  |
 | `dimension.opt.mask_sql` | pass |  |
 | `dimension.opt.mask_static` | pass |  |
-| `dimension.opt.meta` | fail | metadata of orders has no text 'Use for order lifecycle questions.' |
+| `dimension.opt.meta` | pass |  |
 | `dimension.opt.order` | blocked | A Metabase field has no default sort order. The driver cannot apply this option without a Metabase change, which is out of scope. |
 | `dimension.opt.primary_key` | pass |  |
 | `dimension.opt.propagate_filters` | pass |  |
 | `dimension.opt.public_false` | pass |  |
 | `dimension.opt.sub_query` | pass |  |
-| `dimension.opt.synthetic_hidden` | fail | orders.status_linked___link_search_url is visible |
+| `dimension.opt.synthetic_hidden` | pass |  |
 | `dimension.opt.time_shift_calendar` | pass |  |
 | `dimension.opt.title` | pass |  |
 | `dimension.type.boolean` | pass |  |
@@ -111,7 +111,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `cube.data_source` | blocked | The demo stack has one data source. A second one needs a compose change and a Cube config, which do not exist yet. |
 | `cube.description` | pass |  |
 | `cube.extends` | pass |  |
-| `cube.meta` | fail | metadata of users has no text 'One row per customer account.' |
+| `cube.meta` | pass |  |
 | `cube.public_false` | pass |  |
 | `cube.refresh_key` | pass |  |
 | `cube.sql` | pass |  |
@@ -134,25 +134,25 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `view.description` | pass |  |
 | `view.excludes` | pass |  |
 | `view.extends` | pass |  |
-| `view.folders` | fail | metadata of sales has no text 'Money' |
-| `view.folders_nested` | fail | metadata of paid_sales has no text 'Ratios' |
-| `view.group` | fail | metadata of paid_sales has no text 'Revenue views' |
+| `view.folders` | pass |  |
+| `view.folders_nested` | pass |  |
+| `view.group` | pass |  |
 | `view.includes` | pass |  |
 | `view.member_alias` | pass |  |
 | `view.member_description` | pass |  |
 | `view.member_format` | pass |  |
-| `view.member_meta` | fail | metadata of paid_sales has no text 'curated' |
+| `view.member_meta` | pass |  |
 | `view.member_title` | pass |  |
-| `view.meta` | fail | metadata of sales has no text 'Preferred entry point for agents.' |
+| `view.meta` | pass |  |
 | `view.meta_auto_run` | unsupported | meta.auto_run controls Cube Cloud workbooks. Metabase has no such behaviour. |
 | `view.meta_default_ui_filters` | unsupported | meta.default_ui_filters controls Cube Cloud workbooks. Metabase has no such behaviour. |
 | `view.prefix` | pass |  |
 | `view.public_false` | pass |  |
 | `view.title` | pass |  |
-| `hierarchy.levels` | fail | metadata of orders has no text 'Fulfilment' |
+| `hierarchy.levels` | pass |  |
 | `hierarchy.public_false` | pass |  |
 | `preagg.indexes` | pass |  |
-| `preagg.original_sql` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:50:56.706871843Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing: |
+| `preagg.original_sql` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:59:58.569385462Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing: |
 | `preagg.partitioned` | pass |  |
 | `preagg.rollup` | pass |  |
 | `preagg.rollup_join` | blocked | rollup_join needs two data sources. The demo stack has one. |
@@ -182,7 +182,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `clickhouse.nullable_expression` | pass |  |
 | `meta.base_types` | pass |  |
 | `meta.fingerprint_distinct_count` | fail | rows: got [None], truth [4.0] |
-| `meta.fk_implicit_target` | fail | no foreign key from orders to users |
+| `meta.fk_implicit_target` | pass |  |
 | `meta.measure_is_marked` | pass |  |
 | `meta.no_internal_columns` | pass |  |
 | `meta.resync_keeps_metadata` | pass |  |
@@ -196,10 +196,10 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `mb.agg.custom_expression` | pass |  |
 | `mb.agg.distinct` | pass |  |
 | `mb.agg.max_field` | pass |  |
-| `mb.agg.median` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:51:15.590904405Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
+| `mb.agg.median` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:00:13.925361103Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
 | `mb.agg.min_field` | pass |  |
 | `mb.agg.offset_window` | fail | rows: got ['2025-01-01T00:00:00', 0.0], truth ['2025-01-01T00:00:00', None] |
-| `mb.agg.percentile` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:51:16.59456555Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional inf |
+| `mb.agg.percentile` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:00:14.747988464Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
 | `mb.agg.share` | pass |  |
 | `mb.agg.stddev` | pass |  |
 | `mb.agg.sum_field` | pass |  |
@@ -221,8 +221,8 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `mb.bucket.week` | fail | rows: got ['2024-12-30T00:00:00', 69.0], truth ['2024-12-29T00:00:00', 55.0] |
 | `mb.bucket.week-of-year` | fail | rows: got [1.0, 98.0], truth [1.0, 55.0] |
 | `mb.bucket.year` | pass |  |
-| `mb.breakout.bin_count` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:51:24.465602046Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(20)'. Please check logs for additi |
-| `mb.breakout.bin_width` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:51:24.731973685Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(100)'. Please check logs for addit |
+| `mb.breakout.bin_count` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:00:20.721782557Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(20)'. Please check logs for additi |
+| `mb.breakout.bin_width` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:00:20.952368576Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(100)'. Please check logs for addit |
 | `mb.breakout.boolean` | pass |  |
 | `mb.breakout.limit` | pass |  |
 | `mb.breakout.sorted_by_measure` | pass |  |
@@ -242,8 +242,8 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `mb.filter.eq_multi` | pass |  |
 | `mb.filter.eq_number` | pass |  |
 | `mb.filter.eq_string` | pass |  |
-| `mb.filter.exclude_day_of_week` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:51:32.26597865Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional inf |
-| `mb.filter.exclude_month_of_year` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:51:32.537224785Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
+| `mb.filter.exclude_day_of_week` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:00:26.912312869Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
+| `mb.filter.exclude_month_of_year` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:00:27.143735512Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
 | `mb.filter.gt` | pass |  |
 | `mb.filter.gte` | pass |  |
 | `mb.filter.is_empty` | pass |  |
@@ -270,13 +270,13 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `mb.expr.coalesce` | pass |  |
 | `mb.expr.concat` | pass |  |
 | `mb.expr.datetime_add` | pass |  |
-| `mb.expr.datetime_diff` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:51:42.910835755Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_ |
+| `mb.expr.datetime_diff` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:00:35.013997583Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_ |
 | `mb.expr.div` | pass |  |
 | `mb.expr.floor` | pass |  |
 | `mb.expr.get_month` | pass |  |
 | `mb.expr.get_year` | pass |  |
 | `mb.expr.length` | pass |  |
-| `mb.expr.log` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:51:45.00294488Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Planning Error: Initial planning error: Error during planning: Coercion from [Int64, Float64] to the signatu |
+| `mb.expr.log` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:00:36.683554473Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Planning Error: Initial planning error: Error during planning: Coercion from [Int64, Float64] to the signat |
 | `mb.expr.lower` | pass |  |
 | `mb.expr.mul` | pass |  |
 | `mb.expr.power` | pass |  |
@@ -285,15 +285,15 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `mb.expr.sqrt` | pass |  |
 | `mb.expr.substring` | pass |  |
 | `mb.expr.upper` | pass |  |
-| `mb.join.explicit_inner` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:51:48.283821367Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
-| `mb.join.explicit_left` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:51:48.574144406Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
-| `mb.join.implicit` | fail | no foreign key from orders to users |
-| `mb.join.implicit_filter` | fail | no foreign key from orders to users |
-| `mb.join.measure_across_cubes` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T14:51:48.845668739Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in |
+| `mb.join.explicit_inner` | pass |  |
+| `mb.join.explicit_left` | pass |  |
+| `mb.join.implicit` | pass |  |
+| `mb.join.implicit_filter` | pass |  |
+| `mb.join.measure_across_cubes` | pass |  |
 | `mb.nested.filter_on_aggregation` | pass |  |
 | `mb.nested.question_as_source` | pass |  |
 | `mb.card.metric` | pass |  |
-| `mb.card.metric_with_breakout` | fail | rows: got ['cancelled', None], truth ['cancelled', 69970.0] |
+| `mb.card.metric_with_breakout` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T15:00:41.609293924Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Post-Processing Error: Execution error: This query is required to be pushed down due to use of MEASURE() fu |
 | `mb.card.model` | pass |  |
 | `mb.card.saved_question` | pass |  |
 | `mb.entity.measure_custom` | pass |  |
@@ -319,8 +319,8 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `mb.field_values.list` | pass |  |
 | `mb.field_values.search` | pass |  |
 | `mb.search.by_description` | pass |  |
-| `mb.search.measure` | fail | search has no measure Revenue. Found: [] |
-| `mb.search.segment` | fail | search has no segment Paid. Found: [] |
+| `mb.search.measure` | pass |  |
+| `mb.search.segment` | pass |  |
 | `mb.search.table` | pass |  |
 | `mb.xray.candidates` | pass |  |
 | `mb.xray.table` | pass |  |
@@ -330,13 +330,13 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `mb.other.drill_through_ui` | blocked | Drill-through runs in the browser. The suite has no browser check yet. |
 | `mb.other.model_persistence` | unsupported | Model persistence needs CREATE TABLE. The Cube SQL API is read only. |
 | `mb.other.uploads` | unsupported | CSV uploads write tables. The Cube SQL API is read only. |
-| `mcp.agent_journey_no_cube_knowledge` | fail | no table from the search lists a revenue measure |
+| `mcp.agent_journey_no_cube_knowledge` | pass |  |
 | `mcp.alert_write` | blocked | Needs an email or Slack channel. The demo stack has neither. |
 | `mcp.bookmark_content` | blocked | A bookmark holds no Cube value that a check can compare with the truth. |
-| `mcp.browse.descriptions_in_get_fields` | fail | get_fields does not show 'Revenue questions start here.' |
+| `mcp.browse.descriptions_in_get_fields` | pass |  |
 | `mcp.browse.get_fields_dimensions` | pass |  |
 | `mcp.browse.get_fields_measures` | pass |  |
-| `mcp.browse.get_fields_segments` | fail | get_fields lists no segment Paid. It lists: ['conformanceshipped'] |
+| `mcp.browse.get_fields_segments` | pass |  |
 | `mcp.browse.list_databases` | pass |  |
 | `mcp.browse.list_tables` | pass |  |
 | `mcp.collection_write` | blocked | A collection holds no Cube value that a check can compare with the truth. |
@@ -349,9 +349,9 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `mcp.execute_query.breakout` | pass |  |
 | `mcp.execute_query.date_bucket` | pass |  |
 | `mcp.execute_query.filter` | pass |  |
-| `mcp.execute_query.implicit_join` | fail | no foreign key from orders to users |
+| `mcp.execute_query.implicit_join` | pass |  |
 | `mcp.execute_query.measure` | pass |  |
-| `mcp.execute_query.paging` | fail | no next_cursor: {'query_handle': 'b7e89f83-70fc-4a00-99df-6d308ebad62b', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float' |
+| `mcp.execute_query.paging` | fail | no next_cursor: {'query_handle': '13b916b2-fde4-42da-ae8e-d44b87ad76ed', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float' |
 | `mcp.execute_query.segment` | pass |  |
 | `mcp.execute_query.view` | pass |  |
 | `mcp.execute_sql` | pass |  |
@@ -372,8 +372,8 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `mcp.render_drill_through` | blocked | The tools/list reply for a session without MCP Apps support does not include this tool. |
 | `mcp.run_saved_question` | pass |  |
 | `mcp.search` | pass |  |
-| `mcp.search.measure` | fail | search has no measure Revenue: [] |
-| `mcp.search.segment` | fail | search has no segment Paid: [] |
+| `mcp.search.measure` | pass |  |
+| `mcp.search.segment` | pass |  |
 | `mcp.search.table_by_description` | pass |  |
 | `mcp.search.view_description` | pass |  |
 | `mcp.segment_write` | pass |  |
@@ -413,3 +413,27 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `7f8e329
 | `cube.generated_jinja_second` | pass |  |
 | `cube.generated_async` | pass |  |
 | `cube.generated_async_second` | pass |  |
+| `semantic.measure.every_member` | pass |  |
+| `semantic.measure.in_summarize` | pass |  |
+| `semantic.measure.type_number` | pass |  |
+| `semantic.measure.type_string` | pass |  |
+| `semantic.measure.type_time` | pass |  |
+| `semantic.measure.type_boolean` | pass |  |
+| `semantic.segment.every_member` | pass |  |
+| `semantic.display_names` | pass |  |
+| `semantic.descriptions` | pass |  |
+| `semantic.format.currency` | pass |  |
+| `semantic.format.percent` | pass |  |
+| `semantic.format.link` | pass |  |
+| `semantic.fk.from_joins` | pass |  |
+| `semantic.fk.join_removed` | pass |  |
+| `semantic.drill_members` | pass |  |
+| `semantic.agent_reads_notes` | pass |  |
+| `semantic.resync_no_duplicates` | pass |  |
+| `semantic.model_change_updates` | pass |  |
+| `semantic.removed_archived` | pass |  |
+| `semantic.restored_member` | pass |  |
+| `semantic.user_edit_kept` | pass |  |
+| `semantic.user_edit_reset` | pass |  |
+| `semantic.drill_members_native` | unsupported | Metabase has no column that lists the drill columns of a measure. Its drill-through uses all visible fields. The text in the description is the only place, see semantic.drill_members. |
+| `semantic.measure.min_on_time_column` | blocked | Cube REST returns the time, but /v1/meta types the measure as number and the SQL API returns NULL for MEASURE(). The driver reads only the SQL API, so the demo measure first_order_at gives NULL. Use a measure of type time, see semantic.measure.type_time. |

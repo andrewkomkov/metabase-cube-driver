@@ -1,24 +1,24 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 314,
+    "pass": 375,
     "partial": 0,
-    "blocked": 23,
-    "unsupported": 6,
-    "fail": 62,
-    "total": 405
+    "blocked": 24,
+    "unsupported": 7,
+    "fail": 23,
+    "total": 429
   },
-  "coverage": "coverage: 314/405 pass",
+  "coverage": "coverage: 375/429 pass",
   "features": [
     {
       "id": "measure.format.abbr",
-      "status": "fail",
-      "reason": "column has no format settings"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "measure.format.accounting",
-      "status": "fail",
-      "reason": "column settings {}: want decimals 2"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "measure.format.currency",
@@ -27,18 +27,18 @@
     },
     {
       "id": "measure.format.currency_code",
-      "status": "fail",
-      "reason": "column settings {}, semantic type/Currency: want number_style currency"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "measure.format.d3",
-      "status": "fail",
-      "reason": "column has no format settings"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "measure.format.number_n",
-      "status": "fail",
-      "reason": "column settings {}: want decimals 0"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "measure.format.percent",
@@ -47,8 +47,8 @@
     },
     {
       "id": "measure.format.percent_n",
-      "status": "fail",
-      "reason": "column settings {}, semantic None: want number_style percent"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "measure.multi_stage.case_switch",
@@ -112,8 +112,8 @@
     },
     {
       "id": "measure.opt.drill_members",
-      "status": "fail",
-      "reason": "metadata of orders has no text 'drill'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "measure.opt.filters",
@@ -132,8 +132,8 @@
     },
     {
       "id": "measure.opt.meta",
-      "status": "fail",
-      "reason": "metadata of orders has no text 'Sum of order amount.'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "measure.opt.multi_stage",
@@ -183,7 +183,7 @@
     {
       "id": "measure.rolling.unbounded",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:50:21.538848021Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:59:32.103670104Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEqual"
     },
     {
       "id": "measure.type.avg",
@@ -247,13 +247,13 @@
     },
     {
       "id": "measure.type.time",
-      "status": "fail",
-      "reason": "rows: got [None], truth ['2025-01-01T01:00:00']"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.format.abbr",
-      "status": "fail",
-      "reason": "orders.amount_abbr has no format settings"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.format.currency",
@@ -262,13 +262,13 @@
     },
     {
       "id": "dimension.format.currency_code",
-      "status": "fail",
-      "reason": "orders.amount_eur settings {}, want currency EUR"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.format.id",
-      "status": "fail",
-      "reason": "orders.order_ref has no format settings"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.format.image_url",
@@ -282,18 +282,18 @@
     },
     {
       "id": "dimension.format.link_label",
-      "status": "fail",
-      "reason": "metadata of orders has no text 'Open invoice'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.format.percent",
-      "status": "fail",
-      "reason": "orders.amount_pct has no format settings"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.format.time",
-      "status": "fail",
-      "reason": "metadata of orders has no text '%Y-%m-%d %H:%M:%S'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.opt.case_label_sql",
@@ -312,8 +312,8 @@
     },
     {
       "id": "dimension.opt.links",
-      "status": "fail",
-      "reason": "metadata of orders has no text 'Search status'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.opt.mask_sql",
@@ -327,8 +327,8 @@
     },
     {
       "id": "dimension.opt.meta",
-      "status": "fail",
-      "reason": "metadata of orders has no text 'Use for order lifecycle questions.'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.opt.order",
@@ -357,8 +357,8 @@
     },
     {
       "id": "dimension.opt.synthetic_hidden",
-      "status": "fail",
-      "reason": "orders.status_linked___link_search_url is visible"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.opt.time_shift_calendar",
@@ -527,8 +527,8 @@
     },
     {
       "id": "cube.meta",
-      "status": "fail",
-      "reason": "metadata of users has no text 'One row per customer account.'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "cube.public_false",
@@ -642,18 +642,18 @@
     },
     {
       "id": "view.folders",
-      "status": "fail",
-      "reason": "metadata of sales has no text 'Money'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "view.folders_nested",
-      "status": "fail",
-      "reason": "metadata of paid_sales has no text 'Ratios'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "view.group",
-      "status": "fail",
-      "reason": "metadata of paid_sales has no text 'Revenue views'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "view.includes",
@@ -677,8 +677,8 @@
     },
     {
       "id": "view.member_meta",
-      "status": "fail",
-      "reason": "metadata of paid_sales has no text 'curated'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "view.member_title",
@@ -687,8 +687,8 @@
     },
     {
       "id": "view.meta",
-      "status": "fail",
-      "reason": "metadata of sales has no text 'Preferred entry point for agents.'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "view.meta_auto_run",
@@ -717,8 +717,8 @@
     },
     {
       "id": "hierarchy.levels",
-      "status": "fail",
-      "reason": "metadata of orders has no text 'Fulfilment'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "hierarchy.public_false",
@@ -733,7 +733,7 @@
     {
       "id": "preagg.original_sql",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:50:56.706871843Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing:"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:59:58.569385462Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Command failed: Error: Missing columns: 'lambda_orders__status' while processing:"
     },
     {
       "id": "preagg.partitioned",
@@ -882,8 +882,8 @@
     },
     {
       "id": "meta.fk_implicit_target",
-      "status": "fail",
-      "reason": "no foreign key from orders to users"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "meta.measure_is_marked",
@@ -953,7 +953,7 @@
     {
       "id": "mb.agg.median",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:51:15.590904405Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:00:13.925361103Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
     },
     {
       "id": "mb.agg.min_field",
@@ -968,7 +968,7 @@
     {
       "id": "mb.agg.percentile",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:51:16.59456555Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional inf"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:00:14.747988464Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
     },
     {
       "id": "mb.agg.share",
@@ -1078,12 +1078,12 @@
     {
       "id": "mb.breakout.bin_count",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:51:24.465602046Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(20)'. Please check logs for additi"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:00:20.721782557Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(20)'. Please check logs for additi"
     },
     {
       "id": "mb.breakout.bin_width",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:51:24.731973685Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(100)'. Please check logs for addit"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:00:20.952368576Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Float64(100)'. Please check logs for addit"
     },
     {
       "id": "mb.breakout.boolean",
@@ -1183,12 +1183,12 @@
     {
       "id": "mb.filter.exclude_day_of_week",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:51:32.26597865Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional inf"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:00:26.912312869Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
     },
     {
       "id": "mb.filter.exclude_month_of_year",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:51:32.537224785Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:00:27.143735512Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
     },
     {
       "id": "mb.filter.gt",
@@ -1323,7 +1323,7 @@
     {
       "id": "mb.expr.datetime_diff",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:51:42.910835755Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:00:35.013997583Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_"
     },
     {
       "id": "mb.expr.div",
@@ -1353,7 +1353,7 @@
     {
       "id": "mb.expr.log",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:51:45.00294488Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Planning Error: Initial planning error: Error during planning: Coercion from [Int64, Float64] to the signatu"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:00:36.683554473Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Planning Error: Initial planning error: Error during planning: Coercion from [Int64, Float64] to the signat"
     },
     {
       "id": "mb.expr.lower",
@@ -1397,28 +1397,28 @@
     },
     {
       "id": "mb.join.explicit_inner",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:51:48.283821367Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.join.explicit_left",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:51:48.574144406Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.join.implicit",
-      "status": "fail",
-      "reason": "no foreign key from orders to users"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.join.implicit_filter",
-      "status": "fail",
-      "reason": "no foreign key from orders to users"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.join.measure_across_cubes",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T14:51:48.845668739Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional in"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.nested.filter_on_aggregation",
@@ -1438,7 +1438,7 @@
     {
       "id": "mb.card.metric_with_breakout",
       "status": "fail",
-      "reason": "rows: got ['cancelled', None], truth ['cancelled', 69970.0]"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T15:00:41.609293924Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Post-Processing Error: Execution error: This query is required to be pushed down due to use of MEASURE() fu"
     },
     {
       "id": "mb.card.model",
@@ -1567,13 +1567,13 @@
     },
     {
       "id": "mb.search.measure",
-      "status": "fail",
-      "reason": "search has no measure Revenue. Found: []"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.search.segment",
-      "status": "fail",
-      "reason": "search has no segment Paid. Found: []"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.search.table",
@@ -1622,8 +1622,8 @@
     },
     {
       "id": "mcp.agent_journey_no_cube_knowledge",
-      "status": "fail",
-      "reason": "no table from the search lists a revenue measure"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.alert_write",
@@ -1637,8 +1637,8 @@
     },
     {
       "id": "mcp.browse.descriptions_in_get_fields",
-      "status": "fail",
-      "reason": "get_fields does not show 'Revenue questions start here.'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.browse.get_fields_dimensions",
@@ -1652,8 +1652,8 @@
     },
     {
       "id": "mcp.browse.get_fields_segments",
-      "status": "fail",
-      "reason": "get_fields lists no segment Paid. It lists: ['conformanceshipped']"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.browse.list_databases",
@@ -1717,8 +1717,8 @@
     },
     {
       "id": "mcp.execute_query.implicit_join",
-      "status": "fail",
-      "reason": "no foreign key from orders to users"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.execute_query.measure",
@@ -1728,7 +1728,7 @@
     {
       "id": "mcp.execute_query.paging",
       "status": "fail",
-      "reason": "no next_cursor: {'query_handle': 'b7e89f83-70fc-4a00-99df-6d308ebad62b', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
+      "reason": "no next_cursor: {'query_handle': '13b916b2-fde4-42da-ae8e-d44b87ad76ed', 'returned': 3, 'truncated': True, 'cols': [{'name': 'id', 'base_type': 'type/Float', 'display_name': 'Order ID', 'effective_type': 'type/Float'"
     },
     {
       "id": "mcp.execute_query.segment",
@@ -1832,13 +1832,13 @@
     },
     {
       "id": "mcp.search.measure",
-      "status": "fail",
-      "reason": "search has no measure Revenue: []"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.search.segment",
-      "status": "fail",
-      "reason": "search has no segment Paid: []"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.search.table_by_description",
@@ -2034,6 +2034,126 @@
       "id": "cube.generated_async_second",
       "status": "pass",
       "reason": ""
+    },
+    {
+      "id": "semantic.measure.every_member",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.measure.in_summarize",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.measure.type_number",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.measure.type_string",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.measure.type_time",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.measure.type_boolean",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.segment.every_member",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.display_names",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.descriptions",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.format.currency",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.format.percent",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.format.link",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.fk.from_joins",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.fk.join_removed",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.drill_members",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.agent_reads_notes",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.resync_no_duplicates",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.model_change_updates",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.removed_archived",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.restored_member",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.user_edit_kept",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.user_edit_reset",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "semantic.drill_members_native",
+      "status": "unsupported",
+      "reason": "Metabase has no column that lists the drill columns of a measure. Its drill-through uses all visible fields. The text in the description is the only place, see semantic.drill_members."
+    },
+    {
+      "id": "semantic.measure.min_on_time_column",
+      "status": "blocked",
+      "reason": "Cube REST returns the time, but /v1/meta types the measure as number and the SQL API returns NULL for MEASURE(). The driver reads only the SQL API, so the demo measure first_order_at gives NULL. Use a measure of type time, see semantic.measure.type_time."
     }
   ]
 }
