@@ -14,7 +14,8 @@
    [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
    [metabase.driver.sql.query-processor :as sql.qp]
    [metabase.query-processor.middleware.cache :as qp.middleware.cache]
-   [metabase.util.honey-sql-2 :as h2x]))
+   [metabase.util.honey-sql-2 :as h2x]
+   [toucan2.core :as t2]))
 
 (set! *warn-on-reflection* true)
 
@@ -140,7 +141,7 @@
 ;; With per-user data, Metabase keeps one fingerprint for all people, so sync reads no rows.
 (defmethod driver/table-rows-sample :cube
   [driver table fields rff opts]
-  (if (cube.identity/attribute (:details (driver-api/database (driver-api/metadata-provider))))
+  (if (cube.identity/attribute (t2/select-one-fn :details :model/Database :id (:db_id table)))
     (let [rf (rff {:cols (mapv #(select-keys % [:name :base_type]) fields)})]
       (rf (rf)))
     ((get-method driver/table-rows-sample :postgres) driver table fields rff (dissoc opts :truncation-size))))

@@ -830,7 +830,7 @@ REV = "SELECT sum(amount) FROM orders"
 Q("measure.opt.filters", ORD, "SELECT sumIf(amount, %s) FROM orders" % PAID, agg=["m:orders.paid_revenue"])
 Q("measure.opt.filters_on_count", "users", "SELECT countIf(is_vip) FROM users", agg=["m:users.vip_count"])
 Q("measure.opt.title", ORD, "SELECT avg(amount) FROM orders", agg=["m:orders.avg_order_value"], post=expect_title("orders", "avg_order_value", "AOV"))
-Q("measure.opt.description", ORD, REV, agg=["m:orders.revenue"], post=expect_measure_attr("orders", "revenue", "description", "Total order amount in USD."))
+Q("measure.opt.description", ORD, REV, agg=["m:orders.revenue"], post=expect_description("orders", "Total order amount in USD.\n\nTable: Orders (orders, id ", "revenue"))
 Q("measure.opt.public_false", ORD, REV, agg=["m:orders.revenue"], post=expect_hidden("orders", "public_false_measure"))
 Q("measure.opt.meta", ORD, REV, agg=["m:orders.revenue_meta"], post=expect_text("orders", "Sum of order amount."))
 Q("measure.opt.drill_members", ORD, "SELECT id, status, created_at FROM orders ORDER BY id LIMIT 3", ordered=True,
@@ -2327,7 +2327,7 @@ def _(ctx):
     if ctx.mb.field(ORD, "user_id")["description"] != "Customer who placed the order.":
         raise Fail("orders.user_id: %r" % ctx.mb.field(ORD, "user_id")["description"])
     expect_description(ORD, "Total order amount in USD.", "revenue")(ctx, None)
-    if ctx.mb.entity(ctx.mb.segments, ORD, "paid")["description"] != "Completed or shipped orders.":
+    if not str(ctx.mb.entity(ctx.mb.segments, ORD, "paid")["description"]).startswith("Completed or shipped orders.\n\nTable: Orders (orders, id "):
         raise Fail("the Segment paid has another description")
     assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.count"])["rows"], ch(CNT_O))
 
@@ -2414,7 +2414,7 @@ def _(ctx):
 def _(ctx):
     changed = probe(ctx, "changed")
     m = next((x for x in only_active(changed["measures"]) if x["name"] == "Probe total two"), None)
-    if not m or m["description"] != "Second text.":
+    if not m or not m["description"].startswith("Second text.\n\nTable: "):
         raise Fail("the Measure did not follow the model: %s" % m)
     if m["id"] not in {x["id"] for x in probe(ctx, "created")["measures"]}:
         raise Fail("the change made a new Measure")
@@ -2448,7 +2448,7 @@ def _(ctx):
 @check("semantic.user_edit_reset")
 def _(ctx):
     edited = next(m for m in probe(ctx, "reset")["measures"] if m["id"] == ctx.probe.seen["edited_id"])
-    if edited["name"] != "Probe edited" or edited["description"] != "Cube text.":
+    if edited["name"] != "Probe edited" or not edited["description"].startswith("Cube text.\n\nTable: "):
         raise Fail("the Measure did not take the Cube values: %s, %s" % (edited["name"], edited["description"]))
     assert_rows(probe(ctx, "created_rows"), ch(PROBE_TRUTH))
 
