@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 636/686 pass** (636 pass, 12 partial, 26 blocked, 10 unsupported, 2 fail of 686)
+**coverage: 637/686 pass** (637 pass, 12 partial, 26 blocked, 10 unsupported, 1 fail of 686)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `86e60e606831`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41109111478), 2026-10-30.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `fd5e22f6006b`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41109516566), 2026-10-30.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -60,7 +60,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `86e60e6
 | `dimension.format.currency` | pass |  |
 | `dimension.format.currency_code` | pass |  |
 | `dimension.format.id` | pass |  |
-| `dimension.format.image_url` | fail | orders.thumb_url semantic_type='type/URL', want 'type/ImageURL' |
+| `dimension.format.image_url` | pass |  |
 | `dimension.format.link` | pass |  |
 | `dimension.format.link_label` | pass |  |
 | `dimension.format.percent` | pass |  |
@@ -87,7 +87,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `86e60e6
 | `dimension.type.geo.raw_rows` | pass |  |
 | `dimension.type.geo.filter` | pass |  |
 | `dimension.type.geo.implicit_join` | pass |  |
-| `dimension.type.geo.view` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-30T18:44:41.997914539Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Internal Error: TypeError: Cannot read properties of undefined (reading 'sql')\nQUERY: SELECT CAST(SUBSTR(\ |
+| `dimension.type.geo.view` | fail | the sample of the view failed: customer_locations.id has no fingerprint |
 | `dimension.type.geo.auto_bin` | pass |  |
 | `dimension.type.geo.second_stage` | pass |  |
 | `dimension.type.geo.fingerprint` | pass |  |

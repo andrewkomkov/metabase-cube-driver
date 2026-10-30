@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 636,
+    "pass": 637,
     "partial": 12,
     "blocked": 26,
     "unsupported": 10,
-    "fail": 2,
+    "fail": 1,
     "total": 686
   },
-  "coverage": "coverage: 636/686 pass",
+  "coverage": "coverage: 637/686 pass",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -272,8 +272,8 @@
     },
     {
       "id": "dimension.format.image_url",
-      "status": "fail",
-      "reason": "orders.thumb_url semantic_type='type/URL', want 'type/ImageURL'"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.format.link",
@@ -408,7 +408,7 @@
     {
       "id": "dimension.type.geo.view",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-30T18:44:41.997914539Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Internal Error: TypeError: Cannot read properties of undefined (reading 'sql')\\nQUERY: SELECT CAST(SUBSTR(\\"
+      "reason": "the sample of the view failed: customer_locations.id has no fingerprint"
     },
     {
       "id": "dimension.type.geo.auto_bin",
