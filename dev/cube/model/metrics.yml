@@ -30,13 +30,13 @@ cubes:
           - { sql: "{CUBE}.status = 'completed'" }
           - { sql: "{CUBE}.quantity >= 3" }
       - { name: m_users, type: count_distinct, sql: user_id, title: Customers, description: Distinct customers. }
-      - { name: m_users_approx, type: count_distinct_approx, sql: user_id, title: Customers (approx), description: Approximate distinct customers, from uniqHLL12. }
+      - { name: m_users_approx, type: count_distinct_approx, sql: user_id, title: Customers (approx), description: "Approximate distinct customers, from uniqHLL12." }
       - { name: m_revenue, type: sum, sql: amount, format: currency, title: Revenue, description: Sum of amount in USD. }
       - { name: m_avg_amount, type: avg, sql: amount, format: currency, title: Average order value, description: Average amount. }
       - { name: m_min_amount, type: min, sql: amount, title: Smallest order, description: Minimum amount. }
       - { name: m_max_amount, type: max, sql: amount, title: Largest order, description: Maximum amount. }
       - { name: m_quantity_sum, type: sum, sql: quantity, title: Units, description: Units sold. }
-      - { name: m_ratio, type: number, sql: "{m_revenue} / NULLIF({m_count}, 0)", format: currency, title: Revenue per order, description: Revenue divided by orders, NULL when there are no orders. }
+      - { name: m_ratio, type: number, sql: "{m_revenue} / NULLIF({m_count}, 0)", format: currency, title: Revenue per order, description: "Revenue divided by orders, NULL when there are no orders." }
       - { name: m_status_text, type: string, sql: "any(status)", title: Some status, description: One status of the group. }
       - { name: m_last_order_at, type: time, sql: created_at, title: Last order, description: Time of the order in the group. }
       - { name: m_has_completed, type: boolean, sql: "{CUBE}.status = 'completed'", title: Has completed, description: True when the row is completed. }
