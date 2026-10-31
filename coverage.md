@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 739/767 pass on Cube with the ClickHouse dialect** (739 pass, 13 partial, 2 blocked, 12 unsupported, 1 fail of 767)
+**coverage: 740/767 pass on Cube with the ClickHouse dialect** (740 pass, 13 partial, 2 blocked, 12 unsupported, 0 fail of 767)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `a63846ba7eee`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41190170233), 2026-10-31.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `ed819e0c85e1`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41191586040), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -748,7 +748,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `a6384
 | `measure.rolling.window_shorter_than_bucket` | pass |  |
 | `grid.compact.dataset` | pass |  |
 | `grid.compact.mcp` | pass |  |
-| `grid.compact.report_zone` | fail | 1 of 31 not expected: tz/America/New_York/stage filter on a bucket wrong rows: got 5, truth 6. First got [['2025-08-01T00:00:00-04:00', 27999.0], ['2025-09-01T00:00:00-04:00', 26460.0]], first truth [['2025-07-01', 27103], ['2025-08- |
+| `grid.compact.report_zone` | pass |  |
 | `grid.compact.mcp_report_zone` | pass |  |
 | `grid.compact.start_of_week` | pass |  |
 | `context.compile_context` | pass |  |

@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 739,
+    "pass": 740,
     "partial": 13,
     "blocked": 2,
     "unsupported": 12,
-    "fail": 1,
+    "fail": 0,
     "total": 767
   },
-  "coverage": "coverage: 739/767 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 740/767 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -3712,8 +3712,8 @@
     },
     {
       "id": "grid.compact.report_zone",
-      "status": "fail",
-      "reason": "1 of 31 not expected: tz/America/New_York/stage filter on a bucket wrong rows: got 5, truth 6. First got [['2025-08-01T00:00:00-04:00', 27999.0], ['2025-09-01T00:00:00-04:00', 26460.0]], first truth [['2025-07-01', 27103], ['2025-08-"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "grid.compact.mcp_report_zone",
