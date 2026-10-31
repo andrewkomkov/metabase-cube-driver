@@ -5557,3 +5557,1125 @@
   status: pass
   status_stock: pass
   check: metric.rollup.unbounded_by_month_hit
+- id: preagg.additive.count.coarser_dimension_hit
+  area: cube.pre_aggregations
+  title: "preagg additive count coarser dimension hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.count.coarser_dimension_hit
+- id: preagg.additive.count.coarser_time_hit
+  area: cube.pre_aggregations
+  title: "preagg additive count coarser time hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.count.coarser_time_hit
+- id: preagg.additive.count.finer_miss
+  area: cube.pre_aggregations
+  title: "preagg additive count finer miss"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.count.finer_miss
+- id: preagg.additive.count.other_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg additive count other dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.count.other_dimension_miss
+- id: preagg.additive.count.same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg additive count same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.count.same_grain_hit
+- id: preagg.additive.count.total_hit
+  area: cube.pre_aggregations
+  title: "preagg additive count total hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.count.total_hit
+- id: preagg.additive.max_amount.coarser_dimension_hit
+  area: cube.pre_aggregations
+  title: "preagg additive max amount coarser dimension hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.max_amount.coarser_dimension_hit
+- id: preagg.additive.max_amount.coarser_time_hit
+  area: cube.pre_aggregations
+  title: "preagg additive max amount coarser time hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.max_amount.coarser_time_hit
+- id: preagg.additive.max_amount.finer_miss
+  area: cube.pre_aggregations
+  title: "preagg additive max amount finer miss"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.max_amount.finer_miss
+- id: preagg.additive.max_amount.other_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg additive max amount other dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.max_amount.other_dimension_miss
+- id: preagg.additive.max_amount.same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg additive max amount same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.max_amount.same_grain_hit
+- id: preagg.additive.max_amount.total_hit
+  area: cube.pre_aggregations
+  title: "preagg additive max amount total hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.max_amount.total_hit
+- id: preagg.additive.min_amount.coarser_dimension_hit
+  area: cube.pre_aggregations
+  title: "preagg additive min amount coarser dimension hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.min_amount.coarser_dimension_hit
+- id: preagg.additive.min_amount.coarser_time_hit
+  area: cube.pre_aggregations
+  title: "preagg additive min amount coarser time hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.min_amount.coarser_time_hit
+- id: preagg.additive.min_amount.finer_miss
+  area: cube.pre_aggregations
+  title: "preagg additive min amount finer miss"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.min_amount.finer_miss
+- id: preagg.additive.min_amount.other_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg additive min amount other dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.min_amount.other_dimension_miss
+- id: preagg.additive.min_amount.same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg additive min amount same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.min_amount.same_grain_hit
+- id: preagg.additive.min_amount.total_hit
+  area: cube.pre_aggregations
+  title: "preagg additive min amount total hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.min_amount.total_hit
+- id: preagg.additive.paid_count.coarser_dimension_hit
+  area: cube.pre_aggregations
+  title: "preagg additive paid count coarser dimension hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.paid_count.coarser_dimension_hit
+- id: preagg.additive.paid_count.coarser_time_hit
+  area: cube.pre_aggregations
+  title: "preagg additive paid count coarser time hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.paid_count.coarser_time_hit
+- id: preagg.additive.paid_count.finer_miss
+  area: cube.pre_aggregations
+  title: "preagg additive paid count finer miss"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.paid_count.finer_miss
+- id: preagg.additive.paid_count.other_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg additive paid count other dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.paid_count.other_dimension_miss
+- id: preagg.additive.paid_count.same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg additive paid count same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.paid_count.same_grain_hit
+- id: preagg.additive.paid_count.total_hit
+  area: cube.pre_aggregations
+  title: "preagg additive paid count total hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.paid_count.total_hit
+- id: preagg.additive.paid_revenue.coarser_dimension_hit
+  area: cube.pre_aggregations
+  title: "preagg additive paid revenue coarser dimension hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.paid_revenue.coarser_dimension_hit
+- id: preagg.additive.paid_revenue.coarser_time_hit
+  area: cube.pre_aggregations
+  title: "preagg additive paid revenue coarser time hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.paid_revenue.coarser_time_hit
+- id: preagg.additive.paid_revenue.finer_miss
+  area: cube.pre_aggregations
+  title: "preagg additive paid revenue finer miss"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.paid_revenue.finer_miss
+- id: preagg.additive.paid_revenue.other_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg additive paid revenue other dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.paid_revenue.other_dimension_miss
+- id: preagg.additive.paid_revenue.same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg additive paid revenue same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.paid_revenue.same_grain_hit
+- id: preagg.additive.paid_revenue.total_hit
+  area: cube.pre_aggregations
+  title: "preagg additive paid revenue total hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.paid_revenue.total_hit
+- id: preagg.additive.per_order.coarser_dimension_hit
+  area: cube.pre_aggregations
+  title: "preagg additive per order coarser dimension hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.per_order.coarser_dimension_hit
+- id: preagg.additive.per_order.coarser_time_hit
+  area: cube.pre_aggregations
+  title: "preagg additive per order coarser time hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.per_order.coarser_time_hit
+- id: preagg.additive.per_order.finer_miss
+  area: cube.pre_aggregations
+  title: "preagg additive per order finer miss"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.per_order.finer_miss
+- id: preagg.additive.per_order.other_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg additive per order other dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.per_order.other_dimension_miss
+- id: preagg.additive.per_order.same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg additive per order same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.per_order.same_grain_hit
+- id: preagg.additive.per_order.total_hit
+  area: cube.pre_aggregations
+  title: "preagg additive per order total hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.per_order.total_hit
+- id: preagg.additive.revenue.coarser_dimension_hit
+  area: cube.pre_aggregations
+  title: "preagg additive revenue coarser dimension hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.revenue.coarser_dimension_hit
+- id: preagg.additive.revenue.coarser_time_hit
+  area: cube.pre_aggregations
+  title: "preagg additive revenue coarser time hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.revenue.coarser_time_hit
+- id: preagg.additive.revenue.finer_miss
+  area: cube.pre_aggregations
+  title: "preagg additive revenue finer miss"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.revenue.finer_miss
+- id: preagg.additive.revenue.other_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg additive revenue other dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.revenue.other_dimension_miss
+- id: preagg.additive.revenue.same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg additive revenue same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.revenue.same_grain_hit
+- id: preagg.additive.revenue.total_hit
+  area: cube.pre_aggregations
+  title: "preagg additive revenue total hit"
+  status: todo
+  status_stock: todo
+  check: preagg.additive.revenue.total_hit
+- id: preagg.build_range.date_range_over_the_end_reads_only_the_range
+  area: cube.pre_aggregations
+  title: "preagg build range date range over the end reads only the range"
+  status: todo
+  status_stock: todo
+  check: preagg.build_range.date_range_over_the_end_reads_only_the_range
+- id: preagg.build_range.inside_hit
+  area: cube.pre_aggregations
+  title: "preagg build range inside hit"
+  status: todo
+  status_stock: todo
+  check: preagg.build_range.inside_hit
+- id: preagg.build_range.whole_table_reads_only_the_range
+  area: cube.pre_aggregations
+  title: "preagg build range whole table reads only the range"
+  status: todo
+  status_stock: todo
+  check: preagg.build_range.whole_table_reads_only_the_range
+- id: preagg.granularity.day_hit
+  area: cube.pre_aggregations
+  title: "preagg granularity day hit"
+  status: todo
+  status_stock: todo
+  check: preagg.granularity.day_hit
+- id: preagg.granularity.hour_hit
+  area: cube.pre_aggregations
+  title: "preagg granularity hour hit"
+  status: todo
+  status_stock: todo
+  check: preagg.granularity.hour_hit
+- id: preagg.granularity.minute_hit
+  area: cube.pre_aggregations
+  title: "preagg granularity minute hit"
+  status: todo
+  status_stock: todo
+  check: preagg.granularity.minute_hit
+- id: preagg.granularity.month_hit
+  area: cube.pre_aggregations
+  title: "preagg granularity month hit"
+  status: todo
+  status_stock: todo
+  check: preagg.granularity.month_hit
+- id: preagg.granularity.quarter_hit
+  area: cube.pre_aggregations
+  title: "preagg granularity quarter hit"
+  status: todo
+  status_stock: todo
+  check: preagg.granularity.quarter_hit
+- id: preagg.granularity.second_hit
+  area: cube.pre_aggregations
+  title: "preagg granularity second hit"
+  status: todo
+  status_stock: todo
+  check: preagg.granularity.second_hit
+- id: preagg.granularity.week_hit
+  area: cube.pre_aggregations
+  title: "preagg granularity week hit"
+  status: todo
+  status_stock: todo
+  check: preagg.granularity.week_hit
+- id: preagg.granularity.week_rollup_day_miss
+  area: cube.pre_aggregations
+  title: "preagg granularity week rollup day miss"
+  status: todo
+  status_stock: todo
+  check: preagg.granularity.week_rollup_day_miss
+- id: preagg.granularity.week_rollup_month_miss
+  area: cube.pre_aggregations
+  title: "preagg granularity week rollup month miss"
+  status: todo
+  status_stock: todo
+  check: preagg.granularity.week_rollup_month_miss
+- id: preagg.granularity.week_rollup_week_hit
+  area: cube.pre_aggregations
+  title: "preagg granularity week rollup week hit"
+  status: todo
+  status_stock: todo
+  check: preagg.granularity.week_rollup_week_hit
+- id: preagg.granularity.week_rollup_year_miss
+  area: cube.pre_aggregations
+  title: "preagg granularity week rollup year miss"
+  status: todo
+  status_stock: todo
+  check: preagg.granularity.week_rollup_year_miss
+- id: preagg.granularity.year_hit
+  area: cube.pre_aggregations
+  title: "preagg granularity year hit"
+  status: todo
+  status_stock: todo
+  check: preagg.granularity.year_hit
+- id: preagg.latency.big_orders_hit_is_faster_than_a_miss
+  area: cube.pre_aggregations
+  title: "preagg latency big orders hit is faster than a miss"
+  status: todo
+  status_stock: todo
+  check: preagg.latency.big_orders_hit_is_faster_than_a_miss
+- id: preagg.metabase.coarser_hit
+  area: cube.pre_aggregations
+  title: "preagg metabase coarser hit"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.coarser_hit
+- id: preagg.metabase.date_range_inside_a_bucket_miss
+  area: cube.pre_aggregations
+  title: "preagg metabase date range inside a bucket miss"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.date_range_inside_a_bucket_miss
+- id: preagg.metabase.date_range_on_a_boundary_hit
+  area: cube.pre_aggregations
+  title: "preagg metabase date range on a boundary hit"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.date_range_on_a_boundary_hit
+- id: preagg.metabase.extended_cube_hit
+  area: cube.pre_aggregations
+  title: "preagg metabase extended cube hit"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.extended_cube_hit
+- id: preagg.metabase.filter_on_a_rollup_dimension_hit
+  area: cube.pre_aggregations
+  title: "preagg metabase filter on a rollup dimension hit"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.filter_on_a_rollup_dimension_hit
+- id: preagg.metabase.filter_on_another_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg metabase filter on another dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.filter_on_another_dimension_miss
+- id: preagg.metabase.finer_miss
+  area: cube.pre_aggregations
+  title: "preagg metabase finer miss"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.finer_miss
+- id: preagg.metabase.join_through_a_view_hit
+  area: cube.pre_aggregations
+  title: "preagg metabase join through a view hit"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.join_through_a_view_hit
+- id: preagg.metabase.non_additive_coarser_miss
+  area: cube.pre_aggregations
+  title: "preagg metabase non additive coarser miss"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.non_additive_coarser_miss
+- id: preagg.metabase.non_additive_same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg metabase non additive same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.non_additive_same_grain_hit
+- id: preagg.metabase.other_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg metabase other dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.other_dimension_miss
+- id: preagg.metabase.same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg metabase same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.same_grain_hit
+- id: preagg.metabase.time_zone_day_hit
+  area: cube.pre_aggregations
+  title: "preagg metabase time zone day hit"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.time_zone_day_hit
+- id: preagg.metabase.time_zone_finer_miss
+  area: cube.pre_aggregations
+  title: "preagg metabase time zone finer miss"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.time_zone_finer_miss
+- id: preagg.metabase.time_zone_month_hit
+  area: cube.pre_aggregations
+  title: "preagg metabase time zone month hit"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.time_zone_month_hit
+- id: preagg.metabase.view_hit
+  area: cube.pre_aggregations
+  title: "preagg metabase view hit"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.view_hit
+- id: preagg.metabase.view_miss
+  area: cube.pre_aggregations
+  title: "preagg metabase view miss"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.view_miss
+- id: preagg.model.stock_form
+  area: cube.pre_aggregations
+  title: "preagg model stock form"
+  status: todo
+  status_stock: todo
+  check: preagg.model.stock_form
+- id: preagg.multi_stage.grand_total_hit
+  area: cube.pre_aggregations
+  title: "preagg multi stage grand total hit"
+  status: todo
+  status_stock: todo
+  check: preagg.multi_stage.grand_total_hit
+- id: preagg.multi_stage.time_shift_hit
+  area: cube.pre_aggregations
+  title: "preagg multi stage time shift hit"
+  status: todo
+  status_stock: todo
+  check: preagg.multi_stage.time_shift_hit
+- id: preagg.non_additive.any_completed.coarser_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive any completed coarser dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.any_completed.coarser_dimension_miss
+- id: preagg.non_additive.any_completed.coarser_time_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive any completed coarser time miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.any_completed.coarser_time_miss
+- id: preagg.non_additive.any_completed.same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg non additive any completed same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.any_completed.same_grain_hit
+- id: preagg.non_additive.any_completed.total_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive any completed total miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.any_completed.total_miss
+- id: preagg.non_additive.avg_amount.coarser_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive avg amount coarser dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.avg_amount.coarser_dimension_miss
+- id: preagg.non_additive.avg_amount.coarser_time_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive avg amount coarser time miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.avg_amount.coarser_time_miss
+- id: preagg.non_additive.avg_amount.same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg non additive avg amount same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.avg_amount.same_grain_hit
+- id: preagg.non_additive.avg_amount.total_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive avg amount total miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.avg_amount.total_miss
+- id: preagg.non_additive.buyers.coarser_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive buyers coarser dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.buyers.coarser_dimension_miss
+- id: preagg.non_additive.buyers.coarser_time_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive buyers coarser time miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.buyers.coarser_time_miss
+- id: preagg.non_additive.buyers.same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg non additive buyers same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.buyers.same_grain_hit
+- id: preagg.non_additive.buyers.total_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive buyers total miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.buyers.total_miss
+- id: preagg.non_additive.first_status.coarser_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive first status coarser dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.first_status.coarser_dimension_miss
+- id: preagg.non_additive.first_status.coarser_time_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive first status coarser time miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.first_status.coarser_time_miss
+- id: preagg.non_additive.first_status.same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg non additive first status same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.first_status.same_grain_hit
+- id: preagg.non_additive.first_status.total_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive first status total miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.first_status.total_miss
+- id: preagg.non_additive.last_at.coarser_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive last at coarser dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.last_at.coarser_dimension_miss
+- id: preagg.non_additive.last_at.coarser_time_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive last at coarser time miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.last_at.coarser_time_miss
+- id: preagg.non_additive.last_at.same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg non additive last at same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.last_at.same_grain_hit
+- id: preagg.non_additive.last_at.total_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive last at total miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.last_at.total_miss
+- id: preagg.non_additive.median_amount.coarser_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive median amount coarser dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.median_amount.coarser_dimension_miss
+- id: preagg.non_additive.median_amount.coarser_time_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive median amount coarser time miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.median_amount.coarser_time_miss
+- id: preagg.non_additive.median_amount.same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg non additive median amount same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.median_amount.same_grain_hit
+- id: preagg.non_additive.median_amount.total_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive median amount total miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.median_amount.total_miss
+- id: preagg.non_additive.mixed_with_additive_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive mixed with additive miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.mixed_with_additive_miss
+- id: preagg.non_additive.ratio_with_a_distinct_leaf_miss
+  area: cube.pre_aggregations
+  title: "preagg non additive ratio with a distinct leaf miss"
+  status: todo
+  status_stock: todo
+  check: preagg.non_additive.ratio_with_a_distinct_leaf_miss
+- id: preagg.option.external_false_coarser_hit
+  area: cube.pre_aggregations
+  title: "preagg option external false coarser hit"
+  status: todo
+  status_stock: todo
+  check: preagg.option.external_false_coarser_hit
+- id: preagg.option.external_false_hit
+  area: cube.pre_aggregations
+  title: "preagg option external false hit"
+  status: todo
+  status_stock: todo
+  check: preagg.option.external_false_hit
+- id: preagg.option.external_false_miss
+  area: cube.pre_aggregations
+  title: "preagg option external false miss"
+  status: todo
+  status_stock: todo
+  check: preagg.option.external_false_miss
+- id: preagg.option.index_aggregate_hit
+  area: cube.pre_aggregations
+  title: "preagg option index aggregate hit"
+  status: todo
+  status_stock: todo
+  check: preagg.option.index_aggregate_hit
+- id: preagg.option.index_on_a_null_column_hit
+  area: cube.pre_aggregations
+  title: "preagg option index on a null column hit"
+  status: todo
+  status_stock: todo
+  check: preagg.option.index_on_a_null_column_hit
+- id: preagg.option.index_regular_hit
+  area: cube.pre_aggregations
+  title: "preagg option index regular hit"
+  status: todo
+  status_stock: todo
+  check: preagg.option.index_regular_hit
+- id: preagg.option.no_index
+  area: cube.pre_aggregations
+  title: "preagg option no index"
+  status: todo
+  status_stock: todo
+  check: preagg.option.no_index
+- id: preagg.option.non_strict_inside_a_bucket_reads_whole_buckets
+  area: cube.pre_aggregations
+  title: "preagg option non strict inside a bucket reads whole buckets"
+  status: todo
+  status_stock: todo
+  check: preagg.option.non_strict_inside_a_bucket_reads_whole_buckets
+- id: preagg.option.non_strict_on_a_boundary_hit
+  area: cube.pre_aggregations
+  title: "preagg option non strict on a boundary hit"
+  status: todo
+  status_stock: todo
+  check: preagg.option.non_strict_on_a_boundary_hit
+- id: preagg.option.read_only_hit
+  area: cube.pre_aggregations
+  title: "preagg option read only hit"
+  status: todo
+  status_stock: todo
+  check: preagg.option.read_only_hit
+- id: preagg.option.scheduled_refresh_false_hit
+  area: cube.pre_aggregations
+  title: "preagg option scheduled refresh false hit"
+  status: todo
+  status_stock: todo
+  check: preagg.option.scheduled_refresh_false_hit
+- id: preagg.option.strict_date_range_inside_a_bucket_miss
+  area: cube.pre_aggregations
+  title: "preagg option strict date range inside a bucket miss"
+  status: todo
+  status_stock: todo
+  check: preagg.option.strict_date_range_inside_a_bucket_miss
+- id: preagg.option.strict_date_range_on_a_boundary_hit
+  area: cube.pre_aggregations
+  title: "preagg option strict date range on a boundary hit"
+  status: todo
+  status_stock: todo
+  check: preagg.option.strict_date_range_on_a_boundary_hit
+- id: preagg.option.two_time_dimensions_hit
+  area: cube.pre_aggregations
+  title: "preagg option two time dimensions hit"
+  status: todo
+  status_stock: todo
+  check: preagg.option.two_time_dimensions_hit
+- id: preagg.option.unique_key_hit
+  area: cube.pre_aggregations
+  title: "preagg option unique key hit"
+  status: todo
+  status_stock: todo
+  check: preagg.option.unique_key_hit
+- id: preagg.option.use_original_sql_coarser_hit
+  area: cube.pre_aggregations
+  title: "preagg option use original sql coarser hit"
+  status: todo
+  status_stock: todo
+  check: preagg.option.use_original_sql_coarser_hit
+- id: preagg.option.use_original_sql_same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg option use original sql same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.option.use_original_sql_same_grain_hit
+- id: preagg.partition.day_hit
+  area: cube.pre_aggregations
+  title: "preagg partition day hit"
+  status: todo
+  status_stock: todo
+  check: preagg.partition.day_hit
+- id: preagg.partition.hour_hit
+  area: cube.pre_aggregations
+  title: "preagg partition hour hit"
+  status: todo
+  status_stock: todo
+  check: preagg.partition.hour_hit
+- id: preagg.partition.month_hit
+  area: cube.pre_aggregations
+  title: "preagg partition month hit"
+  status: todo
+  status_stock: todo
+  check: preagg.partition.month_hit
+- id: preagg.partition.quarter_hit
+  area: cube.pre_aggregations
+  title: "preagg partition quarter hit"
+  status: todo
+  status_stock: todo
+  check: preagg.partition.quarter_hit
+- id: preagg.partition.range_inside_a_day_miss
+  area: cube.pre_aggregations
+  title: "preagg partition range inside a day miss"
+  status: todo
+  status_stock: todo
+  check: preagg.partition.range_inside_a_day_miss
+- id: preagg.partition.range_over_two_partitions_hit
+  area: cube.pre_aggregations
+  title: "preagg partition range over two partitions hit"
+  status: todo
+  status_stock: todo
+  check: preagg.partition.range_over_two_partitions_hit
+- id: preagg.partition.week_hit
+  area: cube.pre_aggregations
+  title: "preagg partition week hit"
+  status: todo
+  status_stock: todo
+  check: preagg.partition.week_hit
+- id: preagg.partition.year_hit
+  area: cube.pre_aggregations
+  title: "preagg partition year hit"
+  status: todo
+  status_stock: todo
+  check: preagg.partition.year_hit
+- id: preagg.refresh.every_old_number_ends_in_time
+  area: cube.pre_aggregations
+  title: "preagg refresh every old number ends in time"
+  status: todo
+  status_stock: todo
+  check: preagg.refresh.every_old_number_ends_in_time
+- id: preagg.refresh.incremental_keeps_a_partition_out_of_the_window
+  area: cube.pre_aggregations
+  title: "preagg refresh incremental keeps a partition out of the window"
+  status: todo
+  status_stock: todo
+  check: preagg.refresh.incremental_keeps_a_partition_out_of_the_window
+- id: preagg.refresh.incremental_refreshes_the_update_window
+  area: cube.pre_aggregations
+  title: "preagg refresh incremental refreshes the update window"
+  status: todo
+  status_stock: todo
+  check: preagg.refresh.incremental_refreshes_the_update_window
+- id: preagg.refresh.long_key_keeps_the_old_number_inside_its_time
+  area: cube.pre_aggregations
+  title: "preagg refresh long key keeps the old number inside its time"
+  status: todo
+  status_stock: todo
+  check: preagg.refresh.long_key_keeps_the_old_number_inside_its_time
+- id: preagg.refresh.no_update_window_refreshes_only_the_last_partition
+  area: cube.pre_aggregations
+  title: "preagg refresh no update window refreshes only the last partition"
+  status: todo
+  status_stock: todo
+  check: preagg.refresh.no_update_window_refreshes_only_the_last_partition
+- id: preagg.refresh.scheduled_refresh_false
+  area: cube.pre_aggregations
+  title: "preagg refresh scheduled refresh false"
+  status: todo
+  status_stock: todo
+  check: preagg.refresh.scheduled_refresh_false
+- id: preagg.refresh.sql_key_old_number_ends_in_time
+  area: cube.pre_aggregations
+  title: "preagg refresh sql key old number ends in time"
+  status: todo
+  status_stock: todo
+  check: preagg.refresh.sql_key_old_number_ends_in_time
+- id: preagg.refresh.through_metabase
+  area: cube.pre_aggregations
+  title: "preagg refresh through metabase"
+  status: todo
+  status_stock: todo
+  check: preagg.refresh.through_metabase
+- id: preagg.rolling.finer_miss
+  area: cube.pre_aggregations
+  title: "preagg rolling finer miss"
+  status: todo
+  status_stock: todo
+  check: preagg.rolling.finer_miss
+- id: preagg.rolling.running_same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg rolling running same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.rolling.running_same_grain_hit
+- id: preagg.rolling.to_date_coarser_time_hit
+  area: cube.pre_aggregations
+  title: "preagg rolling to date coarser time hit"
+  status: todo
+  status_stock: todo
+  check: preagg.rolling.to_date_coarser_time_hit
+- id: preagg.rolling.to_date_same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg rolling to date same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.rolling.to_date_same_grain_hit
+- id: preagg.rolling.trailing_coarser_time_hit
+  area: cube.pre_aggregations
+  title: "preagg rolling trailing coarser time hit"
+  status: todo
+  status_stock: todo
+  check: preagg.rolling.trailing_coarser_time_hit
+- id: preagg.rolling.trailing_same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg rolling trailing same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.rolling.trailing_same_grain_hit
+- id: preagg.shape.date_range_inside_a_bucket_miss
+  area: cube.pre_aggregations
+  title: "preagg shape date range inside a bucket miss"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.date_range_inside_a_bucket_miss
+- id: preagg.shape.date_range_on_day_boundary_hit
+  area: cube.pre_aggregations
+  title: "preagg shape date range on day boundary hit"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.date_range_on_day_boundary_hit
+- id: preagg.shape.date_range_on_month_boundary_hit
+  area: cube.pre_aggregations
+  title: "preagg shape date range on month boundary hit"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.date_range_on_month_boundary_hit
+- id: preagg.shape.extended_cube_hit
+  area: cube.pre_aggregations
+  title: "preagg shape extended cube hit"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.extended_cube_hit
+- id: preagg.shape.extended_cube_miss
+  area: cube.pre_aggregations
+  title: "preagg shape extended cube miss"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.extended_cube_miss
+- id: preagg.shape.filter_on_a_rollup_dimension_hit
+  area: cube.pre_aggregations
+  title: "preagg shape filter on a rollup dimension hit"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.filter_on_a_rollup_dimension_hit
+- id: preagg.shape.filter_on_another_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg shape filter on another dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.filter_on_another_dimension_miss
+- id: preagg.shape.join_dimension_in_the_rollup_coarser_hit
+  area: cube.pre_aggregations
+  title: "preagg shape join dimension in the rollup coarser hit"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.join_dimension_in_the_rollup_coarser_hit
+- id: preagg.shape.join_dimension_in_the_rollup_hit
+  area: cube.pre_aggregations
+  title: "preagg shape join dimension in the rollup hit"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.join_dimension_in_the_rollup_hit
+- id: preagg.shape.join_dimension_not_in_the_rollup_miss
+  area: cube.pre_aggregations
+  title: "preagg shape join dimension not in the rollup miss"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.join_dimension_not_in_the_rollup_miss
+- id: preagg.shape.join_with_fan_out_miss
+  area: cube.pre_aggregations
+  title: "preagg shape join with fan out miss"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.join_with_fan_out_miss
+- id: preagg.shape.month_bucket_with_a_day_range_hit
+  area: cube.pre_aggregations
+  title: "preagg shape month bucket with a day range hit"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.month_bucket_with_a_day_range_hit
+- id: preagg.shape.segment_in_the_rollup_hit
+  area: cube.pre_aggregations
+  title: "preagg shape segment in the rollup hit"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.segment_in_the_rollup_hit
+- id: preagg.shape.segment_left_out_miss
+  area: cube.pre_aggregations
+  title: "preagg shape segment left out miss"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.segment_left_out_miss
+- id: preagg.shape.segment_not_in_the_rollup_miss
+  area: cube.pre_aggregations
+  title: "preagg shape segment not in the rollup miss"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.segment_not_in_the_rollup_miss
+- id: preagg.shape.view_finer_miss
+  area: cube.pre_aggregations
+  title: "preagg shape view finer miss"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.view_finer_miss
+- id: preagg.shape.view_hit
+  area: cube.pre_aggregations
+  title: "preagg shape view hit"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.view_hit
+- id: preagg.shape.view_joined_dimension_hit
+  area: cube.pre_aggregations
+  title: "preagg shape view joined dimension hit"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.view_joined_dimension_hit
+- id: preagg.shape.view_joined_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg shape view joined dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.view_joined_dimension_miss
+- id: preagg.shape.view_non_additive_coarser_miss
+  area: cube.pre_aggregations
+  title: "preagg shape view non additive coarser miss"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.view_non_additive_coarser_miss
+- id: preagg.shape.view_other_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg shape view other dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.view_other_dimension_miss
+- id: preagg.time_zone.boundary_of_a_local_day_hit
+  area: cube.pre_aggregations
+  title: "preagg time zone boundary of a local day hit"
+  status: todo
+  status_stock: todo
+  check: preagg.time_zone.boundary_of_a_local_day_hit
+- id: preagg.time_zone.coarser_hit
+  area: cube.pre_aggregations
+  title: "preagg time zone coarser hit"
+  status: todo
+  status_stock: todo
+  check: preagg.time_zone.coarser_hit
+- id: preagg.time_zone.finer_miss
+  area: cube.pre_aggregations
+  title: "preagg time zone finer miss"
+  status: todo
+  status_stock: todo
+  check: preagg.time_zone.finer_miss
+- id: preagg.time_zone.inside_a_local_day_miss
+  area: cube.pre_aggregations
+  title: "preagg time zone inside a local day miss"
+  status: todo
+  status_stock: todo
+  check: preagg.time_zone.inside_a_local_day_miss
+- id: preagg.time_zone.partitioned_hit
+  area: cube.pre_aggregations
+  title: "preagg time zone partitioned hit"
+  status: todo
+  status_stock: todo
+  check: preagg.time_zone.partitioned_hit
+- id: preagg.time_zone.same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg time zone same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.time_zone.same_grain_hit
+- id: preagg.type.count_distinct_approx_stops
+  area: cube.pre_aggregations
+  title: "preagg type count distinct approx stops"
+  status: todo
+  status_stock: todo
+  check: preagg.type.count_distinct_approx_stops
+- id: preagg.type.original_sql_in_clickhouse
+  area: cube.pre_aggregations
+  title: "preagg type original sql in clickhouse"
+  status: todo
+  status_stock: todo
+  check: preagg.type.original_sql_in_clickhouse
+- id: preagg.type.original_sql_in_cube_store
+  area: cube.pre_aggregations
+  title: "preagg type original sql in cube store"
+  status: todo
+  status_stock: todo
+  check: preagg.type.original_sql_in_cube_store
+- id: preagg.type.rollup_join_coarser_hit
+  area: cube.pre_aggregations
+  title: "preagg type rollup join coarser hit"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_join_coarser_hit
+- id: preagg.type.rollup_join_filter_hit
+  area: cube.pre_aggregations
+  title: "preagg type rollup join filter hit"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_join_filter_hit
+- id: preagg.type.rollup_join_finer_miss
+  area: cube.pre_aggregations
+  title: "preagg type rollup join finer miss"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_join_finer_miss
+- id: preagg.type.rollup_join_other_dimension_miss
+  area: cube.pre_aggregations
+  title: "preagg type rollup join other dimension miss"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_join_other_dimension_miss
+- id: preagg.type.rollup_join_other_measure_miss
+  area: cube.pre_aggregations
+  title: "preagg type rollup join other measure miss"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_join_other_measure_miss
+- id: preagg.type.rollup_join_same_grain_hit
+  area: cube.pre_aggregations
+  title: "preagg type rollup join same grain hit"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_join_same_grain_hit
+- id: preagg.type.rollup_join_through_metabase
+  area: cube.pre_aggregations
+  title: "preagg type rollup join through metabase"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_join_through_metabase
+- id: preagg.type.rollup_join_total_hit
+  area: cube.pre_aggregations
+  title: "preagg type rollup join total hit"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_join_total_hit
+- id: preagg.type.rollup_lambda_after_the_batch_with_source
+  area: cube.pre_aggregations
+  title: "preagg type rollup lambda after the batch with source"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_lambda_after_the_batch_with_source
+- id: preagg.type.rollup_lambda_filter_hit
+  area: cube.pre_aggregations
+  title: "preagg type rollup lambda filter hit"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_lambda_filter_hit
+- id: preagg.type.rollup_lambda_inside_the_batch_hit
+  area: cube.pre_aggregations
+  title: "preagg type rollup lambda inside the batch hit"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_lambda_inside_the_batch_hit
+- id: preagg.type.rollup_lambda_miss_on_a_finer_grain
+  area: cube.pre_aggregations
+  title: "preagg type rollup lambda miss on a finer grain"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_lambda_miss_on_a_finer_grain
+- id: preagg.type.rollup_lambda_of_two_rollups_hit
+  area: cube.pre_aggregations
+  title: "preagg type rollup lambda of two rollups hit"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_lambda_of_two_rollups_hit
+- id: preagg.type.rollup_lambda_over_the_batch_with_source
+  area: cube.pre_aggregations
+  title: "preagg type rollup lambda over the batch with source"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_lambda_over_the_batch_with_source
