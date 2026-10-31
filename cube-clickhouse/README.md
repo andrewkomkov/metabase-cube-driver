@@ -26,6 +26,9 @@ Then restart Cube. A cube on another data source keeps its own dialect.
 | datetime64 | [#12533](https://github.com/cube-js/cube/pull/12533) | A `DateTime64` keeps its milliseconds in a result and in a filter. |
 | interval | [#12534](https://github.com/cube-js/cube/pull/12534) | `x + INTERVAL '1 day'` works. |
 | m5 | none yet | An `original_sql` pre-aggregation builds. Its indexes have no effect. |
+| rollup with no index | none yet | A rollup with no `indexes` builds, as the docs show. |
+| rollup over `original_sql` | none yet | A rollup with `use_original_sql_pre_aggregations` loads into Cube Store. |
+| range in a zone | none yet | A partitioned rollup in a report time zone has all rows of the build range. |
 | N2 | none yet | A rolling measure is right on the legacy planner. |
 | M3 | none yet | With a report time zone, a `Date` or `Date32` column stays on its day, in a bucket and in a filter. |
 

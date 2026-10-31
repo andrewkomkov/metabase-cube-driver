@@ -7853,7 +7853,7 @@ def _(ctx):
 
 
 def pa_stock_stops(query):
-    """Stock Cube stops this form on ClickHouse with its own error, so no number can be wrong."""
+    """Cube stops this form on ClickHouse with its own error, so no number can be wrong."""
     status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
     for _ in range(60):
         if json.loads(text).get("error") != "Continue wait":
@@ -7861,7 +7861,7 @@ def pa_stock_stops(query):
         time.sleep(2)
         status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
     if status == 200:
-        raise Fail("stock Cube now gives a result: %s. Give this entry its full status" % text[:200])
+        raise Fail("Cube now gives a result: %s. Give this entry its full status" % text[:200])
 
 
 @check("preagg.type.original_sql_in_clickhouse")
@@ -7875,15 +7875,47 @@ def _(ctx):
     assert_rows(pa_rows(res, query), ch("SELECT status, count() FROM orders GROUP BY 1"))
 
 
-@check("preagg.type.original_sql_in_cube_store")
-def _(ctx):
-    query = pa_query(["pa_original_external.revenue"], ["pa_original_external.status"])
-    if not DIALECT:
-        pa_stock_stops(query)
-        return
-    res = pa_load(query)
-    pa_expect_used(res, ["pa_original_external_base"], query)
-    assert_rows(pa_rows(res, query), ch("SELECT status, sum(amount) FROM orders GROUP BY 1"))
+PA_ORIGINAL_EXTERNAL_MODEL = """cubes:
+  - name: pa_original_external
+    sql: "SELECT id, status, amount FROM shop.orders"
+    refresh_key: { every: 1 hour }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string }
+    measures:
+      - { name: revenue, type: sum, sql: amount }
+    pre_aggregations:
+      - name: base
+        type: original_sql
+        external: true
+%s
+"""
+PA_INDEX_LINES = """        indexes:
+          - { name: idx, columns: [status] }"""
+
+
+def pa_original_external(index):
+    """The docs allow this form and advise against it. With an index, Cube Store cannot find the column, also with the dialect. With no index the dialect builds it."""
+    def run(ctx):
+        query = pa_query(["pa_original_external.revenue"], ["pa_original_external.status"])
+        with open(PROBE_FILE, "w", encoding="utf-8") as f:
+            f.write(PA_ORIGINAL_EXTERNAL_MODEL % (PA_INDEX_LINES if index else ""))
+        try:
+            pa_wait_for_meta(True, "pa_original_external")
+            if index or not DIALECT:
+                pa_stock_stops(query)
+                return
+            res = pa_load(query)
+            pa_expect_used(res, ["pa_original_external_base"], query)
+            assert_rows(pa_rows(res, query), ch("SELECT status, sum(amount) FROM orders GROUP BY 1"))
+        finally:
+            os.remove(PROBE_FILE)
+            pa_wait_for_meta(False, "pa_original_external")
+    return run
+
+
+check("preagg.type.original_sql_in_cube_store")(pa_original_external(False))
+check("preagg.type.original_sql_in_cube_store_with_an_index_stops")(pa_original_external(True))
 
 
 def pa_rollup_over_original(query, truth):
@@ -8103,7 +8135,7 @@ def _(ctx):
     state = pa_fresh_scenario()
     if state["values"]["amt_manual"] != 0.0:
         raise Fail("scheduled_refresh false gave new rows with no job: %s" % state["values"])
-    selector = {"action": "post", "selector": {"contexts": [{"securityContext": {}}], "timezones": ["UTC"], "preAggregations": [{"id": "pa_fresh.fresh_manual"}]}}
+    selector = {"action": "post", "selector": {"contexts": [{"securityContext": {}}], "timezones": ["UTC"], "preAggregations": ["pa_fresh.fresh_manual"]}}
     status, text, _h = http("POST", CUBE + "/cubejs-api/v1/pre-aggregations/jobs", selector)
     if status != 200:
         raise Fail("the jobs API: HTTP %s %s" % (status, text[:300]))
@@ -8137,7 +8169,7 @@ def pa_latency(query):
     """Milliseconds of a query with no cached result: a new limit makes a new key, and each limit is above the number of rows."""
     times = []
     used = None
-    base = int(time.time() * 10) % 10000000
+    base = int(time.time() * 10) % 1000000
     for i in range(5):
         q = dict(query, limit=100000 + base + i)
         start = time.time()

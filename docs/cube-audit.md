@@ -1220,3 +1220,40 @@ Run `audit.py` on a host with Docker. `render.py` needs only Python. The tables 
 3. **Is it misuse?** No, if a user runs that planner. Setting it to false is a supported option. One bucket (`one_month_control`) and a rollup in Cube Store (`rollup_two_months`) are correct.
 4. **Master?** It still happens with the flag. [`seriesSql`](https://github.com/cube-js/cube/blob/78ecad294/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L274) writes two independent `arrayJoin` calls, so `date_from` and `date_to` make a cross product. The file is identical in `v1.8.15` and master. I found no pull request for it. With the default planner, `v1.0.0` and `v1.6.76` are wrong, and `v1.7.0` and `v1.8.15` are correct. GitHub marks `v1.6.76` as the latest release, so a user on that tag has it by default.
 5. **Does a real user reach it?** Only on a Cube before `v1.7.0`, or with the flag. "30-day revenue by month" on ClickHouse shows one repeated number. It is wrong with no error, and a repeated value is easy to see.
+
+## Pre-aggregation forms
+
+The `preagg.*` checks in `conformance/features.yaml` test each form in [the reference of Cube](https://github.com/cube-js/cube/blob/master/docs-mintlify/reference/data-modeling/pre-aggregations.mdx) on ClickHouse, with the catalog in `dev/cube/model/metrics.yml`. Each check names the exact set of rollups and reads `usedPreAggregations`. A check fails if a query that must hit reads ClickHouse, or if it reads another rollup. Each check compares the number with direct SQL on ClickHouse, on a hit and on a miss.
+
+These results come from that work.
+
+### rollup-no-index
+
+**A rollup with no index stops on ClickHouse.** The smallest form in the docs has no `indexes`. `ClickHouseQuery.preAggregationLoadSql` stops each query that matches it, also when the rollup goes to Cube Store: `ClickHouse doesn't support pre-aggregations without indexes`. On stock Cube, each run of the refresh worker stops with this error too, so each other rollup goes stale. The dialect builds it with `ORDER BY tuple()`. See `preagg.option.no_index`.
+
+### original-sql-rollup
+
+**A rollup with `use_original_sql_pre_aggregations` stops on ClickHouse.** This corrects `db_rollup_over` in [m5](#m5). `PreAggregationLoader` replaces the name of the `original_sql` table only when it loads a table in the source database. The load into Cube Store streams the SQL with the name that has no version, so ClickHouse answers `Unknown table expression identifier`. The dialect replaces the name before the load. See `preagg.option.use_original_sql_same_grain_hit`.
+
+### rollup-range-zone
+
+**A partitioned rollup in a time zone leaves out rows, with no error.** Cube finds the build range with `select max(convertTz(x))`, and it reads the result as UTC. ClickHouse gives the result in the zone of the query. So in New York, the end of the range is 5 hours early, and the last partition does not have the rows of those hours. In the demo data, December 2025 gave 23166, and the truth is 23313. East of UTC, the start of the range moves and the first rows go. The rollup must have no `build_range_end`. The dialect gives the range in UTC. See `preagg.time_zone.partitioned_hit`.
+
+### rollup-approx-worker
+
+**A rollup of `count_distinct_approx` stops the refresh worker.** `BaseQuery.hllInit` stops with `Distributed approximate distinct count is not supported by this DB`. A query on the measure stops with this text, and the driver shows a clear message. Each run of the refresh worker also stops with `Refresh Scheduler Error`. With this one rollup in the model, a rollup with `refresh_key: { every: 30 second }` in another cube did not change in 200 seconds. With no such rollup, the same rollup changed in 30 seconds. So one such rollup makes each other rollup stale, with no error for a person who reads them. ClickHouse has no sketch that Cube Store can read, so the dialect cannot fix this. Do not put this measure type in a rollup on ClickHouse. See `preagg.type.count_distinct_approx_stops`.
+
+### rollup-zone-range-driver
+
+**A date filter under a report time zone did not read a rollup.** This was a defect of the driver. The driver wrote each bound in a form that Cube does not merge, because Cube reads a bound that is not in a date range as UTC. The number was right, and each query read ClickHouse. Now two bounds on a column with a rollup stay a date range in the zone. A third bound, one bound alone, and a bound inside `OR` or `NOT` keep the old form. See `preagg.metabase.time_zone_day_hit`.
+
+### Limits that stay
+
+| Form | Result | Entry |
+| --- | --- | --- |
+| A query out of `build_range_start` and `build_range_end` | The rows of the range only, with no error. The docs warn about this. Use `rollup_lambda`, or a range over all rows. | `preagg.build_range.whole_table_reads_only_the_range` |
+| `allow_non_strict_date_range_match: true` on a rollup | A range inside a bucket reads only the buckets that start in the range, with no error. The docs call this a slight discrepancy. Leave it out, and keep the environment variable `false`. | `preagg.option.non_strict_inside_a_bucket_reads_whole_buckets` |
+| `rollup_lambda` of two rollups with no overlap | Cube reads a rollup only up to the start of its last partition. The rows of that partition are not in the result if the next rollup does not hold them, with no error. | `preagg.type.rollup_lambda_gap_loses_the_last_partition` |
+| `rollup_lambda` with source data, over the end of the batch | The truth or `Stream query failed: aborted`, see [#12285](https://github.com/cube-js/cube/issues/12285). | `preagg.type.rollup_lambda_over_the_batch_with_source` |
+| `scheduled_refresh: false` | The rollup keeps its first rows until a job of `/v1/pre-aggregations/jobs` runs. This is the documented behaviour. | `preagg.refresh.scheduled_refresh_false_stays_old_until_a_job` |
+| `incremental: true` | A partition out of `update_window` keeps its old rows. With no `update_window`, only the last partition refreshes. This is the documented behaviour. | `preagg.refresh.incremental_keeps_a_partition_out_of_the_window` |

@@ -74,7 +74,7 @@ The driver asks Cube how it writes a date range, with `/v1/sql`. If Cube keeps t
 | `x >= t`, `x <= t`, `between` | As they are | The range is exact at a whole second. |
 | A bound with a fraction, `x = t.5` | The driver stops the query | Cube drops the fraction, and this would move the bound on a `DateTime64`. |
 
-With a report time zone that is not UTC, Cube reads the two bounds of a date range in that zone, and each other bound as UTC. One bound, a bound next to `OR` or `NOT`, and a bound of a filter on an expression are "other". So on each Cube, the driver writes each bound on a column with `(x >= t OR x IS NULL) AND x IS NOT NULL` and `t` in UTC. Cube never merges this form into a range. A time shift needs a date range, so with a time shift the two bounds stay in the zone. A column of a stage with an aggregation is a time in the zone, so its literal stays in the zone too.
+With a report time zone that is not UTC, Cube reads the two bounds of a date range in that zone, and each other bound as UTC. One bound, a bound next to `OR` or `NOT`, and a bound of a filter on an expression are "other". So on each Cube, the driver writes each bound on a column with `(x >= t OR x IS NULL) AND x IS NOT NULL` and `t` in UTC. Cube never merges this form into a range. A time shift needs a date range, so with a time shift the two bounds stay in the zone. A rollup needs a date range too, so two bounds on a column with a rollup stay in the zone, if the filter has no other bound on that column and no `OR` or `NOT` around them. A column of a stage with an aggregation is a time in the zone, so its literal stays in the zone too.
 
 ### Stages
 
@@ -199,7 +199,7 @@ ClickHouse is fast on this table, and Metabase adds most of the time to a small 
 - The driver sends `SET TIME ZONE` with the report time zone of Metabase, so Cube makes each bucket in that zone. See [Date bounds](#date-bounds) for a time literal. With no report time zone it is UTC. A rollup serves only the zones in its `scheduled_refresh_timezones`, so a query in another zone reads the source. `DATEDIFF` in the week number form compares with a literal, so it is tested on the zones of the check `mb.report_timezone` only.
 - On stock Cube, a `DateTime64` loses its milliseconds in a result, so raw rows show whole seconds. Buckets are right. See `clickhouse.datetime64_millis`.
 - A rolling window with `trailing: unbounded` for more than one bucket fails on ClickHouse before 26.10, see above. One bucket works.
-- `count_distinct_approx` is `uniq()` on ClickHouse. A rollup cannot store it on ClickHouse, so these queries read the table.
+- `count_distinct_approx` is `uniq()` on ClickHouse. A rollup cannot store it on ClickHouse. If a rollup holds this measure, each query on the measure stops, and each run of the refresh worker stops, so each other rollup goes stale. Do not put it in a rollup. See [the audit](cube-audit.md#rollup-approx-worker).
 - A left join starts at the cube that the data model starts at. `COUNT(*)` on a left join from `products` to `orders` stops with `Can't find join path` if the model has only the join from `orders` to `products`. A measure of `orders` works, and it has no row for a product with no orders.
 - `avg` and `count_distinct` measures are not additive. A rollup with other dimensions than the query does not serve them.
 - `DATEDIFF` compares with a time literal in the week number form. The literal is in the time zone of the ClickHouse server, and the demo server has UTC. A server in another zone can move the start of a week.
@@ -211,6 +211,10 @@ The driver cannot stop these. Each number comes with no error. [Cube findings](c
 
 | Query | What you get | Entry |
 | --- | --- | --- |
+| A query out of the build range of a rollup | The rows of the range only. The docs of Cube warn about this. Use `rollup_lambda`, or a range over all rows. | `preagg.build_range.whole_table_reads_only_the_range` |
+| A rollup with `allow_non_strict_date_range_match: true`, and a range inside a bucket | Only the buckets that start in the range. Leave the key out of the rollup. | `preagg.option.non_strict_inside_a_bucket_reads_whole_buckets` |
+| `rollup_lambda` of two rollups with no overlap | The rows of the last partition of the first rollup are not in the result. Let the next rollup hold that partition. | `preagg.type.rollup_lambda_gap_loses_the_last_partition` |
+| Stock Cube: a partitioned rollup with no `build_range_end`, with a report time zone that is not UTC | West of UTC, the rows of the last hours are not in the result. The dialect gives the truth. | `preagg.time_zone.partitioned_hit` |
 | A long decimal, such as `Decimal(38, 8)`, below 2^53 | It loses digits, because the Cube SQL API has the type Double. Its value fits a Double, so the driver cannot see this. A dimension with `sql: toString(column)` keeps the digits. | `compile.ch.decimal_above_double` |
 | Stock Cube: native `x >= a AND x < b` on a `DateTime64`, or the same filter from the query builder on a column with a rollup | The range ends at the last whole second before `b`, so the rows of that second are out. Cube does not show the type of a column. [The ClickHouse dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) gives the truth. | `native.bound.datetime64_last_second_limit` |
 | Stock Cube: native `NOT (x > t)` on a `DateTime64` | SQL push-down compares whole seconds, so the rows inside the second of `t` count as not after `t`. The query builder writes `x <= t`. The dialect gives the truth. | None |

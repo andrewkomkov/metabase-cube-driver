@@ -683,23 +683,6 @@ cubes:
         indexes:
           - { name: idx, columns: [status] }
 
-  - name: pa_original_external
-    title: Rollup original SQL in Cube Store
-    description: A cube with an original_sql pre-aggregation in Cube Store. The docs allow this and advise against it.
-    sql: "SELECT id, status, amount FROM shop.orders"
-    refresh_key: { every: 1 hour }
-    dimensions:
-      - { name: id, sql: id, type: number, primary_key: true, public: true }
-      - { name: status, sql: status, type: string, description: Order status. }
-    measures:
-      - { name: revenue, type: sum, sql: amount, description: Reads the original_sql table. }
-    pre_aggregations:
-      - name: base
-        type: original_sql
-        external: true
-        indexes:
-          - { name: idx, columns: [status] }
-
   - name: pa_join_sales
     title: Rollup join sales
     description: Orders with a rollup_join by day on one data source.

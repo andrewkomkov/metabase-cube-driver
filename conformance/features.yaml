@@ -6727,3 +6727,11 @@
   status: todo
   status_stock: todo
   check: preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit
+- id: preagg.type.original_sql_in_cube_store_with_an_index_stops
+  area: cube.pre_aggregations
+  title: "preagg type original sql in cube store with an index stops"
+  status: todo
+  status_stock: todo
+  check: preagg.type.original_sql_in_cube_store_with_an_index_stops
+  cap: partial
+  reason: "An index on an original_sql table in Cube Store names a column that the table does not have, so Cube stops with an error on each Cube. See cube-js/cube#7420. No number is wrong. The docs advise against this form."
