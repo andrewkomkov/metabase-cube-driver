@@ -17,6 +17,12 @@ Set these two values on a Cube that Metabase reads. Without them, Cube returns w
 | `CUBEJS_PRE_AGGREGATIONS_ALLOW_NON_STRICT_DATE_RANGE_MATCH` | `false` | The default `true` lets a rollup of months answer a filter on one day. In the demo, that filter gave NULL where the truth was 14. |
 | `CUBEJS_DB_QUERY_LIMIT` | Above the largest group count of a post-processing query | The default is 50000. Post-processing then computes from 50000 rows with no error. In the demo, the count of 100000 customers gave 50000. |
 
+Set this value on ClickHouse, for the user that Cube signs in with. `dev/clickhouse/profile.xml` has the form.
+
+| Setting | Value | Reason |
+| --- | --- | --- |
+| `aggregate_functions_null_for_empty` | `1` | SQL gives `NULL` for `sum`, `min` and `max` of no rows. Without this setting, ClickHouse gives 0, and a measure with `sql: min(created_at)` gives 1970-01-01. |
+
 `CUBESQL_STREAM_MODE=true` also removes the limit, but then each query that a rollup serves fails with `Streaming queries to Cube Store aren't supported`.
 
 ## What the driver writes
@@ -45,6 +51,7 @@ Set these two values on a Cube that Metabase reads. Without them, Cube returns w
 | Segment | `segment = TRUE` | Regular |
 | `count` or a count measure with no breakout | `COALESCE(x, 0)`, because a rollup gives NULL on no rows | Post-processing |
 | Native `COUNT(...)` or `MEASURE()` of a count, in a text with one `SELECT` and no grouping | `COALESCE(x, 0)`, for the same reason | Post-processing |
+| A number with a fraction in a filter on a column | `x * CAST('1.0' AS double precision) < 12.50001`. Cube sends a plain number as text, and ClickHouse cuts text to the scale of a `Decimal` column, so `x < 12.50001` reads as `x < 12.5`. | Push-down |
 | Date filter value | `TIMESTAMP '2025-03-15 05:00:00'` as text in the SQL, not a query parameter. A parameter makes post-processing fail with `Can't parse date: 'replaced_placeholder'` | Same as the query |
 | `column > time`, `column < time` on stock Cube | `(column > time OR column IS NULL) AND column IS NOT NULL`, see [Date bounds](#date-bounds) | Regular |
 | A question or model with an aggregation, and another stage on it | The inner query has `LIMIT 2147483647`, see [Stages](#stages) | Post-processing |
@@ -74,7 +81,7 @@ The driver asks Cube how it writes a date range, with `/v1/sql`. If Cube keeps t
 | `x >= t`, `x <= t`, `between` | As they are | The range is exact at a whole second. |
 | A bound with a fraction, `x = t.5` | The driver stops the query | Cube drops the fraction, and this would move the bound on a `DateTime64`. |
 
-With a report time zone that is not UTC, Cube reads the two bounds of a date range in that zone, and each other bound as UTC. One bound, a bound next to `OR` or `NOT`, and a bound of a filter on an expression are "other". So on each Cube, the driver writes each bound on a column with `(x >= t OR x IS NULL) AND x IS NOT NULL` and `t` in UTC. Cube never merges this form into a range. A time shift needs a date range, so with a time shift the two bounds stay in the zone. A rollup needs a date range too. So two bounds on a column with a rollup stay in the zone. This applies when these two bounds are the only filters on that column, at the top level of the filter. A column of a stage with an aggregation is a time in the zone, so its literal stays in the zone too.
+With a report time zone that is not UTC, Cube reads the two bounds of a date range in that zone, and each other bound as UTC. One bound, a bound next to `OR` or `NOT`, and a bound of a filter on an expression are "other". So on each Cube, the driver writes each bound on a column with `(x >= t OR x IS NULL) AND x IS NOT NULL` and `t` in UTC. Cube never merges this form into a range. A time shift needs a date range, so with a time shift the two bounds stay in the zone. A rollup needs a date range too. So two bounds on a column with a rollup stay in the zone. This applies when these two bounds are the only filters on that column, at the top level of the filter. A filter on a time of a stage with an aggregation stops, see [What the driver stops](#what-the-driver-stops).
 
 ### Stages
 
@@ -118,6 +125,10 @@ These queries fail with a message that tells what to do. The message includes th
 | A time shift measure with a report time zone that is not UTC, on stock Cube | Stock Cube adds the interval in UTC, so next to a clock change a row moves to another day. The dialect gives the truth. |
 | Rolling window measure by a week that starts on another day than Monday, with no custom granularity on the time dimension | The week is a number, so Cube has no time series. Add a granularity with `interval: 1 week` and the offset of that day. |
 | Rolling window measure on stock Cube with `CUBEJS_TESSERACT_SQL_PLANNER=false` | Each bucket gets one wrong number. `/v1/sql` shows the planner. The dialect gives the truth. |
+| A measure with `type: time`, with a report time zone that is not UTC | Cube gives this value in UTC, and it gives each time dimension in the zone. Use `min` or `max` of the time column. |
+| `count-where`, `sum-where` or `share` on a column of a joined cube, also a column of a view that comes from another cube than the first dimension of the view | Cube adds each row of that cube once, so the number would be wrong. |
+| A filter on a time column of a question with an aggregation, with a report time zone that is not UTC | The database reads the filter value as UTC, and a rollup reads it in the zone. So the filter can pick another bucket, and the driver cannot see which one Cube reads. A filter inside the question has no such limit. |
+| A time shift measure with a date range that starts or ends inside a bucket, with a report time zone that is not UTC | Cube moves rows of other periods into the bucket. |
 | A time shift measure with one date bound | Cube reads a time shift only with a date range, so it gives periods outside the filter. |
 | A time shift measure with `x > t` on stock Cube | A date range on stock Cube has no form for this bound that is right for a `DateTime64`. Use `>=` with the next second, or the dialect. |
 | A dimension with `meta: { date_only: true }`, with a report time zone, on stock Cube | Stock Cube reads a `Date` as a time at midnight UTC. The dialect gives the truth. |
