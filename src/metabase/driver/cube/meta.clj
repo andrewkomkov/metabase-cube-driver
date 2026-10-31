@@ -161,7 +161,8 @@
     "string"  :type/Text
     "number"  :type/Decimal
     "boolean" :type/Boolean
-    "time"    :type/DateTime
+    ;; Cube reads a time in the time zone of the session, so a time is an instant. With :type/DateTime, Metabase drops the offset of a literal.
+    "time"    :type/DateTimeWithLocalTZ
     ("geo" "geo-in-view") :type/Text
     ("geo-latitude" "geo-longitude") :type/Float
     :type/*))

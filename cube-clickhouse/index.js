@@ -56,6 +56,13 @@ class ClickHouseFixes extends ClickHouseQuery {
     // B1: https://github.com/cube-js/cube/pull/12532 does not change this template, which SQL push-down writes.
     // Remove it when push-down keeps milliseconds.
     templates.expressions.timestamp_literal = "parseDateTime64BestEffort('{{ value }}', 3, 'UTC')";
+    // M3: no pull request yet, see docs/review/0.1.0-final.md. ClickHouse compares a Date with a time in the zone of that time. So a bound with the
+    // zone of the query keeps a Date on its day, and a DateTime keeps its instant.
+    if (this.timezone && this.timezone !== 'UTC') {
+      const inZone = (text) => `toTimeZone(${text}, '${this.timezone}')`;
+      templates.expressions.timestamp_literal = inZone(templates.expressions.timestamp_literal);
+      templates.tesseract.time_param_cast = inZone(templates.tesseract.time_param_cast);
+    }
     return templates;
   }
 }

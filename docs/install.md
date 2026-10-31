@@ -2,7 +2,7 @@
 
 ## Install
 
-`MB_PLUGINS_DIR` is the plugins directory of Metabase. Metabase must be able to write to this directory. The `metabase/metabase` image runs as uid 2000. If it cannot write there, it writes `Metabase cannot use the plugins directory` to its log, uses `/tmp`, and starts with no error and no Cube driver.
+`MB_PLUGINS_DIR` is the plugins directory of Metabase. In a container, it is a path inside the container, such as `/plugins`. Run the commands below on the directory of the host that you mount at that path, for example `docker run -v "$PWD/plugins:/plugins" -e MB_PLUGINS_DIR=/plugins metabase/metabase`. Metabase must be able to write to this directory. The `metabase/metabase` image runs as uid 2000. If it cannot write there, it writes `Metabase cannot use the plugins directory` to its log, uses `/tmp`, and starts with no error and no Cube driver.
 
 Download the jar from the
 [latest release](https://github.com/andrewkomkov/metabase-cube-driver/releases/latest) and make the directory writable:

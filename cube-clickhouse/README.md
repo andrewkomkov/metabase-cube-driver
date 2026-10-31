@@ -27,6 +27,7 @@ Then restart Cube. A cube on another data source keeps its own dialect.
 | interval | [#12534](https://github.com/cube-js/cube/pull/12534) | `x + INTERVAL '1 day'` works. |
 | m5 | none yet | An `original_sql` pre-aggregation builds. Its indexes have no effect. |
 | N2 | none yet | A rolling measure is right on the legacy planner. |
+| M3 | none yet | With a report time zone, a `Date` or `Date32` column stays on its day, in a bucket and in a filter. |
 
 Each override in `index.js` has the link. Remove an override when Cube ships its fix. The driver asks Cube how it writes a date range, so it needs no setting for this.
 

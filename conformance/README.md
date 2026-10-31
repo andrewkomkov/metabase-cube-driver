@@ -61,6 +61,7 @@ METABASE_ADMIN_PASSWORD=... python3 conformance/run.py
 | `MAIL_URL` | `http://127.0.0.1:8025`. The runner reads the mail catcher here. |
 | `BROWSER_URL` | `http://127.0.0.1:9222`. The runner drives the headless browser here. |
 | `CUBE_LEGACY_REST_URL` | `http://127.0.0.1:4402`. The check of N2 uses the legacy planner here. |
+| `CUBE_LEGACY_SQL_HOST`, `CUBE_LEGACY_REST_INTERNAL_URL` | `cube-legacy`, `http://cube-legacy:4000`. Metabase uses these addresses for the same check. |
 
 If Metabase has no admin, the runner creates one and connects the Cube database. It generates a random password if `METABASE_ADMIN_PASSWORD` is not set.
 

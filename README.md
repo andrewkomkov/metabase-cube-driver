@@ -47,7 +47,7 @@ chmod 644 "$MB_PLUGINS_DIR/cube.metabase-driver.jar"
 chmod 777 "$MB_PLUGINS_DIR"
 ```
 
-`MB_PLUGINS_DIR` is the plugins directory of your Metabase. If Metabase cannot write to it, Metabase uses `/tmp` and
+`MB_PLUGINS_DIR` is the plugins directory of your Metabase. In a container, it is a path inside the container, such as `/plugins`, so these commands use the directory on the host that you mount there. If Metabase cannot write to it, Metabase uses `/tmp` and
 starts with no error and no Cube driver. Look for `Registered driver :cube` in its log. See [`docs/install.md`](docs/install.md).
 
 On ClickHouse, also install [`cube-clickhouse`](cube-clickhouse/README.md) on Cube, in one step. It holds the fixes that wait for a change in Cube, on the stock image.
@@ -72,16 +72,15 @@ Most shapes where Cube gives a wrong number now give the truth or stop with a cl
 [How queries reach Cube](docs/query-compilation.md#what-the-driver-stops). The driver cannot stop these, so each gives a number with no error. With [the ClickHouse dialect](cube-clickhouse/README.md):
 
 - A long decimal below 2^53 loses digits, because the Cube SQL API has the type Double, and its value fits a Double. A dimension with `sql: toString(column)` keeps them.
-- Native `COUNT(*)` on no rows gives `NULL` where SQL gives 0.
-- Native `SELECT *`, or a raw select of a `switch` dimension, gives each row once for each value of the dimension.
 - Native SQL in a shape that the scan of the text does not read. The scan is not a SQL parser. It reads the shapes in [Native SQL](docs/query-compilation.md#native-sql).
 
 On stock Cube with no dialect, also:
 
+- With a report time zone that is not UTC, a `Date` or `Date32` column is a time at midnight UTC, so a row can move to another day. West of UTC, `2025-03-01` goes to February. Cube does not show the type of a column. The driver stops this query for a dimension with `meta: { date_only: true }`. The dialect gives the truth for each date column.
 - Native `x >= a AND x < b` on a `DateTime64` leaves out the last second before `b`. The query builder has this only on a column with a rollup.
-- `NOT (x > t)` on a `DateTime64` compares whole seconds, and a time shift with `x > t` on a `DateTime64` leaves out the first second after `t`.
 - A raw `DateTime64` value shows whole seconds.
-- With `CUBEJS_TESSERACT_SQL_PLANNER=false`, which is not the default, each bucket of a rolling window gets one wrong number.
+
+`make grid` and the `grid.compact.*` checks test each entry. `dev/review/known_limits.py` has the list, with the reason for each entry.
 
 The table with the entries is in [Known wrong numbers](docs/query-compilation.md#known-wrong-numbers).
 

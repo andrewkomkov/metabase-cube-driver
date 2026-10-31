@@ -28,6 +28,12 @@ Set these two values on a Cube that Metabase reads. Without them, Cube returns w
 | Week, another first day, with a custom granularity that fits | `DATE_TRUNC('name', x)` | Regular |
 | Week, another first day, no such granularity | A week number from `DATEDIFF` in a subquery, and a date in the outer query | Push-down |
 | Parts of a date, such as hour of day or month of year | `DATEDIFF` from the start of the period | Push-down |
+| Hour of day with a report time zone | The hour in the text of the time: `SUBSTR(CAST(x AS text), 12, 2)`. `DATEDIFF` counts boundaries of hours in absolute time. | Push-down |
+| Week of year | `ceil(day-of-year(week(x)) / 7)`, as in Metabase core, so the number is the same as on Postgres. See [Week and the first day of the week](#week-and-the-first-day-of-the-week). | Push-down |
+| `contains`, `starts-with`, `ends-with`, also `does-not-contain` | `STRPOS(x, 'a') >= 1` or `= 1`, and `chr(31)` marks the end of the text. Cube reads `LIKE` as an operator that ignores case on ClickHouse, and it reads `STRPOS(x, 'a') > 0`, `LEFT` and `RIGHT` the same. With `case-sensitive: false`, `LOWER(x) LIKE`. | Push-down |
+| `column = time` | `column >= time AND column <= time`. Next to a breakout on the same column, Cube reads `column = time` as the whole bucket. | Regular |
+| A bound on a time with a report time zone | The form of [Date bounds](#date-bounds) that Cube does not merge, with the literal in UTC. | Push-down |
+| `NOT (column > time)` | The opposite bound, `column <= time`. | Same as the bound |
 | Filter on a part of a date | The same `DATEDIFF` in `WHERE` | Push-down |
 | ISO week of year | `EXTRACT(WEEK)` | Post-processing |
 | Bins | `FLOOR(x / w) * CAST('w' AS double precision)` | Push-down |
@@ -37,6 +43,7 @@ Set these two values on a Cube that Metabase reads. Without them, Cube returns w
 | Inner join | As above, and the joined column must not be NULL | Push-down |
 | Segment | `segment = TRUE` | Regular |
 | `count` or a count measure with no breakout | `COALESCE(x, 0)`, because a rollup gives NULL on no rows | Post-processing |
+| Native `COUNT(...)` or `MEASURE()` of a count, in a text with one `SELECT` and no grouping | `COALESCE(x, 0)`, for the same reason | Post-processing |
 | Date filter value | `TIMESTAMP '2025-03-15 05:00:00'` as text in the SQL, not a query parameter. A parameter makes post-processing fail with `Can't parse date: 'replaced_placeholder'` | Same as the query |
 | `column > time`, `column < time` on stock Cube | `(column > time OR column IS NULL) AND column IS NOT NULL`, see [Date bounds](#date-bounds) | Regular |
 | A question or model with an aggregation, and another stage on it | The inner query has `LIMIT 2147483647`, see [Stages](#stages) | Post-processing |
@@ -65,6 +72,8 @@ The driver asks Cube how it writes a date range, with `/v1/sql`. If Cube keeps t
 | `x < t` | The same form. With a rollup on this column, or with a rolling window or a time shift, it stays `x < t`. | A rollup, a rolling window and a time shift need a date range. |
 | `x >= t`, `x <= t`, `between` | As they are | The range is exact at a whole second. |
 | A bound with a fraction, `x = t.5` | The driver stops the query | Cube drops the fraction, and this would move the bound on a `DateTime64`. |
+
+With a report time zone that is not UTC, Cube reads the two bounds of a date range in that zone, and each other bound as UTC. One bound, a bound next to `OR` or `NOT`, and a bound of a filter on an expression are "other". So on each Cube, the driver writes each bound on a column with `(x >= t OR x IS NULL) AND x IS NOT NULL` and `t` in UTC. Cube never merges this form into a range. A time shift needs a date range, so with a time shift the two bounds stay in the zone. A column of a stage with an aggregation is a time in the zone, so its literal stays in the zone too.
 
 ### Stages
 
@@ -99,7 +108,13 @@ These queries fail with a message that tells what to do. The message includes th
 | Rolling window measure with a date filter that starts or ends inside a bucket, also a filter inside the model | Cube computes the whole bucket and does not apply that part of the filter, with no error. Use whole buckets, or a smaller bucket. |
 | Rolling window measure by a time bucket with no date filter | Cube fails with `Date range is required for time series`. |
 | Another aggregation of a rolling window measure, such as `max` | Cube cannot compute it. |
-| `trailing: unbounded` for more than one bucket | Cube writes a join that ClickHouse rejects: `Cannot determine join keys in JOIN ON expression`. One bucket works. |
+| `trailing: unbounded` for more than one bucket, on ClickHouse before 26.10 | Cube writes a join with only an inequality, and ClickHouse before 26.10 rejects it: `Cannot determine join keys in JOIN ON expression`. One bucket works. ClickHouse 26.10 runs this join and gives the truth. |
+| Rolling window measure that is shorter than the bucket, such as month to date by a quarter | Cube can add the windows of the whole bucket, and no one number is what this means. A window of 30 days counts as a month, so it is allowed by a month. `/v1/sql` shows the window. |
+| Rolling window measure with a report time zone that is not UTC | Cube adds the wrong months together, also on its REST API. |
+| Rolling window measure on stock Cube with `CUBEJS_TESSERACT_SQL_PLANNER=false` | Each bucket gets one wrong number. `/v1/sql` shows the planner. The dialect gives the truth. |
+| A time shift measure with one date bound | Cube reads a time shift only with a date range, so it gives periods outside the filter. |
+| A time shift measure with `x > t` on stock Cube | A date range on stock Cube has no form for this bound that is right for a `DateTime64`. Use `>=` with the next second, or the dialect. |
+| A dimension with `meta: { date_only: true }`, with a report time zone, on stock Cube | Stock Cube reads a `Date` as a time at midnight UTC. The dialect gives the truth. |
 | Another aggregation of a measure column that Cube rejects, such as `max` of a count | Cube fails with `Measure aggregation type doesn't match`. |
 | Filter on a measure column of a table, or of a model with no primary key, or on a rolling window measure | Cube reads this as a filter on the aggregate, so it does not filter rows. |
 | Breakout on a measure or a segment column, except a measure of a model with the primary key | Cube ignores the grouping and returns one total row. |
@@ -118,7 +133,7 @@ These checks read the stages of the query, so they work on the query builder, on
 
 ### Native SQL
 
-The driver does not change native SQL. It makes a cheap scan of the text, and it stops these shapes:
+The driver changes native SQL in one case: it writes `COALESCE(x, 0)` around a count in a text with one `SELECT` and no grouping. It makes a cheap scan of the text, and it stops these shapes:
 
 | Shape | Reason |
 | --- | --- |
@@ -127,10 +142,17 @@ The driver does not change native SQL. It makes a cheap scan of the text, and it
 | `x BETWEEN a AND 'yyyy-mm-dd'`, also `NOT BETWEEN` and a date parameter | This is documented behaviour of Cube: it pads a date with no time at the end of a date range to the end of that day, as [its REST API docs](https://github.com/cube-js/cube/blob/master/docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx) describe. SQL reads it as midnight, and the SQL API docs do not warn about it. Write the time, use `DATE 'yyyy-mm-dd'`, or use `>=` and `<`. |
 | `x > a AND x <= b` or `x < b` | See [Date bounds](#date-bounds). Write `>=` with the next second. |
 | Two columns from one member through different join paths | See the table above. |
+| A rolling window measure that is shorter than the bucket, or with a report time zone | See the table above. |
+| `x = t` next to `DATE_TRUNC` on `x` | Cube returns the whole bucket. Write `x >= t AND x <= t`. |
+| `x LIKE` a pattern with a wildcard and a letter, also `NOT LIKE`, `STRPOS(x, 'a') > 0`, `LEFT(x, n) =` and `RIGHT(x, n) =` | Cube reads these as an operator that ignores case on ClickHouse. Write `ILIKE`, or `STRPOS(x, 'a') >= 1` to keep the case. |
+| A raw select of a `switch` dimension, also `SELECT *` | Each row comes once for each value. |
+| `SELECT *` on a cube with a rolling window measure | The star reads that measure, and it needs a time bucket and a date filter. |
+| `SUM(j.x)` or `AVG(j.x)` of a dimension of a joined cube | See the table above. |
+| With a report time zone, each filter on a time with no lower and upper bound, or next to `OR` or `NOT`, or with `DATE_TRUNC` | Cube reads a literal in the zone only in a date range, and as UTC in other forms. |
 
 On stock Cube, the scan also stops `x > a` next to an upper bound on the same column, and a bound with a fraction.
 
-The scan also stops an outer filter over a subquery or a `WITH` query with an aggregation and no limit, and a filter on a measure column over a subquery of raw rows. It removes parentheses and casts around a column or a literal, reads an alias of a time column, and reads `column op literal` on either side, `BETWEEN` and `DATE_TRUNC`, outside strings and comments. With a rolling window measure, it stops each other use of the time column, such as `IN` or a function. See the shapes that it does not read in [Known wrong numbers](#known-wrong-numbers).
+The scan also stops an outer filter over a subquery or a `WITH` query with an aggregation and no limit, and a filter on a measure column over a subquery of raw rows. It removes parentheses and casts around a column or a literal, reads an alias of a time column, and reads `column op literal` on either side, `BETWEEN` and `DATE_TRUNC`, outside strings and comments. With a rolling window measure, it stops each other use of the time column, such as `IN` or a function, also `DATE_TRUNC` in a filter and arithmetic on a literal. See the shapes that it does not read in [Known wrong numbers](#known-wrong-numbers).
 
 ### Two join paths in a view
 
@@ -158,10 +180,9 @@ ClickHouse is fast on this table, and Metabase adds most of the time to a small 
 ## Limits of Cube that the driver cannot change
 
 - A number above 2^53 stops with a clear message, because the Cube SQL API has the type Double, and the ClickHouse driver of Cube sends JSON numbers. `SELECT ui64` read 9007199254740996 where the truth is 9007199254740995. A long decimal below 2^53 fits a Double, so the driver cannot see it. A dimension with `sql: toString(column)` keeps the digits of both.
-- The driver sends `SET TIME ZONE` with the report time zone of Metabase, so Cube makes each bucket and reads each time literal in that zone. With no report time zone it is UTC. A rollup serves only the zones in its `scheduled_refresh_timezones`, so a query in another zone reads the source. `DATEDIFF` in the week number form compares with a literal, so it is tested on the zones of the check `mb.report_timezone` only.
+- The driver sends `SET TIME ZONE` with the report time zone of Metabase, so Cube makes each bucket in that zone. See [Date bounds](#date-bounds) for a time literal. With no report time zone it is UTC. A rollup serves only the zones in its `scheduled_refresh_timezones`, so a query in another zone reads the source. `DATEDIFF` in the week number form compares with a literal, so it is tested on the zones of the check `mb.report_timezone` only.
 - On stock Cube, a `DateTime64` loses its milliseconds in a result, so raw rows show whole seconds. Buckets are right. See `clickhouse.datetime64_millis`.
-- A rolling window with `trailing: unbounded` for more than one bucket fails on ClickHouse, see above. One bucket works.
-- Native `COUNT(*)` on no rows gives NULL, where SQL gives 0. A query from the query builder gives 0. See `native.count_on_no_rows_limit`.
+- A rolling window with `trailing: unbounded` for more than one bucket fails on ClickHouse before 26.10, see above. One bucket works.
 - `count_distinct_approx` is `uniq()` on ClickHouse. A rollup cannot store it on ClickHouse, so these queries read the table.
 - A left join starts at the cube that the data model starts at. `COUNT(*)` on a left join from `products` to `orders` stops with `Can't find join path` if the model has only the join from `orders` to `products`. A measure of `orders` works, and it has no row for a product with no orders.
 - `avg` and `count_distinct` measures are not additive. A rollup with other dimensions than the query does not serve them.
@@ -176,12 +197,9 @@ The driver cannot stop these. Each number comes with no error. [Cube findings](c
 | --- | --- | --- |
 | A long decimal, such as `Decimal(38, 8)`, below 2^53 | It loses digits, because the Cube SQL API has the type Double. Its value fits a Double, so the driver cannot see this. A dimension with `sql: toString(column)` keeps the digits. | `compile.ch.decimal_above_double` |
 | Stock Cube: native `x >= a AND x < b` on a `DateTime64`, or the same filter from the query builder on a column with a rollup | The range ends at the last whole second before `b`, so the rows of that second are out. Cube does not show the type of a column. [The ClickHouse dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) gives the truth. | `native.bound.datetime64_last_second_limit` |
-| Stock Cube: `NOT (x > t)` on a `DateTime64` | SQL push-down compares whole seconds, so the rows inside the second of `t` count as not after `t`. The dialect gives the truth. | `compile.bound.grid_date_types` reads a `DateTime` only |
-| Stock Cube: a time shift measure with `x > t` on a `DateTime64` | A time shift needs a date range, so the driver writes `x >= t + 1 second`, and the rows in the first second are out. The dialect gives the truth. | None. The demo has no shift on a `DateTime64`. |
+| Stock Cube: native `NOT (x > t)` on a `DateTime64` | SQL push-down compares whole seconds, so the rows inside the second of `t` count as not after `t`. The query builder writes `x <= t`. The dialect gives the truth. | None |
+| Stock Cube with a report time zone that is not UTC: a `Date` or `Date32` column | Cube reads it as a time at midnight UTC, so a row can move to another day, in a bucket and in a filter. Cube does not show the type of a column. A dimension with `meta: { date_only: true }` stops. The dialect reads it as midnight in the zone. | `grid.compact.report_zone` |
 | Stock Cube: a raw `DateTime64` value | It shows whole seconds. Buckets are right. The dialect keeps the milliseconds. | `clickhouse.datetime64_millis` |
-| Stock Cube with `CUBEJS_TESSERACT_SQL_PLANNER=false`: a rolling window by a time bucket | Each bucket gets one wrong number. This is not the default. The dialect gives the truth. | `dialect.n2_legacy_planner` |
-| Native `COUNT(*)` on no rows | `NULL` where SQL gives 0 (m3). The query builder gives 0. | `native.count_on_no_rows_limit` |
-| Native `SELECT *` or a raw select of a `switch` dimension | Each row comes once for each value of the dimension. The query builder shows `NULL` in this column and keeps one row. | None. Cube documents the values as a set of groups. |
-| Native SQL: a sum or an average of a dimension of a joined cube, such as `SUM(p.price)` from `orders` | Each row of the joined cube counts once, so each group gets the total of that cube. The query builder stops this. | `compile.join.total_of_dimension_refused` has the query builder only |
+| Native `COUNT(*)` on no rows in a text with more than one `SELECT` or with a grouping, on a cube with a rollup | `NULL` where SQL gives 0. Only a rollup gives this, because Cube reads it with `SUM`. | `native.count_on_no_rows` |
 | Native SQL in a shape that the scan does not read. The scan is not a SQL parser, and it reads the shapes in [Native SQL](#native-sql). | The same wrong numbers that the scan stops in the plain shape. | `native.bound.strict_lower_refused`, `native.subquery_filter_refused` |
 | Postgres, not the main target: a rolling window with a range that starts inside a month (N1), a custom granularity in months with no rollup | Shifted buckets. See [Cube audit](cube-audit.md). | None. The suite runs on ClickHouse. |

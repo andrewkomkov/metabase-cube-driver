@@ -68,6 +68,9 @@ def zone_shapes(tz):
         out.append({"id": "tz/%s/filter %s by month" % (tz, name), "table": T, "agg": ["m:orders.revenue"], "by": [CRT + "@month"], "where": [clause],
                     "truth": "SELECT toStartOfMonth(%s), sum(amount) FROM orders WHERE %s GROUP BY 1" % (L, cond)})
         out.append({"id": "tz/%s/filter %s on a view" % (tz, name), "table": "sales", "agg": ["m:sales.count"], "where": [_on_view(clause)], "truth": "SELECT count() FROM orders WHERE %s" % cond})
+    # A week next to a filter. The first day of the week here has a custom granularity in the model, and it cannot go next to a filter for the database.
+    out.append({"id": "tz/%s/week next to a bound" % tz, "table": T, "agg": ["m:orders.count"], "by": [CRT + "@week"], "where": [[">=", CRT, i1]],
+                "truth": "SELECT toStartOfWeek(%s, 0), count() FROM orders WHERE created_at >= %s GROUP BY 1" % (L, at(t1))})
     # An equal time next to a bucket, the shape of finding B1.
     out.append({"id": "tz/%s/equal by the same month" % tz, "table": T, "agg": ["m:orders.count"], "by": [CRT + "@month"], "where": [["=", CRT, "2025-03-15T07:00:00"]],
                 "truth": "SELECT toStartOfMonth(%s), count() FROM orders WHERE created_at = %s GROUP BY 1" % (L, at("2025-03-15 07:00:00"))})

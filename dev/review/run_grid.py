@@ -138,7 +138,7 @@ class Ctx:
         for col in cols:
             ref = ["field", col["name"], {"base-type": col["base_type"]}]
             c[col["name"]] = ref
-            if col["base_type"] in ("type/DateTime", "type/Date"):
+            if col["base_type"] in ("type/DateTime", "type/DateTimeWithLocalTZ", "type/Date"):
                 for unit in ("month", "quarter", "day"):
                     c["%s@%s" % (col["name"], unit)] = ["field", col["name"], {"base-type": col["base_type"], "temporal-unit": unit}]
         if "aggregation" in inner:
@@ -317,6 +317,11 @@ def one(ctx, mcp, sh, channel):
         return r
     r["got"] = rows[:6]
     r["rows"] = len(rows)
+    # The MCP tools give at most 4000 rows over all pages, on each database. This is a limit of Metabase.
+    if channel == "mcp" and want is not None and len(want) > 4000 and len(rows) == 4000:
+        r["verdict"] = "skip"
+        r["error"] = "skip: MCP gives at most 4000 rows"
+        return r
     if sh.get("expect") == "refusal":
         r["verdict"] = "no_refusal"
         return r

@@ -708,8 +708,8 @@ def grid_followup():
     for name, sql in [("star", "SELECT COUNT(*) FROM orders WHERE status = 'nope'"), ("one", "SELECT COUNT(1) c FROM orders WHERE status = 'nope'"), ("measure", "SELECT MEASURE(count) FROM orders WHERE status = 'nope'"), ("distinct", "SELECT COUNT(DISTINCT user_id) FROM orders WHERE status = 'nope'"), ("no_rollup", "SELECT COUNT(*) FROM typed_events WHERE lc = 'nope'"), ("with_rows", "SELECT COUNT(*) FROM orders WHERE status = 'shipped'")]:
         out.append({"id": "follow/count_native/" + name, "native": sql, "truth": "SELECT countIf(status = 'shipped') FROM %s" % O if name == "with_rows" else "SELECT 0"})
     # The native form of a known limit of stock Cube.
-    out.append({"id": "edge/ts64_native_half_open", "native": "SELECT MEASURE(count) FROM typed_events WHERE ts64_berlin >= '2025-03-01 02:00:00' AND ts64_berlin < '2025-03-01 03:00:00'",
-                "truth": "SELECT countIf(ts64_berlin >= toDateTime64('2025-03-01 02:00:00', 3, 'UTC') AND ts64_berlin < toDateTime64('2025-03-01 03:00:00', 3, 'UTC')) FROM shop.typed_events"})
+    out.append({"id": "edge/ts64_native_half_open", "native": "SELECT MEASURE(count) FROM typed_events WHERE ts64_berlin >= '2025-03-01 07:00:00' AND ts64_berlin < '2025-03-01 07:00:01'",
+                "truth": "SELECT countIf(ts64_berlin >= toDateTime64('2025-03-01 07:00:00', 3, 'UTC') AND ts64_berlin < toDateTime64('2025-03-01 07:00:01', 3, 'UTC')) FROM shop.typed_events"})
     return out
 
 

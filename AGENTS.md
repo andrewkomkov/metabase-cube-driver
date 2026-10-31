@@ -40,6 +40,7 @@ Use `git show v0.65.2.3:<path>` there, because its checkout is `master`. Do not 
 - `scripts/package.sh`: makes `dev/plugins/cube.metabase-driver.jar`.
 - `dev/`: the compose stack, the demo seed and the demo Cube model.
 - `conformance/`: the feature matrix and its runner.
+- `dev/review/`: the review grid. `make grid` runs each shape with its truth. See `dev/review/README.md`.
 
 ## The live stack
 
@@ -54,6 +55,9 @@ The stack runs on host `nettop.local`, in `~/metabase-cube-driver`, with compose
 | Cube with a row-level rule, service `cube-secure`, REST | `127.0.0.1:4401` |
 | Cube with a row-level rule, service `cube-secure`, SQL API | `127.0.0.1:15434` |
 | Cube with the legacy planner, service `cube-legacy`, REST | `127.0.0.1:4402` |
+| Cube with the legacy planner, service `cube-legacy`, SQL API | `127.0.0.1:15436` |
+| Stock Cube for `make grid`, service `cube-stock`, REST | `127.0.0.1:4403` |
+| Stock Cube for `make grid`, service `cube-stock`, SQL API | `127.0.0.1:15435` |
 | Mail catcher, service `mail` | `127.0.0.1:8025` |
 | Headless browser, service `browser` | `127.0.0.1:9222` |
 

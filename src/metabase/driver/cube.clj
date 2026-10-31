@@ -426,13 +426,25 @@
                            (= :current a) (relative-time 0 unit))
       nil)))
 
+(def ^:private ^:dynamic *over-aggregated-stage*
+  "True while the filters of a stage compile, if the stage reads a stage with an aggregation."
+  false)
+
+(declare subquery-limit)
+
+(doseq [clause-key [:filter :filters]]
+  (defmethod sql.qp/apply-top-level-clause [:cube clause-key]
+    [driver top-level-clause honeysql-form query]
+    (let [source (ffirst (:from honeysql-form))]
+      (binding [*over-aggregated-stage* (and (map? source)
+                                             (boolean (or (:group-by source) (= subquery-limit (:limit source)))))]
+        ((get-method sql.qp/apply-top-level-clause [:postgres top-level-clause]) driver top-level-clause honeysql-form query)))))
+
 (defn- post-processed-column?
   "True if `field` is a column of an earlier stage with an aggregation. Cube keeps the limit on that stage, so this filter reads the
   result of the stage, where a time is in the zone of the session. A column of raw rows goes to the scan of Cube."
   [[_ _ id]]
-  (and (string? id)
-       (let [{:keys [aggregation breakout]} (:source-query sql.qp/*inner-query*)]
-         (or (seq aggregation) (seq breakout)))))
+  (and (string? id) *over-aggregated-stage*))
 
 (defn- zone-bound
   "A comparison of `field` with a time, in the form for a report time zone, or nil if this comparison is not one."
@@ -1421,12 +1433,24 @@
     (time-literal (relative-time amount unit))
     ((get-method sql.qp/->honeysql [:postgres :relative-datetime]) driver clause)))
 
+(defn- filter-goes-to-the-database?
+  "True if a filter of this stage is SQL for the database and not a filter of Cube: a case-sensitive text filter, a NOT, or each filter
+  under a report time zone. Cube cannot use a custom granularity next to such a filter."
+  []
+  (let [stage   sql.qp/*inner-query*
+        clauses (concat (when-let [one (:filter stage)] [one]) (:filters stage))]
+    (and (seq clauses)
+         (or (report-zone?)
+             (some #(and (vector? %) (#{:contains :starts-with :ends-with :not} (first %)))
+                   (mapcat #(tree-seq vector? seq %) clauses))))))
+
 (defmethod sql.qp/date [:cube :week]
   [_driver _unit expr]
   (let [start (start-of-week-index)]
     (if (= 1 start)
       (date-trunc :week expr)
-      (if-let [granularity (some-> *bucketed-field* (week-granularity start))]
+      (if-let [granularity (when-not (filter-goes-to-the-database?)
+                             (some-> *bucketed-field* (week-granularity start)))]
         (date-trunc granularity expr)
         (week-number start expr)))))
 
