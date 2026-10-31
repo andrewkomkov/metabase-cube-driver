@@ -1802,6 +1802,13 @@
   [number]
   (h2x/cast "double precision" (h2x/literal (str (double number)))))
 
+;; A cast of a measure goes to ClickHouse, and it fails on NULL with `Cannot convert NULL value to non-Nullable type`, so a measure of a
+;; group with no value stops the query. SQL gives NULL. A product with a double keeps NULL. A plain 1.0 is a decimal in Cube, and it cuts
+;; the digits of a Decimal.
+(defmethod sql.qp/->float :cube
+  [_driver value]
+  [:* value (number-literal 1.0)])
+
 (defn- apply-binning
   [{:keys [bin-width min-value]} expr]
   (let [shifted (if (zero? min-value) expr [:- expr (number-literal min-value)])

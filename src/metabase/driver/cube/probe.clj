@@ -83,7 +83,8 @@
 
 (defn- shifted-on?
   "True if Cube moves the time for this measure. A calendar shift joins on another column of the calendar, with no interval. Then
-  the source differs from the source of the measure that it reads."
+  the source differs from the source of the measure that it reads. A measure that reads a measure of another cube has a join, so
+  its source differs with no shift: only an interval shows a shift there."
   [details measure-name base time-dimension]
   (let [query (fn [member]
                 {:measures       [member]
@@ -92,6 +93,7 @@
         text  (:text (sql-of details (query measure-name)))]
     (or (boolean (re-find shifted-time-pattern text))
         (and (some? base)
+             (= (first (str/split measure-name #"\.")) (first (str/split base #"\.")))
              (not= (source-text text) (source-text (:text (sql-of details (query base)))))))))
 
 (defn- member-of
@@ -177,11 +179,19 @@
   (cached details [:rolling-sql measure time-dimension unit]
           (fn []
             (try
-              (:text (sql-of details {:measures       [measure]
-                                      :timeDimensions [{:dimension time-dimension, :granularity (name unit)
-                                                        :dateRange ["2025-01-01" "2025-06-30"]}]
-                                      :limit          1}))
+              (sql-of details {:measures       [measure]
+                               :timeDimensions [{:dimension time-dimension, :granularity (name unit)
+                                                 :dateRange ["2025-01-01" "2025-06-30"]}]
+                               :limit          1})
               (catch Exception _ nil)))))
+
+(def ^:private calendar-units
+  "The units with no fixed length."
+  #{"month" "quarter" "year"})
+
+(def ^:private window-after-bucket-end
+  "A window that starts at the end of a bucket and has a length in months, as `leading: 1 month, offset: end` has."
+  #"(?i)add\w*\s*\(\s*\S*date_to\S*\s*,\s*INTERVAL\s+'?\d+\s+(?:month|quarter|year)|date_to\S*\s*\+\s*interval\s+'\d+\s+(?:month|quarter|year)")
 
 (defn- legacy-stock-planner?
   "The legacy planner names the series after the time dimension. Stock Cube writes it with two arrayJoin calls in one SELECT, and these give a
@@ -194,18 +204,33 @@
 (defn rolling-window-reason
   "A text if this rolling window by this bucket gives a wrong number, or nil. With no answer from Cube this stops nothing."
   [details measure time-dimension unit]
-  (when-let [text (and measure time-dimension (rolling-sql details measure time-dimension unit))]
-    (let [short-name (last (str/split measure #"\."))]
+  (when-let [{:keys [text pre-aggregations]} (and measure time-dimension (rolling-sql details measure time-dimension unit))]
+    (let [short-name (last (str/split measure #"\."))
+          join       (join-of-window text)
+          calendar?  (calendar-units (name unit))]
       (if (legacy-stock-planner? text)
         (format (str "%s is a rolling window measure. With CUBEJS_TESSERACT_SQL_PLANNER=false, stock Cube gives each bucket one wrong number. "
                      "Remove this setting, or install the ClickHouse dialect, see cube-clickhouse/README.md.")
                 short-name)
-        (when-let [{:keys [days] window-text :text} (window-days (join-of-window text))]
-          (when (< days (get unit-days (name unit) 0))
+        (let [{:keys [days kind] window-text :text} (window-days join)]
+          (cond
+            (and days (< days (get unit-days (name unit) 0)))
             (format (str "%s is a rolling window measure with a window of %s, which is shorter than a %s. Cube does not show one number "
                          "that this can mean for a %s: it can add the windows of the whole bucket. Group by a bucket that is not longer "
                          "than the window.")
-                    short-name window-text (name unit) (name unit))))))))
+                    short-name window-text (name unit) (name unit))
+
+            (and calendar? join (re-find window-after-bucket-end join))
+            (format (str "%s is a rolling window measure with a window after the end of a bucket. By a %s, Cube reads whole months for each "
+                         "bucket except the last, and it cuts the last one at the end of its window, so a number would be wrong. Group by "
+                         "a day, or use a window with `offset: start`.")
+                    short-name (name unit))
+
+            (and calendar? (= :size kind) (seq pre-aggregations) (not (calendar-units (last (str/split window-text #" ")))))
+            (format (str "%s is a rolling window measure with a window of %s, and a rollup serves it. By a %s, Cube Store reads the wrong days "
+                         "for a month that has another length than the month before it, so the number would be wrong. Group by a day or a "
+                         "week, use a window in months, or remove this measure from the rollup.")
+                    short-name window-text (name unit))))))))
 
 ;;; Date columns.
 
