@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 723/756 pass on Cube with the ClickHouse dialect** (723 pass, 16 partial, 2 blocked, 12 unsupported, 3 fail of 756)
+**coverage: 724/756 pass on Cube with the ClickHouse dialect** (724 pass, 16 partial, 2 blocked, 12 unsupported, 2 fail of 756)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `6eee2eef926f`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41153297515), 2026-10-31.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `797e78be5198`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41155532535), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -347,7 +347,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `6eee2ee
 | `mcp.connect_oauth` | pass |  |
 | `mcp.dashboard_write` | pass |  |
 | `mcp.dashboard_write.create_and_filter` | pass |  |
-| `mcp.document_write` | fail | document_write: An update needs exactly one of content_markdown (full rewrite) or edits (surgical text edits). To change only collection_id/collection_position/archived, pass edits: []. |
+| `mcp.document_write` | pass |  |
 | `mcp.duplicate_content` | pass |  |
 | `mcp.execute_query` | pass |  |
 | `mcp.execute_query.breakout` | pass |  |

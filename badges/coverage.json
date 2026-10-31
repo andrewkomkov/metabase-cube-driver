@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "label": "coverage",
-  "message": "723/756 pass on Cube with the ClickHouse dialect",
+  "message": "724/756 pass on Cube with the ClickHouse dialect",
   "color": "red"
 }

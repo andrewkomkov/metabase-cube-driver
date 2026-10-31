@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 723,
+    "pass": 724,
     "partial": 16,
     "blocked": 2,
     "unsupported": 12,
-    "fail": 3,
+    "fail": 2,
     "total": 756
   },
-  "coverage": "coverage: 723/756 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 724/756 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -1707,8 +1707,8 @@
     },
     {
       "id": "mcp.document_write",
-      "status": "fail",
-      "reason": "document_write: An update needs exactly one of content_markdown (full rewrite) or edits (surgical text edits). To change only collection_id/collection_position/archived, pass edits: []."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.duplicate_content",
