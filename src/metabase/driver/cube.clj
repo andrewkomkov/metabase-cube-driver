@@ -311,8 +311,9 @@
 (declare relative-time current-meta table-name-of-field)
 
 (def ^:private ^:dynamic *keep-date-ranges*
-  "True if a measure of this query needs a date range: a rolling window or a time shift reads no other filter as a range."
-  false)
+  "Not nil if a measure of this query needs a date range, because it reads no other filter as a range: :rolling for a rolling
+  window, which reads whole buckets, and :shift for a time shift."
+  nil)
 
 (def ^:private ^:dynamic *inside-not*
   "True inside a NOT. Cube does not merge it into a date range, and the form with IS NULL would keep the rows with no value."
@@ -384,8 +385,11 @@
   (let [t (plain-bound-time field value)]
     (check-no-fraction! field t)
     (cond
-      (or (nil? t) *inside-not* (exact-bounds? field)) (postgres-clause driver clause)
-      ;; A rolling window or a time shift reads whole buckets, so the rows inside one second do not change it.
+      (or (nil? t) *inside-not*) (postgres-clause driver clause)
+      ;; A range that starts 1 ms after the end of a bucket would read that bucket, also with a dialect that keeps the fraction.
+      (= :rolling *keep-date-ranges*) (postgres-clause driver [:>= opts field (at-time (.plusSeconds (whole-second-down t) 1))])
+      (exact-bounds? field) (postgres-clause driver clause)
+      ;; A time shift needs a range, and stock Cube has no other way to write this bound in a range.
       *keep-date-ranges* (postgres-clause driver [:>= opts field (at-time (.plusSeconds (whole-second-down t) 1))])
       :else (not-merged driver field (postgres-clause driver clause)))))
 
@@ -806,19 +810,17 @@
       (check-time-shift! upto)
       (check-custom-granularities! upto))))
 
-(defn- needs-date-ranges?
-  "True if a measure of a stage has a rolling window or can have a time shift."
+(defn- needs-date-ranges
+  "See `*keep-date-ranges*`."
   [stages]
-  (let [cube-meta (current-meta)]
-    (some (fn [i]
-            (let [earlier (subvec stages 0 i)]
-              (some (fn [field]
-                      (or (rolling-field? field)
-                          (when cube-meta
-                            (cube.probe/time-shift-candidate? cube-meta (full-member-name field)))))
-                    (when-not (= :mbql.stage/native (:lib/type (nth stages i)))
-                      (aggregated-measure-fields earlier (nth stages i))))))
-          (range (count stages)))))
+  (let [cube-meta (current-meta)
+        fields    (mapcat (fn [i]
+                            (when-not (= :mbql.stage/native (:lib/type (nth stages i)))
+                              (aggregated-measure-fields (subvec stages 0 i) (nth stages i))))
+                          (range (count stages)))]
+    (cond
+      (some rolling-field? fields) :rolling
+      (and cube-meta (some #(cube.probe/time-shift-candidate? cube-meta (full-member-name %)) fields)) :shift)))
 
 (defn- aggregated-measures
   "A map from the name of each measure that a later stage aggregates to its field. Only these need the measure itself in a
@@ -1319,8 +1321,8 @@
        (aggregated-measures preprocessed)
        (named-measures preprocessed)
        (row-measure-names preprocessed)
-       (boolean (needs-date-ranges? preprocessed))])
-    [query {} {} #{} false]))
+       (needs-date-ranges preprocessed)])
+    [query {} {} #{} nil]))
 
 (defmethod driver/mbql->native :cube
   [driver query]
@@ -1328,11 +1330,11 @@
             *raw-measures* (atom {})
             *null-columns* (atom #{})
             *row-measure-aliases* (atom #{})]
-    (let [[query aggregated named row-measures date-ranges?] (query-with-stages driver query)
+    (let [[query aggregated named row-measures date-ranges] (query-with-stages driver query)
           honeysql-form (binding [*aggregated-measures* (into (set (keys aggregated)) row-measures)
                                   *named-measures*      named
                                   *row-measures*        row-measures
-                                  *keep-date-ranges*    date-ranges?]
+                                  *keep-date-ranges*    date-ranges]
                           (sql.qp/mbql->honeysql driver query))
           honeysql-form (restore-nested-measures honeysql-form @*raw-measures* @*row-measure-aliases* @*null-columns*)
           honeysql-form (if (and (map? honeysql-form) (seq @*week-numbers*))
