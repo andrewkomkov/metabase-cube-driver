@@ -8,6 +8,8 @@ cubes:
       - { name: dec_amount, sql: dec_amount, type: number, description: "Decimal(18, 4)." }
       - { name: dec_big, sql: dec_big, type: number, description: "Decimal(38, 8) above the range of a double." }
       - { name: ui64, sql: ui64, type: number, description: UInt64 above 2^53. }
+      - { name: ui64_text, sql: toString(ui64), type: string, description: UInt64 as text with all its digits. }
+      - { name: dec_big_text, sql: toString(dec_big), type: string, description: Decimal(38 8) as text with all its digits. }
       - { name: f32, sql: f32, type: number, description: Float32. }
       - { name: ts_utc, sql: ts_utc, type: time, description: DateTime in UTC. }
       - { name: ts_ny, sql: ts_ny, type: time, description: DateTime in New York. }

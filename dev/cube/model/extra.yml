@@ -107,7 +107,8 @@ cubes:
     description: Calendar cube with a custom time shift.
     sql: >
       SELECT toDateTime('2024-01-01 00:00:00', 'UTC') + toIntervalDay(number) AS date_key,
-      toDateTime('2024-01-01 00:00:00', 'UTC') + toIntervalDay(number) - toIntervalDay(28) AS prior_fiscal_date
+      toDateTime('2024-01-01 00:00:00', 'UTC') + toIntervalDay(number) - toIntervalDay(28) AS prior_fiscal_date,
+      toDateTime(toStartOfMonth(toDate('2024-01-01') + number + 10), 'UTC') AS fiscal_month_start
       FROM numbers(1200)
     dimensions:
       - { name: date_key, sql: date_key, type: time, primary_key: true }
@@ -116,3 +117,42 @@ cubes:
         type: time
         time_shift:
           - { name: prior_fiscal_month, sql: "{CUBE}.prior_fiscal_date" }
+        granularities:
+          - { name: fiscal_month, sql: "{CUBE}.fiscal_month_start" }
+      - { name: fiscal_month, sql: "{date.fiscal_month}", type: time, description: Fiscal month that starts 10 days before the calendar month. }
+
+  - name: second_source_tickets
+    data_source: second
+    title: Tickets
+    description: Cube on a second data source.
+    sql: "SELECT * FROM shop_second.tickets"
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: priority, sql: priority, type: string, description: Priority of the ticket. }
+    measures:
+      - { name: count, type: count, description: Number of tickets. }
+      - { name: total_minutes, sql: minutes, type: sum, description: Minutes of work. }
+
+  - name: refresh_marks
+    title: Refresh marks
+    description: Cube with a refresh key that reads the table, so a new row refreshes the cache.
+    sql: "SELECT * FROM shop.refresh_marks"
+    refresh_key:
+      sql: "SELECT count() FROM shop.refresh_marks"
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+    measures:
+      - { name: count, type: count, description: Number of marks. }
+
+  - name: filter_group_orders
+    title: Filter group orders
+    description: Cube whose SQL reads FILTER_GROUP, so an OR of two filters stays one condition.
+    sql: >
+      SELECT * FROM shop.orders WHERE
+      {FILTER_GROUP(FILTER_PARAMS.filter_group_orders.status.filter('status'), FILTER_PARAMS.filter_group_orders.quantity.filter('quantity'))}
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: status, sql: status, type: string, description: Order status. }
+      - { name: quantity, sql: quantity, type: number, description: Quantity. }
+    measures:
+      - { name: count, type: count, description: Number of orders. }

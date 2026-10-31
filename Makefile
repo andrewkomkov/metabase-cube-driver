@@ -4,7 +4,7 @@ package:
 
 .PHONY: up down load-check conformance conformance-down tools lint docs
 up: package
-	cd dev && docker compose up -d --wait clickhouse cube cube-secure
+	cd dev && docker compose up -d --wait clickhouse cube cube-secure mail
 	cd dev && docker compose up -d metabase
 
 down:
@@ -13,8 +13,9 @@ down:
 load-check:
 	python3 .github/scripts/load_check.py
 
+# Runs on stock Cube and with cube-clickhouse. VARIANT=off or VARIANT=on runs only one.
 conformance:
-	sh conformance/run_isolated.sh $(ARGS)
+	VARIANT="$(VARIANT)" sh conformance/run_isolated.sh $(ARGS)
 
 conformance-down:
 	cd dev && docker compose -f docker-compose.yml -f docker-compose.conformance.yml rm -sfv metabase-conformance
