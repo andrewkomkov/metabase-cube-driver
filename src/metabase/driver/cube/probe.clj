@@ -77,7 +77,7 @@
 (defn- source-text
   "The FROM and WHERE of the first SELECT of a text from Cube, where a shift moves the time."
   [text]
-  (second (re-find #"(?is)\bFROM\b(.*?)\bGROUP BY\b" text)))
+  (some-> (re-find #"(?is)\bFROM\b(.*?)\bGROUP BY\b" text) second (str/replace #"\s+" " ") str/trim))
 
 (defn- shifted-on?
   "True if Cube moves the time for this measure. A calendar shift joins on another column of the calendar, with no interval. Then

@@ -5094,6 +5094,45 @@ def _(ctx):
     expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE status <> 'revenue_trailing_30d'", "SELECT count() FROM orders")
 
 
+@check("native.subquery_filter_refused")
+def _(ctx):
+    """B2 and B4 in native SQL: an outer filter over a subquery. The driver cannot change the text, so it stops the query. A limit in the subquery gives the truth."""
+    month = "SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS r FROM orders GROUP BY 1"
+    expect_native_refusal(ctx, "SELECT * FROM (%s) AS s WHERE m <= '2025-05-01'" % month, "LIMIT 2147483647")
+    expect_native_refusal(ctx, "SELECT * FROM (%s) s WHERE r > 100" % month, "LIMIT 2147483647")
+    expect_native_rows(ctx, "SELECT * FROM (%s LIMIT 2147483647) AS s WHERE m <= '2025-05-01'" % month,
+                       "SELECT toStartOfMonth(created_at) AS m, sum(amount) FROM orders GROUP BY m HAVING m <= '2025-05-01'")
+    expect_native_refusal(ctx, "SELECT SUM(revenue) FROM (SELECT id, revenue FROM orders) AS s WHERE revenue > 100", "filter on the aggregate")
+    # With no filter on a measure, a subquery of raw rows gives the truth, and so does an outer filter on a dimension.
+    expect_native_rows(ctx, "SELECT MEASURE(revenue) FROM (SELECT status, revenue FROM orders) AS s WHERE status = 'shipped'",
+                       "SELECT sum(amount) FROM orders WHERE status = 'shipped'")
+
+
+@check("native.bound.alias_in_a_subquery")
+def _(ctx):
+    """The scan reads an alias of a time column too."""
+    sql = ("SELECT MEASURE(revenue) FROM (SELECT created_at AS c, revenue FROM orders) AS s WHERE c > '2025-03-15 05:00:00' AND c <= '2025-03-16 05:00:00'")
+    truth = "SELECT sum(amount) FROM orders WHERE created_at > '2025-03-15 05:00:00' AND created_at <= '2025-03-16 05:00:00'"
+    if DIALECT:
+        expect_native_rows(ctx, sql, truth)
+    else:
+        expect_native_refusal(ctx, sql, "next second")
+
+
+@check("native.bound.datetime64_last_second_limit")
+def _(ctx):
+    """On stock Cube, native `x >= a AND x < b` on a DateTime64 ends at the last whole second before b, and /v1/meta does not show the type. The dialect gives the truth."""
+    ensure_table(ctx, TE)
+    cond = "ts64_berlin >= '2025-03-01 06:00:00' AND ts64_berlin < '2025-03-01 08:00:01'"
+    sql = "SELECT MEASURE(count) FROM typed_events WHERE " + cond
+    truth = ch("SELECT count() FROM typed_events WHERE ts64_berlin >= toDateTime64('2025-03-01 06:00:00', 3, 'UTC') AND ts64_berlin < toDateTime64('2025-03-01 08:00:01', 3, 'UTC')")
+    got = ctx.mb.native(sql)["rows"]
+    if DIALECT:
+        assert_rows(got, truth)
+    elif got[0][0] != truth[0][0] - 1:
+        raise Fail("stock Cube gave %s, truth %s. If this is the truth, give this entry its full status" % (got, truth))
+
+
 @check("native.between_date_text_refused")
 def _(ctx):
     """Finding B7: Cube pads a date with no time at the end of a date range, which is documented for its REST API, and SQL reads it as midnight."""

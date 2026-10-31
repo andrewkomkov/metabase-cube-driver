@@ -3806,3 +3806,20 @@
   check: dialect.n2_legacy_planner
   cap_stock: partial
   reason_stock: "Known wrong number. Only with CUBEJS_TESSERACT_SQL_PLANNER=false, not the default: each bucket of a rolling measure gets the same wrong number. The driver cannot see the planner. cube-clickhouse fixes this."
+- id: native.subquery_filter_refused
+  area: native
+  title: "an outer filter over a subquery in native SQL"
+  status: pass
+  check: native.subquery_filter_refused
+- id: native.bound.alias_in_a_subquery
+  area: native
+  title: "a strict bound on an alias of a time column in native SQL"
+  status: pass
+  check: native.bound.alias_in_a_subquery
+- id: native.bound.datetime64_last_second_limit
+  area: native
+  title: "native SQL with < on a DateTime64"
+  status: pass
+  check: native.bound.datetime64_last_second_limit
+  cap_stock: partial
+  reason_stock: "Known wrong number on stock Cube. Native x >= a AND x < b on a DateTime64 ends at the last whole second before b, so the rows of that second are out. /v1/meta does not show the type of a column, so the driver cannot stop this and leave the same text on a DateTime column. The query builder has the same limit only on a column with a rollup. cube-clickhouse gives the truth."

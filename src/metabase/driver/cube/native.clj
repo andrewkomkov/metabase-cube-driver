@@ -293,8 +293,16 @@
         (range (count toks))))
 
 (defn- time-columns
+  "The time columns of the tables of the text, and their aliases in the text, such as `c` in `created_at AS c`."
   [index toks]
-  (into #{} (mapcat #(:time (get index %))) (tables toks)))
+  (let [columns (into #{} (mapcat #(:time (get index %))) (tables toks))]
+    (into columns
+          (keep (fn [i]
+                  (when (and (contains? columns (:text (get toks i)))
+                             (word? (get toks (inc i)) "as")
+                             (name-token? (get toks (+ i 2))))
+                    (:text (get toks (+ i 2))))))
+          (range (count toks)))))
 
 (defn- check-between!
   "Cube pads a date with no time at the end of a date range to the end of that day. SQL reads it as midnight."
@@ -449,6 +457,62 @@
                                     "rows outside the filter. Use a filter on whole %ss.")
                                measure unit unit unit)))))))))
 
+;;; ------------------------------------------------- filters on a subquery ---------------------------------------------
+
+(defn- closing-paren
+  "The index of the parenthesis that closes the one at `open`, or nil."
+  [toks open]
+  (loop [i open, depth 0]
+    (when-let [tok (get toks i)]
+      (let [depth (case (:text tok)
+                    "(" (inc depth)
+                    ")" (dec depth)
+                    depth)]
+        (if (and (zero? depth) (= ")" (:text tok)))
+          i
+          (recur (inc i) (long depth)))))))
+
+(defn- outer-where
+  "The tokens of the WHERE right after the subquery that closes at `close`, or nil."
+  [toks close]
+  (let [after    (inc close)
+        after    (if (word? (get toks after) "as") (inc after) after)
+        where-at (if (word? (get toks after) "where")
+                   after
+                   (when (word? (get toks (inc after)) "where") (inc after)))]
+    (when where-at
+      (subvec toks (inc where-at)
+              (or (first (filter (fn [i]
+                                   (let [tok (get toks i)]
+                                     (or (some #(word? tok %) ["group" "order" "limit" "having"]) (= ")" (:text tok)))))
+                                 (range (inc where-at) (count toks))))
+                  (count toks))))))
+
+(defn- check-subquery-filters!
+  "Cube pushes an outer filter below the aggregation of a subquery, so the rows of the subquery change. A limit in the subquery
+  stops this. Over a subquery with raw rows, Cube reads a filter on a measure column as a filter on the aggregate."
+  [index toks]
+  (doseq [i (range (count toks))
+          :when (and (word? (get toks i) "from")
+                     (= "(" (:text (get toks (inc i))))
+                     (word? (get toks (+ i 2)) "select"))
+          :let [close (closing-paren toks (inc i))
+                where (when close (outer-where toks close))]
+          :when (seq where)]
+    (let [inner       (subvec toks (+ i 2) close)
+          aggregated? (some #(or (word? % "group") (word? % "measure")) inner)
+          limited?    (some #(word? % "limit") inner)
+          measures    (into #{} (mapcat #(:measures (get index %))) (tables inner))
+          on-measure  (first (filter #(and (name-token? %) (contains? measures (:text %))) where))]
+      (when (and aggregated? (not limited?))
+        (refuse! (str "Cube pushes a filter of an outer query below the aggregation of its subquery, so the rows of the subquery "
+                      "change and the number would be wrong. Add LIMIT 2147483647 to the subquery.")))
+      (when (and on-measure (not aggregated?))
+        (refuse! (format (str "Cube reads the filter on the measure column %s as a filter on the aggregate and not on rows, so the "
+                              "number would be wrong. Aggregate %s with GROUP BY and LIMIT in the subquery, and filter on its "
+                              "result.")
+                         (:text on-measure) (:text on-measure)))))))
+
 ;;; ------------------------------------------------- time shift measures ----------------------------------------------
 
 (defn- time-filter-or-bucket?
@@ -512,6 +576,7 @@
     (check-one-path! index toks)
     (check-rolling! index toks params)
     (check-between! index toks params)
+    (check-subquery-filters! index toks)
     (when-not keeps-fractions?
       (check-strict-bound! index toks params)
       (check-fraction! index toks params))
