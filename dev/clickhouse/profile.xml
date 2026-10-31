@@ -1,8 +1,0 @@
-<!-- SQL gives NULL for sum, min and max of no rows, and ClickHouse gives 0 and 1970-01-01. See docs/query-compilation.md. -->
-<clickhouse>
-  <profiles>
-    <default>
-      <aggregate_functions_null_for_empty>1</aggregate_functions_null_for_empty>
-    </default>
-  </profiles>
-</clickhouse>
