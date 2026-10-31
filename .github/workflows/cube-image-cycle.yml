@@ -368,7 +368,7 @@ jobs:
   publish:
     name: ${{ inputs.tag }} publish
     needs: [prepare, gate]
-    if: ${{ !cancelled() && needs.gate.outputs.verdict == 'pass' && inputs.test-mode == 'none' }}
+    if: ${{ !cancelled() && needs.gate.outputs.verdict == 'pass' && github.ref == 'refs/heads/main' && inputs.test-mode == 'none' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
