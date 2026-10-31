@@ -30,6 +30,7 @@ Then restart Cube. A cube on another data source keeps its own dialect.
 | rollup over `original_sql` | none yet | A rollup with `use_original_sql_pre_aggregations` loads into Cube Store. |
 | range in a zone | none yet | A partitioned rollup in a report time zone has all rows of the build range. |
 | N2 | none yet | A rolling measure is right on the legacy planner. |
+| rolling window in a zone | none yet | A rolling or to-date window and a time shift are right by a day, a week, a month and a year in a report time zone, from the source and from a rollup. |
 | M3 | none yet | With a report time zone, a `Date` or `Date32` column stays on its day, in a bucket and in a filter. |
 
 Each override in `index.js` has the link. Remove an override when Cube ships its fix. The driver asks Cube how it writes a date range, so it needs no setting for this.

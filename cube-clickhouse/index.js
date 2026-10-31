@@ -1,6 +1,7 @@
 // A small ClickHouse dialect for stock Cube. It holds only the fixes that wait for a change in Cube. When Cube ships a fix,
 // remove its override here. docs/cube-audit.md has the verdict and the repro of each defect.
 const { ClickHouseQuery } = require('@cubejs-backend/schema-compiler/dist/src/adapter/ClickHouseQuery');
+const { CubeStoreQuery } = require('@cubejs-backend/schema-compiler/dist/src/adapter/CubeStoreQuery');
 const { PreAggregationLoader } = require('@cubejs-backend/query-orchestrator/dist/src/orchestrator/PreAggregationLoader');
 const { QueryCache } = require('@cubejs-backend/query-orchestrator/dist/src/orchestrator/QueryCache');
 
@@ -17,6 +18,8 @@ PreAggregationLoader.prototype.refresh = function refreshWithVersionedNames(...a
   return refresh.apply(this, args);
 };
 
+const SERIES_ZONE = 'zone-of-the-query';
+
 class ClickHouseFixes extends ClickHouseQuery {
   // B1: https://github.com/cube-js/cube/pull/12532
   // parseDateTimeBestEffort drops the milliseconds of a bound, and the SQL API starts a strict bound 1 ms later, so the row at
@@ -27,8 +30,8 @@ class ClickHouseFixes extends ClickHouseQuery {
     }
     // M3: no pull request yet, see docs/review/0.1.0-final.md. ClickHouse compares a Date with a time in the zone of that time, so a bound with the zone
     // of the query keeps a Date on its day. A DateTime keeps its instant.
-    const bound = `parseDateTime64BestEffort(${value}, 3, 'UTC')`;
-    return this.timezone && this.timezone !== 'UTC' ? `toTimeZone(${bound}, '${this.timezone}')` : bound;
+    // Rolling window in a zone: the planner writes the range of a rolling window as a local time of the query, with no offset, and each other range with Z. A parser with the zone reads both.
+    return `parseDateTime64BestEffort(${value}, 3, '${this.timezone || 'UTC'}')`;
   }
 
   // datetime64: https://github.com/cube-js/cube/pull/12533
@@ -46,7 +49,34 @@ class ClickHouseFixes extends ClickHouseQuery {
     const quoted = (values) => `['${values.join("','")}']`;
     const from = quoted(series.map(([start]) => start));
     const to = quoted(series.map(([, end]) => end));
-    return `SELECT parseDateTimeBestEffort(dates.1) as date_from, parseDateTimeBestEffort(dates.2) as date_to FROM (SELECT arrayJoin(arrayZip(${from}, ${to})) as dates)`;
+    return `SELECT ${this.seriesBound('dates.1')} as date_from, ${this.seriesBound('dates.2')} as date_to FROM (SELECT arrayJoin(arrayZip(${from}, ${to})) as dates)`;
+  }
+
+  // Rolling window in a zone: no pull request yet, see docs/cube-audit.md#rolling-window-zone.
+  // Cube writes the bounds of a bucket as local times of the query, and stock Cube reads them in the zone of the server. So in New York the first day of
+  // a month starts in the month before, and a window to date adds that month. East of UTC, a window also takes the first hours of the next bucket.
+  seriesBound(text) {
+    return `parseDateTime64BestEffort(${text}, 3, '${this.timezone || 'UTC'}')`;
+  }
+
+  // The planner reads the templates once, for all queries, and the data of this template has no zone. So the template holds a mark, and this writes the zone of the query.
+  buildSqlAndParamsRust(exportAnnotatedSql) {
+    const [sql, ...rest] = super.buildSqlAndParamsRust(exportAnnotatedSql);
+    return [sql.split(SERIES_ZONE).join(this.timezone || 'UTC'), ...rest];
+  }
+
+  // Time shift and rolling window in a zone: no pull request yet, see docs/cube-audit.md#rolling-window-zone. ClickHouse adds a day or a month in the zone of the value. A column in UTC gets
+  // 24 hours next to a clock change of the zone of the query, so a row moves to another day of that zone.
+  addInterval(date, interval) {
+    return super.addInterval(this.inQueryZone(date), interval);
+  }
+
+  subtractInterval(date, interval) {
+    return super.subtractInterval(this.inQueryZone(date), interval);
+  }
+
+  inQueryZone(date) {
+    return this.timezone && this.timezone !== 'UTC' ? `toDateTime64(${date}, 3, '${this.timezone}')` : date;
   }
 
   // Range of a partitioned rollup: no pull request yet, see docs/cube-audit.md#rollup-range-zone.
@@ -86,6 +116,14 @@ class ClickHouseFixes extends ClickHouseQuery {
     // B1: https://github.com/cube-js/cube/pull/12532 does not change this template, which SQL push-down writes.
     // Remove it when push-down keeps milliseconds.
     templates.expressions.timestamp_literal = "parseDateTime64BestEffort('{{ value }}', 3, 'UTC')";
+    // Rolling window in a zone: see seriesBound and buildSqlAndParamsRust.
+    templates.statements.time_series_select = 'SELECT dates.f date_from, dates.t date_to \n' +
+      'FROM (\n' +
+      '{% for time_item in seria  %}' +
+      `    select parseDateTime64BestEffort('{{ time_item[0] }}', 3, '${SERIES_ZONE}') f, parseDateTime64BestEffort('{{ time_item[1] }}', 3, '${SERIES_ZONE}') t \n` +
+      '{% if not loop.last %} UNION ALL\n{% endif %}' +
+      '{% endfor %}' +
+      ') AS dates';
     // M3: see dateTimeCast. SQL push-down writes these templates.
     if (this.timezone && this.timezone !== 'UTC') {
       const inZone = (text) => `toTimeZone(${text}, '${this.timezone}')`;
@@ -96,7 +134,17 @@ class ClickHouseFixes extends ClickHouseQuery {
   }
 }
 
-// Cube refuses an unknown key in its options, so this exports only the option.
+// Rolling window from a rollup in a zone: no pull request yet, see docs/cube-audit.md#rolling-window-zone.
+// Cube builds a rollup in the zone of the query, so a bucket in it is a local time already. The planner converts the bucket again in the filter of a window, with one offset for the
+// whole range, so a window loses its first bucket west of UTC, and it does not hold the offset next to a clock change.
+class CubeStoreFixes extends CubeStoreQuery {
+  convertTz(field) {
+    return field;
+  }
+}
+
+// Cube refuses an unknown key in its options, so this exports only the options.
 module.exports = {
   dialectFactory: ({ dbType }) => (dbType === 'clickhouse' ? ClickHouseFixes : undefined),
+  externalDialectFactory: () => CubeStoreFixes,
 };
