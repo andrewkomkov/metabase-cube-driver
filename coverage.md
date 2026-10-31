@@ -4,7 +4,7 @@ CI generates this page from `conformance/run.py`. Do not edit it.
 
 **coverage: 741/767 pass on Cube with the ClickHouse dialect** (741 pass, 13 partial, 1 blocked, 12 unsupported, 0 fail of 767)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `4f6cbc15553b`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41206583267), 2026-10-31.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `43471101a69d`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41208563734), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -638,8 +638,8 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `4f6cb
 | `compile.join.explicit_measure_regular` | pass |  |
 | `compile.ch.integer_within_double` | pass |  |
 | `compile.xray.table_all_cards_run` | pass |  |
-| `compile.xray.field_all_cards_run` | partial | The check compares each card with SQL truth. One card adds up a dimension of a joined cube (sum and avg of users.lifetime_orders). Cube adds each row of the joined cube once, so it gives another number, also in a subquery, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. |
-| `compile.xray.time_field_all_cards_run` | partial | The check compares each card with SQL truth. One card adds up a dimension of a joined cube (sum and avg of users.lifetime_orders). Cube adds each row of the joined cube once, so it gives another number, also in a subquery, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. |
+| `compile.xray.field_all_cards_run` | partial | The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) can stop. Stock Cube adds each row of the joined cube once. So it gives another number, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. The check accepts this message or a number equal to the truth. |
+| `compile.xray.time_field_all_cards_run` | partial | The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) can stop. Stock Cube adds each row of the joined cube once. So it gives another number, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. The check accepts this message or a number equal to the truth. |
 | `compile.xray.typed_table_all_cards_run` | pass |  |
 | `compile.granularity.native_offset_no_rollup` | pass |  |
 | `compile.filter.quote_in_value` | pass |  |

@@ -3163,12 +3163,12 @@
     {
       "id": "compile.xray.field_all_cards_run",
       "status": "partial",
-      "reason": "The check compares each card with SQL truth. One card adds up a dimension of a joined cube (sum and avg of users.lifetime_orders). Cube adds each row of the joined cube once, so it gives another number, also in a subquery, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused."
+      "reason": "The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) can stop. Stock Cube adds each row of the joined cube once. So it gives another number, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. The check accepts this message or a number equal to the truth."
     },
     {
       "id": "compile.xray.time_field_all_cards_run",
       "status": "partial",
-      "reason": "The check compares each card with SQL truth. One card adds up a dimension of a joined cube (sum and avg of users.lifetime_orders). Cube adds each row of the joined cube once, so it gives another number, also in a subquery, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused."
+      "reason": "The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) can stop. Stock Cube adds each row of the joined cube once. So it gives another number, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. The check accepts this message or a number equal to the truth."
     },
     {
       "id": "compile.xray.typed_table_all_cards_run",
