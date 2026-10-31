@@ -829,12 +829,39 @@
                                 (str/join " and " (sort (filter group names))))
                         {:type :invalid-query}))))))
 
+(defn- foreign-key-to-table?
+  "True if a field of the table `source-table` is a foreign key to the table `table-id`."
+  [source-table table-id]
+  (let [provider (driver-api/metadata-provider)]
+    (some (fn [{:keys [fk-target-field-id]}]
+            (and fk-target-field-id
+                 (= table-id (:table-id (driver-api/field provider fk-target-field-id)))))
+          (driver-api/fields provider source-table))))
+
+(defn- check-no-total-through-join!
+  "Cube protects a dimension of the one side of a join from fan-out, so it adds each row of that cube once. SUM(products.price)
+  by a column of orders gives the total of the products in place of the sum over the orders. A subquery gives the same number."
+  [{:keys [source-table aggregation]}]
+  (when (integer? source-table)
+    (doseq [form  (tree-seq coll? seq aggregation)
+            :when (and (vector? form) (#{:sum :avg :sum-where} (first form)))
+            :let  [field (stored-field (nth form 2 nil))]
+            :when (and (= :dimension (field-kind field))
+                       (not= source-table (:table-id field))
+                       (foreign-key-to-table? source-table (:table-id field)))]
+      (throw (ex-info (format (str "Cube cannot add up the dimension %s over the rows of this query. It adds each row of the "
+                                   "joined cube once, so the number would be wrong. Add a measure to the data model, or start "
+                                   "from the cube of this dimension.")
+                              (:name field))
+                      {:type :invalid-query})))))
+
 (defn- check-stages!
   [stages]
   (doseq [i (range (count stages))
           :let [stage (nth stages i)]
           :when (not= :mbql.stage/native (:lib/type stage))]
     (let [upto (subvec stages 0 (inc i))]
+      (check-no-total-through-join! stage)
       (check-no-group-by-member! (pop upto) stage)
       (check-no-filter-on-measure! (pop upto) stage)
       (check-row-values-give-measure! (pop upto) stage)

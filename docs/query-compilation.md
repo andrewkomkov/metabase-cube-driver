@@ -89,6 +89,7 @@ These queries fail with a message that tells what to do. The message includes th
 | Query | Reason |
 | --- | --- |
 | Join on columns that no join of the model compares | The driver writes `__cubeJoinField`, so Cube would use the model join. Cube refuses `JOIN ... ON a = b` on other columns in native SQL with `Can't detect Cube query`, and `CROSS JOIN ... WHERE o.other_id = u.id` applies the model join and then the filter. |
+| Sum or average of a dimension of a joined cube, from the side with the foreign key | Cube adds each row of the joined cube once. `SUM(products.price)` by a column of `orders` gives the total of the products, for each group. A subquery gives the same number, so the driver stops this query. Add a measure, or start from the cube of the dimension. |
 | Join of a question, or with a filter inside the join | A subquery that lists its columns has no `__cubeJoinField`. A subquery with `SELECT *` has it, but a filter inside it applies to the whole query, so it has no use here. |
 | `median`, `percentile` | The Cube templates for ClickHouse have no `PERCENTILE_CONT`. |
 | `datetime-diff` in months, quarters, years | Cube has no form for whole months. Its `DATEDIFF` counts boundaries. |
@@ -181,5 +182,6 @@ The driver cannot stop these. Each number comes with no error. [Cube findings](c
 | Stock Cube with `CUBEJS_TESSERACT_SQL_PLANNER=false`: a rolling window by a time bucket | Each bucket gets one wrong number. This is not the default. The dialect gives the truth. | `dialect.n2_legacy_planner` |
 | Native `COUNT(*)` on no rows | `NULL` where SQL gives 0 (m3). The query builder gives 0. | `native.count_on_no_rows_limit` |
 | Native `SELECT *` or a raw select of a `switch` dimension | Each row comes once for each value of the dimension. The query builder shows `NULL` in this column and keeps one row. | None. Cube documents the values as a set of groups. |
+| Native SQL: a sum or an average of a dimension of a joined cube, such as `SUM(p.price)` from `orders` | Each row of the joined cube counts once, so each group gets the total of that cube. The query builder stops this. | `compile.join.total_of_dimension_refused` has the query builder only |
 | Native SQL in a shape that the scan does not read. The scan is not a SQL parser, and it reads the shapes in [Native SQL](#native-sql). | The same wrong numbers that the scan stops in the plain shape. | `native.bound.strict_lower_refused`, `native.subquery_filter_refused` |
 | Postgres, not the main target: a rolling window with a range that starts inside a month (N1), a custom granularity in months with no rollup | Shifted buckets. See [Cube audit](cube-audit.md). | None. The suite runs on ClickHouse. |

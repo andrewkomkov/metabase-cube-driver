@@ -3832,15 +3832,19 @@
 - id: compile.xray.field_all_cards_run
   area: mb.compile.xray
   title: "xray field all cards run"
-  status: pass
-  status_stock: pass
+  status: partial
+  status_stock: partial
   check: compile.xray.field_all_cards_run
+  cap: partial
+  reason: "The check compares each card with SQL truth. One card adds up a dimension of a joined cube (sum and avg of users.lifetime_orders). Cube adds each row of the joined cube once, so it gives another number, also in a subquery, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused."
 - id: compile.xray.time_field_all_cards_run
   area: mb.compile.xray
   title: "xray time field all cards run"
-  status: pass
-  status_stock: pass
+  status: partial
+  status_stock: partial
   check: compile.xray.time_field_all_cards_run
+  cap: partial
+  reason: "The check compares each card with SQL truth. One card adds up a dimension of a joined cube (sum and avg of users.lifetime_orders). Cube adds each row of the joined cube once, so it gives another number, also in a subquery, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused."
 - id: compile.xray.typed_table_all_cards_run
   area: mb.compile.xray
   title: "xray typed table all cards run"
@@ -4535,6 +4539,12 @@
   status: pass
   status_stock: pass
   check: isolation.other_driver_sync
+- id: compile.join.total_of_dimension_refused
+  area: mb.compile.join
+  title: "a sum of a dimension of a joined cube stops, and other aggregations give the truth"
+  status: pass
+  status_stock: pass
+  check: compile.join.total_of_dimension_refused
 - id: compile.expr.measure_with_expression_breakout
   area: mb.compile.expr
   title: "measures with a breakout on an expression"

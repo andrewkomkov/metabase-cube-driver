@@ -3134,6 +3134,28 @@ def _(ctx):
     expect_clear_error(ctx, query, "cannot count whole months")
 
 
+@check("compile.join.total_of_dimension_refused")
+def _(ctx):
+    """Cube adds each row of the joined cube once: SUM(products.price) by a column of orders is the total of the products. So the driver stops this."""
+    price = "d:orders>products.price"
+    for name, query in (("sum by status", ctx.mb.inner(ORD, agg=[["sum", price]], by=["d:orders.status"])),
+                        ("sum", ctx.mb.inner(ORD, agg=[["sum", price]])),
+                        ("avg by status", ctx.mb.inner(ORD, agg=[["avg", price]], by=["d:orders.status"])),
+                        ("explicit join", ctx.mb.inner(ORD, agg=[["sum", "d:products.price|P"]], joins=[{
+                            "source-table": ctx.mb.table("products")["id"], "alias": "P", "strategy": "left-join",
+                            "condition": ["=", "d:orders.product_id", "d:products.id|P"]}]))):
+        try:
+            expect_clear_error(ctx, query, XRAY_TOTAL_REFUSAL)
+        except Fail as e:
+            raise Fail("%s: %s" % (name, e))
+    # These do not depend on how often a row counts, and the side with the foreign key has no such rule.
+    joined = "SELECT o.status, %s FROM orders o JOIN products p ON o.product_id = p.id GROUP BY 1"
+    for agg, sql in ((["min", price], "min(p.price)"), (["max", price], "max(p.price)"), (["distinct", price], "uniqExact(p.price)")):
+        assert_rows(ctx.mb.mbql(ORD, agg=[agg], by=["d:orders.status"])["rows"], ch(joined % sql), label=agg[0])
+    assert_rows(ctx.mb.mbql(ORD, agg=[["sum", "d:orders.quantity_dim"]], by=["d:orders.status"])["rows"],
+                ch("SELECT status, sum(quantity) FROM orders GROUP BY 1"), label="own column")
+
+
 @check("compile.agg.median_gives_error")
 def _(ctx):
     expect_clear_error(ctx, ctx.mb.inner(ORD, agg=[["median", _AMT]]), "Cube cannot")
@@ -3679,7 +3701,11 @@ class XrayTruth:
             info = self.cols[position].get("binning_info") if position is not None else None
             if not info or not info.get("bin_width"):
                 raise Fail("the result has no width of the bin of %s" % field["name"])
-            return "floor(toFloat64(%s) / %r) * %r" % (expr, info["bin_width"], info["bin_width"])
+            width = info["bin_width"]
+            # A double cannot hold each value of this column, so the bin of a value comes from decimal arithmetic.
+            if field["name"] == "dec_big":
+                return "toFloat64(intDiv(%s, toDecimal128(%r, 8))) * %r" % (expr, width, width)
+            return "floor(toFloat64(%s) / %r) * %r" % (expr, width, width)
         if unit not in XRAY_UNITS:
             raise Fail("no truth for the bucket of %s" % json.dumps(ref)[:200])
         if field.get("base_type") in ("type/DateTime", "type/Date", "type/DateTimeWithLocalTZ"):
@@ -3725,22 +3751,34 @@ class XrayTruth:
             "GROUP BY " + ", ".join(str(i + 1) for i in range(len(keys))) if keys else "")
 
 
-def xray_cards(ctx, path, table):
-    """Runs each card of the X-ray, and compares its rows with a query on ClickHouse."""
+XRAY_TOTAL_REFUSAL = "Cube cannot add up the dimension"
+
+
+def xray_cards(ctx, path, table, refused=0):
+    """Runs each card of the X-ray, and compares its rows with a query on ClickHouse. `refused` is the number of cards that add up a
+    dimension of a joined cube, where Cube gives another number and the driver stops the query."""
     dash = ctx.mb.api("GET", "/api/automagic-dashboards/" + path)
     cards = [dc["card"] for dc in dash.get("dashcards", []) if dc.get("card") and dc["card"].get("dataset_query")]
     if not cards:
         raise Fail("the X-ray has no cards")
-    failed = []
+    failed, stopped = [], []
     for card in cards:
         query = card["dataset_query"]
         try:
-            data = ctx.mb.dataset(query)["data"]
+            res = ctx.mb.api("POST", "/api/dataset", query, ok=(200, 202, 400, 500))
+            if XRAY_TOTAL_REFUSAL in str(res.get("error") or ""):
+                stopped.append(card.get("name"))
+                continue
+            if res.get("error") or res.get("status") == "failed":
+                raise Fail("query failed: %s" % str(res.get("error") or res.get("error_type"))[:300])
+            data = res["data"]
             assert_rows(data["rows"], ch(XrayTruth(ctx, table, data["cols"]).sql(query)), label="card")
         except Fail as e:
             failed.append((card.get("name"), str(e)[:300]))
     if failed:
         raise Fail("%d of %d cards failed: %s" % (len(failed), len(cards), failed[:6]))
+    if len(stopped) != refused:
+        raise Fail("%d cards stopped, expected %d: %s" % (len(stopped), refused, stopped))
     return cards
 
 
@@ -3751,12 +3789,12 @@ def _(ctx):
 
 @check("compile.xray.field_all_cards_run")
 def _(ctx):
-    xray_cards(ctx, "field/%d" % ctx.mb.field(ORD, "status")["id"], ORD)
+    xray_cards(ctx, "field/%d" % ctx.mb.field(ORD, "status")["id"], ORD, refused=1)
 
 
 @check("compile.xray.time_field_all_cards_run")
 def _(ctx):
-    xray_cards(ctx, "field/%d" % ctx.mb.field(ORD, "created_at")["id"], ORD)
+    xray_cards(ctx, "field/%d" % ctx.mb.field(ORD, "created_at")["id"], ORD, refused=1)
 
 
 @check("compile.xray.typed_table_all_cards_run")
