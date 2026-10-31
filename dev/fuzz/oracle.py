@@ -343,8 +343,6 @@ class Query:
             if len(by) != 1 or by[0].get("c") != "created_at" or by[0].get("unit") != "month":
                 raise Unknown("a time shift with another bucket")
             return self.shift(m, rng)
-        if self.zone != "UTC":
-            raise Refuse("a rolling window under a report time zone")
         if rng is None or len(by) != 1 or by[0].get("c") != "created_at" or by[0].get("unit") not in ("day", "month", "quarter", "year"):
             raise Refuse("a rolling window needs a bucket and a whole date range")
         unit = by[0]["unit"]
@@ -375,14 +373,15 @@ class Query:
     def window(self, m, unit, a, b, others):
         w = m["window"]
         trunc = {"day": "toDate(d)", "month": "toStartOfMonth(d)", "quarter": "toStartOfQuarter(d)", "year": "toStartOfYear(d)"}[unit]
-        series = ("SELECT DISTINCT %s AS b, addSeconds(toDateTime(%s + INTERVAL 1 %s, 'UTC'), -1) AS e FROM (SELECT toDate(%s) + toIntervalDay(number) AS d FROM numbers(toUInt64(dateDiff('day', toDate(%s), toDate(%s)))))"
-                  % (trunc, trunc, unit.upper(), q(a), q(a), q(b)))
+        zone = q(self.zone)
+        series = ("SELECT DISTINCT %s AS b, addSeconds(toDateTime(%s + INTERVAL 1 %s, %s), -1) AS e FROM (SELECT toDate(%s) + toIntervalDay(number) AS d FROM numbers(toUInt64(dateDiff('day', toDate(%s), toDate(%s)))))"
+                  % (trunc, trunc, unit.upper(), zone, q(a), q(a), q(b)))
         conds = [self.filter(f) for f in others] or ["1"]
         # The row at time 0 keeps each bucket when the filter leaves no row.
-        rows = "SELECT o.created_at AS t, toNullable(o.amount) AS amt FROM %s WHERE %s UNION ALL SELECT toDateTime(0, 'UTC'), CAST(NULL, 'Nullable(Decimal(12, 2))')" % (self.from_clause(), " AND ".join(conds))
-        cond = "t > toDateTime(0, 'UTC') AND %s" % w["to"]
+        rows = "SELECT toTimeZone(o.created_at, %s) AS t, toNullable(o.amount) AS amt FROM %s WHERE %s UNION ALL SELECT toDateTime(0, %s), CAST(NULL, 'Nullable(Decimal(12, 2))')" % (zone, self.from_clause(), " AND ".join(conds), zone)
+        cond = "t > toDateTime(0, %s) AND %s" % (zone, w["to"].replace("'UTC'", zone))
         if w["from"]:
-            cond += " AND t >= %s" % w["from"]
+            cond += " AND t >= %s" % w["from"].replace("'UTC'", zone)
         arg = cond if "countIf" in m["sql"] else "if(%s, amt, NULL)" % cond
         return "SELECT b, %s FROM (%s) AS s CROSS JOIN (%s) AS r GROUP BY b" % (m["sql"] % arg, series, rows)
 
