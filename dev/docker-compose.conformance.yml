@@ -1,0 +1,16 @@
+# Adds a Metabase for `make conformance`, next to the service `metabase`. It has its own volume, its own plugins
+# directory and an admin with a fixed throwaway password, because the demo stack has only fake data. The port binds to
+# the loopback interface only. See conformance/README.md.
+services:
+  metabase-conformance:
+    extends: { file: docker-compose.yml, service: metabase }
+    environment:
+      MB_SITE_URL: http://127.0.0.1:3301
+    volumes: !override
+      - "metabase-conformance-data:/data"
+      - "./plugins-conformance:/plugins"
+    ports: !override
+      - "127.0.0.1:3301:3000"
+    restart: "no"
+volumes:
+  metabase-conformance-data:

@@ -1,0 +1,41 @@
+[
+ {
+  "rows": [
+   [
+    "1",
+    "2024-02-01 10:00:00.000000"
+   ],
+   [
+    "2",
+    "2024-03-01 00:00:00.000000"
+   ],
+   [
+    "3",
+    "2025-03-10 01:30:00.000000"
+   ],
+   [
+    "4",
+    "2026-01-01 23:59:59.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nSort: #it.id ASC NULLS LAST\n  Projection: #it.id, #it.ts + #IntervalDayTime(\"4294967296\") AS IntervalDayTime(\"4294967296\") AS x\n    CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"ungrouped\": true\n}\nphysical_plan\nSortExec: [id@0 ASC NULLS LAST]\n  ProjectionExec: expr=[id@0 as id, ts@1 + IntervalDayTime(\"4294967296\")@2 as x]\n    CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.ts\"],\"segments\":[],\"order\":[],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": "1\t2024-02-01 10:00:00\n2\t2024-03-01 00:00:00\n3\t2025-03-10 01:30:00\n4\t2026-01-01 23:59:59",
+  "id": "raw_plus_day"
+ },
+ {
+  "rows": [],
+  "error": "Error during rewrite: Can't detect Cube query and it may be not supported yet. Please check logs for additional information.\nQUERY: SELECT id, DATE_ADD(ts, INTERVAL '1 day') AS x FROM it ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "date_add_function"
+ }
+]

@@ -1,0 +1,54 @@
+# sql-api-time-zone v1.8.15 clickhouse tesseract=off ready=True
+## set_time_zone
+$ psql script:
+SET TIME ZONE 'Asia/Tokyo';
+SHOW TIME ZONE;
+SELECT DATE_TRUNC('day', created_at) d, MEASURE(revenue) r FROM orders GROUP BY 1 ORDER BY 1;
+setting
+d | r
+2025-01-02 00:00:00.000000 | 110
+## at_time_zone
+$ psql> SELECT DATE_TRUNC('day', created_at AT TIME ZONE 'Asia/Tokyo') d, MEASURE(revenue) r FROM orders GROUP BY 1 ORDER BY 1
+d | r
+2025-01-01 00:00:00.000000 | 10
+2025-01-02 00:00:00.000000 | 100
+## utc_default
+$ psql> SELECT DATE_TRUNC('day', created_at) d, MEASURE(revenue) r FROM orders GROUP BY 1 ORDER BY 1
+d | r
+2025-01-01 00:00:00.000000 | 10
+2025-01-02 00:00:00.000000 | 100
+$ psql> EXPLAIN SELECT DATE_TRUNC('day', created_at) d, MEASURE(revenue) r FROM orders GROUP BY 1 ORDER BY 1
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.revenue"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "timeDimensions": [
+    {
+      "dimension": "orders.created_at",
+      "granularity": "day"
+    }
+  ],
+  "order": [
+    [
+      "orders.created_at",
+      "asc"
+    ]
+  ]
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.revenue"],"dimensions":[],"segments":[],"timeDimensions":[{"dimension":"orders.created_at","granularity":"day"}],"order":[["orders.created_at","asc"]]}
+## rest_timezone
+$ POST /cubejs-api/v1/load {"timezone": "Asia/Tokyo", "measures": ["orders.revenue"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "day"}], "order": {"orders.created_at": "asc"}}
+HTTP 200 [{"orders.created_at.day": "2025-01-02T00:00:00.000", "orders.revenue": "110", "orders.created_at": "2025-01-02T00:00:00.000"}]
+SQL: SELECT
+      toDateTime64(toStartOfDay(toTimeZone(toDateTime64(`orders`.created_at, 0), 'Asia/Tokyo'), 'Asia/Tokyo'), 0, 'Asia/Tokyo') `orders__created_at_day`, sum(`orders`.amount) `orders__revenue`
+    FROM
+      repro.orders AS `orders`  GROUP BY `orders__created_at_day` ORDER BY `orders__created_at_day` ASC LIMIT 10000
+PARAMS: []
+## truth_tokyo
+$ clickhouse> SELECT toStartOfDay(created_at,'Asia/Tokyo') d, sum(amount) r FROM repro.orders GROUP BY 1 ORDER BY 1
+d	r
+2025-01-02 00:00:00	110

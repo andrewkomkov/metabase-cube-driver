@@ -1,0 +1,46 @@
+# Stack for docs/cube-audit.md. No Metabase and no driver.
+# All ports bind to the loopback interface only. All credentials are throwaway values.
+name: mcd-audit
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-26.8.36-alpine}
+    environment:
+      CLICKHOUSE_DB: audit
+      CLICKHOUSE_USER: audit
+      CLICKHOUSE_PASSWORD: audit
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ulimits: { nofile: { soft: 262144, hard: 262144 } }
+    mem_limit: 1g
+    healthcheck: { test: [CMD-SHELL, "clickhouse-client -u audit --password audit -q 'SELECT 1'"], interval: 2s, retries: 40 }
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-17-alpine}
+    environment:
+      POSTGRES_DB: audit
+      POSTGRES_USER: audit
+      POSTGRES_PASSWORD: audit
+    mem_limit: 1g
+    healthcheck: { test: [CMD-SHELL, "pg_isready -U audit -d audit"], interval: 2s, retries: 40 }
+  cube:
+    image: cubejs/cube:${CUBE_VERSION:-v1.8.15}
+    env_file:
+      # Holds CUBEJS_TESSERACT_SQL_PLANNER, or nothing for the default of the tag.
+      - { path: ./.work/planner.env, required: false }
+    environment:
+      CUBEJS_DEV_MODE: "true"
+      CUBEJS_API_SECRET: audit-dev-only-0123456789abcdef0123456789
+      CUBEJS_DB_NAME: audit
+      CUBEJS_DB_USER: audit
+      CUBEJS_DB_PASS: audit
+      CUBEJS_PG_SQL_PORT: "15432"
+      CUBEJS_SQL_USER: audit
+      CUBEJS_SQL_PASSWORD: audit
+      CUBEJS_TELEMETRY: "false"
+      CUBEJS_LOG_LEVEL: info
+      CUBEJS_DB_TYPE: ${DB_TYPE:-clickhouse}
+      CUBEJS_DB_HOST: ${DB_HOST:-clickhouse}
+      CUBEJS_DB_PORT: ${DB_PORT:-8123}
+      CUBESQL_SQL_PUSH_DOWN: ${SQL_PUSH_DOWN:-true}
+    volumes:
+      - ./.work/model:/cube/conf/model:ro
+    ports: ["127.0.0.1:4600:4000", "127.0.0.1:4601:15432"]
+    mem_limit: 1g

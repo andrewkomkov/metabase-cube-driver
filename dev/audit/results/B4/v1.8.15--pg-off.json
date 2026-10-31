@@ -1,0 +1,415 @@
+[
+ {
+  "rows": [
+   [
+    "1",
+    "100"
+   ],
+   [
+    "2",
+    "200"
+   ],
+   [
+    "3",
+    "300"
+   ],
+   [
+    "4",
+    "0"
+   ],
+   [
+    "5",
+    "-50"
+   ],
+   [
+    "6",
+    null
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"items.rev\"\n  ],\n  \"dimensions\": [\n    \"items.id\"\n  ],\n  \"segments\": [],\n  \"order\": [\n    [\n      \"items.id\",\n      \"asc\"\n    ]\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"items.rev\"],\"dimensions\":[\"items.id\"],\"segments\":[],\"order\":[[\"items.id\",\"asc\"]],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "row_values_control"
+ },
+ {
+  "rows": [
+   [
+    "550",
+    "6"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\", \"q\".\"count_uint8_1__\" \"c\" \nFROM (\n  SELECT\n        SUM(\"items\".amt) \"sum_q_amt_dim_\", COUNT(*) \"count_uint8_1__\"\n      FROM\n        audit.items AS \"items\"  HAVING (sum(\"items\".amt) > $1)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": "500\t2",
+  "id": "gt_between"
+ },
+ {
+  "rows": [
+   [
+    "550",
+    "6"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\", \"q\".\"count_uint8_1__\" \"c\" \nFROM (\n  SELECT\n        SUM(\"items\".amt) \"sum_q_amt_dim_\", COUNT(*) \"count_uint8_1__\"\n      FROM\n        audit.items AS \"items\"  HAVING (sum(\"items\".amt) > $1)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "gt_exact_bound"
+ },
+ {
+  "rows": [
+   [
+    "550",
+    "6"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\", \"q\".\"count_uint8_1__\" \"c\" \nFROM (\n  SELECT\n        SUM(\"items\".amt) \"sum_q_amt_dim_\", COUNT(*) \"count_uint8_1__\"\n      FROM\n        audit.items AS \"items\"  HAVING (sum(\"items\".amt) >= $1)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "ge_exact_bound"
+ },
+ {
+  "rows": [
+   [
+    "550",
+    "6"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\", \"q\".\"count_uint8_1__\" \"c\" \nFROM (\n  SELECT\n        SUM(\"items\".amt) \"sum_q_amt_dim_\", COUNT(*) \"count_uint8_1__\"\n      FROM\n        audit.items AS \"items\"  HAVING (sum(\"items\".amt) > $1)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": "\\N\t0",
+  "id": "above_each_row_below_total"
+ },
+ {
+  "rows": [],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\", \"q\".\"count_uint8_1__\" \"c\" \nFROM (\n  SELECT\n        SUM(\"items\".amt) \"sum_q_amt_dim_\", COUNT(*) \"count_uint8_1__\"\n      FROM\n        audit.items AS \"items\"  HAVING (sum(\"items\".amt) > $1)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "above_total"
+ },
+ {
+  "rows": [],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\", \"q\".\"count_uint8_1__\" \"c\" \nFROM (\n  SELECT\n        SUM(\"items\".amt) \"sum_q_amt_dim_\", COUNT(*) \"count_uint8_1__\"\n      FROM\n        audit.items AS \"items\"  HAVING (sum(\"items\".amt) = $1)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "zero_value"
+ },
+ {
+  "rows": [],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\", \"q\".\"count_uint8_1__\" \"c\" \nFROM (\n  SELECT\n        SUM(\"items\".amt) \"sum_q_amt_dim_\", COUNT(*) \"count_uint8_1__\"\n      FROM\n        audit.items AS \"items\"  HAVING (sum(\"items\".amt) < $1)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "negative_value"
+ },
+ {
+  "rows": [],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"count_uint8_1__\" \"c\" \nFROM (\n  SELECT\n        COUNT(*) \"count_uint8_1__\"\n      FROM\n        audit.items AS \"items\"  HAVING (sum(\"items\".amt) IS NULL)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "null_value"
+ },
+ {
+  "rows": [
+   [
+    "-50",
+    "1"
+   ],
+   [
+    "0",
+    "1"
+   ],
+   [
+    "100",
+    "1"
+   ],
+   [
+    "200",
+    "1"
+   ],
+   [
+    "300",
+    "1"
+   ],
+   [
+    null,
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"rev\" \"rev\", \"q\".\"count_uint8_1__\" \"c\" \nFROM (\n  SELECT \"q\".\"rev\" \"rev\", COUNT(*) \"count_uint8_1__\" \n  FROM (\n    SELECT\n          \"items\".id \"id\", \"items\".amt \"amt_dim\", \"items\".amt \"rev\"\n        FROM\n          audit.items AS \"items\" \n  ) AS \"q\"\n  GROUP BY 1\n  ORDER BY \"q\".\"rev\" ASC NULLS LAST\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "breakout"
+ },
+ {
+  "rows": [
+   [
+    "-50",
+    "1"
+   ],
+   [
+    "0",
+    "1"
+   ],
+   [
+    "100",
+    "1"
+   ],
+   [
+    "200",
+    "1"
+   ],
+   [
+    "300",
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"rev\" \"rev\", \"q\".\"count_uint8_1__\" \"c\" \nFROM (\n  SELECT \"q\".\"rev\" \"rev\", COUNT(*) \"count_uint8_1__\" \n  FROM (\n    SELECT \"q\".\"id\" \"id\", \"q\".\"amt_dim\" \"amt_dim\", \"q\".\"rev\" \"rev\" \n    FROM (\n      SELECT\n            \"items\".id \"id\", \"items\".amt \"amt_dim\", \"items\".amt \"rev\"\n          FROM\n            audit.items AS \"items\" \n    ) AS \"q\"\n    WHERE (\"q\".\"rev\" IS NOT NULL)\n  ) AS \"q\"\n  GROUP BY 1\n  ORDER BY \"q\".\"rev\" ASC NULLS LAST\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "breakout_plain_order"
+ },
+ {
+  "rows": [
+   [
+    "-50",
+    "1"
+   ],
+   [
+    "0",
+    "1"
+   ],
+   [
+    "100",
+    "1"
+   ],
+   [
+    "200",
+    "1"
+   ],
+   [
+    "300",
+    "1"
+   ],
+   [
+    null,
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"rev\" \"rev\", \"q\".\"count_uint8_1__\" \"c\" \nFROM (\n  SELECT \"q\".\"rev\" \"rev\", COUNT(*) \"count_uint8_1__\" \n  FROM (\n    SELECT\n          \"items\".id \"id\", \"items\".amt \"amt_dim\", \"items\".amt \"rev\"\n        FROM\n          audit.items AS \"items\" \n  ) AS \"q\"\n  GROUP BY 1\n  ORDER BY \"q\".\"rev\" ASC NULLS LAST\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "breakout_no_filter_plain"
+ },
+ {
+  "rows": [
+   [
+    "-50",
+    "1"
+   ],
+   [
+    "0",
+    "1"
+   ],
+   [
+    "100",
+    "1"
+   ],
+   [
+    "200",
+    "1"
+   ],
+   [
+    "300",
+    "1"
+   ],
+   [
+    null,
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"rev\" \"rev\", \"q\".\"count_uint8_1__\" \"c\" \nFROM (\n  SELECT \"q\".\"rev\" \"rev\", COUNT(*) \"count_uint8_1__\" \n  FROM (\n    SELECT\n          \"items_t\".id \"id\", \"items_t\".amt \"amt_dim\", \"items_t\".amt \"rev\"\n        FROM\n          audit.items AS \"items_t\" \n  ) AS \"q\"\n  GROUP BY 1\n  ORDER BY \"q\".\"rev\" ASC NULLS LAST\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "breakout_cube_with_time_dim"
+ },
+ {
+  "rows": [
+   [
+    "550",
+    "6"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\", \"q\".\"count_uint8_1__\" \"c\" \nFROM (\n  SELECT\n        SUM(\"items\".amt) \"sum_q_amt_dim_\", COUNT(*) \"count_uint8_1__\"\n      FROM\n        audit.items AS \"items\"  HAVING (count(\"items\".id) > $1)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "count_measure"
+ },
+ {
+  "rows": [],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\", \"q\".\"count_uint8_1__\" \"c\" \nFROM (\n  SELECT\n        SUM(\"items\".amt) \"sum_q_amt_dim_\", COUNT(*) \"count_uint8_1__\"\n      FROM\n        audit.items AS \"items\"  HAVING (avg(\"items\".amt) > $1)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "avg_measure"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: Measure filters aren't allowed in ungrouped query",
+  "shape": "regular",
+  "oids": [],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"items.rev\"\n  ],\n  \"dimensions\": [\n    \"items.id\",\n    \"items.amt_dim\"\n  ],\n  \"segments\": [],\n  \"order\": [\n    [\n      \"items.id\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"items.rev\",\n      \"operator\": \"gt\",\n      \"values\": [\n        \"150\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"items.rev\"],\"dimensions\":[\"items.id\",\"items.amt_dim\"],\"segments\":[],\"order\":[[\"items.id\",\"asc\"]],\"filters\":[{\"member\":\"items.rev\",\"operator\":\"gt\",\"values\":[\"150\"]}],\"ungrouped\":true}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "raw_rows_refused"
+ },
+ {
+  "rows": [
+   [
+    "500",
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   20
+  ],
+  "plan": "logical_plan\nProjection: #SUM(q.amt_dim) AS s, #COUNT(UInt8(1)) AS c\n  Aggregate: groupBy=[[]], aggr=[[SUM(#q.amt_dim), COUNT(UInt8(1))]]\n    CubeScan: request={\n  \"measures\": [\n    \"items.rev\"\n  ],\n  \"dimensions\": [\n    \"items.id\",\n    \"items.amt_dim\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"items.rev\",\n      \"operator\": \"gt\",\n      \"values\": [\n        \"150\"\n      ]\n    }\n  ]\n}\nphysical_plan\nProjectionExec: expr=[SUM(q.amt_dim)@0 as s, COUNT(UInt8(1))@1 as c]\n  HashAggregateExec: mode=Final, gby=[], aggr=[SUM(q.amt_dim), COUNT(UInt8(1))]\n    HashAggregateExec: mode=Partial, gby=[], aggr=[SUM(q.amt_dim), COUNT(UInt8(1))]\n      CubeScanExecutionPlan, Request:\n{\"measures\":[\"items.rev\"],\"dimensions\":[\"items.id\",\"items.amt_dim\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"items.rev\",\"operator\":\"gt\",\"values\":[\"150\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "grouped_inner_control"
+ },
+ {
+  "rows": [
+   [
+    "a",
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   25,
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"items.n\"\n  ],\n  \"dimensions\": [\n    \"items.cat\"\n  ],\n  \"segments\": [],\n  \"order\": [\n    [\n      \"items.cat\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"items.rev\",\n      \"operator\": \"gt\",\n      \"values\": [\n        \"250\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"items.n\"],\"dimensions\":[\"items.cat\"],\"segments\":[],\"order\":[[\"items.cat\",\"asc\"]],\"filters\":[{\"member\":\"items.rev\",\"operator\":\"gt\",\"values\":[\"250\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "direct_having_control"
+ },
+ {
+  "rows": [
+   [
+    "a",
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   25,
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"items.n\"\n  ],\n  \"dimensions\": [\n    \"items.cat\"\n  ],\n  \"segments\": [],\n  \"order\": [\n    [\n      \"items.cat\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"items.rev\",\n      \"operator\": \"gt\",\n      \"values\": [\n        \"250\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"items.n\"],\"dimensions\":[\"items.cat\"],\"segments\":[],\"order\":[[\"items.cat\",\"asc\"]],\"filters\":[{\"member\":\"items.rev\",\"operator\":\"gt\",\"values\":[\"250\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "direct_where_measure"
+ },
+ {
+  "rows": null,
+  "error": "HTTP 400 Measure filters aren't allowed in ungrouped query",
+  "shape": "rest",
+  "used": null,
+  "verdict": "match",
+  "truth": null,
+  "id": "rest_ungrouped_measure_filter"
+ }
+]

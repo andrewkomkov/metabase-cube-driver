@@ -1,0 +1,188 @@
+[
+ {
+  "rows": [],
+  "error": "Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEquals(__table8.u__ts_month, __table2.date_to). ; query id: c292f446-b932-40e5-9a68-0bea0096ce0c-1a6ff75a-e40f-4e4a-bee6-cabbb554652a",
+  "shape": "regular",
+  "oids": [],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"u.cum\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"u.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-04-01T00:00:00.000Z\",\n        \"2025-05-31T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"u.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"u.cum\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"u.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-04-01T00:00:00.000Z\",\"2025-05-31T23:59:59.999Z\"]}],\"order\":[[\"u.ts\",\"asc\"]]}\n",
+  "verdict": "diff",
+  "truth": "1111",
+  "id": "two_months_sql"
+ },
+ {
+  "rows": null,
+  "error": "HTTP 400 Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEquals(__table8.u__ts_month, __table2.date_to). ; query id: 34e12390-7366-4bde-9cf2-5449a57d7bee-198b2426-6a45-4e1b-a451-b63876c0c577",
+  "shape": "rest",
+  "used": null,
+  "generated": " WITH \ntime_series AS (  SELECT parseDateTimeBestEffort(dates.f) date_from, parseDateTimeBestEffort(dates.t) date_to \n  FROM (\n      select '2025-04-01T00:00:00.000' f, '2025-04-30T23:59:59.999' t \n   UNION ALL\n      select '2025-05-01T00:00:00.000' f, '2025-05-31T23:59:59.999' t \n  ) AS dates),\ncte_0 AS (  SELECT toDateTime64(toStartOfMonth(toTimeZone(toDateTime64(`u`.ts, 0), 'UTC'), 'UTC'), 0, 'UTC') `u__ts_month`, sum(`u`.amt) `u__cum` \n  FROM  audit.ut  AS `u`\n  WHERE (toTimeZone(toDateTime64(`u`.ts, 0), 'UTC') <= parseDateTimeBestEffort(?))\n  GROUP BY 1\n  ORDER BY  1  ASC),\ncte_1 AS (  SELECT `time_series`.`date_from` `u__ts_month`, sum(`rolling_source`.`u__cum`) `u__cum` \n  FROM  time_series  AS `time_series`\n  LEFT JOIN  cte_0  AS `rolling_source` ON `rolling_source`.`u__ts_month` <= `time_series`.`date_to`\n  GROUP BY 1\n  ORDER BY  1  ASC)\nSELECT `fk_aggregate`.`u__ts_month` `u__ts_month`, `fk_aggregate`.`u__cum` `u__cum` \nFROM  cte_1  AS `fk_aggregate`\nORDER BY  1  ASC\nLIMIT 10000 PARAMS [\"2025-05-31T23:59:59.999\"]",
+  "verdict": "diff",
+  "truth": null,
+  "id": "two_months_rest"
+ },
+ {
+  "rows": [
+   [
+    "2025-04-01 00:00:00.000000",
+    "111"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"u.cum\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"u.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-04-01T00:00:00.000Z\",\n        \"2025-04-30T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"u.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"u.cum\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"u.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-04-01T00:00:00.000Z\",\"2025-04-30T23:59:59.999Z\"]}],\"order\":[[\"u.ts\",\"asc\"]]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "one_month_sql"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEquals(__table8.u__ts_day, __table2.date_to). ; query id: ab25e2f3-6beb-4eeb-9fcb-034b795dd0d3-da1c9928-73b1-46a2-8b9f-760ee67178c0",
+  "shape": "regular",
+  "oids": [],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"u.cum\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"u.ts\",\n      \"granularity\": \"day\",\n      \"dateRange\": [\n        \"2025-04-01T00:00:00.000Z\",\n        \"2025-04-02T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"u.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"u.cum\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"u.ts\",\"granularity\":\"day\",\"dateRange\":[\"2025-04-01T00:00:00.000Z\",\"2025-04-02T23:59:59.999Z\"]}],\"order\":[[\"u.ts\",\"asc\"]]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "two_days"
+ },
+ {
+  "rows": [
+   [
+    "2025-03-31 00:00:00.000000",
+    "11"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"u.cum\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"u.ts\",\n      \"granularity\": \"day\",\n      \"dateRange\": [\n        \"2025-03-31T00:00:00.000Z\",\n        \"2025-03-31T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"u.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"u.cum\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"u.ts\",\"granularity\":\"day\",\"dateRange\":[\"2025-03-31T00:00:00.000Z\",\"2025-03-31T23:59:59.999Z\"]}],\"order\":[[\"u.ts\",\"asc\"]]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "one_day_on_row"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEquals(__table8.u__ts_month, __table2.date_to). ; query id: 8e3bb88c-bd20-47fa-9743-279cef8d8447-095b6f72-3689-40d3-a351-3d7c1c5fb3ea",
+  "shape": "regular",
+  "oids": [],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"u.cum\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"u.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-01-01T00:00:00.000Z\",\n        \"2025-02-28T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"u.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"u.cum\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"u.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-01-01T00:00:00.000Z\",\"2025-02-28T23:59:59.999Z\"]}],\"order\":[[\"u.ts\",\"asc\"]]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "before_all_rows"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEquals(__table8.u__ts_month, __table2.date_to). ; query id: bd5a69b7-e4ea-4ed8-8987-7ade5b51692e-bb1bff74-5c2a-421c-81a1-b85386228be7",
+  "shape": "regular",
+  "oids": [],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"u.cum\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"u.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-08-01T00:00:00.000Z\",\n        \"2025-09-30T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"u.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"u.cum\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"u.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-08-01T00:00:00.000Z\",\"2025-09-30T23:59:59.999Z\"]}],\"order\":[[\"u.ts\",\"asc\"]]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "after_all_rows"
+ },
+ {
+  "rows": [
+   [
+    "1111"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"u.cum\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"u.ts\",\n      \"dateRange\": [\n        \"2025-04-01T00:00:00.000Z\",\n        \"2025-05-31T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"u.cum\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"u.ts\",\"dateRange\":[\"2025-04-01T00:00:00.000Z\",\"2025-05-31T23:59:59.999Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "no_bucket"
+ },
+ {
+  "rows": [
+   [
+    "2025-04-01 00:00:00.000000",
+    "111"
+   ],
+   [
+    "2025-05-01 00:00:00.000000",
+    "1111"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"u.cum_100y\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"u.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-04-01T00:00:00.000Z\",\n        \"2025-05-31T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"u.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"u.cum_100y\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"u.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-04-01T00:00:00.000Z\",\"2025-05-31T23:59:59.999Z\"]}],\"order\":[[\"u.ts\",\"asc\"]]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "far_bound_workaround"
+ },
+ {
+  "rows": [
+   [
+    "2025-04-01T00:00:00.000",
+    "111"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "1111"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.ur_by_day"
+  ],
+  "generated": " WITH \ntime_series AS (  select to_timestamp('2025-04-01T00:00:00.000') date_from, to_timestamp('2025-04-30T23:59:59.999') date_to \n   UNION ALL\n  select to_timestamp('2025-05-01T00:00:00.000') date_from, to_timestamp('2025-05-31T23:59:59.999') date_to ),\ncte_0 AS (  SELECT date_trunc('month', \"ur__ts_day\") \"ur__ts_month\", sum(\"ur__cum\") \"ur__cum\" \n  FROM  dev_pre_aggregations.ur_by_day  AS \"ur__by_day\"\n  WHERE (CONVERT_TZ(\"ur__ts_day\", '+00:00') <= CAST(? as TIMESTAMP))\n  GROUP BY 1\n  ORDER BY  1  ASC),\ncte_1 AS (  SELECT \"time_series\".\"date_from\" \"ur__ts_month\", sum(\"rolling_source\".\"ur__cum\") \"ur__cum\" \n  FROM  time_series  AS \"time_series\"\n  LEFT JOIN  cte_0  AS \"rolling_source\" ON \"rolling_source\".\"ur__ts_month\" <= \"time_series\".\"date_to\"\n  GROUP BY 1\n  ORDER BY  1  ASC)\nSELECT \"fk_aggregate\".\"ur__ts_month\" \"ur__ts_month\", \"fk_aggregate\".\"ur__cum\" \"ur__cum\" \nFROM  cte_1  AS \"fk_aggregate\"\nORDER BY  1  ASC\nLIMIT 10000 PARAMS [\"2025-05-31T23:59:59.999\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "rollup_hit"
+ },
+ {
+  "rows": null,
+  "error": "Received exception from server (version 26.8.36):\nCode: 403. DB::Exception: Received from localhost:9000. DB::Exception: Cannot determine join keys in JOIN ON expression lessOrEquals(__table6.ts, __table1.d). (INVALID_JOIN_ON_EXPRESSION)\n(query: SELECT d, count() FROM (SELECT toDateTime('2025-04-30 23:59:59','UTC') d UNION ALL SELECT toDateTime('2025-05-31 23:59:59','UTC')) t LEFT JOIN audit.ut o ON o.ts <= t.d GROUP BY 1 ORDER BY 1;)",
+  "shape": "database",
+  "verdict": "diff",
+  "truth": null,
+  "id": "db_only_inequality_join"
+ },
+ {
+  "rows": null,
+  "error": "Received exception from server (version 26.8.36):\nCode: 403. DB::Exception: Received from localhost:9000. DB::Exception: Unsupported JOIN ON conditions. Unexpected 'ts <= d': While processing ts <= d. (INVALID_JOIN_ON_EXPRESSION)\n(query: SELECT d, count() FROM (SELECT toDateTime('2025-04-30 23:59:59','UTC') d UNION ALL SELECT toDateTime('2025-05-31 23:59:59','UTC')) t LEFT JOIN audit.ut o ON o.ts <= t.d GROUP BY 1 ORDER BY 1 SETTINGS enable_analyzer = 0;)",
+  "shape": "database",
+  "verdict": "diff",
+  "truth": null,
+  "id": "db_only_inequality_old_analyzer"
+ },
+ {
+  "rows": null,
+  "error": "Received exception from server (version 26.8.36):\nCode: 403. DB::Exception: Received from localhost:9000. DB::Exception: Cannot determine join keys in JOIN ON expression lessOrEquals(__table6.ts, __table1.d). (INVALID_JOIN_ON_EXPRESSION)\n(query: SELECT d, count() FROM (SELECT toDateTime('2025-04-30 23:59:59','UTC') d UNION ALL SELECT toDateTime('2025-05-31 23:59:59','UTC')) t LEFT JOIN audit.ut o ON o.ts <= t.d GROUP BY 1 ORDER BY 1 SETTINGS allow_experimental_join_condition = 1;)",
+  "shape": "database",
+  "verdict": "diff",
+  "truth": null,
+  "id": "db_only_inequality_join_condition_setting"
+ },
+ {
+  "rows": [
+   [
+    "2025-04-30 23:59:59",
+    "3"
+   ],
+   [
+    "2025-05-31 23:59:59",
+    "4"
+   ]
+  ],
+  "error": null,
+  "shape": "database",
+  "verdict": "match",
+  "truth": null,
+  "id": "db_only_cross_join"
+ }
+]

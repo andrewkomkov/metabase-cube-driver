@@ -1,0 +1,72 @@
+# interval-and-extract v1.8.15 postgres tesseract=on ready=True
+## interval_raw
+$ psql> SELECT id, created_at + INTERVAL '1 day' d FROM orders ORDER BY 1
+id | d
+1 | 2025-05-06 00:00:00.000000
+2 | 2025-05-16 00:00:00.000000
+3 | 2025-06-02 00:00:00.000000
+## interval_aggregated
+$ psql> SELECT created_at + INTERVAL '1 day' d, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1
+d | c
+2025-05-06 00:00:00.000000 | 1
+2025-05-16 00:00:00.000000 | 1
+2025-06-02 00:00:00.000000 | 1
+$ psql> EXPLAIN SELECT created_at + INTERVAL '1 day' d, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1
+plan_type | plan
+logical_plan | CubeScanWrappedSql
+physical_plan | CubeScanExecutionPlan, SQL:
+SELECT "orders"."orders_created_a" "d", "orders"."measure_orders_c" "c" 
+FROM (
+  SELECT (("orders".created_at::timestamptz AT TIME ZONE 'UTC') + INTERVAL '1 DAY') "orders_created_a", count("orders".id) "measure_orders_c" 
+  FROM  repro.orders  AS "orders"
+  GROUP BY 1
+) AS "orders"
+ORDER BY "orders"."orders_created_a" ASC NULLS LAST
+LIMIT 50000
+## interval_trunc_aggregated
+$ psql> SELECT DATE_TRUNC('month', created_at + INTERVAL '1 day') d, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1
+d | c
+2025-05-01 00:00:00.000000 | 2
+2025-06-01 00:00:00.000000 | 1
+## extract_count
+$ psql> SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1
+m | c
+5 | 2
+6 | 1
+## extract_sum
+$ psql> SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(revenue) r FROM orders GROUP BY 1 ORDER BY 1
+m | r
+5 | 300
+6 | 400
+$ psql> EXPLAIN SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(revenue) r FROM orders GROUP BY 1 ORDER BY 1
+plan_type | plan
+logical_plan | CubeScanWrappedSql
+physical_plan | CubeScanExecutionPlan, SQL:
+SELECT "orders"."datepart_utf8__m" "m", "orders"."measure_orders_r" "r" 
+FROM (
+  SELECT EXTRACT(month FROM ("orders".created_at::timestamptz AT TIME ZONE 'UTC')) "datepart_utf8__m", sum("orders".amount) "measure_orders_r" 
+  FROM  repro.orders  AS "orders"
+  GROUP BY 1
+) AS "orders"
+ORDER BY "orders"."datepart_utf8__m" ASC NULLS LAST
+LIMIT 50000
+## extract_avg
+$ psql> SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(avg_amount) a FROM orders GROUP BY 1 ORDER BY 1
+m | a
+5 | 150
+6 | 400
+## extract_count_distinct
+$ psql> SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(distinct_status) a FROM orders GROUP BY 1 ORDER BY 1
+m | a
+5 | 1
+6 | 1
+## trunc_avg
+$ psql> SELECT DATE_TRUNC('month', created_at) m, MEASURE(avg_amount) a FROM orders GROUP BY 1 ORDER BY 1
+m | a
+2025-05-01 00:00:00.000000 | 150
+2025-06-01 00:00:00.000000 | 400
+## truth_extract_avg
+$ postgres> SELECT extract(month from created_at) m, avg(amount) a FROM repro.orders GROUP BY 1 ORDER BY 1
+m | a
+5 | 150.0000000000000000
+6 | 400.0000000000000000

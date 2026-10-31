@@ -1,0 +1,29 @@
+# sql-user-impersonation v1.8.15 clickhouse tesseract=on ready=True
+## set_user_once
+$ psql script:
+SET user = 'alice';
+SELECT current_user;
+SELECT MEASURE(count) FROM orders;
+SET user = 'bob';
+SELECT current_user;
+current_user
+alice
+measure(orders.count)
+3
+psql:<stdin>:4: ERROR:  User Error: user 'alice' is not allowed to switch to 'bob'
+QUERY: SET user = 'bob'
+current_user
+alice
+## set_user_back
+$ psql script:
+SET user = 'alice';
+SET user = 'repro';
+SELECT current_user;
+psql:<stdin>:2: ERROR:  User Error: user 'alice' is not allowed to switch to 'repro'
+QUERY: SET user = 'repro'
+current_user
+alice
+## where_user_super
+$ psql> SELECT __user, MEASURE(count) c FROM orders WHERE __user = 'alice' GROUP BY 1
+__user | c
+ | 3

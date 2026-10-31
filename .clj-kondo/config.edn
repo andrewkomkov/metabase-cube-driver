@@ -1,1 +1,2 @@
-{:output {:progress false}}
+{:output {:progress false}
+ :lint-as {methodical.core/defmethod clojure.core/defmethod}}

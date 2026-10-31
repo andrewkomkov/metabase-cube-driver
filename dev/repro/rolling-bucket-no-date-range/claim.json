@@ -1,0 +1,23 @@
+{
+ "steps": [
+  {
+   "id": "sql_bucket_no_filter",
+   "sql": "SELECT DATE_TRUNC('month',created_at) m, MEASURE(revenue_trailing_30d) r FROM orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "rest_bucket_no_range",
+   "rest": {
+    "measures": [
+     "orders.revenue_trailing_30d"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "month"
+     }
+    ]
+   },
+   "rest_sql": true
+  }
+ ]
+}

@@ -1,0 +1,65 @@
+# preagg-original-sql v1.8.15 postgres tesseract=on ready=True
+## rest_rollup_over_original
+$ POST /cubejs-api/v1/load {"measures": ["lambda_orders.revenue"], "dimensions": ["lambda_orders.status"], "order": {"lambda_orders.status": "asc"}}
+HTTP 400 ERROR Error: relation "dev_pre_aggregations.lambda_orders_base" does not exist
+SQL: SELECT "lambda_orders__status" "lambda_orders__status", sum("lambda_orders__revenue") "lambda_orders__revenue" 
+FROM  dev_pre_aggregations.lambda_orders_daily  AS "lambda_orders__daily"
+GROUP BY 1
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: []
+## rest_only_base
+$ POST /cubejs-api/v1/load {"measures": ["only_base.revenue"], "dimensions": ["only_base.status"], "order": {"only_base.status": "asc"}}
+HTTP 200 [{"only_base.status": "a", "only_base.revenue": "300"}, {"only_base.status": "b", "only_base.revenue": "400"}]
+SQL: SELECT "only_base".status "only_base__status", sum("only_base".amount) "only_base__revenue" 
+FROM  dev_pre_aggregations.only_base_base  AS "only_base"
+GROUP BY 1
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: []
+## rest_only_base_idx
+$ POST /cubejs-api/v1/load {"measures": ["only_base_idx.revenue"], "dimensions": ["only_base_idx.status"], "order": {"only_base_idx.status": "asc"}}
+HTTP 400 ERROR Error: column "only_base_idx__status" does not exist
+SQL: SELECT "only_base_idx".status "only_base_idx__status", sum("only_base_idx".amount) "only_base_idx__revenue" 
+FROM  dev_pre_aggregations.only_base_idx_base  AS "only_base_idx"
+GROUP BY 1
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: []
+## rest_rollup_internal
+$ POST /cubejs-api/v1/load {"measures": ["rollup_internal.revenue"], "dimensions": ["rollup_internal.status"], "order": {"rollup_internal.status": "asc"}}
+HTTP 400 ERROR Error: column "rollup_internal__id" does not exist
+SQL: SELECT "rollup_internal__status" "rollup_internal__status", sum("rollup_internal__revenue") "rollup_internal__revenue" 
+FROM  dev_pre_aggregations.rollup_internal_daily  AS "rollup_internal__daily"
+GROUP BY 1
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: []
+## rest_no_index
+$ POST /cubejs-api/v1/load {"measures": ["base_no_index.revenue"], "dimensions": ["base_no_index.status"], "order": {"base_no_index.status": "asc"}}
+HTTP 400 ERROR Error: relation "dev_pre_aggregations.base_no_index_base" does not exist
+SQL: SELECT "base_no_index__status" "base_no_index__status", sum("base_no_index__revenue") "base_no_index__revenue" 
+FROM  dev_pre_aggregations.base_no_index_daily  AS "base_no_index__daily"
+GROUP BY 1
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: []
+## sql_rollup_over_original
+$ psql> SELECT status, MEASURE(revenue) r FROM lambda_orders GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Database Execution Error: relation "dev_pre_aggregations.lambda_orders_base" does not exist
+## truth
+$ postgres> SELECT status, sum(amount) r FROM repro.orders GROUP BY 1 ORDER BY 1
+status | r
+a | 300
+b | 400
+## log
+$ docker compose logs cube | grep -E 'Missing columns|Unknown identifier|UNKNOWN_IDENTIFIER|CREATE TABLE|ADD INDEX'
+      "CREATE TABLE dev_pre_aggregations.only_base_idx_base AS SELECT id, status, amount, created_at FROM repro.orders",
+      "CREATE TABLE dev_pre_aggregations.only_base_idx_base AS SELECT id, status, amount, created_at FROM repro.orders",
+      "CREATE TABLE dev_pre_aggregations.rollup_internal_base AS SELECT id, status, amount, created_at FROM repro.orders",
+      "CREATE TABLE dev_pre_aggregations.rollup_internal_base AS SELECT id, status, amount, created_at FROM repro.orders",
+      "CREATE TABLE dev_pre_aggregations.base_no_index_daily AS SELECT \"base_no_index\".status \"base_no_index__status\", date_trunc('day', (\"base_no_index\".created_at::timestamptz AT TIME ZONE 'UTC')) \"base_no_index__created_at_day\", sum(\"base_no_index\".amount) \"base_no_index__revenue\" \nFROM  dev_pre_aggregations.base_no_index_base  AS \"base_no_index\"\nGROUP BY 1, 2",
+      "CREATE TABLE dev_pre_aggregations.base_no_index_daily AS SELECT \"base_no_index\".status \"base_no_index__status\", date_trunc('day', (\"base_no_index\".created_at::timestamptz AT TIME ZONE 'UTC')) \"base_no_index__created_at_day\", sum(\"base_no_index\".amount) \"base_no_index__revenue\" \nFROM  dev_pre_aggregations.base_no_index_base  AS \"base_no_index\"\nGROUP BY 1, 2",
+      "CREATE TABLE dev_pre_aggregations.lambda_orders_daily AS SELECT \"lambda_orders\".status \"lambda_orders__status\", date_trunc('day', (\"lambda_orders\".created_at::timestamptz AT TIME ZONE 'UTC')) \"lambda_orders__created_at_day\", sum(\"lambda_orders\".amount) \"lambda_orders__revenue\" \nFROM  dev_pre_aggregations.lambda_orders_base  AS \"lambda_orders\"\nGROUP BY 1, 2",
+      "CREATE TABLE dev_pre_aggregations.lambda_orders_daily AS SELECT \"lambda_orders\".status \"lambda_orders__status\", date_trunc('day', (\"lambda_orders\".created_at::timestamptz AT TIME ZONE 'UTC')) \"lambda_orders__created_at_day\", sum(\"lambda_orders\".amount) \"lambda_orders__revenue\" \nFROM  dev_pre_aggregations.lambda_orders_base  AS \"lambda_orders\"\nGROUP BY 1, 2",
+matching lines: 10

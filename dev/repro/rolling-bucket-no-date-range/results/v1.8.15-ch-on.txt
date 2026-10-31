@@ -1,0 +1,8 @@
+# rolling-bucket-no-date-range v1.8.15 clickhouse tesseract=on ready=True
+## sql_bucket_no_filter
+$ psql> SELECT DATE_TRUNC('month',created_at) m, MEASURE(revenue_trailing_30d) r FROM orders GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Database Execution Error: Date range is required for time series
+## rest_bucket_no_range
+$ POST /cubejs-api/v1/load {"measures": ["orders.revenue_trailing_30d"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month"}]}
+HTTP 400 ERROR Date range is required for time series
+SQL ERROR: {"type":"UserError","error":"Date range is required for time series","stack":"Error: Date range is required for time series\n    at ClickHouseQuery.buildSqlAndParamsRust (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:1202:15)\n    at ClickHouseQuery.buildSqlAndParams (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:1114:19)\n    at /cube/node_modules/@cubejs-backend/server-core/src/core/CompilerApi.ts:424:61\n    at DataSchemaCompiler.withQuery (/cube/node_modules/@cubejs-backend/schema-compiler/src/compiler/DataSchemaCompiler.ts:1281:1

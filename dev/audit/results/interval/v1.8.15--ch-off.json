@@ -1,0 +1,264 @@
+[
+ {
+  "rows": [],
+  "error": "Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_date_part template: template not found: template \"expressions/interval_single_date_part\" does not exist\nQUERY: SELECT id, ts + INTERVAL '1 day' AS x FROM it ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": "1\t2024-02-01 10:00:00\n2\t2024-03-01 00:00:00\n3\t2025-03-10 01:30:00\n4\t2026-01-01 23:59:59",
+  "id": "raw_plus_day"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2024-02-01 10:00:00.000000"
+   ],
+   [
+    "2",
+    "2024-03-01 00:00:00.000000"
+   ],
+   [
+    "3",
+    "2025-03-10 01:30:00.000000"
+   ],
+   [
+    "4",
+    "2026-01-01 23:59:59.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nProjection: #it.id, #it.ts + #IntervalDayTime(\"4294967296\") AS IntervalDayTime(\"4294967296\") AS x\n  CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"ungrouped\": true\n}\nphysical_plan\nProjectionExec: expr=[id@0 as id, ts@1 + IntervalDayTime(\"4294967296\")@2 as x]\n  CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.ts\"],\"segments\":[],\"order\":[],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_plus_day_no_order"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_date_part template: template not found: template \"expressions/interval_single_date_part\" does not exist\nQUERY: SELECT id, ts + INTERVAL '1 day' AS x FROM it WHERE id = 2 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "raw_plus_day_where_order"
+ },
+ {
+  "rows": [
+   [
+    "2",
+    "2024-03-01 00:00:00.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nProjection: #it.id, #it.ts + #IntervalDayTime(\"4294967296\") AS IntervalDayTime(\"4294967296\") AS x\n  CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"2\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nProjectionExec: expr=[id@0 as id, ts@1 + IntervalDayTime(\"4294967296\")@2 as x]\n  CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.ts\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.id\",\"operator\":\"equals\",\"values\":[\"2\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_plus_day_where"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_date_part template: template not found: template \"expressions/interval_single_date_part\" does not exist\nQUERY: SELECT id, ts + INTERVAL '1 day' AS x FROM it ORDER BY 2",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "raw_plus_day_order_time"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_date_part template: template not found: template \"expressions/interval_single_date_part\" does not exist\nQUERY: SELECT ts + INTERVAL '1 day' AS x, MEASURE(n) AS c FROM it GROUP BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "aggregated_no_order"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_date_part template: template not found: template \"expressions/interval_single_date_part\" does not exist\nQUERY: SELECT id, ts + INTERVAL '1 day' AS x FROM it ORDER BY 1 LIMIT 10",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "raw_plus_day_order_limit"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_date_part template: template not found: template \"expressions/interval_single_date_part\" does not exist\nQUERY: SELECT ts + INTERVAL '1 day' AS x, MEASURE(n) AS c FROM it GROUP BY 1 ORDER BY 1 LIMIT 10",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "aggregated_order_limit"
+ },
+ {
+  "rows": [
+   [
+    "2",
+    "2024-02-28 00:00:00.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nProjection: #it.id, #it.ts - #IntervalDayTime(\"4294967296\") AS IntervalDayTime(\"4294967296\") AS x\n  CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"2\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nProjectionExec: expr=[id@0 as id, ts@1 - IntervalDayTime(\"4294967296\")@2 as x]\n  CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.ts\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.id\",\"operator\":\"equals\",\"values\":[\"2\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_minus_day"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't generate SQL for interval: Unsupported Error: Interval template generation is not supported\nQUERY: SELECT id, ts + INTERVAL '1 month' AS x FROM it ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "raw_plus_month"
+ },
+ {
+  "rows": [
+   [
+    "3",
+    "2025-03-10 03:30:00.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nProjection: #it.id, #it.ts + #IntervalDayTime(\"4302167296\") AS IntervalDayTime(\"4302167296\") AS x\n  CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"3\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nProjectionExec: expr=[id@0 as id, ts@1 + IntervalDayTime(\"4302167296\")@2 as x]\n  CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.ts\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.id\",\"operator\":\"equals\",\"values\":[\"3\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_two_units"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2024-02-01 00:00:00.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nProjection: #it.id, #it.d + #IntervalDayTime(\"4294967296\") AS IntervalDayTime(\"4294967296\") AS x\n  CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.d\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"1\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nProjectionExec: expr=[id@0 as id, d@1 + IntervalDayTime(\"4294967296\")@2 as x]\n  CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.d\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.id\",\"operator\":\"equals\",\"values\":[\"1\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "date_column"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_date_part template: template not found: template \"expressions/interval_single_date_part\" does not exist\nQUERY: SELECT ts + INTERVAL '1 day' AS x, MEASURE(n) AS c FROM it GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "aggregated"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't generate SQL for interval: Unsupported Error: Interval template generation is not supported\nQUERY: SELECT DATE_TRUNC('month', ts) + INTERVAL '1 month' AS x, MEASURE(n) AS c FROM it GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "bucket_plus"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_date_part template: template not found: template \"expressions/interval_single_date_part\" does not exist\nQUERY: SELECT MEASURE(n) AS c FROM it WHERE ts + INTERVAL '1 day' >= TIMESTAMP '2025-12-31 00:00:00'",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "filter_column_plus"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_date_part template: template not found: template \"expressions/interval_single_date_part\" does not exist\nQUERY: SELECT id, DATE_ADD(ts, INTERVAL '1 day') AS x FROM it ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "date_add_function"
+ },
+ {
+  "rows": [
+   [
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"it.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-01-01T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"it.n\"],\"dimensions\":[],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-01-01T00:00:00.000Z\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "filter_constant_control"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_date_part template: template not found: template \"expressions/interval_single_date_part\" does not exist\nQUERY: SELECT m + INTERVAL '1 day' AS x, c FROM (SELECT DATE_TRUNC('year', ts) AS m, MEASURE(n) AS c FROM it GROUP BY 1) q ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "outer_over_scan"
+ },
+ {
+  "rows": [
+   [
+    "3",
+    "2025-03-09 20:30:00.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nProjection: #it.id, #it.ts + #IntervalDayTime(\"4294967296\") AS IntervalDayTime(\"4294967296\") AS x\n  CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"3\"\n      ]\n    }\n  ],\n  \"ungrouped\": true,\n  \"timezone\": \"America/New_York\"\n}\nphysical_plan\nProjectionExec: expr=[id@0 as id, ts@1 + IntervalDayTime(\"4294967296\")@2 as x]\n  CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.ts\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.id\",\"operator\":\"equals\",\"values\":[\"3\"]}],\"ungrouped\":true,\"timezone\":\"America/New_York\"}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "time_zone_dst"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2024-01-31 10:00:00.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"1\"\n      ]\n    }\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.ts\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.id\",\"operator\":\"equals\",\"values\":[\"1\"]}],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "no_interval_control"
+ }
+]

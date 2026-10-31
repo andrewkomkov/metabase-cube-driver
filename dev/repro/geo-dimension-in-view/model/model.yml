@@ -1,0 +1,15 @@
+cubes:
+  - name: users
+    sql_table: repro.users
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - name: location
+        type: geo
+        latitude: { sql: latitude }
+        longitude: { sql: longitude }
+    measures:
+      - { name: count, type: count }
+views:
+  - name: user_places
+    cubes:
+      - { join_path: users, includes: [id, location, count] }

@@ -1,0 +1,102 @@
+{
+ "steps": [
+  {
+   "id": "gt_and_lte_text",
+   "sql": "SELECT MEASURE(count) c, MEASURE(revenue) r FROM orders WHERE created_at > '2025-03-15 05:00:00' AND created_at <= '2025-03-16 05:00:00'",
+   "explain": true,
+   "note": "truth 2 rows: 1100"
+  },
+  {
+   "id": "gt_and_lte_ts",
+   "sql": "SELECT MEASURE(count) c, MEASURE(revenue) r FROM orders WHERE created_at > timestamp '2025-03-15 05:00:00' AND created_at <= timestamp '2025-03-16 05:00:00'"
+  },
+  {
+   "id": "gt_and_lt",
+   "sql": "SELECT MEASURE(count) c, MEASURE(revenue) r FROM orders WHERE created_at > '2025-03-15 05:00:00' AND created_at < '2025-03-16 05:00:00'",
+   "explain": true
+  },
+  {
+   "id": "gt_only",
+   "sql": "SELECT MEASURE(count) c, MEASURE(revenue) r FROM orders WHERE created_at > '2025-03-15 05:00:00'",
+   "explain": true
+  },
+  {
+   "id": "gte_next_second",
+   "sql": "SELECT MEASURE(count) c, MEASURE(revenue) r FROM orders WHERE created_at >= '2025-03-15 05:00:01' AND created_at <= '2025-03-16 05:00:00'"
+  },
+  {
+   "id": "rest_inDateRange",
+   "rest": {
+    "measures": [
+     "orders.count",
+     "orders.revenue"
+    ],
+    "filters": [
+     {
+      "member": "orders.created_at",
+      "operator": "inDateRange",
+      "values": [
+       "2025-03-15T05:00:00.000",
+       "2025-03-16T05:00:00.000"
+      ]
+     }
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_afterDate",
+   "rest": {
+    "measures": [
+     "orders.count",
+     "orders.revenue"
+    ],
+    "filters": [
+     {
+      "member": "orders.created_at",
+      "operator": "afterDate",
+      "values": [
+       "2025-03-15T05:00:00.000"
+      ]
+     }
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "truth",
+   "truth": "SELECT count(*) c, sum(amount) r FROM repro.orders WHERE created_at > '2025-03-15 05:00:00' AND created_at <= '2025-03-16 05:00:00'"
+  },
+  {
+   "id": "truth_gt_only",
+   "truth": "SELECT count(*) c, sum(amount) r FROM repro.orders WHERE created_at > '2025-03-15 05:00:00'"
+  },
+  {
+   "id": "ch_parse_drops_millis",
+   "only": [
+    "ch-on",
+    "ch-off"
+   ],
+   "truth_ch": "SELECT parseDateTimeBestEffort('2025-03-15T05:00:00.001Z') a, parseDateTime64BestEffort('2025-03-15T05:00:00.001Z', 3) b",
+   "truth_pg": "SELECT 1"
+  },
+  {
+   "id": "ch_cube_where_directly",
+   "only": [
+    "ch-on",
+    "ch-off"
+   ],
+   "truth_ch": "SELECT count(*) c, sum(amount) r FROM repro.orders WHERE created_at >= parseDateTimeBestEffort('2025-03-15T05:00:00.001Z') AND created_at <= parseDateTimeBestEffort('2025-03-16T05:00:00.000Z')",
+   "truth_pg": "SELECT 1"
+  },
+  {
+   "id": "ch_fixed_where",
+   "only": [
+    "ch-on",
+    "ch-off"
+   ],
+   "truth_ch": "SELECT count(*) c, sum(amount) r FROM repro.orders WHERE created_at >= parseDateTime64BestEffort('2025-03-15T05:00:00.001Z', 3) AND created_at <= parseDateTime64BestEffort('2025-03-16T05:00:00.000Z', 3)",
+   "truth_pg": "SELECT 1"
+  }
+ ]
+}

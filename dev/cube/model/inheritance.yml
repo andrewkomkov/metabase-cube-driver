@@ -84,6 +84,18 @@ cubes:
     measures:
       - { name: count, type: count, description: Number of products. }
 
+  - name: region_labels
+    title: Region labels
+    description: The same map of states to regions, with one join and no alias, for region_sales_one_join.
+    sql: >
+      SELECT 'TX' AS state, 'South' AS region
+      UNION ALL SELECT 'IL', 'Midwest'
+      UNION ALL SELECT 'WA', 'West'
+      UNION ALL SELECT 'MA', 'East'
+    dimensions:
+      - { name: state, sql: state, type: string, primary_key: true }
+      - { name: region, sql: region, type: string, description: Region name. }
+
   - name: regions
     title: Regions
     description: Maps a state to a region. Reached through two join paths.
@@ -106,18 +118,32 @@ views:
     cubes:
       - { join_path: products, includes: "*", excludes: [price] }
 
+  # Cube joins a cube once in a query, so each path to regions has its own join alias. See "Diamond subgraphs" in the Cube docs.
   - name: region_sales
     title: Region sales
-    description: Two paths reach regions. Two cubes supply a count.
+    description: Two join aliases reach regions. Two cubes supply a count.
     cubes:
       - { join_path: orders, includes: [count, revenue] }
       - join_path: orders.users
         includes:
           - { name: count, alias: customer_count }
-      - join_path: orders.users.regions
+      - join_path: orders.users.customer_regions
         includes:
           - { name: region, alias: customer_region }
-      - join_path: orders.shipments.regions
+      - join_path: orders.shipments.destination_regions
+        includes:
+          - { name: region, alias: destination_region }
+
+  # A view with no join alias: one query reads one path for both columns, so the driver stops a query with both.
+  - name: region_sales_one_join
+    title: Region sales one join
+    description: Two paths reach one join of regions.
+    cubes:
+      - { join_path: orders, includes: [count] }
+      - join_path: orders.users.region_labels
+        includes:
+          - { name: region, alias: customer_region }
+      - join_path: orders.shipments.region_labels
         includes:
           - { name: region, alias: destination_region }
 

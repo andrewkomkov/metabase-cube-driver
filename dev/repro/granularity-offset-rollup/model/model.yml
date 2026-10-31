@@ -1,0 +1,25 @@
+cubes:
+  - name: orders
+    sql_table: repro.orders
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string }
+      - name: created_at
+        sql: created_at
+        type: time
+        granularities:
+          - { name: fiscal_quarter, interval: 3 months, offset: 1 month }
+          - { name: fiscal_quarter_origin, interval: 3 months, origin: "2025-02-01" }
+          - { name: fiscal_quarter_old_origin, interval: 3 months, origin: "2000-02-01" }
+    measures:
+      - { name: revenue, sql: amount, type: sum }
+      - { name: revenue_no_rollup, sql: amount * 1, type: sum }
+    pre_aggregations:
+      - name: monthly
+        measures: [revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: month
+        refresh_key: { every: 1 hour }
+        indexes:
+          - { name: status_idx, columns: [status] }

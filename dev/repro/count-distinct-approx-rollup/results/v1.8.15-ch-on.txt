@@ -1,0 +1,24 @@
+# count-distinct-approx-rollup v1.8.15 clickhouse tesseract=on ready=True
+## rest_exact_rollup_shape
+$ POST /cubejs-api/v1/load {"measures": ["orders.distinct_approx"], "dimensions": ["orders.status"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month"}], "order": {"orders.created_at": "asc"}}
+HTTP 400 ERROR Distributed approximate distinct count is not supported by this DB
+SQL ERROR: {"type":"UserError","error":"Distributed approximate distinct count is not supported by this DB","stack":"Error: Distributed approximate distinct count is not supported by this DB\n    at ClickHouseQuery.hllInit (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:4292:11)\n    at ClickHouseQuery.renderSqlMeasure (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:4250:14)\n    at ClickHouseQuery.evaluateSymbolSql (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:3678:29)\n    at ClickHouseQuery.traverseSymbol (/cube/n
+## rest_coarser
+$ POST /cubejs-api/v1/load {"measures": ["orders.distinct_approx"]}
+HTTP 400 ERROR Distributed approximate distinct count is not supported by this DB
+SQL ERROR: {"type":"UserError","error":"Distributed approximate distinct count is not supported by this DB","stack":"Error: Distributed approximate distinct count is not supported by this DB\n    at ClickHouseQuery.hllInit (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:4292:11)\n    at ClickHouseQuery.renderSqlMeasure (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:4250:14)\n    at ClickHouseQuery.evaluateSymbolSql (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:3678:29)\n    at ClickHouseQuery.traverseSymbol (/cube/n
+## rest_no_rollup
+$ POST /cubejs-api/v1/load {"measures": ["plain.distinct_approx"]}
+HTTP 200 [{"plain.distinct_approx": "2"}]
+SQL: SELECT uniq(`plain`.status) `plain__distinct_approx` 
+FROM  repro.orders  AS `plain`
+LIMIT 10000
+PARAMS: []
+## log
+$ docker compose logs cube | grep -E 'by_status_month|hll|HLL|xxh|uniq'
+  SELECT uniq(`plain`.status) `plain__distinct_approx` 
+matching lines: 1
+## truth
+$ clickhouse> SELECT count(distinct status) x FROM repro.orders
+x
+2

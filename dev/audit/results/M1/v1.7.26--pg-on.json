@@ -1,0 +1,93 @@
+[
+ {
+  "rows": [
+   [
+    "1400"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\" \nFROM (\n  SELECT SUM(\"ev\".amt) \"sum_q_amt_dim_\" \n  FROM  audit.ev  AS \"ev\"\n  WHERE (((\"ev\".ts::timestamptz AT TIME ZONE 'UTC') >= timestamptz '2025-05-10T00:00:00.000Z'))\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": "1400",
+  "id": "no_oid"
+ },
+ {
+  "rows": [
+   [
+    "1400"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\" \nFROM (\n  SELECT SUM(\"ev\".amt) \"sum_q_amt_dim_\" \n  FROM  audit.ev  AS \"ev\"\n  WHERE (((\"ev\".ts::timestamptz AT TIME ZONE 'UTC') >= timestamptz '2025-05-10T00:00:00.000Z'))\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "oid_timestamp"
+ },
+ {
+  "rows": [
+   [
+    "600"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   701
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "two_params"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-01 00:00:00.000000",
+    "a",
+    "100"
+   ],
+   [
+    "2025-05-01 00:00:00.000000",
+    "b",
+    "200"
+   ],
+   [
+    "2025-06-01 00:00:00.000000",
+    "b",
+    "400"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   1114,
+   25,
+   701
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "issue_12459_form"
+ },
+ {
+  "rows": [
+   [
+    "1400"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   701
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "cast_control"
+ }
+]

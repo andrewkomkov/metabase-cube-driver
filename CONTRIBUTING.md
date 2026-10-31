@@ -13,7 +13,7 @@ Do not narrow a feature to make a check pass. Record the real status and the rea
 
 ## Work on the code
 
-You need Docker, Python 3 and `make`. The [devcontainer](.devcontainer/devcontainer.json) has all of them.
+You need Docker, Python 3 and `make`. The [devcontainer](.devcontainer/devcontainer.json) has all of them. `make package` uses `jar` from Java if it works, and otherwise `zip` or Python, so Java is optional.
 
 | Command | What it does |
 | --- | --- |

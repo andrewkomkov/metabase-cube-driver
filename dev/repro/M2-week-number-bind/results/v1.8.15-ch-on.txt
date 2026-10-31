@@ -1,0 +1,44 @@
+# M2-week-number-bind v1.8.15 clickhouse tesseract=on ready=True
+## bind_week_number
+$ psql script:
+SELECT w, c FROM (SELECT CAST(FLOOR((DATEDIFF('day', timestamp '2001-01-07 00:00:00', created_at)) / 7.0) AS bigint) AS w, MEASURE(count) c FROM orders WHERE created_at >= $1::timestamp GROUP BY 1) q ORDER BY 1 \bind '2025-05-10 00:00:00' \g
+w | c
+1270 | 1
+1273 | 1
+## bind_week_number_untyped
+$ psql script:
+SELECT w, c FROM (SELECT CAST(FLOOR((DATEDIFF('day', timestamp '2001-01-07 00:00:00', created_at)) / 7.0) AS bigint) AS w, MEASURE(count) c FROM orders WHERE created_at >= $1 GROUP BY 1) q ORDER BY 1 \bind '2025-05-10 00:00:00' \g
+psql:<stdin>:1: ERROR:  Internal Error: Can't parse date: 'replaced_placeholder'
+QUERY: SELECT w, c FROM (SELECT CAST(floor((DATEDIFF('day', TIMESTAMP '2001-01-07 00:00:00', created_at)) / 7.0) AS BIGINT) AS w, MEASURE(count) AS c FROM orders WHERE created_at >= 'replaced_placeholder' GROUP BY 1) q ORDER BY 1
+## literal_week_number
+$ psql> SELECT w, c FROM (SELECT CAST(FLOOR((DATEDIFF('day', timestamp '2001-01-07 00:00:00', created_at)) / 7.0) AS bigint) AS w, MEASURE(count) c FROM orders WHERE created_at >= timestamp '2025-05-10 00:00:00' GROUP BY 1) q ORDER BY 1
+w | c
+1270 | 1
+1273 | 1
+$ psql> EXPLAIN SELECT w, c FROM (SELECT CAST(FLOOR((DATEDIFF('day', timestamp '2001-01-07 00:00:00', created_at)) / 7.0) AS bigint) AS w, MEASURE(count) c FROM orders WHERE created_at >= timestamp '2025-05-10 00:00:00' GROUP BY 1) q ORDER BY 1
+plan_type | plan
+logical_plan | CubeScanWrappedSql
+physical_plan | CubeScanExecutionPlan, SQL:
+SELECT `q`.`w` `w`, `q`.`c` `c` 
+FROM (
+  SELECT `orders`.`cast_floor_dated` `w`, `orders`.`measure_orders_c` `c` 
+  FROM (
+    SELECT CAST(FLOOR((DATEDIFF(day, parseDateTimeBestEffort('2001-01-07T00:00:00.000Z'), toTimeZone(toDateTime64(`orders`.created_at, 0), 'UTC')) / 7)) AS BIGINT) `cast_floor_dated`, count(`orders`.id) `measure_orders_c` 
+    FROM  repro.orders  AS `orders`
+    WHERE (`orders`.created_at >= parseDateTimeBestEffort(?))
+    GROUP BY 1
+  ) AS `orders`
+  ORDER BY `orders`.`cast_floor_dated` ASC NULLS LAST
+) AS `q`
+LIMIT 50000
+## no_date_filter
+$ psql> SELECT w, c FROM (SELECT CAST(FLOOR((DATEDIFF('day', timestamp '2001-01-07 00:00:00', created_at)) / 7.0) AS bigint) AS w, MEASURE(count) c FROM orders GROUP BY 1) q ORDER BY 1
+w | c
+1269 | 1
+1270 | 1
+1273 | 1
+## truth
+$ clickhouse> SELECT intDiv(dateDiff('day', toDateTime('2001-01-07 00:00:00','UTC'), created_at), 7) w, count() c FROM repro.orders WHERE created_at >= '2025-05-10 00:00:00' GROUP BY 1 ORDER BY 1
+w	c
+1270	1
+1273	1

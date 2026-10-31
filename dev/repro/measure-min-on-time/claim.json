@@ -1,0 +1,42 @@
+{
+ "steps": [
+  {
+   "id": "meta",
+   "meta": "orders"
+  },
+  {
+   "id": "rest_min_time",
+   "rest": {
+    "measures": [
+     "orders.first_min"
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_type_time",
+   "rest": {
+    "measures": [
+     "orders.first_time"
+    ]
+   }
+  },
+  {
+   "id": "sql_measure_min",
+   "sql": "SELECT MEASURE(first_min) x FROM orders",
+   "explain": true
+  },
+  {
+   "id": "sql_measure_time",
+   "sql": "SELECT MEASURE(first_time) x FROM orders"
+  },
+  {
+   "id": "sql_measure_min_num",
+   "sql": "SELECT MEASURE(amount_min) x FROM orders"
+  },
+  {
+   "id": "truth",
+   "truth": "SELECT min(created_at) x FROM repro.orders"
+  }
+ ]
+}

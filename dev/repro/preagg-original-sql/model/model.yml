@@ -1,0 +1,95 @@
+cubes:
+  - name: lambda_orders
+    sql: "SELECT id, status, amount, created_at FROM repro.orders"
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: status, sql: status, type: string }
+      - { name: created_at, sql: created_at, type: time }
+    measures:
+      - { name: revenue, sql: amount, type: sum }
+    pre_aggregations:
+      - name: base
+        type: original_sql
+        refresh_key: { every: 1 hour }
+        indexes:
+          - { name: status_idx, columns: [status] }
+      - name: daily
+        type: rollup
+        use_original_sql_pre_aggregations: true
+        measures: [revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        indexes:
+          - { name: status_idx, columns: [status] }
+        refresh_key: { every: 1 hour }
+  - name: only_base
+    sql: "SELECT id, status, amount, created_at FROM repro.orders"
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: status, sql: status, type: string }
+    measures:
+      - { name: revenue, sql: amount, type: sum }
+    pre_aggregations:
+      - name: base
+        type: original_sql
+        refresh_key: { every: 1 hour }
+  - name: only_base_idx
+    sql: "SELECT id, status, amount, created_at FROM repro.orders"
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: status, sql: status, type: string }
+    measures:
+      - { name: revenue, sql: amount, type: sum }
+    pre_aggregations:
+      - name: base
+        type: original_sql
+        refresh_key: { every: 1 hour }
+        indexes:
+          - { name: status_idx, columns: [status] }
+  - name: rollup_internal
+    sql: "SELECT id, status, amount, created_at FROM repro.orders"
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: status, sql: status, type: string }
+      - { name: created_at, sql: created_at, type: time }
+    measures:
+      - { name: revenue, sql: amount, type: sum }
+    pre_aggregations:
+      - name: daily
+        type: rollup
+        external: false
+        use_original_sql_pre_aggregations: true
+        measures: [revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        indexes:
+          - { name: status_idx, columns: [status] }
+        refresh_key: { every: 1 hour }
+      - name: base
+        type: original_sql
+        external: false
+        refresh_key: { every: 1 hour }
+        indexes:
+          - { name: id_idx, columns: [id] }
+  - name: base_no_index
+    sql: "SELECT id, status, amount, created_at FROM repro.orders"
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: status, sql: status, type: string }
+      - { name: created_at, sql: created_at, type: time }
+    measures:
+      - { name: revenue, sql: amount, type: sum }
+    pre_aggregations:
+      - name: base
+        type: original_sql
+        refresh_key: { every: 1 hour }
+      - name: daily
+        type: rollup
+        use_original_sql_pre_aggregations: true
+        measures: [revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        refresh_key: { every: 1 hour }

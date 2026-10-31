@@ -1,0 +1,26 @@
+{
+ "steps": [
+  {
+   "id": "bind_week_number",
+   "script": "SELECT w, c FROM (SELECT CAST(FLOOR((DATEDIFF('day', timestamp '2001-01-07 00:00:00', created_at)) / 7.0) AS bigint) AS w, MEASURE(count) c FROM orders WHERE created_at >= $1::timestamp GROUP BY 1) q ORDER BY 1 \\bind '2025-05-10 00:00:00' \\g\n"
+  },
+  {
+   "id": "bind_week_number_untyped",
+   "script": "SELECT w, c FROM (SELECT CAST(FLOOR((DATEDIFF('day', timestamp '2001-01-07 00:00:00', created_at)) / 7.0) AS bigint) AS w, MEASURE(count) c FROM orders WHERE created_at >= $1 GROUP BY 1) q ORDER BY 1 \\bind '2025-05-10 00:00:00' \\g\n"
+  },
+  {
+   "id": "literal_week_number",
+   "sql": "SELECT w, c FROM (SELECT CAST(FLOOR((DATEDIFF('day', timestamp '2001-01-07 00:00:00', created_at)) / 7.0) AS bigint) AS w, MEASURE(count) c FROM orders WHERE created_at >= timestamp '2025-05-10 00:00:00' GROUP BY 1) q ORDER BY 1",
+   "explain": true
+  },
+  {
+   "id": "no_date_filter",
+   "sql": "SELECT w, c FROM (SELECT CAST(FLOOR((DATEDIFF('day', timestamp '2001-01-07 00:00:00', created_at)) / 7.0) AS bigint) AS w, MEASURE(count) c FROM orders GROUP BY 1) q ORDER BY 1"
+  },
+  {
+   "id": "truth",
+   "truth_ch": "SELECT intDiv(dateDiff('day', toDateTime('2001-01-07 00:00:00','UTC'), created_at), 7) w, count() c FROM repro.orders WHERE created_at >= '2025-05-10 00:00:00' GROUP BY 1 ORDER BY 1",
+   "truth_pg": "SELECT floor(extract(epoch from created_at - timestamp '2001-01-07')/86400/7)::bigint w, count(*) c FROM repro.orders WHERE created_at >= '2025-05-10' GROUP BY 1 ORDER BY 1"
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+cubes:
+  - name: orders
+    sql_table: repro.orders
+    joins:
+      - { name: payments, relationship: one_to_many, sql: "{CUBE}.id = {payments.order_id}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: quantity_dim, sql: quantity, type: number }
+    measures:
+      - { name: count, type: count }
+      - { name: quantity, sql: quantity, type: sum }
+  - name: payments
+    sql_table: repro.payments
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: order_id, sql: order_id, type: number }
+    measures:
+      - { name: count, type: count }

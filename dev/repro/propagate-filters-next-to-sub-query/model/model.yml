@@ -1,0 +1,19 @@
+cubes:
+  - name: users
+    sql_table: repro.users
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: lifetime_orders, sql: "{orders.count}", type: number, sub_query: true }
+      - { name: paid_orders, sql: "{orders.count}", type: number, sub_query: true, propagate_filters_to_sub_query: true }
+      - { name: paid_orders_other_sql, sql: "{orders.count} + 0", type: number, sub_query: true, propagate_filters_to_sub_query: true }
+      - { name: total_ids, sql: "{orders.count_ids}", type: number, sub_query: true }
+  - name: orders
+    sql_table: repro.orders
+    joins:
+      - { name: users, relationship: many_to_one, sql: "{CUBE}.user_id = {users.id}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string }
+    measures:
+      - { name: count, type: count }
+      - { name: count_ids, sql: id, type: count_distinct }

@@ -1,0 +1,20 @@
+{
+ "steps": [
+  {
+   "id": "max_of_rolling",
+   "sql": "SELECT MAX(revenue_trailing_30d) x FROM orders"
+  },
+  {
+   "id": "max_of_rolling_monthly",
+   "sql": "SELECT DATE_TRUNC('month',created_at) m, MAX(revenue_trailing_30d) x FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-05-01' GROUP BY 1"
+  },
+  {
+   "id": "sum_of_rolling",
+   "sql": "SELECT SUM(revenue_trailing_30d) x FROM orders"
+  },
+  {
+   "id": "raw_rolling_column",
+   "sql": "SELECT id, revenue_trailing_30d FROM orders ORDER BY 1"
+  }
+ ]
+}

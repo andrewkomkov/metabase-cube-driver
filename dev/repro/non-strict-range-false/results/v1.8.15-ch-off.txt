@@ -1,0 +1,17 @@
+# non-strict-range-false v1.8.15 clickhouse tesseract=off ready=True
+## rest_one_day
+$ POST /cubejs-api/v1/load {"measures": ["orders.count"], "timeDimensions": [{"dimension": "orders.created_at", "dateRange": ["2025-05-05", "2025-05-05"]}]}
+HTTP 200 [{"orders.count": "1"}]
+SQL: SELECT
+      count(`orders`.id) `orders__count`
+    FROM
+      repro.orders AS `orders`  WHERE (`orders`.created_at >= parseDateTimeBestEffort(?) AND `orders`.created_at <= parseDateTimeBestEffort(?)) LIMIT 10000
+PARAMS: ["2025-05-05T00:00:00.000Z", "2025-05-05T23:59:59.999Z"]
+## sql_one_day
+$ psql> SELECT MEASURE(count) c FROM orders WHERE created_at >= '2025-05-05' AND created_at < '2025-05-06'
+c
+1
+## truth
+$ clickhouse> SELECT count(*) c FROM repro.orders WHERE created_at >= '2025-05-05' AND created_at < '2025-05-06'
+c
+1

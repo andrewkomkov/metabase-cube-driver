@@ -1,0 +1,11 @@
+# prod-mode-jwt-logged v1.8.15 clickhouse tesseract=on ready=True
+## wrong_jwt
+$ GET /cubejs-api/v1/meta token=wrong
+HTTP 403 {"error":"Invalid token"}
+## good_jwt
+$ GET /cubejs-api/v1/meta token=good
+HTTP 200 {"cubes":[{"name":"orders","type":"cube","title":"Orders","isVisible":true,"public":true,"measures":[{"name":"orders.count","title":"Orders Count","shortTitle":"Count","formatDescription":{"name":"number","specifier":",.2~f"},"cumulativeTotal":false,"cumulative":false,"type":"number","aggType":"count","drillMembers":[],"drillMembersGrouped":{"measures":[],"dimensions":[]},"isVisible":true,"public":true},{"name":"orders.revenue","title":"Orders Revenue","shortTitle":"Revenue","formatDescription":
+## log
+$ docker compose logs cube | grep -E 'invalid signature'
+{"level":"error","message":"invalid signature","url":"/cubejs-api/v1/meta","token":"<JWT>","error":"JsonWebTokenError: invalid signature","protocol":"http"}
+matching lines: 1

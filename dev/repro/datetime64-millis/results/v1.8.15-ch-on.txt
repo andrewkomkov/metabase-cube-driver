@@ -1,0 +1,51 @@
+# datetime64-millis v1.8.15 clickhouse tesseract=on ready=True
+## sql_raw
+$ psql> SELECT id, ts FROM events ORDER BY 1
+id | ts
+1 | 2025-01-01 10:00:00.000000
+2 | 2025-01-01 10:00:00.000000
+## sql_filter_ms
+$ psql> SELECT MEASURE(count) c FROM events WHERE ts >= '2025-01-01 10:00:00.007' AND ts < '2025-01-01 10:00:00.008'
+c
+0
+$ psql> EXPLAIN SELECT MEASURE(count) c FROM events WHERE ts >= '2025-01-01 10:00:00.007' AND ts < '2025-01-01 10:00:00.008'
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "events.count"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "timeDimensions": [
+    {
+      "dimension": "events.ts",
+      "dateRange": [
+        "2025-01-01T10:00:00.007Z",
+        "2025-01-01T10:00:00.007Z"
+      ]
+    }
+  ],
+  "order": []
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["events.count"],"dimensions":[],"segments":[],"timeDimensions":[{"dimension":"events.ts","dateRange":["2025-01-01T10:00:00.007Z","2025-01-01T10:00:00.007Z"]}],"order":[]}
+## rest_raw
+$ POST /cubejs-api/v1/load {"dimensions": ["events.id", "events.ts"], "order": {"events.id": "asc"}}
+HTTP 200 [{"events.id": "1", "events.ts": "2025-01-01T10:00:00.000"}, {"events.id": "2", "events.ts": "2025-01-01T10:00:00.000"}]
+## rest_filter_ms
+$ POST /cubejs-api/v1/load {"measures": ["events.count"], "timeDimensions": [{"dimension": "events.ts", "dateRange": ["2025-01-01T10:00:00.007", "2025-01-01T10:00:00.007"]}]}
+HTTP 200 [{"events.count": "0"}]
+SQL: SELECT count(`events`.id) `events__count` 
+FROM  repro.events  AS `events`
+WHERE (`events`.ts >= parseDateTimeBestEffort(?) AND `events`.ts <= parseDateTimeBestEffort(?))
+LIMIT 10000
+PARAMS: ["2025-01-01T10:00:00.007Z", "2025-01-01T10:00:00.007Z"]
+## truth_raw
+$ clickhouse> SELECT id, ts FROM repro.events ORDER BY 1
+id	ts
+1	2025-01-01 10:00:00.007
+2	2025-01-01 10:00:00.500
+## truth_filter
+$ clickhouse> SELECT count(*) c FROM repro.events WHERE ts >= '2025-01-01 10:00:00.007' AND ts < '2025-01-01 10:00:00.008'
+c
+1

@@ -1,0 +1,13 @@
+cubes:
+  - name: orders
+    sql_table: repro.orders
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string }
+      - { name: amount_dim, sql: amount, type: number }
+      - { name: created_at, sql: created_at, type: time }
+    measures:
+      - { name: count, type: count }
+      - { name: revenue, sql: amount, type: sum }
+      - { name: rev_mtd_new, sql: amount, type: sum, rolling_window: { type: to_date, granularity: month } }
+      - { name: rev_mtd_type, sql: amount, type: sum, rolling_window: { type: month_to_date } }

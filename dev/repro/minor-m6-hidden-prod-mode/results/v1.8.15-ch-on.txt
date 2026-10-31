@@ -1,0 +1,14 @@
+# minor-m6-hidden-prod-mode v1.8.15 clickhouse tesseract=on ready=True
+## hidden_cube
+$ psql> SELECT COUNT(*) c FROM secret_audit
+psql:<stdin>:1: ERROR:  Planning Error: Initial planning error: Error during planning: Table or CTE with name 'secret_audit' not found
+QUERY: SELECT COUNT(*) AS c FROM secret_audit
+## hidden_measure
+$ psql> SELECT MEASURE(hidden_measure) x FROM orders
+psql:<stdin>:1: ERROR:  Planning Error: Initial planning error: Error during planning: Invalid identifier '#hidden_measure' for schema fields:[orders.count, orders.revenue, orders.id, orders.status, orders.amount_dim, orders.created_at, orders.__user, orders.__cubeJoinField], metadata:{}
+QUERY: SELECT MEASURE(hidden_measure) AS x FROM orders
+## rest_hidden_cube
+$ POST /cubejs-api/v1/load {"measures": ["secret_audit.count"]}
+HTTP 500 ERROR Error: You requested hidden member: 'secret_audit.count'. Please make it visible using `public: true`. Please note primaryKey fields are `public: false` by default: https://docs.cube.dev/reference/data-modeling/joins#setting-a-primary-key.
+## meta_list
+not in /v1/meta: orders

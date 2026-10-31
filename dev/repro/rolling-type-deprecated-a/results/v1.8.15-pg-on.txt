@@ -1,0 +1,47 @@
+# rolling-type-deprecated-a v1.8.15 postgres tesseract=on ready=True
+## meta
+{"name": "orders", "type": "cube", "public": true, "measures": [{"name": "orders.count", "type": "number", "public": true, "isVisible": true, "aggType": "count"}, {"name": "orders.revenue", "type": "number", "public": true, "isVisible": true, "aggType": "sum"}, {"name": "orders.rev_mtd_new", "type": "number", "public": true, "isVisible": true, "aggType": "sum"}, {"name": "orders.rev_mtd_type", "type": "number", "public": true, "isVisible": true, "aggType": "sum"}], "dimensions": [{"name": "orders.id", "type": "number", "public": true, "isVisible": true, "primaryKey": true}, {"name": "orders.status", "type": "string", "public": true, "isVisible": true, "primaryKey": false}, {"name": "orders.amount_dim", "type": "number", "public": true, "isVisible": true, "primaryKey": false}, {"name": "orders.created_at", "type": "time", "public": true, "isVisible": true, "primaryKey": false}]}
+## rest_mtd_type
+$ POST /cubejs-api/v1/load {"measures": ["orders.rev_mtd_type"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month", "dateRange": ["2025-04-01", "2025-04-30"]}]}
+HTTP 200 [{"orders.created_at.month": "2025-04-01T00:00:00.000", "orders.rev_mtd_type": null, "orders.created_at": "2025-04-01T00:00:00.000"}]
+SQL:  WITH 
+time_series AS (  SELECT "d"::timestamptz AS "date_from",
+  ("d"::timestamptz + interval '1 month') - interval '1 millisecond' AS "date_to" 
+  FROM generate_series('2025-04-01T00:00:00.000'::timestamp, '2025-04-30T23:59:59.999':: timestamp, '1 month'::interval) d ),
+cte_0 AS (  SELECT date_trunc('month', ("orders".created_at::timestamptz AT TIME ZONE 'UTC')) "orders__created_at_month", sum("orders".amount) "orders__rev_mtd_type" 
+  FROM  repro.orders  AS "orders"
+  WHERE (("orders".created_at::timestamptz AT TIME ZONE 'UTC') >= $1::timestamptz AND ("orders".created_at::timestamptz AT TIME ZONE 'UTC') <= $2::timestamptz)
+  GROUP BY 1
+  ORDER BY  1  ASC),
+cte_1 AS (  SELECT "time_series"."date_from" "orders__created_at_month", sum("rolling_source"."orders__rev_mtd_type") "orders__rev_mtd_type" 
+  FROM  time_series  AS "time_series"
+  LEFT JOIN  cte_0  AS "rolling_source" ON "rolling_source"."orders__created_at_month" > "time_series"."date_to" AND "rolling_source"."orders__created_at_month" <= "time_series"."date_to"
+  GROUP BY 1
+  ORDER BY  1  ASC)
+SELECT "fk_aggregate"."orders__created_at_month" "orders__created_at_month", "fk_aggregate"."orders__rev_mtd_type" "orders__rev_mtd_type" 
+FROM  cte_1  AS "fk_aggregate"
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: ["2025-04-01T00:00:00.000", "2025-05-30T23:59:58.999"]
+## rest_to_date
+$ POST /cubejs-api/v1/load {"measures": ["orders.rev_mtd_new"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month", "dateRange": ["2025-04-01", "2025-04-30"]}]}
+HTTP 200 [{"orders.created_at.month": "2025-04-01T00:00:00.000", "orders.rev_mtd_new": "10", "orders.created_at": "2025-04-01T00:00:00.000"}]
+SQL:  WITH 
+time_series AS (  SELECT "d"::timestamptz AS "date_from",
+  ("d"::timestamptz + interval '1 month') - interval '1 millisecond' AS "date_to" 
+  FROM generate_series('2025-04-01T00:00:00.000'::timestamp, '2025-04-30T23:59:59.999':: timestamp, '1 month'::interval) d ),
+cte_0 AS (  SELECT date_trunc('month', ("orders".created_at::timestamptz AT TIME ZONE 'UTC')) "orders__created_at_month", sum("orders".amount) "orders__rev_mtd_new" 
+  FROM  repro.orders  AS "orders"
+  WHERE (("orders".created_at::timestamptz AT TIME ZONE 'UTC') >= $1::timestamptz AND ("orders".created_at::timestamptz AT TIME ZONE 'UTC') <= $2::timestamptz)
+  GROUP BY 1
+  ORDER BY  1  ASC),
+cte_1 AS (  SELECT "time_series"."date_from" "orders__created_at_month", sum("rolling_source"."orders__rev_mtd_new") "orders__rev_mtd_new" 
+  FROM  time_series  AS "time_series"
+  LEFT JOIN  cte_0  AS "rolling_source" ON "rolling_source"."orders__created_at_month" >= date_trunc('month', "time_series"."date_from") and "rolling_source"."orders__created_at_month" <= "time_series"."date_to"
+  GROUP BY 1
+  ORDER BY  1  ASC)
+SELECT "fk_aggregate"."orders__created_at_month" "orders__created_at_month", "fk_aggregate"."orders__rev_mtd_new" "orders__rev_mtd_new" 
+FROM  cte_1  AS "fk_aggregate"
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: ["2025-04-01T00:00:00.000", "2025-05-30T23:59:58.999"]

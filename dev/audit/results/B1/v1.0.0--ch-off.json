@@ -1,0 +1,53 @@
+[
+ {
+  "rows": [
+   [
+    "4",
+    "11110"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\",\n    \"visits.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.ts\",\n      \"dateRange\": [\n        \"2024-02-29 00:00:00\",\n        \"2024-03-01 00:00:00\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\",\"visits.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.ts\",\"dateRange\":[\"2024-02-29 00:00:00\",\"2024-03-01 00:00:00\"]}],\"order\":[]}\n",
+  "verdict": "diff",
+  "truth": "3\t11100",
+  "id": "plain_gt_lte"
+ },
+ {
+  "rows": [
+   [
+    "4",
+    "1111"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\",\n    \"visits.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.d\",\n      \"dateRange\": [\n        \"2024-02-28\",\n        \"2024-02-29\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\",\"visits.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.d\",\"dateRange\":[\"2024-02-28\",\"2024-02-29\"]}],\"order\":[]}\n",
+  "verdict": "diff",
+  "truth": "3\t1110",
+  "id": "date_col_daily"
+ },
+ {
+  "rows": [
+   [
+    "3",
+    "11100"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      count(`visits`.id) `visits__n`, sum(`visits`.amt) `visits__total`\n    FROM\n      audit.visits AS `visits`  WHERE (`visits`.ts > parseDateTimeBestEffort(?)) AND (`visits`.ts <= parseDateTimeBestEffort(?)) LIMIT 10000 PARAMS [\"2024-02-29T00:00:00.000Z\", \"2024-03-01T00:00:00.000Z\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "rest_after_before"
+ }
+]

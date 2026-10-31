@@ -83,8 +83,10 @@ cubes:
       - { name: max_amount, sql: amount, type: max, format: currency, description: Largest order. }
       - { name: paid_revenue, sql: amount, type: sum, format: currency, filters: [{ sql: "{CUBE}.status IN ('completed','shipped')" }], description: Revenue from paid orders. }
       - { name: paid_share, sql: "1.0 * {paid_revenue} / NULLIF({revenue}, 0)", type: number, format: percent, description: Share of revenue that was paid. }
-      - { name: first_order_at, sql: created_at, type: min, description: Time of the first order. }
-      - { name: last_order_at, sql: created_at, type: max, description: Time of the latest order. }
+      # A measure of type min or max on a time column is NULL on the SQL API. Use type time. See docs/query-compilation.md.
+      - { name: first_order_at, sql: "min(created_at)", type: time, description: Time of the first order. }
+      - { name: first_order_time, sql: "min(created_at)", type: time, description: Time of the first order as a time measure. }
+      - { name: last_order_at, sql: "max(created_at)", type: time, description: Time of the latest order. }
       - { name: has_orders, sql: "COUNT(*) > 0", type: boolean, description: At least one order exists. }
       - { name: statuses, sql: "arrayStringConcat(arraySort(groupUniqArray(status)), ',')", type: string, description: Distinct statuses in the group. }
       - { name: public_false_measure, sql: amount, type: sum, public: false }

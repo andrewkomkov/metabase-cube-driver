@@ -1,0 +1,29 @@
+cubes:
+  - name: orders
+    sql_table: repro.orders
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string }
+      - { name: amount_dim, sql: amount, type: number }
+      - { name: created_at, sql: created_at, type: time }
+    measures:
+      - { name: count, type: count }
+      - { name: revenue, sql: amount, type: sum }
+      - { name: distinct_approx, sql: status, type: count_distinct_approx }
+      - { name: avg_amount, sql: amount, type: avg }
+      - { name: distinct_exact, sql: status, type: count_distinct }
+    pre_aggregations:
+      - name: by_status_month
+        measures: [distinct_approx]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: month
+        refresh_key: { every: 1 hour }
+        indexes:
+          - { name: status_idx, columns: [status] }
+  - name: plain
+    sql_table: repro.orders
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+    measures:
+      - { name: distinct_approx, sql: status, type: count_distinct_approx }

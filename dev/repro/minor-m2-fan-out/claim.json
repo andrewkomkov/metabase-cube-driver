@@ -1,0 +1,38 @@
+{
+ "steps": [
+  {
+   "id": "count_star_cross",
+   "sql": "SELECT COUNT(*) c FROM orders o CROSS JOIN payments p WHERE o.__cubeJoinField = p.__cubeJoinField",
+   "explain": true
+  },
+  {
+   "id": "sum_dim_cross",
+   "sql": "SELECT SUM(o.quantity_dim) s FROM orders o CROSS JOIN payments p WHERE o.__cubeJoinField = p.__cubeJoinField",
+   "explain": true
+  },
+  {
+   "id": "both_cross",
+   "sql": "SELECT COUNT(*) c, SUM(o.quantity_dim) s FROM orders o CROSS JOIN payments p WHERE o.__cubeJoinField = p.__cubeJoinField",
+   "explain": true
+  },
+  {
+   "id": "rest_measures",
+   "rest": {
+    "measures": [
+     "orders.quantity",
+     "orders.count",
+     "payments.count"
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "truth_sql_join",
+   "truth": "SELECT count(*) c, sum(o.quantity) s FROM repro.orders o JOIN repro.payments p ON o.id = p.order_id"
+  },
+  {
+   "id": "truth_order_total",
+   "truth": "SELECT sum(quantity) s FROM repro.orders"
+  }
+ ]
+}

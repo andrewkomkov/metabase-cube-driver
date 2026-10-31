@@ -1,0 +1,12 @@
+cubes:
+  - name: events
+    sql_table: repro.events
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: big_int, sql: big_int, type: number }
+      - { name: big_dec, sql: big_dec, type: number }
+      - { name: big_int_text, sql: "CAST(big_int AS VARCHAR)", type: string }
+      - { name: big_dec_text, sql: "CAST(big_dec AS VARCHAR)", type: string }
+    measures:
+      - { name: sum_big_int, sql: big_int, type: sum }
+      - { name: sum_big_dec, sql: big_dec, type: sum }

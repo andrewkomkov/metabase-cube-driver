@@ -1,0 +1,24 @@
+cubes:
+  - name: orders
+    sql_table: repro.orders
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string }
+      - { name: amount_dim, sql: amount, type: number }
+      - { name: created_at, sql: created_at, type: time }
+    measures:
+      - { name: count, type: count }
+      - { name: revenue, sql: amount, type: sum }
+    segments:
+      - { name: paid, sql: "{CUBE}.status = 'a'" }
+      - { name: large, sql: "{CUBE}.amount > 300" }
+    joins:
+      - { name: users, relationship: many_to_one, sql: "{CUBE}.user_id = {users.id}" }
+  - name: users
+    sql_table: repro.users
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+    measures:
+      - { name: count, type: count }
+    segments:
+      - { name: vip, sql: "{CUBE}.vip = 1" }

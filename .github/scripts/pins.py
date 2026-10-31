@@ -86,7 +86,10 @@ def resolve():
 
 
 def matrix(resolved):
-    """Metabase (pinned, previous stable, newest beta) by Cube (pinned, newest) on the pinned ClickHouse."""
+    """Metabase (pinned, previous stable, newest beta) by Cube (pinned, newest) on the pinned ClickHouse.
+
+    Each pair runs with cube-clickhouse and on stock Cube, so that a Cube release that ships a fix shows here.
+    """
     mb, cube = resolved["metabase"], resolved["cube"]
     metabases = list(dict.fromkeys(v for v in (mb["pinned"], mb["previous"], mb["beta"]) if v))
     cubes = list(dict.fromkeys(v for v in (cube["pinned"], cube["newest"]) if v))
@@ -95,13 +98,15 @@ def matrix(resolved):
         for c in cubes:
             required = m == mb["pinned"] and c == cube["pinned"]
             slug = re.sub(r"[^A-Za-z0-9.-]", "-", f"mb-{m}-cube-{c}")
-            cells.append({
-                "id": slug,
-                "metabase": m,
-                "cube": c,
-                "clickhouse": resolved["clickhouse"]["pinned"],
-                "required": required,
-            })
+            for fixes, suffix in (("on", ""), ("off", "-stock")):
+                cells.append({
+                    "id": slug + suffix,
+                    "metabase": m,
+                    "cube": c,
+                    "clickhouse": resolved["clickhouse"]["pinned"],
+                    "fixes": fixes,
+                    "required": required,
+                })
     return {"include": cells}
 
 

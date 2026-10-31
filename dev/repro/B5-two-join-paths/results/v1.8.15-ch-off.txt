@@ -1,0 +1,50 @@
+# B5-two-join-paths v1.8.15 clickhouse tesseract=off ready=True
+## rest_two_paths
+$ POST /cubejs-api/v1/load {"measures": ["two_paths.count"], "dimensions": ["two_paths.customer_region", "two_paths.destination_region"], "order": {"two_paths.customer_region": "asc", "two_paths.destination_region": "asc"}}
+HTTP 200 [{"two_paths.customer_region": "South", "two_paths.destination_region": "South", "two_paths.count": "2"}, {"two_paths.customer_region": "West", "two_paths.destination_region": "West", "two_paths.count": "1"}]
+SQL: SELECT
+      `regions`.region `two_paths__customer_region`, `regions`.region `two_paths__destination_region`, count(`orders`.id) `two_paths__count`
+    FROM
+      repro.orders AS `orders`
+LEFT JOIN repro.users AS `users` ON `orders`.user_id = `users`.id
+LEFT JOIN repro.regions AS `regions` ON `users`.state = `regions`.state
+LEFT JOIN repro.shipments AS `shipments` ON `orders`.id = `shipments`.order_id  GROUP BY `two_paths__customer_region`, `two_paths__destination_region` ORDER BY `two_paths__customer_region` ASC, `two_paths__destination_region` ASC LIMIT 10000
+PARAMS: []
+## sql_two_paths
+$ psql> SELECT customer_region, destination_region, MEASURE(count) c FROM two_paths GROUP BY 1, 2 ORDER BY 1, 2
+customer_region | destination_region | c
+South | South | 2
+West | West | 1
+## rest_customer_only
+$ POST /cubejs-api/v1/load {"measures": ["two_paths.count"], "dimensions": ["two_paths.customer_region"], "order": {"two_paths.customer_region": "asc"}}
+HTTP 200 [{"two_paths.customer_region": "South", "two_paths.count": "2"}, {"two_paths.customer_region": "West", "two_paths.count": "1"}]
+SQL: SELECT
+      `regions`.region `two_paths__customer_region`, count(`orders`.id) `two_paths__count`
+    FROM
+      repro.orders AS `orders`
+LEFT JOIN repro.users AS `users` ON `orders`.user_id = `users`.id
+LEFT JOIN repro.regions AS `regions` ON `users`.state = `regions`.state  GROUP BY `two_paths__customer_region` ORDER BY `two_paths__customer_region` ASC LIMIT 10000
+PARAMS: []
+## rest_destination_only
+$ POST /cubejs-api/v1/load {"measures": ["two_paths.count"], "dimensions": ["two_paths.destination_region"], "order": {"two_paths.destination_region": "asc"}}
+HTTP 200 [{"two_paths.destination_region": "South", "two_paths.count": "2"}, {"two_paths.destination_region": "West", "two_paths.count": "1"}]
+SQL: SELECT
+      `regions`.region `two_paths__destination_region`, count(`orders`.id) `two_paths__count`
+    FROM
+      repro.orders AS `orders`
+LEFT JOIN repro.shipments AS `shipments` ON `orders`.id = `shipments`.order_id
+LEFT JOIN repro.regions AS `regions` ON `shipments`.state = `regions`.state  GROUP BY `two_paths__destination_region` ORDER BY `two_paths__destination_region` ASC LIMIT 10000
+PARAMS: []
+## rest_two_aliases -- the same data through join alias
+$ POST /cubejs-api/v1/load {"measures": ["two_aliases.count"], "dimensions": ["two_aliases.customer_region", "two_aliases.destination_region"], "order": {"two_aliases.customer_region": "asc", "two_aliases.destination_region": "asc"}}
+HTTP 400 ERROR 'orders.billing_region.region' goes through a join alias, and join aliases require the Tesseract SQL planner
+SQL ERROR: {"type":"UserError","error":"'orders.billing_region.region' goes through a join alias, and join aliases require the Tesseract SQL planner","stack":"Error: 'orders.billing_region.region' goes through a join alias, and join aliases require the Tesseract SQL planner\n    at QueryPlanner.ensureNativePlannerForJoinAliases (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:4015:13)\n    at QueryPlanner.evaluateSymbolSql (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:3541:12)\n    at /cube/node_modules/@cubejs-backend/schema-compiler/src/adapter
+## sql_two_aliases
+$ psql> SELECT customer_region, destination_region, MEASURE(count) c FROM two_aliases GROUP BY 1, 2 ORDER BY 1, 2
+psql:<stdin>:1: ERROR:  Database Execution Error: 'orders.billing_region.region' goes through a join alias, and join aliases require the Tesseract SQL planner
+## truth
+$ clickhouse> SELECT r1.region AS customer_region, r2.region AS destination_region, count(*) AS c FROM repro.orders o JOIN repro.users u ON o.user_id = u.id JOIN repro.regions r1 ON u.state = r1.state JOIN repro.shipments s ON o.id = s.order_id JOIN repro.regions r2 ON s.state = r2.state GROUP BY 1, 2 ORDER BY 1, 2
+customer_region	destination_region	c
+South	South	1
+South	West	1
+West	South	1

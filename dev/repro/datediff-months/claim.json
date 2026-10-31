@@ -1,0 +1,27 @@
+{
+ "steps": [
+  {
+   "id": "datediff_month",
+   "sql": "SELECT id, DATEDIFF('month', created_at, shipped_at) d FROM orders ORDER BY 1"
+  },
+  {
+   "id": "datediff_day",
+   "sql": "SELECT id, DATEDIFF('day', created_at, shipped_at) d FROM orders ORDER BY 1"
+  },
+  {
+   "id": "age_fn",
+   "sql": "SELECT id, EXTRACT(MONTH FROM AGE(shipped_at, created_at)) d FROM orders ORDER BY 1"
+  },
+  {
+   "id": "truth_boundaries",
+   "truth_ch": "SELECT id, dateDiff('month',created_at,shipped_at) d FROM repro.orders ORDER BY 1",
+   "truth_pg": "SELECT id, (extract(year from shipped_at)-extract(year from created_at))*12+extract(month from shipped_at)-extract(month from created_at) d FROM repro.orders ORDER BY 1",
+   "note": "boundaries"
+  },
+  {
+   "id": "truth_whole_months",
+   "truth_ch": "SELECT id, age('month',created_at,shipped_at) d FROM repro.orders ORDER BY 1",
+   "truth_pg": "SELECT id, extract(month from age(shipped_at,created_at)) d FROM repro.orders ORDER BY 1"
+  }
+ ]
+}

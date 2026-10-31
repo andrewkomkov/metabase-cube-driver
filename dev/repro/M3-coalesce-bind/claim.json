@@ -1,0 +1,42 @@
+{
+ "steps": [
+  {
+   "id": "bind_coalesce",
+   "script": "SELECT COALESCE(MEASURE(count), 0) c FROM orders WHERE created_at >= $1::timestamp AND created_at < $2::timestamp \\bind '2025-05-10 00:00:00' '2025-05-21 00:00:00' \\g\n"
+  },
+  {
+   "id": "bind_coalesce_untyped",
+   "script": "SELECT COALESCE(MEASURE(count), 0) c FROM orders WHERE created_at >= $1 AND created_at < $2 \\bind '2025-05-10 00:00:00' '2025-05-21 00:00:00' \\g\n"
+  },
+  {
+   "id": "bind_plain_untyped",
+   "script": "SELECT MEASURE(count) c FROM orders WHERE created_at >= $1 AND created_at < $2 \\bind '2025-05-10 00:00:00' '2025-05-21 00:00:00' \\g\n"
+  },
+  {
+   "id": "bind_coalesce_count_star_untyped",
+   "script": "SELECT COALESCE(COUNT(*), 0) c FROM orders WHERE created_at >= $1 AND created_at < $2 \\bind '2025-05-10 00:00:00' '2025-05-21 00:00:00' \\g\n"
+  },
+  {
+   "id": "bind_arithmetic_order_by_untyped",
+   "script": "SELECT DATE_TRUNC('month', created_at) m, MEASURE(revenue) * 2 x FROM orders WHERE created_at >= $1 GROUP BY 1 ORDER BY 1 \\bind '2025-05-10 00:00:00' \\g\n",
+   "note": "the shape of cube-js/cube#12459"
+  },
+  {
+   "id": "bind_coalesce_order_by_untyped",
+   "script": "SELECT status, COALESCE(MEASURE(count), 0) c FROM orders WHERE created_at >= $1 GROUP BY 1 ORDER BY 1 \\bind '2025-05-10 00:00:00' \\g\n"
+  },
+  {
+   "id": "literal_coalesce",
+   "sql": "SELECT COALESCE(MEASURE(count), 0) c FROM orders WHERE created_at >= timestamp '2025-05-10 00:00:00' AND created_at < timestamp '2025-05-21 00:00:00'",
+   "explain": true
+  },
+  {
+   "id": "bind_plain",
+   "script": "SELECT MEASURE(count) c FROM orders WHERE created_at >= $1::timestamp AND created_at < $2::timestamp \\bind '2025-05-10 00:00:00' '2025-05-21 00:00:00' \\g\n"
+  },
+  {
+   "id": "truth",
+   "truth": "SELECT count(*) c FROM repro.orders WHERE created_at >= '2025-05-10 00:00:00' AND created_at < '2025-05-21 00:00:00'"
+  }
+ ]
+}

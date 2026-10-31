@@ -1,0 +1,35 @@
+{
+ "steps": [
+  {
+   "id": "count_star",
+   "sql": "SELECT COUNT(*) c FROM orders WHERE status = 'nope'",
+   "explain": true
+  },
+  {
+   "id": "measure_count",
+   "sql": "SELECT MEASURE(count) c FROM orders WHERE status = 'nope'"
+  },
+  {
+   "id": "rest_count",
+   "rest": {
+    "measures": [
+     "orders.count"
+    ],
+    "filters": [
+     {
+      "member": "orders.status",
+      "operator": "equals",
+      "values": [
+       "nope"
+      ]
+     }
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "truth",
+   "truth": "SELECT count(*) c FROM repro.orders WHERE status = 'nope'"
+  }
+ ]
+}

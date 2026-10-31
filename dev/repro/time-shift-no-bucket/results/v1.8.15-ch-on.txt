@@ -1,0 +1,44 @@
+# time-shift-no-bucket v1.8.15 clickhouse tesseract=on ready=True
+## sql_no_bucket
+$ psql> SELECT MEASURE(revenue_prior_month) x FROM orders
+x
+111
+## rest_no_bucket
+$ POST /cubejs-api/v1/load {"measures": ["orders.revenue_prior_month"]}
+HTTP 200 [{"orders.revenue_prior_month": "111"}]
+SQL:  WITH 
+cte_0 AS (  SELECT sum(`orders`.amount) `orders__revenue` 
+  FROM  repro.orders  AS `orders`),
+cte_1 AS (  SELECT `fk_aggregate`.`orders__revenue` `orders__revenue_prior_month` 
+  FROM  cte_0  AS `fk_aggregate`)
+SELECT `fk_aggregate`.`orders__revenue_prior_month` `orders__revenue_prior_month` 
+FROM  cte_1  AS `fk_aggregate`
+LIMIT 10000
+PARAMS: []
+## rest_date_range_no_granularity
+$ POST /cubejs-api/v1/load {"measures": ["orders.revenue_prior_month"], "timeDimensions": [{"dimension": "orders.created_at", "dateRange": ["2025-05-01", "2025-05-31"]}]}
+HTTP 200 [{"orders.revenue_prior_month": "1"}]
+SQL:  WITH 
+cte_0 AS (  SELECT sum(`orders`.amount) `orders__revenue` 
+  FROM  repro.orders  AS `orders`
+  WHERE ((addDate(`orders`.created_at, INTERVAL 1 MONTH)) >= parseDateTimeBestEffort(?) AND (addDate(`orders`.created_at, INTERVAL 1 MONTH)) <= parseDateTimeBestEffort(?))),
+cte_1 AS (  SELECT `fk_aggregate`.`orders__revenue` `orders__revenue_prior_month` 
+  FROM  cte_0  AS `fk_aggregate`)
+SELECT `fk_aggregate`.`orders__revenue_prior_month` `orders__revenue_prior_month` 
+FROM  cte_1  AS `fk_aggregate`
+LIMIT 10000
+PARAMS: ["2025-05-01T00:00:00.000Z", "2025-05-31T23:59:59.999Z"]
+## rest_by_month
+$ POST /cubejs-api/v1/load {"measures": ["orders.revenue_prior_month"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month", "dateRange": ["2025-05-01", "2025-06-30"]}], "order": {"orders.created_at": "asc"}}
+HTTP 200 [{"orders.created_at.month": "2025-05-01T00:00:00.000", "orders.revenue_prior_month": "1", "orders.created_at": "2025-05-01T00:00:00.000"}, {"orders.created_at.month": "2025-06-01T00:00:00.000", "orders.revenue_prior_month": "10", "orders.created_at": "2025-06-01T00:00:00.000"}]
+## meta
+{"name": "orders", "type": "cube", "public": true, "measures": [{"name": "orders.count", "type": "number", "public": true, "isVisible": true, "aggType": "count"}, {"name": "orders.revenue", "type": "number", "public": true, "isVisible": true, "aggType": "sum"}, {"name": "orders.revenue_prior_month", "type": "number", "public": true, "isVisible": true, "aggType": "number"}], "dimensions": [{"name": "orders.id", "type": "number", "public": true, "isVisible": true, "primaryKey": true}, {"name": "orders.status", "type": "string", "public": true, "isVisible": true, "primaryKey": false}, {"name": "orders.amount_dim", "type": "number", "public": true, "isVisible": true, "primaryKey": false}, {"name": "orders.created_at", "type": "time", "public": true, "isVisible": true, "primaryKey": false}]}
+## truth_all
+$ clickhouse> SELECT sum(amount) FROM repro.orders
+sum(amount)
+111
+## meta_mentions
+$ GET /cubejs-api/v1/meta?extended=true
+timeShift: 0
+time_shift: 0
+multiStage: 0

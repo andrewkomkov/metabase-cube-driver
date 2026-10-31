@@ -1,0 +1,57 @@
+# post-processing-query-limit v1.8.15 clickhouse tesseract=on ready=True
+## count_outer -- limit is 10 in cube.env, truth 20
+$ psql> SELECT COUNT(*) c FROM (SELECT id, MEASURE(count) n FROM orders GROUP BY 1) q
+c
+10
+$ psql> EXPLAIN SELECT COUNT(*) c FROM (SELECT id, MEASURE(count) n FROM orders GROUP BY 1) q
+plan_type | plan
+logical_plan | Projection: #COUNT(UInt8(1)) AS c
+  Aggregate: groupBy=[[]], aggr=[[COUNT(UInt8(1))]]
+    CubeScan: request={
+  "measures": [
+    "orders.count"
+  ],
+  "dimensions": [
+    "orders.id"
+  ],
+  "segments": [],
+  "order": []
+}
+physical_plan | ProjectionExec: expr=[COUNT(UInt8(1))@0 as c]
+  HashAggregateExec: mode=Final, gby=[], aggr=[COUNT(UInt8(1))]
+    HashAggregateExec: mode=Partial, gby=[], aggr=[COUNT(UInt8(1))]
+      CubeScanExecutionPlan, Request:
+{"measures":["orders.count"],"dimensions":["orders.id"],"segments":[],"order":[]}
+## direct_scan
+$ psql> SELECT id FROM orders
+id
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+## direct_scan_limit100
+$ psql> SELECT id FROM orders LIMIT 100
+id
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+## rest_default_limit
+$ POST /cubejs-api/v1/load {"dimensions": ["orders.id"]}
+HTTP 200 [{"orders.id": "1"}, {"orders.id": "2"}, {"orders.id": "3"}, {"orders.id": "4"}, {"orders.id": "5"}, {"orders.id": "6"}, {"orders.id": "7"}, {"orders.id": "8"}, {"orders.id": "9"}, {"orders.id": "10"}]
+## truth
+$ clickhouse> SELECT count(*) c FROM repro.orders
+c
+20

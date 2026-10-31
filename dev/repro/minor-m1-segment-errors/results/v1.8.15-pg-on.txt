@@ -1,0 +1,56 @@
+# minor-m1-segment-errors v1.8.15 postgres tesseract=on ready=True
+## or_two_segments
+$ psql> SELECT MEASURE(count) c FROM orders WHERE paid = TRUE OR large = TRUE
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't use OR operator with segments. Please check logs for additional information
+QUERY: SELECT MEASURE(count) AS c FROM orders WHERE paid = true OR large = true
+## and_two_segments
+$ psql> SELECT MEASURE(count) c FROM orders WHERE paid = TRUE AND large = FALSE
+c
+1
+## segment_of_joined_short
+$ psql> SELECT MEASURE(orders.revenue) r FROM orders WHERE users.vip = TRUE
+psql:<stdin>:1: ERROR:  Planning Error: Initial planning error: Error during planning: No field named 'users.vip'. Valid fields are 'orders.count', 'orders.revenue', 'orders.id', 'orders.status', 'orders.amount_dim', 'orders.created_at', 'orders.paid', 'orders.large', 'orders.__user', 'orders.__cubeJoinField'.
+QUERY: SELECT MEASURE(orders.revenue) AS r FROM orders WHERE users.vip = true
+## segment_of_joined_cross
+$ psql> SELECT MEASURE(o.revenue) r FROM orders o CROSS JOIN users u WHERE o.__cubeJoinField = u.__cubeJoinField AND u.vip = TRUE
+r
+100
+$ psql> EXPLAIN SELECT MEASURE(o.revenue) r FROM orders o CROSS JOIN users u WHERE o.__cubeJoinField = u.__cubeJoinField AND u.vip = TRUE
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.revenue"
+  ],
+  "dimensions": [],
+  "segments": [
+    "users.vip"
+  ],
+  "order": [],
+  "joinHints": [
+    [
+      "orders",
+      "users"
+    ]
+  ]
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.revenue"],"dimensions":[],"segments":["users.vip"],"order":[],"joinHints":[["orders","users"]]}
+## rest_two_segments_and
+$ POST /cubejs-api/v1/load {"measures": ["orders.count"], "segments": ["orders.paid", "orders.large"]}
+HTTP 200 [{"orders.count": "0"}]
+SQL: SELECT count("orders".id) "orders__count" 
+FROM  repro.orders  AS "orders"
+WHERE ("orders".status = 'a') AND ("orders".amount > 300)
+LIMIT 10000
+PARAMS: []
+## rest_joined_segment
+$ POST /cubejs-api/v1/load {"measures": ["orders.revenue"], "segments": ["users.vip"]}
+HTTP 200 [{"orders.revenue": "100"}]
+## truth_or
+$ postgres> SELECT count(*) c FROM repro.orders WHERE status = 'a' OR amount > 300
+c
+2
+## truth_vip
+$ postgres> SELECT sum(o.amount) r FROM repro.orders o JOIN repro.users u ON o.user_id = u.id WHERE u.vip = 1
+r
+100

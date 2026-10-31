@@ -1,0 +1,424 @@
+[
+ {
+  "rows": [
+   [
+    "3",
+    "11100"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\",\n    \"visits.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.ts\",\n      \"dateRange\": [\n        \"2024-02-29T00:00:00.001Z\",\n        \"2024-03-01T00:00:00.000Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\",\"visits.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.ts\",\"dateRange\":[\"2024-02-29T00:00:00.001Z\",\"2024-03-01T00:00:00.000Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": "3\t11100",
+  "id": "plain_gt_lte"
+ },
+ {
+  "rows": [
+   [
+    "4",
+    "111100"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\",\n    \"visits.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"visits.ts\",\n      \"operator\": \"afterDate\",\n      \"values\": [\n        \"2024-02-29T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\",\"visits.total\"],\"dimensions\":[],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"visits.ts\",\"operator\":\"afterDate\",\"values\":[\"2024-02-29T00:00:00.000Z\"]}]}\n",
+  "verdict": "match",
+  "truth": "4\t111100",
+  "id": "gt_only"
+ },
+ {
+  "rows": [
+   [
+    "2",
+    "1100"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\",\n    \"visits.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.ts\",\n      \"dateRange\": [\n        \"2024-02-29T00:00:00.001Z\",\n        \"2024-02-29T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\",\"visits.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.ts\",\"dateRange\":[\"2024-02-29T00:00:00.001Z\",\"2024-02-29T23:59:59.999Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": "2\t1100",
+  "id": "gt_and_lt"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "10"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\",\n    \"visits.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.ts\",\n      \"dateRange\": [\n        \"2024-02-28T23:59:59.001Z\",\n        \"2024-02-29T00:00:00.000Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\",\"visits.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.ts\",\"dateRange\":[\"2024-02-28T23:59:59.001Z\",\"2024-02-29T00:00:00.000Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": "1\t10",
+  "id": "one_second_below"
+ },
+ {
+  "rows": [
+   [
+    "0"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.ts\",\n      \"dateRange\": [\n        \"2024-02-29T12:00:00.001Z\",\n        \"2024-02-29T12:00:00.000Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.ts\",\"dateRange\":[\"2024-02-29T12:00:00.001Z\",\"2024-02-29T12:00:00.000Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "equal_bounds_empty"
+ },
+ {
+  "rows": [
+   [
+    "3",
+    "11100"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\",\n    \"visits.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.ts\",\n      \"dateRange\": [\n        \"2024-02-29T00:00:00.501Z\",\n        \"2024-03-01T00:00:00.000Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\",\"visits.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.ts\",\"dateRange\":[\"2024-02-29T00:00:00.501Z\",\"2024-03-01T00:00:00.000Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "fraction_in_bound"
+ },
+ {
+  "rows": [
+   [
+    "3",
+    "1110"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\",\n    \"visits.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.d\",\n      \"dateRange\": [\n        \"2024-02-28T00:00:00.001Z\",\n        \"2024-02-29T00:00:00.000Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\",\"visits.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.d\",\"dateRange\":[\"2024-02-28T00:00:00.001Z\",\"2024-02-29T00:00:00.000Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": "3\t1110",
+  "id": "date_col_daily"
+ },
+ {
+  "rows": [
+   [
+    "2",
+    "110000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\",\n    \"visits.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.d\",\n      \"dateRange\": [\n        \"2024-02-29T00:00:00.001Z\",\n        \"2024-03-01T00:00:00.000Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\",\"visits.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.d\",\"dateRange\":[\"2024-02-29T00:00:00.001Z\",\"2024-03-01T00:00:00.000Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": "2\t110000",
+  "id": "date_col_month_end"
+ },
+ {
+  "rows": [
+   [
+    "3",
+    "11100"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\",\n    \"visits.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.ts64\",\n      \"dateRange\": [\n        \"2024-02-29T00:00:00.001Z\",\n        \"2024-03-01T00:00:00.000Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\",\"visits.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.ts64\",\"dateRange\":[\"2024-02-29T00:00:00.001Z\",\"2024-03-01T00:00:00.000Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": "3\t11100",
+  "id": "datetime64_col"
+ },
+ {
+  "rows": [
+   [
+    "2",
+    "11000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\",\n    \"visits.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.ts_null\",\n      \"dateRange\": [\n        \"2024-02-29T00:00:00.001Z\",\n        \"2024-03-01T00:00:00.000Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\",\"visits.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.ts_null\",\"dateRange\":[\"2024-02-29T00:00:00.001Z\",\"2024-03-01T00:00:00.000Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": "2\t11000",
+  "id": "nullable_col"
+ },
+ {
+  "rows": [
+   [
+    "3"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"visits\".\"measure_visits_n\" \"n\" \nFROM (\n  SELECT\n        count(\"visits\".id) \"measure_visits_n\"\n      FROM\n        audit.visits AS \"visits\"  WHERE ((NOT ((\"visits\".ts <= timestamptz '2024-02-29T00:00:00.000Z')) AND (\"visits\".ts <= timestamptz '2024-03-01T00:00:00.000Z')))\n) AS \"visits\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "not_lte_form"
+ },
+ {
+  "rows": [
+   [
+    "4"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.ts\",\n      \"dateRange\": [\n        \"2024-02-29 00:00:00\",\n        \"2024-03-01 00:00:00\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.ts\",\"dateRange\":[\"2024-02-29 00:00:00\",\"2024-03-01 00:00:00\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "between_control"
+ },
+ {
+  "rows": [
+   [
+    "3"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.ts\",\n      \"dateRange\": [\n        \"2024-02-29T00:00:01.000Z\",\n        \"2024-03-01T00:00:00.000Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.ts\",\"dateRange\":[\"2024-02-29T00:00:01.000Z\",\"2024-03-01T00:00:00.000Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "gte_control"
+ },
+ {
+  "rows": [
+   [
+    "3"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.ts\",\n      \"dateRange\": [\n        \"2024-02-29T00:00:00.001Z\",\n        \"2024-03-01T00:00:00.000Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.ts\",\"dateRange\":[\"2024-02-29T00:00:00.001Z\",\"2024-03-01T00:00:00.000Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "typed_literal"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-29 00:00:00.000000",
+    "1100"
+   ],
+   [
+    "2024-03-01 00:00:00.000000",
+    "10000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.ts\",\n      \"granularity\": \"day\",\n      \"dateRange\": [\n        \"2024-02-29T00:00:00.001Z\",\n        \"2024-03-01T00:00:00.000Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"visits.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.ts\",\"granularity\":\"day\",\"dateRange\":[\"2024-02-29T00:00:00.001Z\",\"2024-03-01T00:00:00.000Z\"]}],\"order\":[[\"visits.ts\",\"asc\"]]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "by_day_bucket"
+ },
+ {
+  "rows": [
+   [
+    "3"
+   ],
+   [
+    "4"
+   ],
+   [
+    "5"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"visits.id\"\n  ],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.ts\",\n      \"dateRange\": [\n        \"2024-02-29T00:00:00.001Z\",\n        \"2024-03-01T00:00:00.000Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"visits.id\",\n      \"asc\"\n    ]\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"visits.id\"],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.ts\",\"dateRange\":[\"2024-02-29T00:00:00.001Z\",\"2024-03-01T00:00:00.000Z\"]}],\"order\":[[\"visits.id\",\"asc\"]],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_rows"
+ },
+ {
+  "rows": [
+   [
+    "11100"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"sum_q_amt_dim_\" \"s\" \nFROM (\n  SELECT\n        SUM(\"visits\".amt) \"sum_q_amt_dim_\"\n      FROM\n        audit.visits AS \"visits\"  WHERE (\"visits\".ts >= $1::timestamptz AND \"visits\".ts <= $2::timestamptz)\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "outer_filter_postproc"
+ },
+ {
+  "rows": [
+   [
+    "3"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   20
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "bind_cast"
+ },
+ {
+  "rows": [
+   [
+    "3"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits.ts\",\n      \"dateRange\": [\n        \"2024-02-28T19:00:00.001Z\",\n        \"2024-02-29T19:00:00.000Z\"\n      ]\n    }\n  ],\n  \"order\": [],\n  \"timezone\": \"America/New_York\"\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits.n\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits.ts\",\"dateRange\":[\"2024-02-28T19:00:00.001Z\",\"2024-02-29T19:00:00.000Z\"]}],\"order\":[],\"timezone\":\"America/New_York\"}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "sql_time_zone"
+ },
+ {
+  "rows": [
+   [
+    "3",
+    "11100"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      count(\"visits\".id) \"visits__n\", sum(\"visits\".amt) \"visits__total\"\n    FROM\n      audit.visits AS \"visits\"  WHERE (\"visits\".ts > $1::timestamptz) AND (\"visits\".ts <= $2::timestamptz) LIMIT 10000 PARAMS [\"2024-02-29T00:00:00.000Z\", \"2024-03-01T00:00:00.000Z\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "rest_after_before"
+ },
+ {
+  "rows": [
+   [
+    "4"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      count(\"visits\".id) \"visits__n\"\n    FROM\n      audit.visits AS \"visits\"  WHERE (\"visits\".ts > $1::timestamptz) LIMIT 10000 PARAMS [\"2024-02-29T00:00:00.000Z\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "rest_after_only"
+ },
+ {
+  "rows": [
+   [
+    "4"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      count(\"visits\".id) \"visits__n\"\n    FROM\n      audit.visits AS \"visits\"  WHERE (\"visits\".ts >= $1::timestamptz AND \"visits\".ts <= $2::timestamptz) LIMIT 10000 PARAMS [\"2024-02-29T00:00:00.000Z\", \"2024-03-01T00:00:00.000Z\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "rest_date_range"
+ },
+ {
+  "rows": [
+   [
+    "3"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      count(\"visits\".id) \"visits__n\"\n    FROM\n      audit.visits AS \"visits\"  WHERE (\"visits\".ts > $1::timestamptz) AND (\"visits\".ts <= $2::timestamptz) LIMIT 10000 PARAMS [\"2024-02-29T00:00:00.000Z\", \"2024-03-01T00:00:00.000Z\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "rest_tz"
+ },
+ {
+  "rows": [
+   [
+    "3"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.visits_r_by_second"
+  ],
+  "generated": "SELECT sum(`visits_r__n`) `visits_r__n` FROM dev_pre_aggregations.visits_r_by_second AS `visits_r__by_second`  WHERE (`visits_r__ts_second` >= to_timestamp(?) AND `visits_r__ts_second` <= to_timestamp(?)) LIMIT 10000 PARAMS [\"2024-02-29T00:00:00.001\", \"2024-03-01T00:00:00.000\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "rollup_rest"
+ },
+ {
+  "rows": [
+   [
+    "3"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"visits_r.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"visits_r.ts\",\n      \"dateRange\": [\n        \"2024-02-29T00:00:00.001Z\",\n        \"2024-03-01T00:00:00.000Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"visits_r.n\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"visits_r.ts\",\"dateRange\":[\"2024-02-29T00:00:00.001Z\",\"2024-03-01T00:00:00.000Z\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "rollup_sql"
+ }
+]

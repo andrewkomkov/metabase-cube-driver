@@ -1,0 +1,30 @@
+[
+ {
+  "rows": [
+   [
+    1.0,
+    "10.5,20.5"
+   ],
+   [
+    2.0,
+    "-30.25,0"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      \"places\".id \"places__id\", \"places\".lat || ',' || \"places\".lon \"places__loc\"\n    FROM\n      audit.places AS \"places\"  GROUP BY 1, 2 ORDER BY 1 ASC LIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": "1\t10.5\t20.5\n2\t-30.25\t0",
+  "id": "cube_rest_control"
+ },
+ {
+  "rows": null,
+  "error": "HTTP 500 TypeError: Cannot read properties of undefined (reading 'sql')",
+  "shape": "rest",
+  "used": null,
+  "verdict": "diff",
+  "truth": null,
+  "id": "view_list_rest"
+ }
+]

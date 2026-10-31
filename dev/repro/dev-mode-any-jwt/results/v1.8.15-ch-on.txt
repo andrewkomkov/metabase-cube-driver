@@ -1,0 +1,11 @@
+# dev-mode-any-jwt v1.8.15 clickhouse tesseract=on ready=True
+## wrong_jwt
+$ GET /cubejs-api/v1/meta token=wrong
+HTTP 200 {"cubes":[{"name":"orders","type":"cube","title":"Orders","isVisible":true,"public":true,"measures":[{"name":"orders.count","title":"Orders Count","shortTitle":"Count","formatDescription":{"name":"number","specifier":",.2~f"},"cumulativeTotal":false,"cumulative":false,"type":"number","aggType":"count","drillMembers":[],"drillMembersGrouped":{"measures":[],"dimensions":[]},"isVisible":true,"public":true},{"name":"orders.revenue","title":"Orders Revenue","shortTitle":"Revenue","formatDescription":
+## no_token
+$ GET /cubejs-api/v1/meta token=none
+HTTP 200 {"cubes":[{"name":"orders","type":"cube","title":"Orders","isVisible":true,"public":true,"measures":[{"name":"orders.count","title":"Orders Count","shortTitle":"Count","formatDescription":{"name":"number","specifier":",.2~f"},"cumulativeTotal":false,"cumulative":false,"type":"number","aggType":"count","drillMembers":[],"drillMembersGrouped":{"measures":[],"dimensions":[]},"isVisible":true,"public":true},{"name":"orders.revenue","title":"Orders Revenue","shortTitle":"Revenue","formatDescription":
+## hidden_cube
+$ psql> SELECT 1
+Int64(1)
+1

@@ -1,0 +1,15 @@
+# restapi-compare-date-range-total v1.8.15 clickhouse tesseract=on ready=True
+## rest_compare
+$ POST /cubejs-api/v1/load {"measures": ["orders.count"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month", "compareDateRange": [["2025-05-01", "2025-05-31"], ["2025-06-01", "2025-06-30"]]}]}
+HTTP 400 ERROR 'compareDateRangeQuery' query type is not supported by the client.Please update the client.
+## rest_compare_multi
+$ POST /cubejs-api/v1/load token=good
+HTTP 200 {"queryType":"compareDateRangeQuery","results":[{"query":{"measures":["orders.count"],"dimensions":[],"timeDimensions":[{"dimension":"orders.created_at","dateRange":["2025-05-01T00:00:00.000","2025-05-31T23:59:59.999"],"granularity":"month"}],"limit":10000,"timezone":"UTC","filters":[],"rowLimit":10000},"lastRefreshTime":"2026-10-30T21:16:08.111Z","refreshKeyValues":[{"isWrapper":true,"cache":[{"refresh_key":"179339496"}],"cached":true,"isNative":true,"jsResult":null,"transformData":null,"rootRe
+## rest_total
+$ POST /cubejs-api/v1/load {"measures": ["orders.count"], "dimensions": ["orders.status"], "limit": 1, "total": true}
+HTTP 200 [{"orders.status": "a", "orders.count": "2"}]
+total=2
+## sql_tuple_date_range
+$ psql> SELECT DATE_TRUNC('month', created_at) m, MEASURE(count) c FROM orders WHERE created_at IN ('2025-05-01','2025-06-01') GROUP BY 1
+m | c
+2025-06-01 00:00:00.000000 | 1

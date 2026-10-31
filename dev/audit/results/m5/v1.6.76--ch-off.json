@@ -1,0 +1,12 @@
+[
+ {
+  "rows": null,
+  "error": "HTTP 400 Error: Query failed: Error: Missing columns: 'c_db_idx__st' while processing: '(c_db_idx__st)', required columns: 'c_db_idx__st', available columns: '_block_number' '_row_exists' '_database' '_distance' '_part_data_version' '_part_granule_offset' '_part_offset' '_disk_name' '_sample_factor' '_block_offset' '_table' '_part_uuid' '_part_index' '_part' 'id' 'st.size' 'amt' 'st' 'ts' '_part_starting_offset' '_partition_id'. ; query id: 38c857c2-1c79-4e78-bda9-74b393a358d7",
+  "shape": "rest",
+  "used": null,
+  "generated": "SELECT\n      `c_db_idx`.st `c_db_idx__st`, sum(`c_db_idx`.amt) `c_db_idx__rev`\n    FROM\n      dev_pre_aggregations.c_db_idx_base AS `c_db_idx`  GROUP BY `c_db_idx__st` ORDER BY `c_db_idx__st` ASC LIMIT 10000 PARAMS []",
+  "verdict": "diff",
+  "truth": "a\t30\nb\t40",
+  "id": "db_index"
+ }
+]

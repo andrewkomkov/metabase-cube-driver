@@ -1,0 +1,504 @@
+[
+ {
+  "rows": [
+   [
+    "2024-02-01T00:00:00.000",
+    "1000000"
+   ],
+   [
+    "2024-11-01T00:00:00.000",
+    "10000011"
+   ],
+   [
+    "2025-02-01T00:00:00.000",
+    "1100"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "10000"
+   ],
+   [
+    "2025-08-01T00:00:00.000",
+    "100000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      date_add(month,\n        FLOOR(\n          date_diff(month, toDateTime64('2026-02-01T00:00:00.000', 3, 'UTC'), toTimeZone(toDateTime64(`fn`.ts, 0), 'UTC')) /\n          date_diff(month, fromUnixTimestamp(0), fromUnixTimestamp(0) + INTERVAL 3 MONTH)\n        ) * date_diff(month, fromUnixTimestamp(0), fromUnixTimestamp(0) + INTERVAL 3 MONTH),\n        toDateTime64('2026-02-01T00:00:00.000', 3, 'UTC')\n    ) `fn__ts_fq_offset`, sum(`fn`.amt) `fn__rev`\n    FROM\n      audit.ft AS `fn`  GROUP BY `fn__ts_fq_offset` ORDER BY `fn__ts_fq_offset` ASC LIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "offset_no_rollup"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-01T00:00:00.000",
+    "1000000"
+   ],
+   [
+    "2024-11-01T00:00:00.000",
+    "10000001"
+   ],
+   [
+    "2025-02-01T00:00:00.000",
+    "110"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "11000"
+   ],
+   [
+    "2025-08-01T00:00:00.000",
+    "100000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.ff_by_month"
+  ],
+  "generated": "SELECT DATE_BIN(INTERVAL '3 MONTH', to_timestamp(`ff__ts_month`), to_timestamp('2026-02-01T00:00:00.000')) `ff__ts_fq_offset`, sum(`ff__rev`) `ff__rev` FROM dev_pre_aggregations.ff_by_month AS `ff__by_month`  GROUP BY 1 ORDER BY 1 ASC LIMIT 10000 PARAMS []",
+  "verdict": "diff",
+  "truth": null,
+  "id": "offset_rollup"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-01T00:00:00.000",
+    "1000000"
+   ],
+   [
+    "2024-11-01T00:00:00.000",
+    "10000011"
+   ],
+   [
+    "2025-02-01T00:00:00.000",
+    "1100"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "10000"
+   ],
+   [
+    "2025-08-01T00:00:00.000",
+    "100000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      date_add(month,\n        FLOOR(\n          date_diff(month, toDateTime64('2025-02-01T00:00:00.000', 3, 'UTC'), toTimeZone(toDateTime64(`fn`.ts, 0), 'UTC')) /\n          date_diff(month, fromUnixTimestamp(0), fromUnixTimestamp(0) + INTERVAL 3 MONTH)\n        ) * date_diff(month, fromUnixTimestamp(0), fromUnixTimestamp(0) + INTERVAL 3 MONTH),\n        toDateTime64('2025-02-01T00:00:00.000', 3, 'UTC')\n    ) `fn__ts_fq_recent`, sum(`fn`.amt) `fn__rev`\n    FROM\n      audit.ft AS `fn`  GROUP BY `fn__ts_fq_recent` ORDER BY `fn__ts_fq_recent` ASC LIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "recent_origin_no_rollup"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-01T00:00:00.000",
+    "1000000"
+   ],
+   [
+    "2024-11-01T00:00:00.000",
+    "10000001"
+   ],
+   [
+    "2025-02-01T00:00:00.000",
+    "1110"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "10000"
+   ],
+   [
+    "2025-08-01T00:00:00.000",
+    "100000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.ff_by_month"
+  ],
+  "generated": "SELECT DATE_BIN(INTERVAL '3 MONTH', to_timestamp(`ff__ts_month`), to_timestamp('2025-02-01T00:00:00.000')) `ff__ts_fq_recent`, sum(`ff__rev`) `ff__rev` FROM dev_pre_aggregations.ff_by_month AS `ff__by_month`  GROUP BY 1 ORDER BY 1 ASC LIMIT 10000 PARAMS []",
+  "verdict": "diff",
+  "truth": null,
+  "id": "recent_origin_rollup"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-01T00:00:00.000",
+    "1000000"
+   ],
+   [
+    "2024-11-01T00:00:00.000",
+    "10000011"
+   ],
+   [
+    "2025-02-01T00:00:00.000",
+    "1100"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "10000"
+   ],
+   [
+    "2025-08-01T00:00:00.000",
+    "100000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      date_add(month,\n        FLOOR(\n          date_diff(month, toDateTime64('2000-02-01T00:00:00.000', 3, 'UTC'), toTimeZone(toDateTime64(`fn`.ts, 0), 'UTC')) /\n          date_diff(month, fromUnixTimestamp(0), fromUnixTimestamp(0) + INTERVAL 3 MONTH)\n        ) * date_diff(month, fromUnixTimestamp(0), fromUnixTimestamp(0) + INTERVAL 3 MONTH),\n        toDateTime64('2000-02-01T00:00:00.000', 3, 'UTC')\n    ) `fn__ts_fq_old`, sum(`fn`.amt) `fn__rev`\n    FROM\n      audit.ft AS `fn`  GROUP BY `fn__ts_fq_old` ORDER BY `fn__ts_fq_old` ASC LIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "old_origin_no_rollup"
+ },
+ {
+  "rows": [
+   [
+    "2025-02-01T00:00:00.000",
+    "1100"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "10000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      date_add(month,\n        FLOOR(\n          date_diff(month, toDateTime64('2025-02-01T00:00:00.000', 3, 'UTC'), toTimeZone(toDateTime64(`fn`.ts, 0), 'UTC')) /\n          date_diff(month, fromUnixTimestamp(0), fromUnixTimestamp(0) + INTERVAL 3 MONTH)\n        ) * date_diff(month, fromUnixTimestamp(0), fromUnixTimestamp(0) + INTERVAL 3 MONTH),\n        toDateTime64('2025-02-01T00:00:00.000', 3, 'UTC')\n    ) `fn__ts_fq_recent`, sum(`fn`.amt) `fn__rev`\n    FROM\n      audit.ft AS `fn`  WHERE (`fn`.ts >= parseDateTimeBestEffort(?) AND `fn`.ts <= parseDateTimeBestEffort(?)) GROUP BY `fn__ts_fq_recent` ORDER BY `fn__ts_fq_recent` ASC LIMIT 10000 PARAMS [\"2025-02-01T00:00:00.000Z\", \"2025-07-31T23:59:59.999Z\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "recent_origin_near_rows_no_rollup"
+ },
+ {
+  "rows": [
+   [
+    "2024-11-01T00:00:00.000",
+    "10000001"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      date_add(month,\n        FLOOR(\n          date_diff(month, toDateTime64('2025-02-01T00:00:00.000', 3, 'UTC'), toTimeZone(toDateTime64(`fn`.ts, 0), 'UTC')) /\n          date_diff(month, fromUnixTimestamp(0), fromUnixTimestamp(0) + INTERVAL 3 MONTH)\n        ) * date_diff(month, fromUnixTimestamp(0), fromUnixTimestamp(0) + INTERVAL 3 MONTH),\n        toDateTime64('2025-02-01T00:00:00.000', 3, 'UTC')\n    ) `fn__ts_fq_recent`, sum(`fn`.amt) `fn__rev`\n    FROM\n      audit.ft AS `fn`  WHERE (`fn`.ts >= parseDateTimeBestEffort(?) AND `fn`.ts <= parseDateTimeBestEffort(?)) GROUP BY `fn__ts_fq_recent` ORDER BY `fn__ts_fq_recent` ASC LIMIT 10000 PARAMS [\"2024-11-01T00:00:00.000Z\", \"2024-11-30T23:59:59.999Z\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "recent_origin_one_interval_before_no_rollup"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-01T00:00:00.000",
+    "1000000"
+   ],
+   [
+    "2024-11-01T00:00:00.000",
+    "10000011"
+   ],
+   [
+    "2025-02-01T00:00:00.000",
+    "1100"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "10000"
+   ],
+   [
+    "2025-08-01T00:00:00.000",
+    "100000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.ff_by_month"
+  ],
+  "generated": "SELECT DATE_BIN(INTERVAL '3 MONTH', to_timestamp(`ff__ts_month`), to_timestamp('2000-02-01T00:00:00.000')) `ff__ts_fq_old`, sum(`ff__rev`) `ff__rev` FROM dev_pre_aggregations.ff_by_month AS `ff__by_month`  GROUP BY 1 ORDER BY 1 ASC LIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "old_origin_rollup"
+ },
+ {
+  "rows": [
+   [
+    "2025-02-01T00:00:00.000",
+    "1100"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "10000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.ff_by_month"
+  ],
+  "generated": "SELECT DATE_BIN(INTERVAL '3 MONTH', to_timestamp(`ff__ts_month`), to_timestamp('2025-02-01T00:00:00.000')) `ff__ts_fq_recent`, sum(`ff__rev`) `ff__rev` FROM dev_pre_aggregations.ff_by_month AS `ff__by_month`  WHERE (`ff__ts_month` >= to_timestamp(?) AND `ff__ts_month` <= to_timestamp(?)) GROUP BY 1 ORDER BY 1 ASC LIMIT 10000 PARAMS [\"2025-02-01T00:00:00.000\", \"2025-07-31T23:59:59.999\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "recent_origin_after_origin_only"
+ },
+ {
+  "rows": [
+   [
+    "2025-02-01T00:00:00.000",
+    "10"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.ff_by_month"
+  ],
+  "generated": "SELECT DATE_BIN(INTERVAL '3 MONTH', to_timestamp(`ff__ts_month`), to_timestamp('2025-02-01T00:00:00.000')) `ff__ts_fq_recent`, sum(`ff__rev`) `ff__rev` FROM dev_pre_aggregations.ff_by_month AS `ff__by_month`  WHERE (`ff__ts_month` >= to_timestamp(?) AND `ff__ts_month` <= to_timestamp(?)) GROUP BY 1 ORDER BY 1 ASC LIMIT 10000 PARAMS [\"2025-01-01T00:00:00.000\", \"2025-01-31T23:59:59.999\"]",
+  "verdict": "diff",
+  "truth": null,
+  "id": "recent_origin_one_row_before"
+ },
+ {
+  "rows": [
+   [
+    "2024-11-01T00:00:00.000",
+    "10000001"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.ff_by_month"
+  ],
+  "generated": "SELECT DATE_BIN(INTERVAL '3 MONTH', to_timestamp(`ff__ts_month`), to_timestamp('2025-02-01T00:00:00.000')) `ff__ts_fq_recent`, sum(`ff__rev`) `ff__rev` FROM dev_pre_aggregations.ff_by_month AS `ff__by_month`  WHERE (`ff__ts_month` >= to_timestamp(?) AND `ff__ts_month` <= to_timestamp(?)) GROUP BY 1 ORDER BY 1 ASC LIMIT 10000 PARAMS [\"2024-11-01T00:00:00.000\", \"2024-11-30T23:59:59.999\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "recent_origin_on_bin_start"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-01T00:00:00.000",
+    "1000000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.ff_by_month"
+  ],
+  "generated": "SELECT DATE_BIN(INTERVAL '3 MONTH', to_timestamp(`ff__ts_month`), to_timestamp('2025-02-01T00:00:00.000')) `ff__ts_fq_recent`, sum(`ff__rev`) `ff__rev` FROM dev_pre_aggregations.ff_by_month AS `ff__by_month`  WHERE (`ff__ts_month` >= to_timestamp(?) AND `ff__ts_month` <= to_timestamp(?)) GROUP BY 1 ORDER BY 1 ASC LIMIT 10000 PARAMS [\"2024-02-01T00:00:00.000\", \"2024-02-29T23:59:59.999\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "leap_day"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-01T00:00:00.000",
+    "1000000"
+   ],
+   [
+    "2024-11-01T00:00:00.000",
+    "10000001"
+   ],
+   [
+    "2025-01-01T00:00:00.000",
+    "10"
+   ],
+   [
+    "2025-02-01T00:00:00.000",
+    "100"
+   ],
+   [
+    "2025-04-01T00:00:00.000",
+    "1000"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "10000"
+   ],
+   [
+    "2025-08-01T00:00:00.000",
+    "100000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      toDateTime64(toStartOfMonth(toTimeZone(toDateTime64(`fn`.ts, 0), 'UTC'), 'UTC'), 0, 'UTC') `fn__ts_mon_recent`, sum(`fn`.amt) `fn__rev`\n    FROM\n      audit.ft AS `fn`  GROUP BY `fn__ts_mon_recent` ORDER BY `fn__ts_mon_recent` ASC LIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "month_interval_no_rollup"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-01T00:00:00.000",
+    "1000000"
+   ],
+   [
+    "2024-11-01T00:00:00.000",
+    "10000001"
+   ],
+   [
+    "2025-01-01T00:00:00.000",
+    "10"
+   ],
+   [
+    "2025-02-01T00:00:00.000",
+    "100"
+   ],
+   [
+    "2025-04-01T00:00:00.000",
+    "1000"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "10000"
+   ],
+   [
+    "2025-08-01T00:00:00.000",
+    "100000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.ff_by_month"
+  ],
+  "generated": "SELECT date_trunc('month', `ff__ts_month`) `ff__ts_mon_recent`, sum(`ff__rev`) `ff__rev` FROM dev_pre_aggregations.ff_by_month AS `ff__by_month`  GROUP BY 1 ORDER BY 1 ASC LIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "month_interval_rollup"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-26T00:00:00.000",
+    "1000000"
+   ],
+   [
+    "2024-10-28T00:00:00.000",
+    "10000000"
+   ],
+   [
+    "2024-11-11T00:00:00.000",
+    "1"
+   ],
+   [
+    "2025-01-27T00:00:00.000",
+    "110"
+   ],
+   [
+    "2025-04-28T00:00:00.000",
+    "11000"
+   ],
+   [
+    "2025-08-11T00:00:00.000",
+    "100000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      date_add(day,\n        FLOOR(\n          date_diff(day, toDateTime64('2025-01-06T00:00:00.000', 3, 'UTC'), toTimeZone(toDateTime64(`fn`.ts, 0), 'UTC')) /\n          date_diff(day, fromUnixTimestamp(0), fromUnixTimestamp(0) + INTERVAL 7 DAY)\n        ) * date_diff(day, fromUnixTimestamp(0), fromUnixTimestamp(0) + INTERVAL 7 DAY),\n        toDateTime64('2025-01-06T00:00:00.000', 3, 'UTC')\n    ) `fn__ts_wk_recent`, sum(`fn`.amt) `fn__rev`\n    FROM\n      audit.ft AS `fn`  GROUP BY `fn__ts_wk_recent` ORDER BY `fn__ts_wk_recent` ASC LIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "days_no_rollup"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-26T00:00:00.000",
+    "1000000"
+   ],
+   [
+    "2024-10-28T00:00:00.000",
+    "10000000"
+   ],
+   [
+    "2024-11-11T00:00:00.000",
+    "1"
+   ],
+   [
+    "2025-01-27T00:00:00.000",
+    "110"
+   ],
+   [
+    "2025-04-28T00:00:00.000",
+    "11000"
+   ],
+   [
+    "2025-08-11T00:00:00.000",
+    "100000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.ff_by_day"
+  ],
+  "generated": "SELECT DATE_BIN(INTERVAL '7 DAY', to_timestamp(`ff__ts_day`), to_timestamp('2025-01-06T00:00:00.000')) `ff__ts_wk_recent`, sum(`ff__rev`) `ff__rev` FROM dev_pre_aggregations.ff_by_day AS `ff__by_day`  GROUP BY 1 ORDER BY 1 ASC LIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "days_rollup_origin_inside"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-26T00:00:00.000",
+    "1000000"
+   ],
+   [
+    "2024-10-28T00:00:00.000",
+    "10000000"
+   ],
+   [
+    "2024-11-11T00:00:00.000",
+    "1"
+   ],
+   [
+    "2025-01-27T00:00:00.000",
+    "110"
+   ],
+   [
+    "2025-04-28T00:00:00.000",
+    "11000"
+   ],
+   [
+    "2025-08-11T00:00:00.000",
+    "100000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.ff_by_day"
+  ],
+  "generated": "SELECT DATE_BIN(INTERVAL '7 DAY', to_timestamp(`ff__ts_day`), to_timestamp('2025-12-29T00:00:00.000')) `ff__ts_wk_future`, sum(`ff__rev`) `ff__rev` FROM dev_pre_aggregations.ff_by_day AS `ff__by_day`  GROUP BY 1 ORDER BY 1 ASC LIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "days_rollup_origin_after"
+ },
+ {
+  "rows": [
+   [
+    "2024-11-01T00:00:00.000",
+    "110"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      date_add(month,\n        FLOOR(\n          date_diff(month, toDateTime64('2000-02-01T00:00:00.000', 3, 'America/New_York'), toTimeZone(toDateTime64(`ff`.ts, 0), 'America/New_York')) /\n          date_diff(month, fromUnixTimestamp(0), fromUnixTimestamp(0) + INTERVAL 3 MONTH)\n        ) * date_diff(month, fromUnixTimestamp(0), fromUnixTimestamp(0) + INTERVAL 3 MONTH),\n        toDateTime64('2000-02-01T00:00:00.000', 3, 'America/New_York')\n    ) `ff__ts_fq_old`, sum(`ff`.amt) `ff__rev`\n    FROM\n      audit.ft AS `ff`  WHERE (`ff`.ts >= parseDateTimeBestEffort(?) AND `ff`.ts <= parseDateTimeBestEffort(?)) GROUP BY `ff__ts_fq_old` ORDER BY `ff__ts_fq_old` ASC LIMIT 10000 PARAMS [\"2025-01-01T05:00:00.000Z\", \"2025-02-01T04:59:59.999Z\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "rest_time_zone"
+ }
+]

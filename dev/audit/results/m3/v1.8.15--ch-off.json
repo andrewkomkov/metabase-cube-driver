@@ -1,0 +1,264 @@
+[
+ {
+  "rows": [
+   [
+    "0"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"o.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"o.st\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"nope\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"o.n\"],\"dimensions\":[],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"o.st\",\"operator\":\"equals\",\"values\":[\"nope\"]}]}\n",
+  "verdict": "match",
+  "truth": "0",
+  "id": "plain_no_rollup_sql"
+ },
+ {
+  "rows": [
+   [
+    "0"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      count(`o`.id) `o__n`\n    FROM\n      audit.ord AS `o`  WHERE (`o`.st = ?) LIMIT 10000 PARAMS [\"nope\"]",
+  "verdict": "match",
+  "truth": "0",
+  "id": "plain_no_rollup_rest"
+ },
+ {
+  "rows": [
+   [
+    null
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"or_ext.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"or_ext.st\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"nope\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"or_ext.n\"],\"dimensions\":[],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"or_ext.st\",\"operator\":\"equals\",\"values\":[\"nope\"]}]}\n",
+  "verdict": "diff",
+  "truth": "0",
+  "id": "ext_rollup_sql"
+ },
+ {
+  "rows": [
+   [
+    "0"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `or_ext`.`count_uint8_1__` `c` \nFROM (\n  SELECT\n        COUNT(*) `count_uint8_1__`\n      FROM\n        audit.ord AS `or_ext`  WHERE (`or_ext`.st = ?)\n) AS `or_ext`\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "ext_rollup_count_star"
+ },
+ {
+  "rows": [
+   [
+    null
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.or_ext_by_st"
+  ],
+  "generated": "SELECT sum(`or_ext__n`) `or_ext__n` FROM dev_pre_aggregations.or_ext_by_st AS `or_ext__by_st`  WHERE (`or_ext__st` = ?) LIMIT 10000 PARAMS [\"nope\"]",
+  "verdict": "diff",
+  "truth": "0",
+  "id": "ext_rollup_rest"
+ },
+ {
+  "rows": [
+   [
+    "0"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.or_db_by_st"
+  ],
+  "generated": "SELECT sum(`or_db__n`) `or_db__n` FROM dev_pre_aggregations.or_db_by_st AS `or_db__by_st`  WHERE (`or_db__st` = ?) LIMIT 10000 PARAMS [\"nope\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "db_rollup_rest"
+ },
+ {
+  "rows": [
+   [
+    "0"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"or_db.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"or_db.st\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"nope\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"or_db.n\"],\"dimensions\":[],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"or_db.st\",\"operator\":\"equals\",\"values\":[\"nope\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "db_rollup_sql"
+ },
+ {
+  "rows": [
+   [
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.or_ext_by_st"
+  ],
+  "generated": "SELECT sum(`or_ext__n`) `or_ext__n` FROM dev_pre_aggregations.or_ext_by_st AS `or_ext__by_st`  WHERE (`or_ext__st` = ?) LIMIT 10000 PARAMS [\"b\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "ext_rollup_one_match"
+ },
+ {
+  "rows": [],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.or_ext_by_st"
+  ],
+  "generated": "SELECT `or_ext__st` `or_ext__st`, sum(`or_ext__n`) `or_ext__n` FROM dev_pre_aggregations.or_ext_by_st AS `or_ext__by_st`  WHERE (`or_ext__st` = ?) GROUP BY 1 ORDER BY 2 DESC LIMIT 10000 PARAMS [\"nope\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "ext_rollup_group_by"
+ },
+ {
+  "rows": [
+   [
+    null
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.or_ext_by_st"
+  ],
+  "generated": "SELECT sum(`or_ext__n`) `or_ext__n` FROM dev_pre_aggregations.or_ext_by_st AS `or_ext__by_st`  WHERE (`or_ext__ts_day` >= to_timestamp(?) AND `or_ext__ts_day` <= to_timestamp(?)) LIMIT 10000 PARAMS [\"2030-01-01T00:00:00.000\", \"2030-01-31T23:59:59.999\"]",
+  "verdict": "diff",
+  "truth": null,
+  "id": "ext_rollup_date_range_empty"
+ },
+ {
+  "rows": [
+   [
+    null
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.or_ext_by_st"
+  ],
+  "generated": "SELECT sum(`or_ext__n`) `or_ext__n` FROM dev_pre_aggregations.or_ext_by_st AS `or_ext__by_st`  WHERE (`or_ext__st` IS NULL) LIMIT 10000 PARAMS []",
+  "verdict": "diff",
+  "truth": null,
+  "id": "ext_rollup_null_filter"
+ },
+ {
+  "rows": [
+   [
+    "0"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nProjection: coalesce(#measure(or_ext.n), Int64(0)) AS c\n  CubeScan: request={\n  \"measures\": [\n    \"or_ext.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"or_ext.st\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"nope\"\n      ]\n    }\n  ]\n}\nphysical_plan\nProjectionExec: expr=[coalesce(measure(or_ext.n)@0, 0) as c]\n  CubeScanExecutionPlan, Request:\n{\"measures\":[\"or_ext.n\"],\"dimensions\":[],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"or_ext.st\",\"operator\":\"equals\",\"values\":[\"nope\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "ext_rollup_coalesce"
+ },
+ {
+  "rows": [
+   [
+    null
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.or_ext_by_st"
+  ],
+  "generated": "SELECT sum(`or_ext__total`) `or_ext__total` FROM dev_pre_aggregations.or_ext_by_st AS `or_ext__by_st`  WHERE (`or_ext__st` = ?) LIMIT 10000 PARAMS [\"nope\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "ext_rollup_sum_is_null"
+ },
+ {
+  "rows": [
+   [
+    "0"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      count(`or_ext`.id) `or_ext__n`\n    FROM\n      audit.ord AS `or_ext`  WHERE (`or_ext`.id = toFloat64(?)) LIMIT 10000 PARAMS [\"99\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "ext_rollup_miss_dim"
+ },
+ {
+  "rows": [
+   [
+    "0"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      count(distinct `or_ext`.st) `or_ext__dist`\n    FROM\n      audit.ord AS `or_ext`  WHERE (`or_ext`.st = ?) LIMIT 10000 PARAMS [\"nope\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "ext_rollup_miss_distinct"
+ },
+ {
+  "rows": [
+   [
+    null
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.oe_ext_by_st"
+  ],
+  "generated": "SELECT sum(`oe_ext__n`) `oe_ext__n` FROM dev_pre_aggregations.oe_ext_by_st AS `oe_ext__by_st`  LIMIT 10000 PARAMS []",
+  "verdict": "diff",
+  "truth": null,
+  "id": "empty_table_rollup"
+ },
+ {
+  "rows": [
+   [
+    null
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"oe_ext.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"oe_ext.n\"],\"dimensions\":[],\"segments\":[],\"order\":[]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "empty_table_rollup_sql"
+ }
+]

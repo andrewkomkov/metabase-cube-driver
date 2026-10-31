@@ -1,0 +1,11 @@
+[
+ {
+  "rows": null,
+  "error": "HTTP 500 TypeError: Cannot read properties of undefined (reading 'apply')",
+  "shape": "rest",
+  "used": null,
+  "verdict": "diff",
+  "truth": "a\t30\nb\t40",
+  "id": "db_index"
+ }
+]

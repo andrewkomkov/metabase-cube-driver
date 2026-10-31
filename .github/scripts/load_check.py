@@ -6,13 +6,14 @@ load on first use, so this check also validates a real connection to the demo Cu
 the Metabase setup. A test that needs a fresh setup must use a fresh Metabase.
 """
 import json
+import os
 import secrets
 import sys
 import time
 import urllib.error
 import urllib.request
 
-BASE = "http://127.0.0.1:3300"
+BASE = os.environ.get("METABASE_URL", "http://127.0.0.1:3300").rstrip("/")
 DEADLINE_SECONDS = 300
 # Addresses from the Metabase container. These are the throwaway demo values from dev/docker-compose.yml.
 CUBE_DETAILS = {
@@ -22,7 +23,7 @@ CUBE_DETAILS = {
     "user": "cube",
     "password": "cube-dev-only",
     "cube-rest-url": "http://cube:4000",
-    "cube-api-secret": "cube-dev-only-secret-0123456789abcdef",
+    "cube-api-secret-value": "cube-dev-only-secret-0123456789abcdef",
     "ssl": False,
 }
 

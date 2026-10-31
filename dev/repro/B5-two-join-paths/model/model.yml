@@ -1,0 +1,44 @@
+cubes:
+  - name: orders
+    sql_table: repro.orders
+    joins:
+      - { name: users, relationship: many_to_one, sql: "{CUBE}.user_id = {users.id}" }
+      - { name: shipments, relationship: one_to_one, sql: "{CUBE}.id = {shipments.order_id}" }
+      - { name: regions, alias: billing_region, relationship: many_to_one, sql: "{CUBE}.bill_state = {billing_region.state}" }
+      - { name: regions, alias: ship_region, relationship: many_to_one, sql: "{CUBE}.ship_state = {ship_region.state}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+    measures:
+      - { name: count, type: count }
+  - name: users
+    sql_table: repro.users
+    joins:
+      - { name: regions, relationship: many_to_one, sql: "{CUBE}.state = {regions.state}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+  - name: shipments
+    sql_table: repro.shipments
+    joins:
+      - { name: regions, relationship: many_to_one, sql: "{CUBE}.state = {regions.state}" }
+    dimensions:
+      - { name: order_id, sql: order_id, type: number, primary_key: true }
+  - name: regions
+    sql_table: repro.regions
+    dimensions:
+      - { name: state, sql: state, type: string, primary_key: true, public: true }
+      - { name: region, sql: region, type: string }
+views:
+  - name: two_paths
+    cubes:
+      - { join_path: orders, includes: [count] }
+      - join_path: orders.users.regions
+        includes: [{ name: region, alias: customer_region }]
+      - join_path: orders.shipments.regions
+        includes: [{ name: region, alias: destination_region }]
+  - name: two_aliases
+    cubes:
+      - { join_path: orders, includes: [count] }
+      - join_path: orders.billing_region
+        includes: [{ name: region, alias: customer_region }]
+      - join_path: orders.ship_region
+        includes: [{ name: region, alias: destination_region }]

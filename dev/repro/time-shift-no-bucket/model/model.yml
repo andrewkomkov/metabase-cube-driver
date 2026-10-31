@@ -1,0 +1,17 @@
+cubes:
+  - name: orders
+    sql_table: repro.orders
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string }
+      - { name: amount_dim, sql: amount, type: number }
+      - { name: created_at, sql: created_at, type: time }
+    measures:
+      - { name: count, type: count }
+      - { name: revenue, sql: amount, type: sum }
+      - name: revenue_prior_month
+        multi_stage: true
+        sql: "{revenue}"
+        type: number
+        time_shift:
+          - { time_dimension: created_at, interval: 1 month, type: prior }

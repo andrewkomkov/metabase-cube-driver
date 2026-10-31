@@ -1,0 +1,13 @@
+# rolling-type-deprecated-b v1.8.15 clickhouse tesseract=off ready=True
+## meta
+HTTP 500 {"error":"Error: Compile errors:\nErrors:\norders cube: \"measures.rev_mtd_measure_type.type\" must be one of [count, number, string, boolean, time, sum, avg, min, max, countDistinct, countDistinctApprox]. \"measures.rev_mtd_measure_type.sql\" is not allowed\nPossible reasons (one of):\n\t* (measures.rev_mtd_measure_type.type = monthToDate) must be one of [count, number, string, boolean, time, sum, avg, min, max, countDistinct, countDistinctApprox]\n\t* (measures.rev_mtd_measure_type.sql = () => `amount`) is not allowed\n","stack":"Error: Compile errors:\nErrors:\norders cube: \"measures.rev_mtd_measure_type.type\" must be one of [count, number, string, boolean, time, sum, avg, min, max, countDistinct, countDistinctApprox]. \"measures.rev_mtd_measure_type.sql\" is not allowed\nPossible rea
+## rest
+$ POST /cubejs-api/v1/load {"measures": ["orders.rev_mtd_measure_type"]}
+HTTP 500 ERROR Error: Compile errors:
+Errors:
+orders cube: "measures.rev_mtd_measure_type.type" must be one of [count, number, string, boolean, time, sum, avg, min, max, countDistinct, countDistinctApprox]. "measures.rev_mtd_measure_type.sql" is not allowed
+Possible reasons (one of):
+	* (measures.rev_mtd_measure_type.type = monthToDate) must be one of [count, number, string, boolean, time, sum, avg, min, max, countDistinct, countDistinctApprox]
+	* (measures.rev_mtd_measure_type.sql = () => `amount`) is not allowed
+
+SQL ERROR: {"error":"Error: Compile errors:\nErrors:\norders cube: \"measures.rev_mtd_measure_type.type\" must be one of [count, number, string, boolean, time, sum, avg, min, max, countDistinct, countDistinctApprox]. \"measures.rev_mtd_measure_type.sql\" is not allowed\nPossible reasons (one of):\n\t* (measures.rev_mtd_measure_type.type = monthToDate) must be one of [count, number, string, boolean, time, sum, avg, min, max, countDistinct, countDistinctApprox]\n\t* (measures.rev_mtd_measure_type.sql = () => `amount`) is not allowed\n","stack":"Error: Compile errors:\nErrors:\norders cube: \"measures.rev_m

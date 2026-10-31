@@ -1,0 +1,46 @@
+{
+ "steps": [
+  {
+   "id": "meta",
+   "meta": "orders"
+  },
+  {
+   "id": "rest_mtd_type",
+   "rest": {
+    "measures": [
+     "orders.rev_mtd_type"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "month",
+      "dateRange": [
+       "2025-04-01",
+       "2025-04-30"
+      ]
+     }
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_to_date",
+   "rest": {
+    "measures": [
+     "orders.rev_mtd_new"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "month",
+      "dateRange": [
+       "2025-04-01",
+       "2025-04-30"
+      ]
+     }
+    ]
+   },
+   "rest_sql": true
+  }
+ ]
+}
