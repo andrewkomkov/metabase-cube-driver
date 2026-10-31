@@ -648,7 +648,7 @@ cubes:
       - { name: created_at, sql: created_at, type: time, description: Time of the order. }
     measures:
       - { name: revenue, type: sum, sql: amount, description: In the rollup that reads the original_sql table. }
-      - { name: orders, type: count, description: In no rollup, so it reads the original_sql table. }
+      - { name: orders, type: count, description: In no rollup. It reads the original_sql table. }
     pre_aggregations:
       - name: main
         measures: [revenue]
