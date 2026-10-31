@@ -6741,3 +6741,9 @@
   status: pass
   status_stock: pass
   check: preagg.refresh.cron_key_keeps_the_old_number_inside_its_time
+- id: preagg.metabase.time_zone_relative_range_hit
+  area: cube.pre_aggregations
+  title: "preagg metabase time zone relative range hit"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.time_zone_relative_range_hit

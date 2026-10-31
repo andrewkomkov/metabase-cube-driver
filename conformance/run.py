@@ -7645,6 +7645,11 @@ PM("preagg.metabase.time_zone_range_without_a_bucket_hit", PA_PAT, "SELECT sum(a
    agg=[PA_PR], where=[["between", PA_PD, "2025-03-05", "2025-03-09"]])
 PM("preagg.metabase.time_zone_range_next_to_a_filter_hit", PA_PAT, "SELECT sum(amount) FROM orders WHERE status = 'shipped' AND %s BETWEEN '2025-03-05' AND '2025-03-09'" % PA_NY_DAY, PA_HIT, setting=PA_ZONE,
    agg=[PA_PR], where=[["=", PA_PS, "shipped"], ["between", PA_PD, "2025-03-05", "2025-03-09"]])
+# A relative filter has two bounds. They stay in the zone of the session, also in a zone with a fraction of an hour.
+PA_KTM_DAY = "toDate(toTimeZone(created_at, 'Asia/Kathmandu'))"
+PA_KTM_TODAY = "toDate(now(), 'Asia/Kathmandu')"
+PM("preagg.metabase.time_zone_relative_range_hit", PA_PAT, "SELECT sum(amount) FROM orders WHERE %s >= %s - %d AND %s < %s" % (PA_KTM_DAY, PA_KTM_TODAY, PAST_DAYS, PA_KTM_DAY, PA_KTM_TODAY), PA_HIT,
+   setting={"report-timezone": "Asia/Kathmandu"}, agg=[PA_PR], where=[["time-interval", PA_PD, -PAST_DAYS, "day"]])
 # One bound is no date range. Cube reads it as UTC, so the driver writes it in UTC, and the rollup cannot read it.
 PM("preagg.metabase.time_zone_one_bound_miss", PA_PAT, "SELECT sum(amount) FROM orders WHERE created_at >= toDateTime('2025-03-05 00:00:00', '%s')" % PA_NY, [], setting=PA_ZONE,
    agg=[PA_PR], where=[[">=", PA_PD, "2025-03-05T00:00:00"]])
