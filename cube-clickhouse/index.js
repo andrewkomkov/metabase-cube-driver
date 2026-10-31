@@ -36,8 +36,9 @@ class ClickHouseFixes extends ClickHouseQuery {
 
   // m5: no pull request yet, branch fix/clickhouse-original-sql-no-index, see docs/cube-audit.md#m5.
   // An original_sql table has the columns of the cube SQL, and an index names members, so a sort key or an index on it fails.
+  // A rollup with no index: no pull request yet. Stock Cube stops each query on it, but the docs give this form. See docs/cube-audit.md#rollup-no-index.
   preAggregationLoadSql(cube, preAggregation, tableName) {
-    if (preAggregation.type === 'originalSql') {
+    if (preAggregation.type === 'originalSql' || !preAggregation.indexes) {
       const [sql, params] = this.preAggregationSql(cube, preAggregation);
       return [`CREATE TABLE ${tableName} ENGINE = MergeTree() ORDER BY tuple() ${this.asSyntaxTable} ${sql}`, params];
     }
