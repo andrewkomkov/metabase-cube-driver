@@ -7461,21 +7461,21 @@ PA("preagg.non_additive.mixed_with_additive_miss", pa_query(["pa_types.revenue",
 
 
 PA_APPROX_MODEL = """cubes:
-  - pa_loop_name: pa_approx
+  - name: pa_approx
     sql_table: shop.orders
     refresh_key: { every: 1 hour }
     dimensions:
-      - { pa_loop_name: id, sql: id, type: number, primary_key: true, public: true }
-      - { pa_loop_name: status, sql: status, type: string }
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string }
     measures:
-      - { pa_loop_name: buyers_approx, type: count_distinct_approx, sql: user_id }
-      - { pa_loop_name: orders, type: count }
+      - { name: buyers_approx, type: count_distinct_approx, sql: user_id }
+      - { name: orders, type: count }
     pre_aggregations:
-      - pa_loop_name: approx
+      - name: approx
         measures: [buyers_approx]
         dimensions: [status]
         indexes:
-          - { pa_loop_name: idx, columns: [status] }
+          - { name: idx, columns: [status] }
 """
 
 
@@ -7558,11 +7558,11 @@ PA("preagg.shape.filter_on_a_rollup_dimension_hit",
 PA("preagg.shape.filter_on_another_dimension_miss",
    pa_query(PA_REV, [], "month", filters=[{"member": "pa_types.product_id", "operator": "equals", "values": ["4"]}]),
    "SELECT toStartOfMonth(created_at), sum(amount) FROM orders WHERE product_id = 4 GROUP BY 1", [])
-PA("preagg.shape.segment_in_the_rollup_hit", pa_query(["pa_types.peak_paid"], ["pa_types.status"], segments=["pa_types.paid"]),
+PA("preagg.shape.segment_in_the_rollup_hit", pa_query(["pa_types.peak_paid"], ["pa_types.status"], segments=["pa_types.paid_orders"]),
    "SELECT status, max(amount) FROM orders WHERE %s GROUP BY 1" % PA_PAID, ["pa_types_paid_segment"])
 # A rollup keeps a segment as a column, so a query with no segment reads the same rollup and all rows.
 PA("preagg.shape.segment_left_out_hit", pa_query(["pa_types.peak_paid"], ["pa_types.status"]), "SELECT status, max(amount) FROM orders GROUP BY 1", ["pa_types_paid_segment"])
-PA("preagg.shape.segment_not_in_the_rollup_miss", pa_query(PA_REV, ["pa_types.status"], segments=["pa_types.paid"]),
+PA("preagg.shape.segment_not_in_the_rollup_miss", pa_query(PA_REV, ["pa_types.status"], segments=["pa_types.paid_orders"]),
    "SELECT status, sum(amount) FROM orders WHERE %s GROUP BY 1" % PA_PAID, [])
 PA("preagg.shape.view_hit", pa_query(["pa_view.revenue"], ["pa_view.status"], "month"), "SELECT status, toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1, 2", PA_HIT)
 PA("preagg.shape.view_finer_miss", pa_query(["pa_view.revenue"], [], "hour"), "SELECT toStartOfHour(created_at), sum(amount) FROM orders GROUP BY 1", [])
@@ -7742,7 +7742,7 @@ def pa_ch_statements(like):
 
 
 def pa_external_false(ctx, res):
-    tables = ch("SELECT pa_loop_name FROM system.tables WHERE database = 'dev_pre_aggregations' AND pa_loop_name LIKE 'pa_options_internal%'")
+    tables = ch("SELECT name FROM system.tables WHERE database = 'dev_pre_aggregations' AND name LIKE 'pa_options_internal%'")
     if not tables:
         raise Fail("no table of the rollup in ClickHouse")
 
@@ -7799,17 +7799,17 @@ PA("preagg.option.two_time_dimensions_hit", pa_query([PA_OPT + "rev_two_times"],
 
 
 PA_NO_INDEX_MODEL = """cubes:
-  - pa_loop_name: pa_no_index
+  - name: pa_no_index
     sql_table: shop.orders
     refresh_key: { every: 1 hour }
     dimensions:
-      - { pa_loop_name: id, sql: id, type: number, primary_key: true, public: true }
-      - { pa_loop_name: status, sql: status, type: string }
-      - { pa_loop_name: created_at, sql: created_at, type: time }
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string }
+      - { name: created_at, sql: created_at, type: time }
     measures:
-      - { pa_loop_name: revenue, type: sum, sql: amount }
+      - { name: revenue, type: sum, sql: amount }
     pre_aggregations:
-      - { pa_loop_name: plain, measures: [revenue], dimensions: [status], time_dimension: created_at, granularity: month }
+      - { name: plain, measures: [revenue], dimensions: [status], time_dimension: created_at, granularity: month }
 """
 
 
@@ -7876,22 +7876,22 @@ def _(ctx):
 
 
 PA_ORIGINAL_EXTERNAL_MODEL = """cubes:
-  - pa_loop_name: pa_original_external
+  - name: pa_original_external
     sql: "SELECT id, status, amount FROM shop.orders"
     refresh_key: { every: 1 hour }
     dimensions:
-      - { pa_loop_name: id, sql: id, type: number, primary_key: true, public: true }
-      - { pa_loop_name: status, sql: status, type: string }
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string }
     measures:
-      - { pa_loop_name: revenue, type: sum, sql: amount }
+      - { name: revenue, type: sum, sql: amount }
     pre_aggregations:
-      - pa_loop_name: base
+      - name: base
         type: original_sql
         external: true
 %s
 """
 PA_INDEX_LINES = """        indexes:
-          - { pa_loop_name: idx, columns: [status] }"""
+          - { name: idx, columns: [status] }"""
 
 
 def pa_original_external(index):

@@ -431,7 +431,7 @@ cubes:
       - { name: product_id, sql: product_id, type: number, description: A dimension that no rollup holds. }
       - { name: created_at, sql: created_at, type: time, description: Time of the order. }
     segments:
-      - { name: paid, sql: "{CUBE}.status IN ('completed','shipped')", description: Completed or shipped orders. }
+      - { name: paid_orders, sql: "{CUBE}.status IN ('completed','shipped')", description: Completed or shipped orders. }
     measures:
       - { name: count, type: count, description: Additive. }
       - { name: revenue, type: sum, sql: amount, description: Additive. }
@@ -490,7 +490,7 @@ cubes:
           - { name: idx, columns: [pa_customers.state] }
       - name: paid_segment
         measures: [peak_paid]
-        segments: [paid]
+        segments: [paid_orders]
         dimensions: [status]
         indexes:
           - { name: idx, columns: [status] }
