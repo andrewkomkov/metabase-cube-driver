@@ -6735,3 +6735,9 @@
   check: preagg.type.original_sql_in_cube_store_with_an_index_stops
   cap: partial
   reason: "An index on an original_sql table in Cube Store names a column that the table does not have, so Cube stops with an error on each Cube. See cube-js/cube#7420. No number is wrong. The docs advise against this form."
+- id: preagg.refresh.cron_key_keeps_the_old_number_inside_its_time
+  area: cube.pre_aggregations
+  title: "preagg refresh cron key keeps the old number inside its time"
+  status: todo
+  status_stock: todo
+  check: preagg.refresh.cron_key_keeps_the_old_number_inside_its_time

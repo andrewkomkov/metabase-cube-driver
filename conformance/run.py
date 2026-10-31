@@ -7313,12 +7313,12 @@ def _(ctx):
 # Each check names the exact set of rollups. A hit on a wrong rollup and a read from ClickHouse both fail, because usedPreAggregations is exact.
 
 PA_PAID = "status IN ('completed', 'shipped')"
-PAT = "pa_types"
-PAG = "pa_grain"
-PAP = "pa_partitions"
-PAO = "pa_options"
-PAF = "pa_fresh"
-NY = "America/New_York"
+PA_PAT = "pa_types"
+PA_PAG = "pa_grain"
+PA_PAP = "pa_partitions"
+PA_PAO = "pa_options"
+PA_PAF = "pa_fresh"
+PA_NY = "America/New_York"
 PA_CHECK_IDS = []
 
 
@@ -7438,21 +7438,21 @@ PA_NON_ADDITIVE = {
     "last_at": "max(created_at)",
     "any_completed": "max(status = 'completed')",
 }
-for name, expr in PA_ADDITIVE.items():
-    m = ["%s.%s" % (PAT, name)]
-    hit = ["pa_types_additive_day"]
-    PA("preagg.additive.%s.same_grain_hit" % name, pa_query(m, ["pa_types.status"], "day"), "SELECT status, toDate(created_at), %s FROM orders GROUP BY 1, 2" % expr, hit)
-    PA("preagg.additive.%s.coarser_time_hit" % name, pa_query(m, ["pa_types.status"], "month"), "SELECT status, toStartOfMonth(created_at), %s FROM orders GROUP BY 1, 2" % expr, hit)
-    PA("preagg.additive.%s.coarser_dimension_hit" % name, pa_query(m, [], "day"), "SELECT toDate(created_at), %s FROM orders GROUP BY 1" % expr, hit)
-    PA("preagg.additive.%s.total_hit" % name, pa_query(m), "SELECT %s FROM orders" % expr, hit)
-    PA("preagg.additive.%s.finer_miss" % name, pa_query(m, [], "hour"), "SELECT toStartOfHour(created_at), %s FROM orders GROUP BY 1" % expr, [])
-    PA("preagg.additive.%s.other_dimension_miss" % name, pa_query(m, ["pa_types.product_id"]), "SELECT product_id, %s FROM orders GROUP BY 1" % expr, [])
-for name, expr in PA_NON_ADDITIVE.items():
-    m = ["%s.%s" % (PAT, name)]
-    PA("preagg.non_additive.%s.same_grain_hit" % name, pa_query(m, ["pa_types.status"], "day"), "SELECT status, toDate(created_at), %s FROM orders GROUP BY 1, 2" % expr, ["pa_types_non_additive_day"], tol=1e-9)
-    PA("preagg.non_additive.%s.coarser_time_miss" % name, pa_query(m, ["pa_types.status"], "month"), "SELECT status, toStartOfMonth(created_at), %s FROM orders GROUP BY 1, 2" % expr, [], tol=1e-9)
-    PA("preagg.non_additive.%s.coarser_dimension_miss" % name, pa_query(m, [], "day"), "SELECT toDate(created_at), %s FROM orders GROUP BY 1" % expr, [], tol=1e-9)
-    PA("preagg.non_additive.%s.total_miss" % name, pa_query(m), "SELECT %s FROM orders" % expr, [], tol=1e-9)
+for pa_loop_name, pa_loop_expr in PA_ADDITIVE.items():
+    pa_m = ["%s.%s" % (PA_PAT, pa_loop_name)]
+    pa_hit = ["pa_types_additive_day"]
+    PA("preagg.additive.%s.same_grain_hit" % pa_loop_name, pa_query(pa_m, ["pa_types.status"], "day"), "SELECT status, toDate(created_at), %s FROM orders GROUP BY 1, 2" % pa_loop_expr, pa_hit)
+    PA("preagg.additive.%s.coarser_time_hit" % pa_loop_name, pa_query(pa_m, ["pa_types.status"], "month"), "SELECT status, toStartOfMonth(created_at), %s FROM orders GROUP BY 1, 2" % pa_loop_expr, pa_hit)
+    PA("preagg.additive.%s.coarser_dimension_hit" % pa_loop_name, pa_query(pa_m, [], "day"), "SELECT toDate(created_at), %s FROM orders GROUP BY 1" % pa_loop_expr, pa_hit)
+    PA("preagg.additive.%s.total_hit" % pa_loop_name, pa_query(pa_m), "SELECT %s FROM orders" % pa_loop_expr, pa_hit)
+    PA("preagg.additive.%s.finer_miss" % pa_loop_name, pa_query(pa_m, [], "hour"), "SELECT toStartOfHour(created_at), %s FROM orders GROUP BY 1" % pa_loop_expr, [])
+    PA("preagg.additive.%s.other_dimension_miss" % pa_loop_name, pa_query(pa_m, ["pa_types.product_id"]), "SELECT product_id, %s FROM orders GROUP BY 1" % pa_loop_expr, [])
+for pa_loop_name, pa_loop_expr in PA_NON_ADDITIVE.items():
+    pa_m = ["%s.%s" % (PA_PAT, pa_loop_name)]
+    PA("preagg.non_additive.%s.same_grain_hit" % pa_loop_name, pa_query(pa_m, ["pa_types.status"], "day"), "SELECT status, toDate(created_at), %s FROM orders GROUP BY 1, 2" % pa_loop_expr, ["pa_types_non_additive_day"], tol=1e-9)
+    PA("preagg.non_additive.%s.coarser_time_miss" % pa_loop_name, pa_query(pa_m, ["pa_types.status"], "month"), "SELECT status, toStartOfMonth(created_at), %s FROM orders GROUP BY 1, 2" % pa_loop_expr, [], tol=1e-9)
+    PA("preagg.non_additive.%s.coarser_dimension_miss" % pa_loop_name, pa_query(pa_m, [], "day"), "SELECT toDate(created_at), %s FROM orders GROUP BY 1" % pa_loop_expr, [], tol=1e-9)
+    PA("preagg.non_additive.%s.total_miss" % pa_loop_name, pa_query(pa_m), "SELECT %s FROM orders" % pa_loop_expr, [], tol=1e-9)
 
 PA("preagg.non_additive.ratio_with_a_distinct_leaf_miss", pa_query(["pa_types.per_buyer"], ["pa_types.status"], "day"),
    "SELECT status, toDate(created_at), sum(toFloat64(amount)) / nullIf(uniqExact(user_id), 0) FROM orders GROUP BY 1, 2", [])
@@ -7461,21 +7461,21 @@ PA("preagg.non_additive.mixed_with_additive_miss", pa_query(["pa_types.revenue",
 
 
 PA_APPROX_MODEL = """cubes:
-  - name: pa_approx
+  - pa_loop_name: pa_approx
     sql_table: shop.orders
     refresh_key: { every: 1 hour }
     dimensions:
-      - { name: id, sql: id, type: number, primary_key: true, public: true }
-      - { name: status, sql: status, type: string }
+      - { pa_loop_name: id, sql: id, type: number, primary_key: true, public: true }
+      - { pa_loop_name: status, sql: status, type: string }
     measures:
-      - { name: buyers_approx, type: count_distinct_approx, sql: user_id }
-      - { name: orders, type: count }
+      - { pa_loop_name: buyers_approx, type: count_distinct_approx, sql: user_id }
+      - { pa_loop_name: orders, type: count }
     pre_aggregations:
-      - name: approx
+      - pa_loop_name: approx
         measures: [buyers_approx]
         dimensions: [status]
         indexes:
-          - { name: idx, columns: [status] }
+          - { pa_loop_name: idx, columns: [status] }
 """
 
 
@@ -7542,29 +7542,29 @@ PA("preagg.multi_stage.time_shift_hit", pa_query(["pa_types.rev_prior"], [], "mo
 
 # ----- each shape of a query on one rollup
 
-REV = ["pa_types.revenue"]
-HIT = ["pa_types_additive_day"]
-PA("preagg.shape.date_range_on_month_boundary_hit", pa_query(REV, [], None, date_range=["2025-03-01", "2025-03-31"]),
-   "SELECT sum(amount) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-04-01'", HIT)
-PA("preagg.shape.date_range_on_day_boundary_hit", pa_query(REV, [], "day", date_range=["2025-03-01", "2025-03-02"]),
-   "SELECT toDate(created_at), sum(amount) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-03-03' GROUP BY 1", HIT)
-PA("preagg.shape.date_range_inside_a_bucket_miss", pa_query(REV, [], None, date_range=["2025-03-01T06:00:00", "2025-03-02T06:00:00"]),
+PA_REV = ["pa_types.revenue"]
+PA_HIT = ["pa_types_additive_day"]
+PA("preagg.shape.date_range_on_month_boundary_hit", pa_query(PA_REV, [], None, date_range=["2025-03-01", "2025-03-31"]),
+   "SELECT sum(amount) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-04-01'", PA_HIT)
+PA("preagg.shape.date_range_on_day_boundary_hit", pa_query(PA_REV, [], "day", date_range=["2025-03-01", "2025-03-02"]),
+   "SELECT toDate(created_at), sum(amount) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-03-03' GROUP BY 1", PA_HIT)
+PA("preagg.shape.date_range_inside_a_bucket_miss", pa_query(PA_REV, [], None, date_range=["2025-03-01T06:00:00", "2025-03-02T06:00:00"]),
    "SELECT sum(amount) FROM orders WHERE created_at >= '2025-03-01 06:00:00' AND created_at <= '2025-03-02 06:00:00'", [])
-PA("preagg.shape.month_bucket_with_a_day_range_hit", pa_query(REV, [], "month", date_range=["2025-03-10", "2025-04-20"]),
-   "SELECT toStartOfMonth(created_at), sum(amount) FROM orders WHERE created_at >= '2025-03-10' AND created_at < '2025-04-21' GROUP BY 1", HIT)
+PA("preagg.shape.month_bucket_with_a_day_range_hit", pa_query(PA_REV, [], "month", date_range=["2025-03-10", "2025-04-20"]),
+   "SELECT toStartOfMonth(created_at), sum(amount) FROM orders WHERE created_at >= '2025-03-10' AND created_at < '2025-04-21' GROUP BY 1", PA_HIT)
 PA("preagg.shape.filter_on_a_rollup_dimension_hit",
-   pa_query(REV, [], "month", filters=[{"member": "pa_types.status", "operator": "equals", "values": ["shipped"]}]),
-   "SELECT toStartOfMonth(created_at), sum(amount) FROM orders WHERE status = 'shipped' GROUP BY 1", HIT)
+   pa_query(PA_REV, [], "month", filters=[{"member": "pa_types.status", "operator": "equals", "values": ["shipped"]}]),
+   "SELECT toStartOfMonth(created_at), sum(amount) FROM orders WHERE status = 'shipped' GROUP BY 1", PA_HIT)
 PA("preagg.shape.filter_on_another_dimension_miss",
-   pa_query(REV, [], "month", filters=[{"member": "pa_types.product_id", "operator": "equals", "values": ["4"]}]),
+   pa_query(PA_REV, [], "month", filters=[{"member": "pa_types.product_id", "operator": "equals", "values": ["4"]}]),
    "SELECT toStartOfMonth(created_at), sum(amount) FROM orders WHERE product_id = 4 GROUP BY 1", [])
 PA("preagg.shape.segment_in_the_rollup_hit", pa_query(["pa_types.peak_paid"], ["pa_types.status"], segments=["pa_types.paid"]),
    "SELECT status, max(amount) FROM orders WHERE %s GROUP BY 1" % PA_PAID, ["pa_types_paid_segment"])
 # A rollup keeps a segment as a column, so a query with no segment reads the same rollup and all rows.
 PA("preagg.shape.segment_left_out_hit", pa_query(["pa_types.peak_paid"], ["pa_types.status"]), "SELECT status, max(amount) FROM orders GROUP BY 1", ["pa_types_paid_segment"])
-PA("preagg.shape.segment_not_in_the_rollup_miss", pa_query(REV, ["pa_types.status"], segments=["pa_types.paid"]),
+PA("preagg.shape.segment_not_in_the_rollup_miss", pa_query(PA_REV, ["pa_types.status"], segments=["pa_types.paid"]),
    "SELECT status, sum(amount) FROM orders WHERE %s GROUP BY 1" % PA_PAID, [])
-PA("preagg.shape.view_hit", pa_query(["pa_view.revenue"], ["pa_view.status"], "month"), "SELECT status, toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1, 2", HIT)
+PA("preagg.shape.view_hit", pa_query(["pa_view.revenue"], ["pa_view.status"], "month"), "SELECT status, toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1, 2", PA_HIT)
 PA("preagg.shape.view_finer_miss", pa_query(["pa_view.revenue"], [], "hour"), "SELECT toStartOfHour(created_at), sum(amount) FROM orders GROUP BY 1", [])
 PA("preagg.shape.view_other_dimension_miss", pa_query(["pa_view.revenue"], ["pa_view.product_id"]), "SELECT product_id, sum(amount) FROM orders GROUP BY 1", [])
 PA("preagg.shape.view_non_additive_coarser_miss", pa_query(["pa_view.buyers"], [], "month"), "SELECT toStartOfMonth(created_at), uniqExact(user_id) FROM orders GROUP BY 1", [])
@@ -7576,7 +7576,7 @@ PA("preagg.shape.extended_cube_hit", pa_query(["pa_extended.revenue"], ["pa_exte
 PA("preagg.shape.extended_cube_miss", pa_query(["pa_extended.revenue"], ["pa_extended.product_id"]), "SELECT product_id, sum(amount) FROM orders GROUP BY 1", [])
 PA("preagg.shape.join_dimension_in_the_rollup_hit", pa_query(["pa_types.count"], ["pa_customers.state"]),
    "SELECT u.state, count() FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1", ["pa_types_by_state_day"])
-PA("preagg.shape.join_dimension_in_the_rollup_coarser_hit", pa_query(["pa_types.count"], ["pa_customers.state"], "month", cube=PAT),
+PA("preagg.shape.join_dimension_in_the_rollup_coarser_hit", pa_query(["pa_types.count"], ["pa_customers.state"], "month", cube=PA_PAT),
    "SELECT u.state, toStartOfMonth(o.created_at), count() FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1, 2", ["pa_types_by_state_day"])
 PA("preagg.shape.join_dimension_not_in_the_rollup_miss", pa_query(["pa_types.count"], ["pa_customers.city"]),
    "SELECT u.city, count() FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1", [])
@@ -7584,20 +7584,20 @@ PA("preagg.shape.join_with_fan_out_miss", pa_query(["pa_types.count", "pa_paymen
 
 # ----- the time zone of a query. Cube builds one table for each time zone.
 
-PA_NY_DAY = "toDate(toTimeZone(created_at, '%s'))" % NY
-PA_NY_MONTH = "toStartOfMonth(toTimeZone(created_at, '%s'))" % NY
-PA("preagg.time_zone.same_grain_hit", pa_query(REV, [], "day", date_range=["2025-03-01", "2025-03-03"], tz=NY),
-   "SELECT %s AS d, sum(amount) FROM orders WHERE d BETWEEN '2025-03-01' AND '2025-03-03' GROUP BY 1" % PA_NY_DAY, HIT)
-PA("preagg.time_zone.coarser_hit", pa_query(REV, [], "month", tz=NY), "SELECT %s, sum(amount) FROM orders GROUP BY 1" % PA_NY_MONTH, HIT)
-PA("preagg.time_zone.boundary_of_a_local_day_hit", pa_query(REV, [], None, date_range=["2025-03-01", "2025-03-01"], tz=NY),
-   "SELECT sum(amount) FROM orders WHERE %s = '2025-03-01'" % PA_NY_DAY, HIT)
-PA("preagg.time_zone.inside_a_local_day_miss", pa_query(REV, [], None, date_range=["2025-03-01T06:00:00", "2025-03-01T18:00:00"], tz=NY),
-   "SELECT sum(amount) FROM orders WHERE created_at >= toDateTime('2025-03-01 06:00:00', '%s') AND created_at <= toDateTime('2025-03-01 18:00:00', '%s')" % (NY, NY), [])
+PA_NY_DAY = "toDate(toTimeZone(created_at, '%s'))" % PA_NY
+PA_NY_MONTH = "toStartOfMonth(toTimeZone(created_at, '%s'))" % PA_NY
+PA("preagg.time_zone.same_grain_hit", pa_query(PA_REV, [], "day", date_range=["2025-03-01", "2025-03-03"], tz=PA_NY),
+   "SELECT %s AS d, sum(amount) FROM orders WHERE d BETWEEN '2025-03-01' AND '2025-03-03' GROUP BY 1" % PA_NY_DAY, PA_HIT)
+PA("preagg.time_zone.coarser_hit", pa_query(PA_REV, [], "month", tz=PA_NY), "SELECT %s, sum(amount) FROM orders GROUP BY 1" % PA_NY_MONTH, PA_HIT)
+PA("preagg.time_zone.boundary_of_a_local_day_hit", pa_query(PA_REV, [], None, date_range=["2025-03-01", "2025-03-01"], tz=PA_NY),
+   "SELECT sum(amount) FROM orders WHERE %s = '2025-03-01'" % PA_NY_DAY, PA_HIT)
+PA("preagg.time_zone.inside_a_local_day_miss", pa_query(PA_REV, [], None, date_range=["2025-03-01T06:00:00", "2025-03-01T18:00:00"], tz=PA_NY),
+   "SELECT sum(amount) FROM orders WHERE created_at >= toDateTime('2025-03-01 06:00:00', '%s') AND created_at <= toDateTime('2025-03-01 18:00:00', '%s')" % (PA_NY, PA_NY), [])
 
 @check("preagg.time_zone.partitioned_hit")
 def _(ctx):
     """Cube reads the end of the build range in UTC, and ClickHouse gives it in the zone of the query. West of UTC, stock Cube leaves out the last hours of the data, with no error."""
-    query = pa_query(["pa_partitions.rev_month"], [], "month", tz=NY)
+    query = pa_query(["pa_partitions.rev_month"], [], "month", tz=PA_NY)
     res = pa_load(query)
     pa_expect_used(res, ["pa_partitions_part_month"], query)
     truth = "SELECT %s, sum(amount) FROM orders GROUP BY 1" % PA_NY_MONTH
@@ -7609,47 +7609,47 @@ def _(ctx):
     assert_rows(pa_rows(res, query), ch("SELECT %s, sum(amount) FROM orders WHERE %s GROUP BY 1" % (PA_NY_MONTH, last)), label="stock Cube")
 
 
-PA("preagg.time_zone.finer_miss", pa_query(REV, [], "hour", date_range=["2025-03-01", "2025-03-01"], tz=NY),
-   "SELECT toStartOfHour(toTimeZone(created_at, '%s')), sum(amount) FROM orders WHERE %s = '2025-03-01' GROUP BY 1" % (NY, PA_NY_DAY), [])
+PA("preagg.time_zone.finer_miss", pa_query(PA_REV, [], "hour", date_range=["2025-03-01", "2025-03-01"], tz=PA_NY),
+   "SELECT toStartOfHour(toTimeZone(created_at, '%s')), sum(amount) FROM orders WHERE %s = '2025-03-01' GROUP BY 1" % (PA_NY, PA_NY_DAY), [])
 
 # ----- the same shapes through Metabase
 
-PD = "d:pa_types.created_at"
-PS = "d:pa_types.status"
-PR = "m:pa_types.revenue"
-ZONE = {"report-timezone": NY}
-PM("preagg.metabase.same_grain_hit", PAT, "SELECT status, toDate(created_at), sum(amount) FROM orders GROUP BY 1, 2", HIT, agg=[PR], by=[PS, PD + "@day"])
-PM("preagg.metabase.coarser_hit", PAT, "SELECT toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1", HIT, agg=[PR], by=[PD + "@month"])
-PM("preagg.metabase.finer_miss", PAT, "SELECT toStartOfHour(created_at), sum(amount) FROM orders GROUP BY 1", [], agg=[PR], by=[PD + "@hour"])
-PM("preagg.metabase.other_dimension_miss", PAT, "SELECT product_id, sum(amount) FROM orders GROUP BY 1", [], agg=[PR], by=["d:pa_types.product_id"])
-PM("preagg.metabase.non_additive_same_grain_hit", PAT, "SELECT status, toDate(created_at), uniqExact(user_id) FROM orders GROUP BY 1, 2", ["pa_types_non_additive_day"], agg=["m:pa_types.buyers"], by=[PS, PD + "@day"])
-PM("preagg.metabase.non_additive_coarser_miss", PAT, "SELECT toStartOfMonth(created_at), uniqExact(user_id) FROM orders GROUP BY 1", [], agg=["m:pa_types.buyers"], by=[PD + "@month"])
-PM("preagg.metabase.date_range_on_a_boundary_hit", PAT, "SELECT sum(amount) FROM orders WHERE toDate(created_at) BETWEEN '2025-03-05' AND '2025-03-09'", HIT, agg=[PR], where=[["between", PD, "2025-03-05", "2025-03-09"]])
-PM("preagg.metabase.date_range_inside_a_bucket_miss", PAT, "SELECT sum(amount) FROM orders WHERE created_at >= '2025-03-05 06:00:00' AND created_at < '2025-03-09 06:00:00'", [],
-   agg=[PR], where=[[">=", PD, "2025-03-05T06:00:00"], ["<", PD, "2025-03-09T06:00:00"]])
-PM("preagg.metabase.filter_on_a_rollup_dimension_hit", PAT, "SELECT sum(amount) FROM orders WHERE status = 'shipped'", HIT, agg=[PR], where=[["=", PS, "shipped"]])
-PM("preagg.metabase.filter_on_another_dimension_miss", PAT, "SELECT sum(amount) FROM orders WHERE product_id = 4", [], agg=[PR], where=[["=", "d:pa_types.product_id", 4]])
-PM("preagg.metabase.view_hit", "pa_view", "SELECT toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1", HIT, agg=["m:pa_view.revenue"], by=["d:pa_view.created_at@month"])
+PA_PD = "d:pa_types.created_at"
+PA_PS = "d:pa_types.status"
+PA_PR = "m:pa_types.revenue"
+PA_ZONE = {"report-timezone": PA_NY}
+PM("preagg.metabase.same_grain_hit", PA_PAT, "SELECT status, toDate(created_at), sum(amount) FROM orders GROUP BY 1, 2", PA_HIT, agg=[PA_PR], by=[PA_PS, PA_PD + "@day"])
+PM("preagg.metabase.coarser_hit", PA_PAT, "SELECT toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1", PA_HIT, agg=[PA_PR], by=[PA_PD + "@month"])
+PM("preagg.metabase.finer_miss", PA_PAT, "SELECT toStartOfHour(created_at), sum(amount) FROM orders GROUP BY 1", [], agg=[PA_PR], by=[PA_PD + "@hour"])
+PM("preagg.metabase.other_dimension_miss", PA_PAT, "SELECT product_id, sum(amount) FROM orders GROUP BY 1", [], agg=[PA_PR], by=["d:pa_types.product_id"])
+PM("preagg.metabase.non_additive_same_grain_hit", PA_PAT, "SELECT status, toDate(created_at), uniqExact(user_id) FROM orders GROUP BY 1, 2", ["pa_types_non_additive_day"], agg=["m:pa_types.buyers"], by=[PA_PS, PA_PD + "@day"])
+PM("preagg.metabase.non_additive_coarser_miss", PA_PAT, "SELECT toStartOfMonth(created_at), uniqExact(user_id) FROM orders GROUP BY 1", [], agg=["m:pa_types.buyers"], by=[PA_PD + "@month"])
+PM("preagg.metabase.date_range_on_a_boundary_hit", PA_PAT, "SELECT sum(amount) FROM orders WHERE toDate(created_at) BETWEEN '2025-03-05' AND '2025-03-09'", PA_HIT, agg=[PA_PR], where=[["between", PA_PD, "2025-03-05", "2025-03-09"]])
+PM("preagg.metabase.date_range_inside_a_bucket_miss", PA_PAT, "SELECT sum(amount) FROM orders WHERE created_at >= '2025-03-05 06:00:00' AND created_at < '2025-03-09 06:00:00'", [],
+   agg=[PA_PR], where=[[">=", PA_PD, "2025-03-05T06:00:00"], ["<", PA_PD, "2025-03-09T06:00:00"]])
+PM("preagg.metabase.filter_on_a_rollup_dimension_hit", PA_PAT, "SELECT sum(amount) FROM orders WHERE status = 'shipped'", PA_HIT, agg=[PA_PR], where=[["=", PA_PS, "shipped"]])
+PM("preagg.metabase.filter_on_another_dimension_miss", PA_PAT, "SELECT sum(amount) FROM orders WHERE product_id = 4", [], agg=[PA_PR], where=[["=", "d:pa_types.product_id", 4]])
+PM("preagg.metabase.view_hit", "pa_view", "SELECT toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1", PA_HIT, agg=["m:pa_view.revenue"], by=["d:pa_view.created_at@month"])
 PM("preagg.metabase.view_miss", "pa_view", "SELECT product_id, sum(amount) FROM orders GROUP BY 1", [], agg=["m:pa_view.revenue"], by=["d:pa_view.product_id"])
 PM("preagg.metabase.extended_cube_hit", "pa_extended", "SELECT toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1", ["pa_extended_additive_day"], agg=["m:pa_extended.revenue"], by=["d:pa_extended.created_at@month"])
 PM("preagg.metabase.join_through_a_view_hit", "pa_view", "SELECT u.state, count() FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1", ["pa_types_by_state_day"],
    agg=["m:pa_view.count"], by=["d:pa_view.pa_customers_state"])
 # Metabase gives a bucket with its offset, so each truth here is the instant of the local start of the bucket, in UTC.
-PA_NY_MONTH_START = "toTimeZone(toDateTime(%s, '%s'), 'UTC')" % (PA_NY_MONTH, NY)
-PA_NY_DAY_START = "toTimeZone(toDateTime(%s, '%s'), 'UTC')" % (PA_NY_DAY, NY)
-PA_NY_HOUR_START = "toTimeZone(toStartOfHour(toTimeZone(created_at, '%s')), 'UTC')" % NY
-PM("preagg.metabase.time_zone_month_hit", PAT, "SELECT %s, sum(amount) FROM orders GROUP BY 1" % PA_NY_MONTH_START, HIT, setting=ZONE, agg=[PR], by=[PD + "@month"])
-PM("preagg.metabase.time_zone_day_hit", PAT, "SELECT %s, sum(amount) FROM orders WHERE %s BETWEEN '2025-03-05' AND '2025-03-09' GROUP BY 1" % (PA_NY_DAY_START, PA_NY_DAY), HIT, setting=ZONE,
-   agg=[PR], by=[PD + "@day"], where=[["between", PD, "2025-03-05", "2025-03-09"]])
-PM("preagg.metabase.time_zone_range_without_a_bucket_hit", PAT, "SELECT sum(amount) FROM orders WHERE %s BETWEEN '2025-03-05' AND '2025-03-09'" % PA_NY_DAY, HIT, setting=ZONE,
-   agg=[PR], where=[["between", PD, "2025-03-05", "2025-03-09"]])
-PM("preagg.metabase.time_zone_range_next_to_a_filter_hit", PAT, "SELECT sum(amount) FROM orders WHERE status = 'shipped' AND %s BETWEEN '2025-03-05' AND '2025-03-09'" % PA_NY_DAY, HIT, setting=ZONE,
-   agg=[PR], where=[["=", PS, "shipped"], ["between", PD, "2025-03-05", "2025-03-09"]])
+PA_NY_MONTH_START = "toTimeZone(toDateTime(%s, '%s'), 'UTC')" % (PA_NY_MONTH, PA_NY)
+PA_NY_DAY_START = "toTimeZone(toDateTime(%s, '%s'), 'UTC')" % (PA_NY_DAY, PA_NY)
+PA_NY_HOUR_START = "toTimeZone(toStartOfHour(toTimeZone(created_at, '%s')), 'UTC')" % PA_NY
+PM("preagg.metabase.time_zone_month_hit", PA_PAT, "SELECT %s, sum(amount) FROM orders GROUP BY 1" % PA_NY_MONTH_START, PA_HIT, setting=PA_ZONE, agg=[PA_PR], by=[PA_PD + "@month"])
+PM("preagg.metabase.time_zone_day_hit", PA_PAT, "SELECT %s, sum(amount) FROM orders WHERE %s BETWEEN '2025-03-05' AND '2025-03-09' GROUP BY 1" % (PA_NY_DAY_START, PA_NY_DAY), PA_HIT, setting=PA_ZONE,
+   agg=[PA_PR], by=[PA_PD + "@day"], where=[["between", PA_PD, "2025-03-05", "2025-03-09"]])
+PM("preagg.metabase.time_zone_range_without_a_bucket_hit", PA_PAT, "SELECT sum(amount) FROM orders WHERE %s BETWEEN '2025-03-05' AND '2025-03-09'" % PA_NY_DAY, PA_HIT, setting=PA_ZONE,
+   agg=[PA_PR], where=[["between", PA_PD, "2025-03-05", "2025-03-09"]])
+PM("preagg.metabase.time_zone_range_next_to_a_filter_hit", PA_PAT, "SELECT sum(amount) FROM orders WHERE status = 'shipped' AND %s BETWEEN '2025-03-05' AND '2025-03-09'" % PA_NY_DAY, PA_HIT, setting=PA_ZONE,
+   agg=[PA_PR], where=[["=", PA_PS, "shipped"], ["between", PA_PD, "2025-03-05", "2025-03-09"]])
 # One bound is no date range. Cube reads it as UTC, so the driver writes it in UTC, and the rollup cannot read it.
-PM("preagg.metabase.time_zone_one_bound_miss", PAT, "SELECT sum(amount) FROM orders WHERE created_at >= toDateTime('2025-03-05 00:00:00', '%s')" % NY, [], setting=ZONE,
-   agg=[PR], where=[[">=", PD, "2025-03-05T00:00:00"]])
-PM("preagg.metabase.time_zone_finer_miss", PAT, "SELECT %s, sum(amount) FROM orders WHERE %s = '2025-03-05' GROUP BY 1" % (PA_NY_HOUR_START, PA_NY_DAY), [], setting=ZONE,
-   agg=[PR], by=[PD + "@hour"], where=[["=", PD, "2025-03-05"]])
+PM("preagg.metabase.time_zone_one_bound_miss", PA_PAT, "SELECT sum(amount) FROM orders WHERE created_at >= toDateTime('2025-03-05 00:00:00', '%s')" % PA_NY, [], setting=PA_ZONE,
+   agg=[PA_PR], where=[[">=", PA_PD, "2025-03-05T00:00:00"]])
+PM("preagg.metabase.time_zone_finer_miss", PA_PAT, "SELECT %s, sum(amount) FROM orders WHERE %s = '2025-03-05' GROUP BY 1" % (PA_NY_HOUR_START, PA_NY_DAY), [], setting=PA_ZONE,
+   agg=[PA_PR], by=[PA_PD + "@hour"], where=[["=", PA_PD, "2025-03-05"]])
 
 # ----- each granularity. The coarse rollups come first in the model, so a rollup of a wrong grain fails here.
 
@@ -7663,8 +7663,8 @@ PA_GRAINS = {
     "minute": "toStartOfMinute(created_at)",
     "second": "created_at",
 }
-for name, expr in PA_GRAINS.items():
-    PA("preagg.granularity.%s_hit" % name, pa_query(["pa_grain.revenue", "pa_grain.count"], [], name), "SELECT %s, sum(amount), count() FROM orders GROUP BY 1" % expr, ["pa_grain_by_%s" % name])
+for pa_loop_name, pa_loop_expr in PA_GRAINS.items():
+    PA("preagg.granularity.%s_hit" % pa_loop_name, pa_query(["pa_grain.revenue", "pa_grain.count"], [], pa_loop_name), "SELECT %s, sum(amount), count() FROM orders GROUP BY 1" % pa_loop_expr, ["pa_grain_by_%s" % pa_loop_name])
 PA("preagg.granularity.week_rollup_week_hit", pa_query(["pa_week.revenue"], [], "week"), "SELECT toStartOfWeek(created_at, 1), sum(amount) FROM orders GROUP BY 1", ["pa_week_only_week"])
 PA("preagg.granularity.week_rollup_month_miss", pa_query(["pa_week.revenue"], [], "month"), "SELECT toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1", [])
 PA("preagg.granularity.week_rollup_year_miss", pa_query(["pa_week.revenue"], [], "year"), "SELECT toStartOfYear(created_at), sum(amount) FROM orders GROUP BY 1", [])
@@ -7714,19 +7714,19 @@ check("preagg.build_range.date_range_over_the_end_reads_only_the_range")(pa_outs
 
 # ----- each option
 
-OPT = "pa_options."
-PA("preagg.option.strict_date_range_on_a_boundary_hit", pa_query([OPT + "rev_strict"], [], "day", date_range=["2025-03-01", "2025-03-02"]),
+PA_OPT = "pa_options."
+PA("preagg.option.strict_date_range_on_a_boundary_hit", pa_query([PA_OPT + "rev_strict"], [], "day", date_range=["2025-03-01", "2025-03-02"]),
    "SELECT toDate(created_at), sum(amount) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-03-03' GROUP BY 1", ["pa_options_strict"])
-PA("preagg.option.strict_date_range_inside_a_bucket_miss", pa_query([OPT + "rev_strict"], [], None, date_range=["2025-03-01T06:00:00", "2025-03-02T06:00:00"]),
+PA("preagg.option.strict_date_range_inside_a_bucket_miss", pa_query([PA_OPT + "rev_strict"], [], None, date_range=["2025-03-01T06:00:00", "2025-03-02T06:00:00"]),
    "SELECT sum(amount) FROM orders WHERE created_at >= '2025-03-01 06:00:00' AND created_at <= '2025-03-02 06:00:00'", [])
-PA("preagg.option.non_strict_on_a_boundary_hit", pa_query([OPT + "rev_nonstrict"], [], "day", date_range=["2025-03-01", "2025-03-02"]),
+PA("preagg.option.non_strict_on_a_boundary_hit", pa_query([PA_OPT + "rev_nonstrict"], [], "day", date_range=["2025-03-01", "2025-03-02"]),
    "SELECT toDate(created_at), sum(amount) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-03-03' GROUP BY 1", ["pa_options_nonstrict"])
 
 
 @check("preagg.option.non_strict_inside_a_bucket_reads_whole_buckets")
 def _(ctx):
     """allow_non_strict_date_range_match: true is the slight discrepancy of the docs. Cube reads only the buckets that start in the range."""
-    query = pa_query([OPT + "rev_nonstrict"], [], None, date_range=["2025-03-01T06:00:00", "2025-03-02T06:00:00"])
+    query = pa_query([PA_OPT + "rev_nonstrict"], [], None, date_range=["2025-03-01T06:00:00", "2025-03-02T06:00:00"])
     res = pa_load(query)
     pa_expect_used(res, ["pa_options_nonstrict"], query)
     got = pa_rows(res, query)
@@ -7742,28 +7742,28 @@ def pa_ch_statements(like):
 
 
 def pa_external_false(ctx, res):
-    tables = ch("SELECT name FROM system.tables WHERE database = 'dev_pre_aggregations' AND name LIKE 'pa_options_internal%'")
+    tables = ch("SELECT pa_loop_name FROM system.tables WHERE database = 'dev_pre_aggregations' AND pa_loop_name LIKE 'pa_options_internal%'")
     if not tables:
         raise Fail("no table of the rollup in ClickHouse")
 
 
-PA("preagg.option.external_false_hit", pa_query([OPT + "rev_internal"], [OPT + "status"]), "SELECT status, sum(amount) FROM orders GROUP BY 1", ["pa_options_internal"], external=False, then=pa_external_false)
-PA("preagg.option.external_false_coarser_hit", pa_query([OPT + "rev_internal"]), "SELECT sum(amount) FROM orders", ["pa_options_internal"], external=False)
-PA("preagg.option.external_false_miss", pa_query([OPT + "rev_internal"], [OPT + "user_id"]), "SELECT user_id, sum(amount) FROM orders GROUP BY 1", [])
+PA("preagg.option.external_false_hit", pa_query([PA_OPT + "rev_internal"], [PA_OPT + "status"]), "SELECT status, sum(amount) FROM orders GROUP BY 1", ["pa_options_internal"], external=False, then=pa_external_false)
+PA("preagg.option.external_false_coarser_hit", pa_query([PA_OPT + "rev_internal"]), "SELECT sum(amount) FROM orders", ["pa_options_internal"], external=False)
+PA("preagg.option.external_false_miss", pa_query([PA_OPT + "rev_internal"], [PA_OPT + "user_id"]), "SELECT user_id, sum(amount) FROM orders GROUP BY 1", [])
 
 
 def pa_read_only(ctx, res):
     """A read-only rollup writes nothing to ClickHouse. Another rollup writes a temporary table only with a driver that has no stream."""
     if pa_ch_statements("CREATE TABLE%pa_options_readonly%"):
         raise Fail("a rollup with read_only made a table in ClickHouse")
-    status, text, _h = http("GET", CUBE + "/cubejs-api/v1/sql?query=" + urllib.parse.quote(json.dumps(pa_query([OPT + "rev_readonly"], [OPT + "status"]))))
+    status, text, _h = http("GET", CUBE + "/cubejs-api/v1/sql?query=" + urllib.parse.quote(json.dumps(pa_query([PA_OPT + "rev_readonly"], [PA_OPT + "status"]))))
     meta = json.loads(text)["sql"]["preAggregations"][0]
     if meta.get("readOnly") is not True:
         raise Fail("Cube does not read the option: %s" % meta.get("readOnly"))
 
 
-PA("preagg.option.read_only_hit", pa_query([OPT + "rev_readonly"], [OPT + "status"]), "SELECT status, sum(amount) FROM orders GROUP BY 1", ["pa_options_readonly"], then=pa_read_only)
-PA("preagg.option.scheduled_refresh_false_hit", pa_query([OPT + "rev_manual"], [OPT + "status"]), "SELECT status, sum(amount) FROM orders GROUP BY 1", ["pa_options_manual"])
+PA("preagg.option.read_only_hit", pa_query([PA_OPT + "rev_readonly"], [PA_OPT + "status"]), "SELECT status, sum(amount) FROM orders GROUP BY 1", ["pa_options_readonly"], then=pa_read_only)
+PA("preagg.option.scheduled_refresh_false_hit", pa_query([PA_OPT + "rev_manual"], [PA_OPT + "status"]), "SELECT status, sum(amount) FROM orders GROUP BY 1", ["pa_options_manual"])
 
 
 def pa_meta(member, dims):
@@ -7774,14 +7774,14 @@ def pa_meta(member, dims):
 
 
 def pa_unique(ctx, res):
-    meta = pa_meta(OPT + "rev_unique", [OPT + "status"])
+    meta = pa_meta(PA_OPT + "rev_unique", [PA_OPT + "status"])
     if meta.get("uniqueKeyColumns") != ["pa_options__status"]:
         raise Fail("Cube does not read unique_key_columns: %s" % meta.get("uniqueKeyColumns"))
 
 
 def pa_index(member, kind, columns):
     def run(ctx, res):
-        meta = pa_meta(OPT + member, [OPT + "status"])
+        meta = pa_meta(PA_OPT + member, [PA_OPT + "status"])
         indexes = meta.get("createTableIndexes") or []
         got = [(i["type"], [c.strip("`") for c in i["columns"]]) for i in indexes]
         if got != [(kind, columns)]:
@@ -7789,27 +7789,27 @@ def pa_index(member, kind, columns):
     return run
 
 
-PA("preagg.option.unique_key_hit", pa_query([OPT + "rev_unique"], [OPT + "status"]), "SELECT status, sum(amount) FROM orders GROUP BY 1", ["pa_options_unique"], then=pa_unique)
-PA("preagg.option.index_regular_hit", pa_query([OPT + "rev_index"], [OPT + "status"], filters=[{"member": OPT + "user_id", "operator": "equals", "values": ["7"]}]),
+PA("preagg.option.unique_key_hit", pa_query([PA_OPT + "rev_unique"], [PA_OPT + "status"]), "SELECT status, sum(amount) FROM orders GROUP BY 1", ["pa_options_unique"], then=pa_unique)
+PA("preagg.option.index_regular_hit", pa_query([PA_OPT + "rev_index"], [PA_OPT + "status"], filters=[{"member": PA_OPT + "user_id", "operator": "equals", "values": ["7"]}]),
    "SELECT status, sum(amount) FROM orders WHERE user_id = 7 GROUP BY 1", ["pa_options_regular_index"], then=pa_index("rev_index", "regular", ["pa_options__status", "pa_options__user_id"]))
-PA("preagg.option.index_aggregate_hit", pa_query([OPT + "rev_agg_index"], [OPT + "status"]), "SELECT status, sum(amount) FROM orders GROUP BY 1", ["pa_options_aggregate_index"], then=pa_index("rev_agg_index", "aggregate", ["pa_options__status"]))
+PA("preagg.option.index_aggregate_hit", pa_query([PA_OPT + "rev_agg_index"], [PA_OPT + "status"]), "SELECT status, sum(amount) FROM orders GROUP BY 1", ["pa_options_aggregate_index"], then=pa_index("rev_agg_index", "aggregate", ["pa_options__status"]))
 PA("preagg.option.index_on_a_null_column_hit", pa_query(["pa_nulls.rows"], ["pa_nulls.den"]), "SELECT den, count() FROM metric_edges GROUP BY 1", ["pa_nulls_by_den"])
-PA("preagg.option.two_time_dimensions_hit", pa_query([OPT + "rev_two_times"], [], "day", date_range=["2025-03-01", "2025-03-02"]),
+PA("preagg.option.two_time_dimensions_hit", pa_query([PA_OPT + "rev_two_times"], [], "day", date_range=["2025-03-01", "2025-03-02"]),
    "SELECT toDate(created_at), sum(amount) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-03-03' GROUP BY 1", ["pa_options_two_times"])
 
 
 PA_NO_INDEX_MODEL = """cubes:
-  - name: pa_no_index
+  - pa_loop_name: pa_no_index
     sql_table: shop.orders
     refresh_key: { every: 1 hour }
     dimensions:
-      - { name: id, sql: id, type: number, primary_key: true, public: true }
-      - { name: status, sql: status, type: string }
-      - { name: created_at, sql: created_at, type: time }
+      - { pa_loop_name: id, sql: id, type: number, primary_key: true, public: true }
+      - { pa_loop_name: status, sql: status, type: string }
+      - { pa_loop_name: created_at, sql: created_at, type: time }
     measures:
-      - { name: revenue, type: sum, sql: amount }
+      - { pa_loop_name: revenue, type: sum, sql: amount }
     pre_aggregations:
-      - { name: plain, measures: [revenue], dimensions: [status], time_dimension: created_at, granularity: month }
+      - { pa_loop_name: plain, measures: [revenue], dimensions: [status], time_dimension: created_at, granularity: month }
 """
 
 
@@ -7876,22 +7876,22 @@ def _(ctx):
 
 
 PA_ORIGINAL_EXTERNAL_MODEL = """cubes:
-  - name: pa_original_external
+  - pa_loop_name: pa_original_external
     sql: "SELECT id, status, amount FROM shop.orders"
     refresh_key: { every: 1 hour }
     dimensions:
-      - { name: id, sql: id, type: number, primary_key: true, public: true }
-      - { name: status, sql: status, type: string }
+      - { pa_loop_name: id, sql: id, type: number, primary_key: true, public: true }
+      - { pa_loop_name: status, sql: status, type: string }
     measures:
-      - { name: revenue, type: sum, sql: amount }
+      - { pa_loop_name: revenue, type: sum, sql: amount }
     pre_aggregations:
-      - name: base
+      - pa_loop_name: base
         type: original_sql
         external: true
 %s
 """
 PA_INDEX_LINES = """        indexes:
-          - { name: idx, columns: [status] }"""
+          - { pa_loop_name: idx, columns: [status] }"""
 
 
 def pa_original_external(index):
@@ -7934,27 +7934,27 @@ check("preagg.option.use_original_sql_same_grain_hit")(pa_rollup_over_original(
 check("preagg.option.use_original_sql_coarser_hit")(pa_rollup_over_original(
     pa_query(["pa_original.revenue"], [], "month"), "SELECT toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1"))
 
-PJ = ["pa_join_customers_customers", "pa_join_sales_sales"]
-JSQL = "orders o JOIN users u ON o.user_id = u.id"
+PA_PJ = ["pa_join_customers_customers", "pa_join_sales_sales"]
+PA_JSQL = "orders o JOIN users u ON o.user_id = u.id"
 PA("preagg.type.rollup_join_same_grain_hit", pa_query(["pa_join_sales.revenue"], ["pa_join_customers.state"], "day", cube="pa_join_sales", date_range=["2025-03-01", "2025-03-03"]),
-   "SELECT u.state, toDate(o.created_at), sum(o.amount) FROM %s WHERE o.created_at >= '2025-03-01' AND o.created_at < '2025-03-04' GROUP BY 1, 2" % JSQL, PJ)
+   "SELECT u.state, toDate(o.created_at), sum(o.amount) FROM %s WHERE o.created_at >= '2025-03-01' AND o.created_at < '2025-03-04' GROUP BY 1, 2" % PA_JSQL, PA_PJ)
 PA("preagg.type.rollup_join_coarser_hit", pa_query(["pa_join_sales.revenue"], ["pa_join_customers.state"], "month", cube="pa_join_sales"),
-   "SELECT u.state, toStartOfMonth(o.created_at), sum(o.amount) FROM %s GROUP BY 1, 2" % JSQL, PJ)
-PA("preagg.type.rollup_join_total_hit", pa_query(["pa_join_sales.revenue"], ["pa_join_customers.state"]), "SELECT u.state, sum(o.amount) FROM %s GROUP BY 1" % JSQL, PJ)
+   "SELECT u.state, toStartOfMonth(o.created_at), sum(o.amount) FROM %s GROUP BY 1, 2" % PA_JSQL, PA_PJ)
+PA("preagg.type.rollup_join_total_hit", pa_query(["pa_join_sales.revenue"], ["pa_join_customers.state"]), "SELECT u.state, sum(o.amount) FROM %s GROUP BY 1" % PA_JSQL, PA_PJ)
 PA("preagg.type.rollup_join_filter_hit", pa_query(["pa_join_sales.revenue"], ["pa_join_customers.state"], filters=[{"member": "pa_join_sales.status", "operator": "equals", "values": ["shipped"]}]),
-   "SELECT u.state, sum(o.amount) FROM %s WHERE o.status = 'shipped' GROUP BY 1" % JSQL, PJ)
+   "SELECT u.state, sum(o.amount) FROM %s WHERE o.status = 'shipped' GROUP BY 1" % PA_JSQL, PA_PJ)
 PA("preagg.type.rollup_join_finer_miss", pa_query(["pa_join_sales.revenue"], ["pa_join_customers.state"], "hour", cube="pa_join_sales", date_range=["2025-03-01", "2025-03-01"]),
-   "SELECT u.state, toStartOfHour(o.created_at), sum(o.amount) FROM %s WHERE toDate(o.created_at) = '2025-03-01' GROUP BY 1, 2" % JSQL, [])
-PA("preagg.type.rollup_join_other_dimension_miss", pa_query(["pa_join_sales.revenue"], ["pa_join_customers.city"]), "SELECT u.city, sum(o.amount) FROM %s GROUP BY 1" % JSQL, [])
-PA("preagg.type.rollup_join_other_measure_miss", pa_query(["pa_join_sales.orders"], ["pa_join_customers.state"]), "SELECT u.state, count() FROM %s GROUP BY 1" % JSQL, [])
-PM("preagg.type.rollup_join_through_metabase", "pa_join_sales", "SELECT u.state, sum(o.amount) FROM %s GROUP BY 1" % JSQL, PJ,
+   "SELECT u.state, toStartOfHour(o.created_at), sum(o.amount) FROM %s WHERE toDate(o.created_at) = '2025-03-01' GROUP BY 1, 2" % PA_JSQL, [])
+PA("preagg.type.rollup_join_other_dimension_miss", pa_query(["pa_join_sales.revenue"], ["pa_join_customers.city"]), "SELECT u.city, sum(o.amount) FROM %s GROUP BY 1" % PA_JSQL, [])
+PA("preagg.type.rollup_join_other_measure_miss", pa_query(["pa_join_sales.orders"], ["pa_join_customers.state"]), "SELECT u.state, count() FROM %s GROUP BY 1" % PA_JSQL, [])
+PM("preagg.type.rollup_join_through_metabase", "pa_join_sales", "SELECT u.state, sum(o.amount) FROM %s GROUP BY 1" % PA_JSQL, PA_PJ,
    agg=["m:pa_join_sales.revenue"], by=["d:pa_join_sales>pa_join_customers.state"])
 
-PL = "pa_lambda.revenue"
-LAM = "SELECT toStartOfMonth(created_at), sum(amount) FROM orders"
-PA("preagg.type.rollup_lambda_inside_the_batch_hit", pa_query([PL], [], "month", date_range=["2025-02-01", "2025-03-31"]), LAM + " WHERE created_at >= '2025-02-01' AND created_at < '2025-04-01' GROUP BY 1", ["pa_lambda_batch"])
-PA("preagg.type.rollup_lambda_filter_hit", pa_query([PL], [], "month", date_range=["2025-02-01", "2025-03-31"], filters=[{"member": "pa_lambda.status", "operator": "equals", "values": ["shipped"]}]),
-   LAM + " WHERE status = 'shipped' AND created_at >= '2025-02-01' AND created_at < '2025-04-01' GROUP BY 1", ["pa_lambda_batch"])
+PA_PL = "pa_lambda.revenue"
+PA_LAM = "SELECT toStartOfMonth(created_at), sum(amount) FROM orders"
+PA("preagg.type.rollup_lambda_inside_the_batch_hit", pa_query([PA_PL], [], "month", date_range=["2025-02-01", "2025-03-31"]), PA_LAM + " WHERE created_at >= '2025-02-01' AND created_at < '2025-04-01' GROUP BY 1", ["pa_lambda_batch"])
+PA("preagg.type.rollup_lambda_filter_hit", pa_query([PA_PL], [], "month", date_range=["2025-02-01", "2025-03-31"], filters=[{"member": "pa_lambda.status", "operator": "equals", "values": ["shipped"]}]),
+   PA_LAM + " WHERE status = 'shipped' AND created_at >= '2025-02-01' AND created_at < '2025-04-01' GROUP BY 1", ["pa_lambda_batch"])
 
 
 def pa_lambda_source(query, truth):
@@ -7976,9 +7976,9 @@ def pa_lambda_source(query, truth):
     return run
 
 
-check("preagg.type.rollup_lambda_over_the_batch_with_source")(pa_lambda_source(pa_query([PL], [], "month"), LAM + " GROUP BY 1"))
-check("preagg.type.rollup_lambda_after_the_batch_with_source")(pa_lambda_source(pa_query([PL], [], "month", date_range=["2025-08-01", "2025-09-30"]), LAM + " WHERE created_at >= '2025-08-01' AND created_at < '2025-10-01' GROUP BY 1"))
-PA("preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit", pa_query(["pa_lambda_overlap.revenue"], [], "month"), LAM + " GROUP BY 1", ["pa_lambda_overlap_first_half", "pa_lambda_overlap_second_half"])
+check("preagg.type.rollup_lambda_over_the_batch_with_source")(pa_lambda_source(pa_query([PA_PL], [], "month"), PA_LAM + " GROUP BY 1"))
+check("preagg.type.rollup_lambda_after_the_batch_with_source")(pa_lambda_source(pa_query([PA_PL], [], "month", date_range=["2025-08-01", "2025-09-30"]), PA_LAM + " WHERE created_at >= '2025-08-01' AND created_at < '2025-10-01' GROUP BY 1"))
+PA("preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit", pa_query(["pa_lambda_overlap.revenue"], [], "month"), PA_LAM + " GROUP BY 1", ["pa_lambda_overlap_first_half", "pa_lambda_overlap_second_half"])
 
 
 @check("preagg.type.rollup_lambda_gap_loses_the_last_partition")
@@ -7987,10 +7987,10 @@ def _(ctx):
     query = pa_query(["pa_lambda_rollups.revenue"], [], "month")
     res = pa_load(query)
     pa_expect_used(res, ["pa_lambda_rollups_first_half", "pa_lambda_rollups_second_half"], query)
-    assert_rows(pa_rows(res, query), ch(LAM + " WHERE toStartOfMonth(created_at) != '2025-06-01' GROUP BY 1"), label="all months but June")
+    assert_rows(pa_rows(res, query), ch(PA_LAM + " WHERE toStartOfMonth(created_at) != '2025-06-01' GROUP BY 1"), label="all months but June")
 
 
-PA("preagg.type.rollup_lambda_miss_on_a_finer_grain", pa_query([PL], [], "hour", date_range=["2025-02-01", "2025-02-01"]),
+PA("preagg.type.rollup_lambda_miss_on_a_finer_grain", pa_query([PA_PL], [], "hour", date_range=["2025-02-01", "2025-02-01"]),
    "SELECT toStartOfHour(created_at), sum(amount) FROM orders WHERE toDate(created_at) = '2025-02-01' GROUP BY 1", [])
 
 # ----- refresh_key: the rows change, and the old number of a rollup stays only for its documented time
@@ -8014,6 +8014,7 @@ PA_ROLLUPS = {
     "amt_last_partition": ("pa_fresh_fresh_last_partition", True),
     "amt_manual": ("pa_fresh_fresh_manual", False),
     "amt_long": ("pa_fresh_fresh_long", False),
+    "amt_cron": ("pa_fresh_fresh_cron", False),
 }
 
 
@@ -8129,6 +8130,14 @@ def _(ctx):
         raise Fail("a key of one day gave new rows at once: %s" % state["values"])
 
 
+@check("preagg.refresh.cron_key_keeps_the_old_number_inside_its_time")
+def _(ctx):
+    """A key in cron form, one run each day. The read after the write is the old number from the rollup."""
+    state = pa_fresh_scenario()
+    if state["values"]["amt_cron"] != 0.0:
+        raise Fail("a cron key of one day gave new rows at once: %s" % state["values"])
+
+
 @check("preagg.refresh.scheduled_refresh_false_stays_old_until_a_job")
 def _(ctx):
     """The docs: such a rollup needs external orchestration. No query and no worker refreshes it. The API of pre-aggregation jobs refreshes it."""
@@ -8150,15 +8159,15 @@ def _(ctx):
 def _(ctx):
     """The driver reads the same old number from the rollup, so the SQL API reads Cube Store. A read from ClickHouse gives the truth here."""
     state = pa_fresh_scenario()
-    ensure_table(ctx, PAF)
+    ensure_table(ctx, PA_PAF)
     kind = state["kind"]
     where = [["=", "d:pa_fresh.kind", kind]]
-    long_rows = ctx.mb.mbql(PAF, agg=["m:pa_fresh.amt_long"], where=where)["rows"]
+    long_rows = ctx.mb.mbql(PA_PAF, agg=["m:pa_fresh.amt_long"], where=where)["rows"]
     if long_rows and long_rows[0][0] not in (None, 0):
         raise Fail("Metabase read new rows through a key of one day: %s" % long_rows)
-    every = ctx.mb.mbql(PAF, agg=["m:pa_fresh.amt_every"], where=where)["rows"]
+    every = ctx.mb.mbql(PA_PAF, agg=["m:pa_fresh.amt_every"], where=where)["rows"]
     assert_rows(every, [[state["truth"]]], label="key of 30 seconds")
-    plain = ctx.mb.mbql(PAF, agg=["m:pa_fresh.amt_plain"], where=where)["rows"]
+    plain = ctx.mb.mbql(PA_PAF, agg=["m:pa_fresh.amt_plain"], where=where)["rows"]
     assert_rows(plain, [[state["truth"]]], label="no rollup")
 
 

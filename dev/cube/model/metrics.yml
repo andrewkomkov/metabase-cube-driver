@@ -863,6 +863,7 @@ cubes:
       - { name: amt_last_partition, type: sum, sql: amount, description: In a rollup with incremental and no update_window. }
       - { name: amt_manual, type: sum, sql: amount, description: In a rollup with scheduled_refresh false. }
       - { name: amt_long, type: sum, sql: amount, description: In a rollup with a key of one day. }
+      - { name: amt_cron, type: sum, sql: amount, description: In a rollup with a key in cron form. }
       - { name: amt_plain, type: sum, sql: amount, description: In no rollup. }
     pre_aggregations:
       - name: fresh_every
@@ -904,6 +905,12 @@ cubes:
         dimensions: [kind]
         scheduled_refresh: false
         refresh_key: { every: 30 second }
+        indexes:
+          - { name: idx, columns: [kind] }
+      - name: fresh_cron
+        measures: [amt_cron]
+        dimensions: [kind]
+        refresh_key: { every: "0 0 * * *", timezone: UTC }
         indexes:
           - { name: idx, columns: [kind] }
       - name: fresh_long
