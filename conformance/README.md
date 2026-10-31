@@ -96,6 +96,10 @@ The `compile.*` checks compare each number with ClickHouse. They also run `EXPLA
 
 The `metric.*` checks read `dev/cube/model/metrics.yml` and the tables `metric_edges`, `metric_balances` and `metric_sales` in `dev/clickhouse/seed-extra.sql`. Each check sends one query through `/api/dataset` and through the MCP tool `execute_query`, and compares both with hand SQL on ClickHouse. A metric from other metrics runs at each grain: the total, status, size, paid, quantity, month, quarter, status and month, and day. The `metric.rollup.*` and `metric.semi_additive.*` checks also ask Cube if the rollup served the query. `metric.model.stock_form` stops a model that asks for a driver feature.
 
+## A day in a zone
+
+The `zone.*` checks read `conformance/zone_day.py`, `dev/cube/model/zone_day.yml.jinja` and the table `zone_events`. Each form of a day in ClickHouse (a UTC column, a column typed in the zone, a stored `Date` or `String`, a day in the SQL of the model) goes through three paths: Metabase with a report time zone, a Cube request with a time zone, and a plain dimension with no report time zone. Each has one truth: `toDate(ts, zone)` on ClickHouse. This runs for New York and Kolkata. `zone.*.rollup.*` also reads `usedPreAggregations` and the table that served the query.
+
 ## Per-person data
 
 The `security.*` checks need the service `cube-secure`. They run last, because they add databases and people to Metabase. They remove the databases at the end. The people stay. They set a root cache policy for one check and remove it. The truth for each person is ClickHouse with the filter of the row-level rule in `dev/cube-secure/cube.js`.

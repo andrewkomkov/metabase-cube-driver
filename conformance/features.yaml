@@ -6747,3 +6747,1403 @@
   status: todo
   status_stock: todo
   check: preagg.metabase.time_zone_relative_range_hit
+- id: zone.ny.a.report.day
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime, Metabase report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a.report.day
+- id: zone.ny.a.report.coarse
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime, Metabase report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a.report.coarse
+- id: zone.ny.a.report.filter
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime, Metabase report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a.report.filter
+- id: zone.ny.a.report.stages
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime, Metabase report time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.ny.a.report.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube adds the interval of a time shift in UTC, so next to a clock change a row moves to another day. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.a.report.rolling
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime, Metabase report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.ny.a.report.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.a.rest.day
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime, Cube request with a time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a.rest.day
+- id: zone.ny.a.rest.coarse
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime, Cube request with a time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a.rest.coarse
+- id: zone.ny.a.rest.filter
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime, Cube request with a time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a.rest.filter
+- id: zone.ny.a.rest.stages
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime, Cube request with a time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.ny.a.rest.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube adds the interval of a time shift in UTC, so next to a clock change a row moves to another day. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.a.rest.rolling
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime, Cube request with a time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.ny.a.rest.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.a.plain.day
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime, a plain dimension with no report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a.plain.day
+- id: zone.ny.a.plain.coarse
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime, a plain dimension with no report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a.plain.coarse
+- id: zone.ny.a.plain.filter
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime, a plain dimension with no report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a.plain.filter
+- id: zone.ny.a.plain.stages
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime, a plain dimension with no report time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a.plain.stages
+- id: zone.ny.a.plain.rolling
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime, a plain dimension with no report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a.plain.rolling
+- id: zone.ny.a64.report.day
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime64, Metabase report time zone: each metric by day"
+  status: pass
+  status_stock: partial
+  check: zone.ny.a64.report.day
+  cap_stock: partial
+  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
+- id: zone.ny.a64.report.coarse
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime64, Metabase report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a64.report.coarse
+- id: zone.ny.a64.report.filter
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime64, Metabase report time zone: a date filter"
+  status: pass
+  status_stock: partial
+  check: zone.ny.a64.report.filter
+  cap_stock: partial
+  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
+- id: zone.ny.a64.report.stages
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime64, Metabase report time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.ny.a64.report.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube adds the interval of a time shift in UTC, so next to a clock change a row moves to another day. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.a64.report.rolling
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime64, Metabase report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.ny.a64.report.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.a64.rest.day
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime64, Cube request with a time zone: each metric by day"
+  status: pass
+  status_stock: partial
+  check: zone.ny.a64.rest.day
+  cap_stock: partial
+  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
+- id: zone.ny.a64.rest.coarse
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime64, Cube request with a time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a64.rest.coarse
+- id: zone.ny.a64.rest.filter
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime64, Cube request with a time zone: a date filter"
+  status: pass
+  status_stock: partial
+  check: zone.ny.a64.rest.filter
+  cap_stock: partial
+  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
+- id: zone.ny.a64.rest.stages
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime64, Cube request with a time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.ny.a64.rest.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube adds the interval of a time shift in UTC, so next to a clock change a row moves to another day. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.a64.rest.rolling
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime64, Cube request with a time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.ny.a64.rest.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.a64.plain.day
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime64, a plain dimension with no report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a64.plain.day
+- id: zone.ny.a64.plain.coarse
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime64, a plain dimension with no report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a64.plain.coarse
+- id: zone.ny.a64.plain.filter
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime64, a plain dimension with no report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a64.plain.filter
+- id: zone.ny.a64.plain.stages
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime64, a plain dimension with no report time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a64.plain.stages
+- id: zone.ny.a64.plain.rolling
+  area: cube.zone_day
+  title: "New York day from a UTC DateTime64, a plain dimension with no report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: pass
+  check: zone.ny.a64.plain.rolling
+- id: zone.ny.b.report.day
+  area: cube.zone_day
+  title: "New York day from a DateTime typed in the zone, Metabase report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.ny.b.report.day
+- id: zone.ny.b.report.coarse
+  area: cube.zone_day
+  title: "New York day from a DateTime typed in the zone, Metabase report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.ny.b.report.coarse
+- id: zone.ny.b.report.filter
+  area: cube.zone_day
+  title: "New York day from a DateTime typed in the zone, Metabase report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.ny.b.report.filter
+- id: zone.ny.b.report.stages
+  area: cube.zone_day
+  title: "New York day from a DateTime typed in the zone, Metabase report time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.ny.b.report.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube adds the interval of a time shift in UTC, so next to a clock change a row moves to another day. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.b.report.rolling
+  area: cube.zone_day
+  title: "New York day from a DateTime typed in the zone, Metabase report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.ny.b.report.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.b.rest.day
+  area: cube.zone_day
+  title: "New York day from a DateTime typed in the zone, Cube request with a time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.ny.b.rest.day
+- id: zone.ny.b.rest.coarse
+  area: cube.zone_day
+  title: "New York day from a DateTime typed in the zone, Cube request with a time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.ny.b.rest.coarse
+- id: zone.ny.b.rest.filter
+  area: cube.zone_day
+  title: "New York day from a DateTime typed in the zone, Cube request with a time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.ny.b.rest.filter
+- id: zone.ny.b.rest.stages
+  area: cube.zone_day
+  title: "New York day from a DateTime typed in the zone, Cube request with a time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.ny.b.rest.stages
+- id: zone.ny.b.rest.rolling
+  area: cube.zone_day
+  title: "New York day from a DateTime typed in the zone, Cube request with a time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.ny.b.rest.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.b.plain.day
+  area: cube.zone_day
+  title: "New York day from a DateTime typed in the zone, a plain dimension with no report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.ny.b.plain.day
+- id: zone.ny.b.plain.coarse
+  area: cube.zone_day
+  title: "New York day from a DateTime typed in the zone, a plain dimension with no report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.ny.b.plain.coarse
+- id: zone.ny.b.plain.filter
+  area: cube.zone_day
+  title: "New York day from a DateTime typed in the zone, a plain dimension with no report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.ny.b.plain.filter
+- id: zone.ny.b.plain.stages
+  area: cube.zone_day
+  title: "New York day from a DateTime typed in the zone, a plain dimension with no report time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.ny.b.plain.stages
+- id: zone.ny.b.plain.rolling
+  area: cube.zone_day
+  title: "New York day from a DateTime typed in the zone, a plain dimension with no report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: pass
+  check: zone.ny.b.plain.rolling
+- id: zone.ny.c.report.day
+  area: cube.zone_day
+  title: "New York day from a stored Date, Metabase report time zone: each metric by day"
+  status: pass
+  status_stock: partial
+  check: zone.ny.c.report.day
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.c.report.coarse
+  area: cube.zone_day
+  title: "New York day from a stored Date, Metabase report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: partial
+  check: zone.ny.c.report.coarse
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.c.report.filter
+  area: cube.zone_day
+  title: "New York day from a stored Date, Metabase report time zone: a date filter"
+  status: pass
+  status_stock: partial
+  check: zone.ny.c.report.filter
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.c.report.stages
+  area: cube.zone_day
+  title: "New York day from a stored Date, Metabase report time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.ny.c.report.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.c.report.rolling
+  area: cube.zone_day
+  title: "New York day from a stored Date, Metabase report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.ny.c.report.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.c.rest.day
+  area: cube.zone_day
+  title: "New York day from a stored Date, Cube request with a time zone: each metric by day"
+  status: pass
+  status_stock: partial
+  check: zone.ny.c.rest.day
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.c.rest.coarse
+  area: cube.zone_day
+  title: "New York day from a stored Date, Cube request with a time zone: week, month, quarter and year"
+  status: pass
+  status_stock: partial
+  check: zone.ny.c.rest.coarse
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.c.rest.filter
+  area: cube.zone_day
+  title: "New York day from a stored Date, Cube request with a time zone: a date filter"
+  status: pass
+  status_stock: partial
+  check: zone.ny.c.rest.filter
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.c.rest.stages
+  area: cube.zone_day
+  title: "New York day from a stored Date, Cube request with a time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.ny.c.rest.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.c.rest.rolling
+  area: cube.zone_day
+  title: "New York day from a stored Date, Cube request with a time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.ny.c.rest.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.c.plain.day
+  area: cube.zone_day
+  title: "New York day from a stored Date, a plain dimension with no report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.ny.c.plain.day
+- id: zone.ny.c.plain.coarse
+  area: cube.zone_day
+  title: "New York day from a stored Date, a plain dimension with no report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.ny.c.plain.coarse
+- id: zone.ny.c.plain.filter
+  area: cube.zone_day
+  title: "New York day from a stored Date, a plain dimension with no report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.ny.c.plain.filter
+- id: zone.ny.c.plain.stages
+  area: cube.zone_day
+  title: "New York day from a stored Date, a plain dimension with no report time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.ny.c.plain.stages
+- id: zone.ny.c.plain.rolling
+  area: cube.zone_day
+  title: "New York day from a stored Date, a plain dimension with no report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: pass
+  check: zone.ny.c.plain.rolling
+- id: zone.ny.cs.report.day
+  area: cube.zone_day
+  title: "New York day from a stored String day, Metabase report time zone: each metric by day"
+  status: pass
+  status_stock: partial
+  check: zone.ny.cs.report.day
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.cs.report.coarse
+  area: cube.zone_day
+  title: "New York day from a stored String day, Metabase report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: partial
+  check: zone.ny.cs.report.coarse
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.cs.report.filter
+  area: cube.zone_day
+  title: "New York day from a stored String day, Metabase report time zone: a date filter"
+  status: pass
+  status_stock: partial
+  check: zone.ny.cs.report.filter
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.cs.report.stages
+  area: cube.zone_day
+  title: "New York day from a stored String day, Metabase report time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.ny.cs.report.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.cs.report.rolling
+  area: cube.zone_day
+  title: "New York day from a stored String day, Metabase report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.ny.cs.report.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.cs.rest.day
+  area: cube.zone_day
+  title: "New York day from a stored String day, Cube request with a time zone: each metric by day"
+  status: pass
+  status_stock: partial
+  check: zone.ny.cs.rest.day
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.cs.rest.coarse
+  area: cube.zone_day
+  title: "New York day from a stored String day, Cube request with a time zone: week, month, quarter and year"
+  status: pass
+  status_stock: partial
+  check: zone.ny.cs.rest.coarse
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.cs.rest.filter
+  area: cube.zone_day
+  title: "New York day from a stored String day, Cube request with a time zone: a date filter"
+  status: pass
+  status_stock: partial
+  check: zone.ny.cs.rest.filter
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.cs.rest.stages
+  area: cube.zone_day
+  title: "New York day from a stored String day, Cube request with a time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.ny.cs.rest.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.cs.rest.rolling
+  area: cube.zone_day
+  title: "New York day from a stored String day, Cube request with a time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.ny.cs.rest.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.cs.plain.day
+  area: cube.zone_day
+  title: "New York day from a stored String day, a plain dimension with no report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.ny.cs.plain.day
+- id: zone.ny.cs.plain.coarse
+  area: cube.zone_day
+  title: "New York day from a stored String day, a plain dimension with no report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.ny.cs.plain.coarse
+- id: zone.ny.cs.plain.filter
+  area: cube.zone_day
+  title: "New York day from a stored String day, a plain dimension with no report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.ny.cs.plain.filter
+- id: zone.ny.cs.plain.stages
+  area: cube.zone_day
+  title: "New York day from a stored String day, a plain dimension with no report time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.ny.cs.plain.stages
+- id: zone.ny.cs.plain.rolling
+  area: cube.zone_day
+  title: "New York day from a stored String day, a plain dimension with no report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: pass
+  check: zone.ny.cs.plain.rolling
+- id: zone.ny.d.report.day
+  area: cube.zone_day
+  title: "New York day from a day in the SQL of the model, Metabase report time zone: each metric by day"
+  status: pass
+  status_stock: partial
+  check: zone.ny.d.report.day
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.d.report.coarse
+  area: cube.zone_day
+  title: "New York day from a day in the SQL of the model, Metabase report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: partial
+  check: zone.ny.d.report.coarse
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.d.report.filter
+  area: cube.zone_day
+  title: "New York day from a day in the SQL of the model, Metabase report time zone: a date filter"
+  status: pass
+  status_stock: partial
+  check: zone.ny.d.report.filter
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.d.report.stages
+  area: cube.zone_day
+  title: "New York day from a day in the SQL of the model, Metabase report time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.ny.d.report.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.d.report.rolling
+  area: cube.zone_day
+  title: "New York day from a day in the SQL of the model, Metabase report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.ny.d.report.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.d.rest.day
+  area: cube.zone_day
+  title: "New York day from a day in the SQL of the model, Cube request with a time zone: each metric by day"
+  status: pass
+  status_stock: partial
+  check: zone.ny.d.rest.day
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.d.rest.coarse
+  area: cube.zone_day
+  title: "New York day from a day in the SQL of the model, Cube request with a time zone: week, month, quarter and year"
+  status: pass
+  status_stock: partial
+  check: zone.ny.d.rest.coarse
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.d.rest.filter
+  area: cube.zone_day
+  title: "New York day from a day in the SQL of the model, Cube request with a time zone: a date filter"
+  status: pass
+  status_stock: partial
+  check: zone.ny.d.rest.filter
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.d.rest.stages
+  area: cube.zone_day
+  title: "New York day from a day in the SQL of the model, Cube request with a time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.ny.d.rest.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.d.rest.rolling
+  area: cube.zone_day
+  title: "New York day from a day in the SQL of the model, Cube request with a time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.ny.d.rest.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.d.plain.day
+  area: cube.zone_day
+  title: "New York day from a day in the SQL of the model, a plain dimension with no report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.ny.d.plain.day
+- id: zone.ny.d.plain.coarse
+  area: cube.zone_day
+  title: "New York day from a day in the SQL of the model, a plain dimension with no report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.ny.d.plain.coarse
+- id: zone.ny.d.plain.filter
+  area: cube.zone_day
+  title: "New York day from a day in the SQL of the model, a plain dimension with no report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.ny.d.plain.filter
+- id: zone.ny.d.plain.stages
+  area: cube.zone_day
+  title: "New York day from a day in the SQL of the model, a plain dimension with no report time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.ny.d.plain.stages
+- id: zone.ny.d.plain.rolling
+  area: cube.zone_day
+  title: "New York day from a day in the SQL of the model, a plain dimension with no report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: pass
+  check: zone.ny.d.plain.rolling
+- id: zone.kol.a.report.day
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime, Metabase report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a.report.day
+- id: zone.kol.a.report.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime, Metabase report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a.report.coarse
+- id: zone.kol.a.report.filter
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime, Metabase report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a.report.filter
+- id: zone.kol.a.report.stages
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime, Metabase report time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.kol.a.report.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube adds the interval of a time shift in UTC, so next to a clock change a row moves to another day. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.a.report.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime, Metabase report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.kol.a.report.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.a.rest.day
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime, Cube request with a time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a.rest.day
+- id: zone.kol.a.rest.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime, Cube request with a time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a.rest.coarse
+- id: zone.kol.a.rest.filter
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime, Cube request with a time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a.rest.filter
+- id: zone.kol.a.rest.stages
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime, Cube request with a time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a.rest.stages
+- id: zone.kol.a.rest.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime, Cube request with a time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.kol.a.rest.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.a.plain.day
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime, a plain dimension with no report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a.plain.day
+- id: zone.kol.a.plain.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime, a plain dimension with no report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a.plain.coarse
+- id: zone.kol.a.plain.filter
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime, a plain dimension with no report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a.plain.filter
+- id: zone.kol.a.plain.stages
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime, a plain dimension with no report time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a.plain.stages
+- id: zone.kol.a.plain.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime, a plain dimension with no report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a.plain.rolling
+- id: zone.kol.a64.report.day
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime64, Metabase report time zone: each metric by day"
+  status: pass
+  status_stock: partial
+  check: zone.kol.a64.report.day
+  cap_stock: partial
+  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
+- id: zone.kol.a64.report.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime64, Metabase report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a64.report.coarse
+- id: zone.kol.a64.report.filter
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime64, Metabase report time zone: a date filter"
+  status: pass
+  status_stock: partial
+  check: zone.kol.a64.report.filter
+  cap_stock: partial
+  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
+- id: zone.kol.a64.report.stages
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime64, Metabase report time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.kol.a64.report.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube adds the interval of a time shift in UTC, so next to a clock change a row moves to another day. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.a64.report.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime64, Metabase report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.kol.a64.report.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.a64.rest.day
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime64, Cube request with a time zone: each metric by day"
+  status: pass
+  status_stock: partial
+  check: zone.kol.a64.rest.day
+  cap_stock: partial
+  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
+- id: zone.kol.a64.rest.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime64, Cube request with a time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a64.rest.coarse
+- id: zone.kol.a64.rest.filter
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime64, Cube request with a time zone: a date filter"
+  status: pass
+  status_stock: partial
+  check: zone.kol.a64.rest.filter
+  cap_stock: partial
+  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
+- id: zone.kol.a64.rest.stages
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime64, Cube request with a time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.kol.a64.rest.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube adds the interval of a time shift in UTC, so next to a clock change a row moves to another day. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.a64.rest.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime64, Cube request with a time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.kol.a64.rest.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.a64.plain.day
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime64, a plain dimension with no report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a64.plain.day
+- id: zone.kol.a64.plain.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime64, a plain dimension with no report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a64.plain.coarse
+- id: zone.kol.a64.plain.filter
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime64, a plain dimension with no report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a64.plain.filter
+- id: zone.kol.a64.plain.stages
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime64, a plain dimension with no report time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a64.plain.stages
+- id: zone.kol.a64.plain.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a UTC DateTime64, a plain dimension with no report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: pass
+  check: zone.kol.a64.plain.rolling
+- id: zone.kol.b.report.day
+  area: cube.zone_day
+  title: "Kolkata day from a DateTime typed in the zone, Metabase report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.kol.b.report.day
+- id: zone.kol.b.report.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a DateTime typed in the zone, Metabase report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.kol.b.report.coarse
+- id: zone.kol.b.report.filter
+  area: cube.zone_day
+  title: "Kolkata day from a DateTime typed in the zone, Metabase report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.kol.b.report.filter
+- id: zone.kol.b.report.stages
+  area: cube.zone_day
+  title: "Kolkata day from a DateTime typed in the zone, Metabase report time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.kol.b.report.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube adds the interval of a time shift in UTC, so next to a clock change a row moves to another day. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.b.report.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a DateTime typed in the zone, Metabase report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.kol.b.report.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.b.rest.day
+  area: cube.zone_day
+  title: "Kolkata day from a DateTime typed in the zone, Cube request with a time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.kol.b.rest.day
+- id: zone.kol.b.rest.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a DateTime typed in the zone, Cube request with a time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.kol.b.rest.coarse
+- id: zone.kol.b.rest.filter
+  area: cube.zone_day
+  title: "Kolkata day from a DateTime typed in the zone, Cube request with a time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.kol.b.rest.filter
+- id: zone.kol.b.rest.stages
+  area: cube.zone_day
+  title: "Kolkata day from a DateTime typed in the zone, Cube request with a time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.kol.b.rest.stages
+- id: zone.kol.b.rest.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a DateTime typed in the zone, Cube request with a time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.kol.b.rest.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.b.plain.day
+  area: cube.zone_day
+  title: "Kolkata day from a DateTime typed in the zone, a plain dimension with no report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.kol.b.plain.day
+- id: zone.kol.b.plain.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a DateTime typed in the zone, a plain dimension with no report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.kol.b.plain.coarse
+- id: zone.kol.b.plain.filter
+  area: cube.zone_day
+  title: "Kolkata day from a DateTime typed in the zone, a plain dimension with no report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.kol.b.plain.filter
+- id: zone.kol.b.plain.stages
+  area: cube.zone_day
+  title: "Kolkata day from a DateTime typed in the zone, a plain dimension with no report time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.kol.b.plain.stages
+- id: zone.kol.b.plain.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a DateTime typed in the zone, a plain dimension with no report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: pass
+  check: zone.kol.b.plain.rolling
+- id: zone.kol.c.report.day
+  area: cube.zone_day
+  title: "Kolkata day from a stored Date, Metabase report time zone: each metric by day"
+  status: pass
+  status_stock: partial
+  check: zone.kol.c.report.day
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.kol.c.report.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a stored Date, Metabase report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: partial
+  check: zone.kol.c.report.coarse
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.kol.c.report.filter
+  area: cube.zone_day
+  title: "Kolkata day from a stored Date, Metabase report time zone: a date filter"
+  status: pass
+  status_stock: partial
+  check: zone.kol.c.report.filter
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.kol.c.report.stages
+  area: cube.zone_day
+  title: "Kolkata day from a stored Date, Metabase report time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.kol.c.report.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.kol.c.report.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a stored Date, Metabase report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.kol.c.report.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.c.rest.day
+  area: cube.zone_day
+  title: "Kolkata day from a stored Date, Cube request with a time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.kol.c.rest.day
+- id: zone.kol.c.rest.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a stored Date, Cube request with a time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.kol.c.rest.coarse
+- id: zone.kol.c.rest.filter
+  area: cube.zone_day
+  title: "Kolkata day from a stored Date, Cube request with a time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.kol.c.rest.filter
+- id: zone.kol.c.rest.stages
+  area: cube.zone_day
+  title: "Kolkata day from a stored Date, Cube request with a time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.kol.c.rest.stages
+- id: zone.kol.c.rest.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a stored Date, Cube request with a time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.kol.c.rest.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.c.plain.day
+  area: cube.zone_day
+  title: "Kolkata day from a stored Date, a plain dimension with no report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.kol.c.plain.day
+- id: zone.kol.c.plain.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a stored Date, a plain dimension with no report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.kol.c.plain.coarse
+- id: zone.kol.c.plain.filter
+  area: cube.zone_day
+  title: "Kolkata day from a stored Date, a plain dimension with no report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.kol.c.plain.filter
+- id: zone.kol.c.plain.stages
+  area: cube.zone_day
+  title: "Kolkata day from a stored Date, a plain dimension with no report time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.kol.c.plain.stages
+- id: zone.kol.c.plain.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a stored Date, a plain dimension with no report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: pass
+  check: zone.kol.c.plain.rolling
+- id: zone.kol.cs.report.day
+  area: cube.zone_day
+  title: "Kolkata day from a stored String day, Metabase report time zone: each metric by day"
+  status: pass
+  status_stock: partial
+  check: zone.kol.cs.report.day
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.kol.cs.report.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a stored String day, Metabase report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: partial
+  check: zone.kol.cs.report.coarse
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.kol.cs.report.filter
+  area: cube.zone_day
+  title: "Kolkata day from a stored String day, Metabase report time zone: a date filter"
+  status: pass
+  status_stock: partial
+  check: zone.kol.cs.report.filter
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.kol.cs.report.stages
+  area: cube.zone_day
+  title: "Kolkata day from a stored String day, Metabase report time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.kol.cs.report.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.kol.cs.report.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a stored String day, Metabase report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.kol.cs.report.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.cs.rest.day
+  area: cube.zone_day
+  title: "Kolkata day from a stored String day, Cube request with a time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.kol.cs.rest.day
+- id: zone.kol.cs.rest.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a stored String day, Cube request with a time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.kol.cs.rest.coarse
+- id: zone.kol.cs.rest.filter
+  area: cube.zone_day
+  title: "Kolkata day from a stored String day, Cube request with a time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.kol.cs.rest.filter
+- id: zone.kol.cs.rest.stages
+  area: cube.zone_day
+  title: "Kolkata day from a stored String day, Cube request with a time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.kol.cs.rest.stages
+- id: zone.kol.cs.rest.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a stored String day, Cube request with a time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.kol.cs.rest.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.cs.plain.day
+  area: cube.zone_day
+  title: "Kolkata day from a stored String day, a plain dimension with no report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.kol.cs.plain.day
+- id: zone.kol.cs.plain.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a stored String day, a plain dimension with no report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.kol.cs.plain.coarse
+- id: zone.kol.cs.plain.filter
+  area: cube.zone_day
+  title: "Kolkata day from a stored String day, a plain dimension with no report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.kol.cs.plain.filter
+- id: zone.kol.cs.plain.stages
+  area: cube.zone_day
+  title: "Kolkata day from a stored String day, a plain dimension with no report time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.kol.cs.plain.stages
+- id: zone.kol.cs.plain.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a stored String day, a plain dimension with no report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: pass
+  check: zone.kol.cs.plain.rolling
+- id: zone.kol.d.report.day
+  area: cube.zone_day
+  title: "Kolkata day from a day in the SQL of the model, Metabase report time zone: each metric by day"
+  status: pass
+  status_stock: partial
+  check: zone.kol.d.report.day
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.kol.d.report.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a day in the SQL of the model, Metabase report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: partial
+  check: zone.kol.d.report.coarse
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.kol.d.report.filter
+  area: cube.zone_day
+  title: "Kolkata day from a day in the SQL of the model, Metabase report time zone: a date filter"
+  status: pass
+  status_stock: partial
+  check: zone.kol.d.report.filter
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.kol.d.report.stages
+  area: cube.zone_day
+  title: "Kolkata day from a day in the SQL of the model, Metabase report time zone: multi-stage metrics"
+  status: pass
+  status_stock: partial
+  check: zone.kol.d.report.stages
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.kol.d.report.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a day in the SQL of the model, Metabase report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.kol.d.report.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.d.rest.day
+  area: cube.zone_day
+  title: "Kolkata day from a day in the SQL of the model, Cube request with a time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.kol.d.rest.day
+- id: zone.kol.d.rest.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a day in the SQL of the model, Cube request with a time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.kol.d.rest.coarse
+- id: zone.kol.d.rest.filter
+  area: cube.zone_day
+  title: "Kolkata day from a day in the SQL of the model, Cube request with a time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.kol.d.rest.filter
+- id: zone.kol.d.rest.stages
+  area: cube.zone_day
+  title: "Kolkata day from a day in the SQL of the model, Cube request with a time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.kol.d.rest.stages
+- id: zone.kol.d.rest.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a day in the SQL of the model, Cube request with a time zone: rolling and to-date windows"
+  status: pass
+  status_stock: partial
+  check: zone.kol.d.rest.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.d.plain.day
+  area: cube.zone_day
+  title: "Kolkata day from a day in the SQL of the model, a plain dimension with no report time zone: each metric by day"
+  status: pass
+  status_stock: pass
+  check: zone.kol.d.plain.day
+- id: zone.kol.d.plain.coarse
+  area: cube.zone_day
+  title: "Kolkata day from a day in the SQL of the model, a plain dimension with no report time zone: week, month, quarter and year"
+  status: pass
+  status_stock: pass
+  check: zone.kol.d.plain.coarse
+- id: zone.kol.d.plain.filter
+  area: cube.zone_day
+  title: "Kolkata day from a day in the SQL of the model, a plain dimension with no report time zone: a date filter"
+  status: pass
+  status_stock: pass
+  check: zone.kol.d.plain.filter
+- id: zone.kol.d.plain.stages
+  area: cube.zone_day
+  title: "Kolkata day from a day in the SQL of the model, a plain dimension with no report time zone: multi-stage metrics"
+  status: pass
+  status_stock: pass
+  check: zone.kol.d.plain.stages
+- id: zone.kol.d.plain.rolling
+  area: cube.zone_day
+  title: "Kolkata day from a day in the SQL of the model, a plain dimension with no report time zone: rolling and to-date windows"
+  status: pass
+  status_stock: pass
+  check: zone.kol.d.plain.rolling
+- id: zone.ny.rollup.tables
+  area: cube.zone_day
+  title: "New York day: a rollup in the zone is another table than the rollup in UTC"
+  status: pass
+  status_stock: pass
+  check: zone.ny.rollup.tables
+- id: zone.ny.rollup.job
+  area: cube.zone_day
+  title: "New York day: a rollup built for UTC only does not serve the zone, a rollup built for the zone hits"
+  status: pass
+  status_stock: pass
+  check: zone.ny.rollup.job
+- id: zone.ny.rollup.metabase
+  area: cube.zone_day
+  title: "New York day: Metabase reads the rollup of the zone"
+  status: pass
+  status_stock: pass
+  check: zone.ny.rollup.metabase
+- id: zone.ny.rollup.rolling
+  area: cube.zone_day
+  title: "New York day: a window from the rollup of the zone"
+  status: pass
+  status_stock: partial
+  check: zone.ny.rollup.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC, and it filters the rollup of a window with the offset of today. The driver stops these in Metabase. A Cube request gets the wrong number. The dialect fixes them."
+- id: zone.ny.rollup.stored_day
+  area: cube.zone_day
+  title: "New York day: a rollup on the stored day"
+  status: pass
+  status_stock: partial
+  check: zone.ny.rollup.stored_day
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.rollup.text_day
+  area: cube.zone_day
+  title: "New York day: a rollup on the stored day as text"
+  status: pass
+  status_stock: pass
+  check: zone.ny.rollup.text_day
+- id: zone.kol.rollup.tables
+  area: cube.zone_day
+  title: "Kolkata day: a rollup in the zone is another table than the rollup in UTC"
+  status: pass
+  status_stock: pass
+  check: zone.kol.rollup.tables
+- id: zone.kol.rollup.job
+  area: cube.zone_day
+  title: "Kolkata day: a rollup built for UTC only does not serve the zone, a rollup built for the zone hits"
+  status: pass
+  status_stock: pass
+  check: zone.kol.rollup.job
+- id: zone.kol.rollup.metabase
+  area: cube.zone_day
+  title: "Kolkata day: Metabase reads the rollup of the zone"
+  status: pass
+  status_stock: pass
+  check: zone.kol.rollup.metabase
+- id: zone.kol.rollup.rolling
+  area: cube.zone_day
+  title: "Kolkata day: a window from the rollup of the zone"
+  status: pass
+  status_stock: partial
+  check: zone.kol.rollup.rolling
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC, and it filters the rollup of a window with the offset of today. The driver stops these in Metabase. A Cube request gets the wrong number. The dialect fixes them."
+- id: zone.kol.rollup.stored_day
+  area: cube.zone_day
+  title: "Kolkata day: a rollup on the stored day"
+  status: pass
+  status_stock: partial
+  check: zone.kol.rollup.stored_day
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.kol.rollup.text_day
+  area: cube.zone_day
+  title: "Kolkata day: a rollup on the stored day as text"
+  status: pass
+  status_stock: pass
+  check: zone.kol.rollup.text_day
+- id: zone.ny.stored_day_other_zone
+  area: cube.zone_day
+  title: "New York day: a stored day under the report time zone of another zone"
+  status: pass
+  status_stock: partial
+  check: zone.ny.stored_day_other_zone
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.time_measure
+  area: cube.zone_day
+  title: "New York day: a measure of type time"
+  status: pass
+  status_stock: partial
+  check: zone.ny.time_measure
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.ny.native
+  area: cube.zone_day
+  title: "New York day: native SQL"
+  status: pass
+  status_stock: partial
+  check: zone.ny.native
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.mcp
+  area: cube.zone_day
+  title: "New York day: the MCP tool"
+  status: pass
+  status_stock: partial
+  check: zone.ny.mcp
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.ny.catalog
+  area: cube.zone_day
+  title: "New York day: the catalog cubes"
+  status: pass
+  status_stock: partial
+  check: zone.ny.catalog
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.stored_day_other_zone
+  area: cube.zone_day
+  title: "Kolkata day: a stored day under the report time zone of another zone"
+  status: pass
+  status_stock: partial
+  check: zone.kol.stored_day_other_zone
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.kol.time_measure
+  area: cube.zone_day
+  title: "Kolkata day: a measure of type time"
+  status: pass
+  status_stock: partial
+  check: zone.kol.time_measure
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
+- id: zone.kol.native
+  area: cube.zone_day
+  title: "Kolkata day: native SQL"
+  status: pass
+  status_stock: partial
+  check: zone.kol.native
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.mcp
+  area: cube.zone_day
+  title: "Kolkata day: the MCP tool"
+  status: pass
+  status_stock: partial
+  check: zone.kol.mcp
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.kol.catalog
+  area: cube.zone_day
+  title: "Kolkata day: the catalog cubes"
+  status: pass
+  status_stock: partial
+  check: zone.kol.catalog
+  cap_stock: partial
+  reason_stock: "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
+- id: zone.rolling.sunday_week_with_no_granularity_refused
+  area: cube.zone_day
+  title: "a rolling window by a week from Sunday with no granularity stops"
+  status: pass
+  status_stock: pass
+  check: zone.rolling.sunday_week_with_no_granularity_refused

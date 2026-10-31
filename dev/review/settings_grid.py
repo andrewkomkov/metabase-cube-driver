@@ -75,9 +75,17 @@ def zone_shapes(tz):
     out.append({"id": "tz/%s/equal by the same month" % tz, "table": T, "agg": ["m:orders.count"], "by": [CRT + "@month"], "where": [["=", CRT, "2025-03-15T07:00:00"]],
                 "truth": "SELECT toStartOfMonth(%s), count() FROM orders WHERE created_at = %s GROUP BY 1" % (L, at("2025-03-15 07:00:00"))})
     whole = [[">=", CRT, "2025-03-01"], ["<", CRT, "2025-05-01"]]
-    # Rolling windows stop, findings B4b and M1.
-    for m in ("revenue_mtd", "revenue_ytd", "revenue_trailing_30d", "revenue_leading_7d", "cumulative_count"):
-        out.append({"id": "tz/%s/rolling %s" % (tz, m), "table": T, "agg": ["m:orders.%s" % m], "by": [CRT + "@month"], "where": whole, "truth": None, "expect": "refusal"})
+    # Rolling windows read the zone with the dialect, and stock Cube stops. The window of 7 days is shorter than the bucket, so it stops on both.
+    day = "toDate(%s)" % L
+    months = "CROSS JOIN (SELECT arrayJoin([toDate('2025-03-01'), toDate('2025-04-01')]) AS m) AS b GROUP BY m"
+    windows = {"revenue_mtd": "sumIf(amount, toStartOfMonth(%s) = m)" % day,
+               "revenue_ytd": "sumIf(amount, toStartOfYear(%s) = toStartOfYear(m) AND %s <= toLastDayOfMonth(m))" % (day, day),
+               "revenue_trailing_30d": "sumIf(amount, %s > addDays(toLastDayOfMonth(m), -30) AND %s <= toLastDayOfMonth(m))" % (day, day),
+               "cumulative_count": "countIf(%s <= toLastDayOfMonth(m))" % day}
+    for m, expr in windows.items():
+        out.append({"id": "tz/%s/rolling %s" % (tz, m), "table": T, "agg": ["m:orders.%s" % m], "by": [CRT + "@month"], "where": whole,
+                    "truth": "SELECT m, %s FROM orders %s" % (expr, months), "stock_refusal": True})
+    out.append({"id": "tz/%s/rolling revenue_leading_7d" % tz, "table": T, "agg": ["m:orders.revenue_leading_7d"], "by": [CRT + "@month"], "where": whole, "truth": None, "expect": "refusal"})
     # A time shift reads a date range.
     out.append({"id": "tz/%s/prior month" % tz, "table": T, "agg": ["m:orders.revenue_prior_month"], "by": [CRT + "@month"], "where": whole,
                 "truth": "SELECT addMonths(toStartOfMonth(%s), 1) m, sum(amount) FROM orders GROUP BY m HAVING m >= '2025-03-01' AND m < '2025-05-01'" % L})
@@ -117,7 +125,8 @@ def zone_shapes(tz):
     for name, where in (("one bound", "created_at >= '%s'" % t1), ("equal", "created_at = '%s'" % t1), ("in or", "created_at >= '%s' OR status = 'shipped'" % t1), ("not", "NOT (created_at >= '%s')" % t1),
                         ("bucket in filter", "DATE_TRUNC('month', created_at) >= '2025-07-01'")):
         out.append({"id": "tz/%s/native %s" % (tz, name), "native": "SELECT MEASURE(count) FROM orders WHERE " + where, "truth": None, "expect": "refusal"})
-    out.append({"id": "tz/%s/native rolling" % tz, "native": "SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_mtd) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-05-01' GROUP BY 1", "truth": None, "expect": "refusal"})
+    out.append({"id": "tz/%s/native rolling" % tz, "native": "SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_mtd) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-05-01' GROUP BY 1",
+                "truth": "SELECT m, %s FROM orders %s" % (windows["revenue_mtd"], months), "stock_refusal": True})
     return out
 
 

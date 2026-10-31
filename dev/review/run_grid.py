@@ -310,7 +310,7 @@ def one(ctx, mcp, sh, channel):
         r["error"] = err[:600]
         if err.startswith("harness"):
             r["verdict"] = "harness"
-        elif sh.get("expect") == "refusal":
+        elif sh.get("expect") == "refusal" or (sh.get("stock_refusal") and "stock Cube reads the bounds" in err):
             r["verdict"] = "refused_as_expected"
         else:
             r["verdict"] = "error"

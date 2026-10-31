@@ -8297,6 +8297,12 @@ def run_suite(args):
     return 1 if "fail" in final.values() else 0
 
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import zone_day  # noqa: E402
+
+zone_day.register(sys.modules[__name__])
+
+
 def main():
     ap = argparse.ArgumentParser(description="Run the conformance suite.")
     ap.add_argument("--only", help="run only the features whose id matches this regex")
