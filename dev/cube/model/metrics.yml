@@ -10,7 +10,7 @@ cubes:
     joins:
       - { name: metric_customers, relationship: many_to_one, sql: "{CUBE}.user_id = {metric_customers.id}" }
       - { name: products, relationship: many_to_one, sql: "{CUBE}.product_id = {products.id}" }
-      - { name: payments, relationship: one_to_many, sql: "{CUBE}.id = {payments.order_id}" }
+      - { name: metric_payments, relationship: one_to_many, sql: "{CUBE}.id = {metric_payments.order_id}" }
       - { name: fiscal_calendar, relationship: many_to_one, sql: "toDate({CUBE}.created_at) = toDate({fiscal_calendar.date_key})" }
     dimensions:
       - { name: id, sql: id, type: number, primary_key: true, public: true }
@@ -181,8 +181,8 @@ cubes:
       - { name: c_sum_of_row_ratios, type: sum, sql: "1.0 * amount / NULLIF(quantity, 0)", description: Sum over rows of the amount per unit. }
       - { name: c_avg_of_ratio, type: avg, sql: "1.0 * amount / NULLIF(quantity, 0)", description: Average over rows of the amount per unit. }
       - { name: c_ratio_of_avgs, type: number, sql: "1.0 * {m_avg_amount} / NULLIF({m_avg_quantity}, 0)", description: Ratio of two averages. }
-      - { name: c_cross_paid_ratio, type: number, sql: "1.0 * {payments.total} / NULLIF({m_revenue}, 0)", description: Payments over revenue through a join with fan-out. }
-      - { name: c_cross_count_ratio, type: number, sql: "1.0 * {payments.count} / NULLIF({m_count}, 0)", description: Payments per order through a join with fan-out. }
+      - { name: c_cross_paid_ratio, type: number, sql: "1.0 * {metric_payments.total} / NULLIF({m_revenue}, 0)", description: Payments over revenue through a join with fan-out. }
+      - { name: c_cross_count_ratio, type: number, sql: "1.0 * {metric_payments.count} / NULLIF({m_count}, 0)", description: Payments per order through a join with fan-out. }
       - { name: c_paid_share, type: number, sql: "1.0 * {m_paid_revenue} / NULLIF({m_revenue}, 0)", format: percent, description: Share of revenue that was paid. }
       - { name: c_customers_per_order, type: number, sql: "1.0 * {m_users} / NULLIF({m_count}, 0)", description: Distinct customers over orders. }
       - { name: c_revenue_per_customer, type: number, sql: "1.0 * {m_revenue} / NULLIF({m_users}, 0)", description: Revenue over distinct customers. }
@@ -202,6 +202,23 @@ cubes:
       - { name: c_margin, type: number, sql: "1.0 * ({m_revenue} - {c_cost}) / NULLIF({c_cost}, 0)", description: The form (a - b) / b. }
       - { name: c_product, type: number, sql: "1.0 * {m_avg_quantity} * {m_count}", description: A product of two metrics. }
       - { name: c_nested_ratio, type: number, sql: "1.0 * {m_revenue} / NULLIF({m_quantity_sum}, 0) / NULLIF({m_count}, 0)", description: The form a / b / c. }
+
+  - name: metric_payments
+    title: Metric payments
+    description: Two payments for each order. The join from metric_types has fan-out.
+    sql: >
+      SELECT id AS payment_id, id AS order_id, 'card' AS method, amount AS paid
+      FROM shop.orders
+      UNION ALL
+      SELECT id + 100000 AS payment_id, id AS order_id, 'fee' AS method, toDecimal64(1, 2) AS paid
+      FROM shop.orders
+    dimensions:
+      - { name: id, sql: payment_id, type: number, primary_key: true, public: false }
+      - { name: order_id, sql: order_id, type: number, description: Paid order. }
+      - { name: method, sql: method, type: string, description: Payment method. }
+    measures:
+      - { name: count, type: count, description: Number of payments. }
+      - { name: total, sql: paid, type: sum, format: currency, description: Total paid. }
 
   - name: metric_customers
     title: Metric customers
@@ -229,7 +246,7 @@ cubes:
       - { name: converted, type: count, filters: [{ sql: "{CUBE.january_paid_orders} > 0" }], description: Customers with a paid order in January 2025. }
       - { name: conversion, type: number, sql: "1.0 * {converted} / NULLIF({customers}, 0)", format: percent, description: Share of customers with a paid order in January 2025. }
       - { name: revenue, type: number, sql: "{metric_types.m_revenue}", format: currency, description: Revenue of the orders of the customers through a join. }
-      - { name: payments_total, type: number, sql: "{payments.total}", format: currency, description: Payments of the customers through two joins. }
+      - { name: payments_total, type: number, sql: "{metric_payments.total}", format: currency, description: Payments of the customers through two joins. }
 
   - name: metric_customer_months
     title: Metric customer months
