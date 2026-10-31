@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 733/761 pass on Cube with the ClickHouse dialect** (733 pass, 14 partial, 2 blocked, 12 unsupported, 0 fail of 761)
+**coverage: 736/767 pass on Cube with the ClickHouse dialect** (736 pass, 13 partial, 2 blocked, 12 unsupported, 4 fail of 767)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `598a938f3adb`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41182306142), 2026-10-31.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `ed9dbdfb3ef3`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41183706365), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -42,7 +42,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `598a9
 | `measure.rolling.to_date_month` | pass |  |
 | `measure.rolling.to_date_year` | pass |  |
 | `measure.rolling.trailing` | pass |  |
-| `measure.rolling.unbounded` | blocked | For more than one bucket, Cube writes the window as a join with only an inequality, and ClickHouse 26.8 rejects it: Cannot determine join keys in JOIN ON expression. allow_experimental_join_condition=1 does not change this. One bucket works, and more buckets stop with a clear message, see measure.rolling.unbounded_one_bucket. trailing: 100 year in the data model works for more buckets. Bounded windows work, see measure.rolling.trailing. |
+| `measure.rolling.unbounded` | blocked | ClickHouse before 26.10 rejects the join with only an inequality that Cube writes for more than one bucket: Cannot determine join keys in JOIN ON expression. The driver stops this query with a clear message. trailing: 100 year in the data model works. |
 | `measure.type.avg` | pass |  |
 | `measure.type.boolean` | pass |  |
 | `measure.type.count` | pass |  |
@@ -174,7 +174,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `598a9
 | `sqlapi.where_between` | pass |  |
 | `sqlapi.where_in` | pass |  |
 | `sqlapi.where_is_null` | pass |  |
-| `sqlapi.where_like` | pass |  |
+| `sqlapi.where_like` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-31T08:25:17.933528988Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"lib/type":"mbql/query","stages":[{"lib/type":"mbql.stage/native","native":"SELECT MEASURE(count) AS n FROM ord |
 | `restapi.compare_date_range` | unsupported | compareDateRange exists only in the REST API. No Metabase query shape maps to it. |
 | `restapi.total_query` | unsupported | A total query exists only in the REST API. No Metabase query shape maps to it. |
 | `clickhouse.bool` | pass |  |
@@ -720,7 +720,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `598a9
 | `build.load_check_sends_the_api_secret` | pass |  |
 | `docs.query_compilation_agrees_with_code` | pass |  |
 | `compile.bound.datetime64_whole_seconds_limit` | pass |  |
-| `native.count_on_no_rows_limit` | partial | Limit of Cube: native COUNT(*) on no rows gives NULL where SQL gives 0 (m3). The driver does not change native text, and it cannot know that a NULL column is a count. MBQL gives 0. |
+| `native.count_on_no_rows_limit` | fail | Cube now gives [[0]] for SELECT COUNT(*) FROM orders WHERE status = 'nope'. Give this entry its full status |
 | `nested.model.multi_stage_measure_column` | pass |  |
 | `nested.question.multi_stage_outer_date_filter` | pass |  |
 | `nested.model.measure_column_bounds` | pass |  |
@@ -745,6 +745,12 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `598a9
 | `native.bound.alias_in_a_subquery` | pass |  |
 | `native.bound.datetime64_last_second_limit` | pass |  |
 | `compile.raw.switch_dimension_keeps_one_row` | pass |  |
+| `measure.rolling.window_shorter_than_bucket` | pass |  |
+| `grid.compact.dataset` | pass |  |
+| `grid.compact.mcp` | pass |  |
+| `grid.compact.report_zone` | fail | 5 of 31 not expected: tz/America/New_York/stage filter on a bucket wrong rows: got 5, truth 6. First got [['2025-08-01T00:00:00-04:00', 27999.0], ['2025-09-01T00:00:00-04:00', 26460.0]], first truth [['2025-07-01', 27103], ['2025-08- \| tz/America/New_York/stage equal on a bucket wrong rows: got 0, truth 1. First got [], first truth [['2025-07-01', 27103]] \| tz/America/New_York/Date filter after wrong row 0: got [761], truth [785] \| tz/America/New_York/Date filter before wrong row 0: got [215], truth [191] \| tz/America/New_York/Date32 filter after wrong row 0: got [761], truth [785] |
+| `grid.compact.mcp_report_zone` | fail | 2 of 31 not expected: tz/America/New_York/stage filter on a bucket wrong rows: got 5, truth 6. First got [['2025-08-01T00:00:00-04:00', 27999.0], ['2025-09-01T00:00:00-04:00', 26460.0]], first truth [['2025-07-01', 27103], ['2025-08- \| tz/America/New_York/stage equal on a bucket wrong rows: got 0, truth 1. First got [], first truth [['2025-07-01', 27103]] |
+| `grid.compact.start_of_week` | pass |  |
 | `context.compile_context` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |
