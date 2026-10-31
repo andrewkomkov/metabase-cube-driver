@@ -1,44 +1,44 @@
 [
  {
-  "image": "v1.8.15-mcd-candidate.91af2634c4af",
+  "image": "v1.8.15-mcd.1",
   "metabase": "v0.65.2.3",
   "cube": "v1.8.15",
   "clickhouse": "26.10.3-alpine",
   "clickhouse_fixes": "off",
   "conformance": "failure",
-  "coverage": "coverage: 876/919 pass on stock Cube",
+  "coverage": "coverage: 877/919 pass on stock Cube",
   "counts": {
-   "pass": 876,
+   "pass": 877,
    "partial": 17,
    "blocked": 1,
    "unsupported": 12,
-   "fail": 13,
+   "fail": 12,
    "total": 919
   },
-  "state": "candidate",
+  "state": "published",
   "patches": "B1,datetime64,interval,M1-M2,N1,geo,propagate,gran,m5,N2,big",
-  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41212432259",
+  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41217906818",
   "date": "2026-10-31"
  },
  {
-  "image": "v1.8.15-mcd-candidate.91af2634c4af",
+  "image": "v1.8.15-mcd.1",
   "metabase": "v0.65.2.3",
   "cube": "v1.8.15",
   "clickhouse": "26.10.3-alpine",
   "clickhouse_fixes": "on",
-  "conformance": "failure",
-  "coverage": "coverage: 888/919 pass on Cube with the ClickHouse dialect",
+  "conformance": "success",
+  "coverage": "coverage: 889/919 pass on Cube with the ClickHouse dialect",
   "counts": {
-   "pass": 888,
+   "pass": 889,
    "partial": 17,
    "blocked": 1,
    "unsupported": 12,
-   "fail": 1,
+   "fail": 0,
    "total": 919
   },
-  "state": "candidate",
+  "state": "published",
   "patches": "B1,datetime64,interval,M1-M2,N1,geo,propagate,gran,m5,N2,big",
-  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41212432259",
+  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41217906818",
   "date": "2026-10-31"
  }
 ]
