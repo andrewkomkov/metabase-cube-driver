@@ -468,23 +468,34 @@ class Grid:
             if status != 200:
                 raise self.run.Fail("the jobs API: HTTP %s %s" % (status, text[:300]))
         truth = self.plain_truth(zone, "day", members)
+
+        def load(query):
+            """A job and a query can write one table in the same second. Cube then gives this error once, and the next request reads the table."""
+            for _ in range(30):
+                try:
+                    return self.load_rows(query, cube + ".at", members, "day")
+                except self.run.Fail as e:
+                    if "Unique constraint violation" not in str(e):
+                        raise
+                    time.sleep(2)
+            raise self.run.Fail("a job and a query stop each other: %s" % json.dumps(query)[:200])
         job("UTC")
         utc_table = None
         for _ in range(45):
-            res, _rows = self.load_rows(self.by_day_query(cube, "at", members), cube + ".at", members, "day")
+            res, _rows = load(self.by_day_query(cube, "at", members))
             utc_table = self.table_of(res, "by_day")
             if utc_table:
                 break
             time.sleep(2)
         if not utc_table:
             raise self.run.Fail("the job built no table for UTC")
-        res, got = self.load_rows(self.by_day_query(cube, "at", members, tz=zone), cube + ".at", members, "day")
+        res, got = load(self.by_day_query(cube, "at", members, tz=zone))
         if self.table_of(res, "by_day") == utc_table:
             raise self.run.Fail("a query in %s read the table of UTC %s" % (zone, utc_table))
         self.compare("before the job of the zone", got, truth, members)
         job(zone)
         for _ in range(45):
-            res, got = self.load_rows(self.by_day_query(cube, "at", members, tz=zone), cube + ".at", members, "day")
+            res, got = load(self.by_day_query(cube, "at", members, tz=zone))
             table = self.table_of(res, "by_day")
             if table:
                 if table == utc_table:
