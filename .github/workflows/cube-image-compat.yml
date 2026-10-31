@@ -1,0 +1,32 @@
+# Nightly rewrites the page of the compatibility table on the branch "status". This adds the rows of the Cube image again.
+name: cube-image-compat
+
+on:
+  schedule:
+    - cron: "37 7 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  compat:
+    name: compatibility rows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    concurrency:
+      group: status-branch
+      cancel-in-progress: false
+    permissions:
+      actions: write
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Write and publish the rows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 cube-image/image.py compat --out status-out
+          .github/scripts/publish_status.sh status-out
+          gh workflow run pages.yml --ref main --repo "$GITHUB_REPOSITORY"

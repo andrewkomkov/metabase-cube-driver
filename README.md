@@ -52,6 +52,18 @@ starts with no error and no Cube driver. Look for `Registered driver :cube` in i
 
 On ClickHouse, also install [`cube-clickhouse`](cube-clickhouse/README.md) on Cube, in one step. It holds the fixes that wait for a change in Cube, on the stock image.
 
+## Cube image with our fixes
+
+`ghcr.io/andrewkomkov/cube:<cube-tag>-mcd.<n>` is Cube built from source, with the fixes that wait in pull requests to `cube-js/cube`. The image adds these fixes to stock Cube with the dialect:
+
+- A date parameter in a prepared statement (M1, M2).
+- A `geo` dimension through a view.
+- Two `sub_query` dimensions on one measure.
+- A custom granularity on a rollup before its origin.
+- Long numbers in the REST API.
+
+This image is temporary. When Cube releases each fix, go back to stock `cubejs/cube`. Keep the dialect with the image. A workflow publishes a tag only after the full conformance passes. See [Cube image with our fixes](docs/cube-image.md).
+
 ## Connect
 
 The connection fields are in [`resources/metabase-plugin.yaml`](resources/metabase-plugin.yaml). These

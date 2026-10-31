@@ -1,0 +1,70 @@
+# Builds the Cube image with our fixes for each new stable tag of Cube. See docs/cube-image.md.
+name: cube-image
+
+on:
+  schedule:
+    - cron: "41 4 * * *"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Cube tag. Empty means the new stable tags.
+        type: string
+        default: ""
+      platforms:
+        description: Comma-separated, for example amd64,arm64. Empty means the value in cube-image/queue.json.
+        type: string
+        default: ""
+      test-mode:
+        description: A test of a failure path. It publishes nothing.
+        type: choice
+        options: [none, bad-patch, empty-queue]
+        default: none
+
+permissions: {}
+
+concurrency:
+  group: cube-image
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: find the tags
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      tags: ${{ steps.plan.outputs.tags }}
+      platforms: ${{ steps.plan.outputs.platforms }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Find the tags
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          PLATFORMS: ${{ inputs.platforms }}
+        run: python3 cube-image/image.py plan --tag "$TAG" --platforms "$PLATFORMS"
+
+  cycle:
+    name: cycle
+    needs: plan
+    if: needs.plan.outputs.tags != '[]'
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        tag: ${{ fromJSON(needs.plan.outputs.tags) }}
+    uses: ./.github/workflows/cube-image-cycle.yml
+    permissions:
+      actions: write
+      contents: write
+      issues: write
+      packages: write
+    with:
+      tag: ${{ matrix.tag }}
+      platforms: ${{ needs.plan.outputs.platforms }}
+      test-mode: ${{ inputs.test-mode || 'none' }}

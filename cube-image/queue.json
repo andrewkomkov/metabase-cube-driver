@@ -1,0 +1,18 @@
+{
+  "first_tag": "v1.8.15",
+  "platforms": ["amd64"],
+  "patch_branch": "mcd/patch-queue",
+  "patches": [
+    {"id": "B1", "finding": "B1", "branch": "fix/clickhouse-date-range-millis", "pr": "https://github.com/cube-js/cube/pull/12532"},
+    {"id": "datetime64", "finding": "datetime64", "branch": "fix/clickhouse-datetime64-millis", "pr": "https://github.com/cube-js/cube/pull/12533"},
+    {"id": "interval", "finding": "interval", "branch": "fix/clickhouse-interval-template", "pr": "https://github.com/cube-js/cube/pull/12534"},
+    {"id": "M1-M2", "finding": "M1, M2", "branch": "fix/cubesql-bind-date-placeholder", "pr": "https://github.com/cube-js/cube/pull/12535", "exclude": ["rust/cubesql/cubesql/src/compile/test/test_plan_reuse.rs"]},
+    {"id": "N1", "finding": "N1", "branch": "fix/tesseract-generated-time-series-start", "pr": "https://github.com/cube-js/cube/pull/12536"},
+    {"id": "geo", "finding": "geo", "branch": "fix/schema-compiler-geo-view", "pr": "https://github.com/cube-js/cube/pull/12537"},
+    {"id": "propagate", "finding": "propagate", "branch": "tesseract-dimension-subquery-refactor", "pr": "https://github.com/cube-js/cube/pull/12502", "fallback_branch": "fix/tesseract-subquery-dimension-reference", "fallback_commit": "2098906fe66093a02c3f67721213f0dcb6e0e2e8"},
+    {"id": "gran", "finding": "gran", "branch": "fix/cubestore-date-bin-before-origin", "pr": null, "commit": "1c376bcab2dd7d3c1d39e48cd30bd4a44a89b160"},
+    {"id": "m5", "finding": "m5", "branch": "fix/clickhouse-original-sql-no-index", "pr": null, "commit": "c96c6455367ecf3753b0b97504ea641193efc9aa"},
+    {"id": "N2", "finding": "N2", "branch": "fix/clickhouse-legacy-time-series", "pr": null, "commit": "b0667b372e71779e05a0d7d71734a6e6a4027946"},
+    {"id": "big", "finding": "big", "branch": "fix/clickhouse-driver-big-numbers", "pr": null, "commit": "278fe8f737672e36c71deb83db537d33a0f74328"}
+  ]
+}

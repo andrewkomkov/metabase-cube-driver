@@ -1,0 +1,468 @@
+# One Cube tag: apply the queue, build a candidate, run the gate, publish, report. See docs/cube-image.md.
+# The job names start with the tag, because image.py finds a failed job of this tag by its name.
+name: cube-image-cycle
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+      platforms:
+        description: JSON list of platforms.
+        type: string
+        required: true
+      test-mode:
+        type: string
+        default: none
+
+permissions: {}
+
+env:
+  IMAGE: ghcr.io/andrewkomkov/cube
+
+jobs:
+  prepare:
+    name: ${{ inputs.tag }} prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: read
+      packages: read
+    outputs:
+      action: ${{ steps.prepare.outputs.action }}
+      fingerprint: ${{ steps.prepare.outputs.fingerprint }}
+      candidate: ${{ steps.prepare.outputs.candidate }}
+      cubestore: ${{ steps.prepare.outputs.cubestore }}
+      patches: ${{ steps.prepare.outputs.patches }}
+      released: ${{ steps.prepare.outputs.released }}
+      key: ${{ steps.prepare.outputs.key }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test the queue logic
+        run: python3 cube-image/test_image.py
+      - name: Apply the queue
+        id: prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          PLATFORMS: ${{ inputs.platforms }}
+          EVENT: ${{ github.event_name }}
+          SHA: ${{ github.sha }}
+          TEST_MODE: ${{ inputs.test-mode }}
+        run: >-
+          python3 cube-image/image.py prepare --tag "$TAG" --platforms "$PLATFORMS" --event "$EVENT"
+          --driver-sha "$SHA" --test-mode "$TEST_MODE" --work "$RUNNER_TEMP/work" --out queue-out
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cube-image-queue-${{ inputs.tag }}
+          path: queue-out
+
+  remove-released:
+    name: ${{ inputs.tag }} remove released patches
+    needs: prepare
+    if: needs.prepare.outputs.released != '[]' && needs.prepare.outputs.released != '' && github.ref == 'refs/heads/main' && inputs.test-mode == 'none'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Remove the patches and commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          RELEASED: ${{ needs.prepare.outputs.released }}
+        run: |
+          gh auth setup-git
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python3 cube-image/image.py remove --ids "$RELEASED"
+          git add cube-image/queue.json
+          git commit -m "chore(cube-image): remove the patches that $TAG released" -m "Patches: $RELEASED"
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep $((attempt * 5))
+          done
+          exit 1
+
+  native:
+    name: ${{ inputs.tag }} native (${{ matrix.platform }})
+    needs: prepare
+    if: needs.prepare.outputs.action == 'build'
+    runs-on: ${{ matrix.platform == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(inputs.platforms) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: cube-image-queue-${{ inputs.tag }}
+          path: queue-out
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: cube-js/cube
+          ref: ${{ inputs.tag }}
+          path: cube-src
+          persist-credentials: false
+      - name: Apply the queue
+        run: git -C cube-src apply --whitespace=nowarn "$GITHUB_WORKSPACE/queue-out/queue.diff"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: mcd-cache
+          key: cube-image-native-${{ matrix.platform }}-${{ inputs.tag }}-${{ needs.prepare.outputs.fingerprint }}
+          restore-keys: |
+            cube-image-native-${{ matrix.platform }}-${{ inputs.tag }}-
+            cube-image-native-${{ matrix.platform }}-
+      - name: Build the native module with cubesql from source
+        run: cube-image/build-native.sh cube-src mcd-cache out/index.node
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cube-image-native-${{ inputs.tag }}-${{ matrix.platform }}
+          path: out/index.node
+          retention-days: 3
+
+  cubestored:
+    name: ${{ inputs.tag }} cubestored (${{ matrix.platform }})
+    needs: prepare
+    if: needs.prepare.outputs.action == 'build'
+    runs-on: ${{ matrix.platform == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 240
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(inputs.platforms) }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: cube-image-queue-${{ inputs.tag }}
+          path: queue-out
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: needs.prepare.outputs.cubestore == 'true'
+        with:
+          repository: cube-js/cube
+          ref: ${{ inputs.tag }}
+          path: cube-src
+          persist-credentials: false
+      - name: Build Cube Store from source, because the queue changes it
+        if: needs.prepare.outputs.cubestore == 'true'
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          git -C cube-src apply --whitespace=nowarn "$GITHUB_WORKSPACE/queue-out/queue.diff"
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+          docker buildx create --use --name mcd
+          docker buildx build --progress=plain --platform "linux/$PLATFORM" \
+            --file cube-src/rust/cubestore/Dockerfile --build-arg WITH_AVX2=0 \
+            --cache-from "type=registry,ref=$IMAGE:buildcache-cubestore-$PLATFORM" \
+            --cache-to "type=registry,ref=$IMAGE:buildcache-cubestore-$PLATFORM,mode=max,ignore-error=true" \
+            --output type=local,dest=store-fs cube-src/rust
+          mkdir -p out
+          cp store-fs/cube/cubestored out/cubestored
+      - name: Download the released Cube Store, because the queue does not change it
+        if: needs.prepare.outputs.cubestore != 'true'
+        env:
+          TAG: ${{ inputs.tag }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          case "$PLATFORM" in amd64) target=x86_64-unknown-linux-gnu ;; arm64) target=aarch64-unknown-linux-gnu ;; esac
+          mkdir -p store-fs out
+          curl -fsSL "https://github.com/cube-js/cube/releases/download/$TAG/cubestored-$target.tar.gz" | tar -xz -C store-fs
+          cp store-fs/bin/cubestored out/cubestored
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cube-image-cubestored-${{ inputs.tag }}-${{ matrix.platform }}
+          path: out/cubestored
+          retention-days: 3
+
+  image:
+    name: ${{ inputs.tag }} image (${{ matrix.platform }})
+    needs: [prepare, native, cubestored]
+    runs-on: ${{ matrix.platform == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(inputs.platforms) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: cube-image-queue-${{ inputs.tag }}
+          path: queue-out
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: cube-image-native-${{ inputs.tag }}-${{ matrix.platform }}
+          path: mcd
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: cube-image-cubestored-${{ inputs.tag }}-${{ matrix.platform }}
+          path: mcd
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: cube-js/cube
+          ref: ${{ inputs.tag }}
+          path: cube-src
+          persist-credentials: false
+      - name: Free disk space
+        run: sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+      - name: Build and push by digest
+        id: build
+        env:
+          TAG: ${{ inputs.tag }}
+          PLATFORM: ${{ matrix.platform }}
+          FINGERPRINT: ${{ needs.prepare.outputs.fingerprint }}
+          PATCHES: ${{ needs.prepare.outputs.patches }}
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          git -C cube-src apply --whitespace=nowarn "$GITHUB_WORKSPACE/queue-out/queue.diff"
+          { cat cube-src/packages/cubejs-docker/dev.Dockerfile; echo; cat cube-image/image.tail.Dockerfile; } > "$RUNNER_TEMP/Dockerfile"
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+          docker buildx create --use --name mcd
+          docker buildx build --progress=plain --platform "linux/$PLATFORM" --provenance=false \
+            --file "$RUNNER_TEMP/Dockerfile" --build-context mcd=mcd \
+            --build-arg "IMAGE_VERSION=$TAG" --build-arg "MCD_CUBE_TAG=$TAG" \
+            --build-arg "MCD_FINGERPRINT=$FINGERPRINT" --build-arg "MCD_PATCHES=$PATCHES" \
+            --output "type=image,name=$IMAGE,push-by-digest=true,name-canonical=true,push=true" \
+            --metadata-file meta.json cube-src
+          digest=$(jq -r '."containerimage.digest"' meta.json)
+          [ -n "$digest" ] && [ "$digest" != null ]
+          mkdir -p digests
+          touch "digests/${digest#sha256:}"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      - name: Check that the image has the binaries of this build
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          docker pull "$IMAGE@$DIGEST"
+          cube-image/smoke.sh "$IMAGE@$DIGEST" mcd/index.node mcd/cubestored
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cube-image-digest-${{ inputs.tag }}-${{ matrix.platform }}
+          path: digests/*
+          retention-days: 3
+
+  manifest:
+    name: ${{ inputs.tag }} manifest
+    needs: [prepare, image]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: cube-image-digest-${{ inputs.tag }}-*
+          path: digests
+          merge-multiple: true
+      - name: Create the candidate tag
+        env:
+          CANDIDATE: ${{ needs.prepare.outputs.candidate }}
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+          cd digests
+          # shellcheck disable=SC2046
+          docker buildx imagetools create -t "$CANDIDATE" $(printf "$IMAGE@sha256:%s " *)
+          docker buildx imagetools inspect "$CANDIDATE"
+
+  stack-candidate:
+    name: candidate with the dialect
+    needs: [prepare, manifest]
+    if: ${{ !cancelled() && (needs.prepare.outputs.action == 'gate' || needs.manifest.result == 'success') }}
+    uses: ./.github/workflows/cube-image-stack.yml
+    permissions:
+      contents: read
+      packages: read
+    with:
+      name: ${{ inputs.tag }} candidate with the dialect
+      artifact-name: cube-image-cell-${{ inputs.tag }}-candidate
+      image: ${{ needs.prepare.outputs.candidate }}
+      clickhouse-fixes: "on"
+
+  stack-alone:
+    name: candidate with no dialect
+    needs: [prepare, manifest]
+    if: ${{ !cancelled() && (needs.prepare.outputs.action == 'gate' || needs.manifest.result == 'success') }}
+    uses: ./.github/workflows/cube-image-stack.yml
+    permissions:
+      contents: read
+      packages: read
+    with:
+      name: ${{ inputs.tag }} candidate with no dialect
+      artifact-name: cube-image-cell-${{ inputs.tag }}-alone
+      image: ${{ needs.prepare.outputs.candidate }}
+      clickhouse-fixes: "off"
+
+  stack-baseline:
+    name: stock Cube with the dialect
+    needs: [prepare, manifest]
+    if: ${{ !cancelled() && (needs.prepare.outputs.action == 'gate' || needs.manifest.result == 'success') }}
+    uses: ./.github/workflows/cube-image-stack.yml
+    permissions:
+      contents: read
+      packages: read
+    with:
+      name: ${{ inputs.tag }} stock Cube with the dialect
+      artifact-name: cube-image-cell-${{ inputs.tag }}-baseline
+      image: cubejs/cube:${{ inputs.tag }}
+      clickhouse-fixes: "on"
+
+  gate:
+    name: ${{ inputs.tag }} gate
+    needs: [prepare, stack-candidate, stack-alone, stack-baseline]
+    if: ${{ !cancelled() && needs.stack-candidate.result != 'skipped' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      verdict: ${{ steps.gate.outputs.verdict }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: cube-image-cell-${{ inputs.tag }}-*
+          path: cells
+      - name: Compare the results
+        id: gate
+        env:
+          TAG: ${{ inputs.tag }}
+        run: >-
+          python3 cube-image/image.py gate --candidate "cells/cube-image-cell-$TAG-candidate"
+          --baseline "cells/cube-image-cell-$TAG-baseline" --alone "cells/cube-image-cell-$TAG-alone" --out gate-errors.txt
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cube-image-gate-${{ inputs.tag }}
+          path: gate-errors.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+  publish:
+    name: ${{ inputs.tag }} publish
+    needs: [prepare, gate]
+    if: ${{ !cancelled() && needs.gate.outputs.verdict == 'pass' && inputs.test-mode == 'none' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.next.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Find the number of the image
+        id: next
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: python3 cube-image/image.py next-tag --tag "$TAG"
+      - name: Copy the candidate to the published tag
+        env:
+          CANDIDATE: ${{ needs.prepare.outputs.candidate }}
+          TARGET: ${{ steps.next.outputs.image }}
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+          docker buildx imagetools create -t "$TARGET" "$CANDIDATE"
+          echo "Published \`$TARGET\`" >> "$GITHUB_STEP_SUMMARY"
+
+  compat:
+    name: ${{ inputs.tag }} compatibility rows
+    needs: [prepare, gate, publish]
+    if: ${{ !cancelled() && needs.gate.result == 'success' && github.ref == 'refs/heads/main' && inputs.test-mode == 'none' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    concurrency:
+      group: status-branch
+      cancel-in-progress: false
+    permissions:
+      actions: write
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: cube-image-cell-${{ inputs.tag }}-*
+          path: cells
+      - name: Write and publish the rows
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          CANDIDATE: ${{ needs.prepare.outputs.candidate }}
+          PUBLISHED: ${{ needs.publish.outputs.tag }}
+          PATCHES: ${{ needs.prepare.outputs.patches }}
+        run: |
+          python3 cube-image/image.py compat --tag "$TAG" --candidate "$CANDIDATE" --published "$PUBLISHED" --patches "$PATCHES" \
+            --with-dialect "cells/cube-image-cell-$TAG-candidate" --alone "cells/cube-image-cell-$TAG-alone" --out status-out
+          .github/scripts/publish_status.sh status-out
+          gh workflow run pages.yml --ref main --repo "$GITHUB_REPOSITORY"
+
+  report:
+    name: ${{ inputs.tag }} report
+    needs: [prepare, native, cubestored, image, manifest, gate, publish]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          name: cube-image-queue-${{ inputs.tag }}
+          path: queue-out
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: needs.gate.result == 'success'
+        continue-on-error: true
+        with:
+          name: cube-image-gate-${{ inputs.tag }}
+          path: gate-out
+      - name: Open, update or close the issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          ACTION: ${{ needs.prepare.outputs.action || 'build' }}
+          KEY: ${{ needs.prepare.outputs.key }}
+          CANDIDATE: ${{ needs.prepare.outputs.candidate }}
+          PUBLISHED: ${{ needs.publish.outputs.tag }}
+        run: >-
+          python3 cube-image/image.py report --tag "$TAG" --action "$ACTION" --key "$KEY" --run-id "$GITHUB_RUN_ID"
+          --failures queue-out/failures.json --gate-file gate-out/gate-errors.txt --candidate "$CANDIDATE" --published "$PUBLISHED"

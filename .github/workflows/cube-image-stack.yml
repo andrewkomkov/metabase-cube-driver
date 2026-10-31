@@ -1,0 +1,99 @@
+# The conformance variant for the Cube image: the suite of reusable-stack.yml on any Cube image, with the pinned Metabase and ClickHouse.
+# A failed check does not fail this job, because the gate of cube-image-cycle.yml reads the result.
+name: cube-image-stack
+
+on:
+  workflow_call:
+    inputs:
+      name:
+        type: string
+        required: true
+      artifact-name:
+        type: string
+        required: true
+      image:
+        description: Full name of the Cube image.
+        type: string
+        required: true
+      clickhouse-fixes:
+        description: on runs Cube with cube-clickhouse.
+        type: string
+        default: "on"
+
+permissions: {}
+
+jobs:
+  stack:
+    name: ${{ inputs.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: read
+    env:
+      CUBE_CLICKHOUSE_FIXES: ${{ inputs.clickhouse-fixes }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/build-jar
+
+      - name: Make the plugins directory usable by the Metabase container
+        run: |
+          chmod 777 dev/plugins
+          chmod 644 dev/plugins/cube.metabase-driver.jar
+
+      - name: Give the image the name that the compose file reads
+        env:
+          IMAGE: ${{ inputs.image }}
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+          docker pull "$IMAGE"
+          docker tag "$IMAGE" cubejs/cube:mcd-under-test
+          docker logout ghcr.io
+
+      - uses: ./.github/actions/start-stack
+        id: stack
+        continue-on-error: true
+        with:
+          cube-version: mcd-under-test
+
+      - uses: ./.github/actions/run-conformance
+        id: conformance
+        if: steps.stack.outcome == 'success'
+        continue-on-error: true
+        with:
+          result-path: ci-out/result.json
+
+      - name: Record the result of this run
+        if: always()
+        env:
+          STACK: ${{ steps.stack.outcome }}
+          CONFORMANCE: ${{ steps.conformance.outcome }}
+          IMAGE: ${{ inputs.image }}
+          NAME: ${{ inputs.name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          mkdir -p ci-out
+          docker compose -f dev/docker-compose.yml logs --no-color > ci-out/stack.log 2>&1 || true
+          pins=$(python3 .github/scripts/pins.py read)
+          jq -n --argjson pins "$pins" --arg name "$NAME" --arg stack "$STACK" --arg conformance "$CONFORMANCE" --arg image "$IMAGE" \
+            --arg fixes "$CUBE_CLICKHOUSE_FIXES" --arg sha "$(git rev-parse HEAD)" --arg run_url "$RUN_URL" --arg date "$(date -u +%F)" \
+            '{name: $name, stack: $stack, conformance: $conformance, required: false, clickhouse_fixes: $fixes, sha: $sha, run_url: $run_url, date: $date,
+              metabase: $pins.metabase, cube: $image, clickhouse: $pins.clickhouse}' > ci-out/cell.json
+          cat ci-out/cell.json
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ci-out
+          retention-days: 14
+
+      - name: Stop the stack
+        if: always()
+        working-directory: dev
+        run: docker compose down -v
