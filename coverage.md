@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 888/919 pass on Cube with the ClickHouse dialect** (888 pass, 17 partial, 1 blocked, 12 unsupported, 1 fail of 919)
+**coverage: 889/919 pass on Cube with the ClickHouse dialect** (889 pass, 17 partial, 1 blocked, 12 unsupported, 0 fail of 919)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `9b4a97e60aa6`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41212319321), 2026-10-31.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `ba8e1f360c04`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41215179820), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -429,7 +429,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `9b4a9
 | `semantic.format.currency` | pass |  |
 | `semantic.format.percent` | pass |  |
 | `semantic.format.link` | pass |  |
-| `semantic.fk.from_joins` | fail | payments.order_id has target 292 and type type/FK |
+| `semantic.fk.from_joins` | pass |  |
 | `semantic.fk.join_removed` | pass |  |
 | `semantic.drill_members` | pass |  |
 | `semantic.agent_reads_notes` | pass |  |

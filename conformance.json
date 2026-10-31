@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 888,
+    "pass": 889,
     "partial": 17,
     "blocked": 1,
     "unsupported": 12,
-    "fail": 1,
+    "fail": 0,
     "total": 919
   },
-  "coverage": "coverage: 888/919 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 889/919 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -2117,8 +2117,8 @@
     },
     {
       "id": "semantic.fk.from_joins",
-      "status": "fail",
-      "reason": "payments.order_id has target 292 and type type/FK"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "semantic.fk.join_removed",
