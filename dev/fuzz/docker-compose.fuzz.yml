@@ -1,0 +1,12 @@
+# The smallest stack for `make fuzz`: ClickHouse, Cube with the dialect and one Metabase. It is for a host with little memory.
+# ClickHouse has a port here, because the oracle reads it directly. All ports bind to the loopback interface only.
+services:
+  clickhouse:
+    mem_limit: 1g
+    ports: ["127.0.0.1:18123:8123"]
+  cube:
+    mem_limit: 1g
+  metabase:
+    mem_limit: 1500m
+    environment:
+      JAVA_OPTS: -Xmx1g
