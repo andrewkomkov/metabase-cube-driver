@@ -9,6 +9,7 @@
    [metabase.driver.cube.identity :as cube.identity]
    [metabase.driver.cube.meta :as cube.meta]
    [metabase.driver.cube.native :as cube.native]
+   [metabase.driver.cube.probe :as cube.probe]
    [metabase.driver.cube.semantic]
    [metabase.driver.postgres]
    [metabase.driver.sql-jdbc.connection :as sql-jdbc.conn]
@@ -18,6 +19,7 @@
    [metabase.util.honey-sql-2 :as h2x]
    [toucan2.core :as t2])
   (:import
+   (java.sql ResultSet ResultSetMetaData Types)
    (java.time DayOfWeek Instant LocalDate LocalDateTime OffsetDateTime ZoneId ZonedDateTime)
    (java.time.format DateTimeFormatter)
    (java.time.temporal ChronoUnit TemporalAdjusters)))
@@ -107,6 +109,26 @@
 (defonce cache-wrapped
   (do (alter-var-root #'qp.middleware.cache/maybe-return-cached-results skip-cache-for-per-person-data)
       true))
+
+;; The MCP tool `execute_query` reads each bound of `between` as a whole day, also a bound with a time. The driver sees only the
+;; whole days, so it cannot stop this, and the number is wrong for each driver. So this keeps the time. A Metabase version with
+;; no such var keeps its own behaviour, see mcp.query.between_keeps_time.
+(defn- keep-time-of-bound
+  [wrap-iso-date]
+  (fn [value]
+    (let [wrapped (wrap-iso-date value)]
+      (if (and (vector? wrapped)
+               (string? value)
+               (re-find #"\d[T ]\d{2}:\d{2}" value))
+        (assoc wrapped 3 "default")
+        wrapped))))
+
+(defonce between-wrapped
+  (when-let [wrap-iso-date (try
+                             (requiring-resolve 'metabase.agent-lib.representations.repair/wrap-iso-date)
+                             (catch Exception _ nil))]
+    (alter-var-root wrap-iso-date keep-time-of-bound)
+    true))
 
 (defmethod sql-jdbc.execute/set-timezone-sql :cube [_] "SET TIME ZONE %s")
 
@@ -279,11 +301,18 @@
     [:inline (if raw-value 1 0)]
     ((get-method sql.qp/->honeysql [:postgres :value]) driver clause)))
 
-;;; Date bounds. The SQL API makes a date range from two bounds, and it starts it 1 ms after the bound of `>`. Cube writes the
-;;; range for ClickHouse with parseDateTimeBestEffort, which drops the fraction, so the range includes the bound. The same
-;;; happens to a bound with a fraction. Cube reads a time as whole seconds, so each bound here is a whole second.
+;;; Date bounds. The SQL API makes a date range from two bounds, and it starts it 1 ms after the bound of `>`. The ClickHouse
+;;; dialect of stock Cube writes the range with parseDateTimeBestEffort, which drops the fraction, so the range includes the
+;;; bound. A range that ends with `<` ends at the last whole second, so a DateTime64 loses the rows of that second. Cube does not
+;;; show the type of a column. A filter that Cube does not merge into a range reads the bound as it is, for each type:
+;;; `(x > t OR x IS NULL) AND x IS NOT NULL` has the same rows as `x > t`. A dialect that keeps the fraction needs none of this,
+;;; so the driver asks Cube. See cube.probe/keeps-fractions?.
 
-(declare relative-time)
+(declare relative-time current-meta table-name-of-field)
+
+(def ^:private ^:dynamic *keep-date-ranges*
+  "True if a measure of this query needs a date range: a rolling window or a time shift reads no other filter as a range."
+  false)
 
 (defn- plain-bound-time
   "The time of the value in a comparison of a column with no time bucket, or nil."
@@ -301,12 +330,6 @@
   [^LocalDateTime t]
   [:absolute-datetime {} t :default])
 
-(defn- whole-second-up
-  ^LocalDateTime [^LocalDateTime t]
-  (if (zero? (.getNano t))
-    t
-    (.plusSeconds (.truncatedTo t ChronoUnit/SECONDS) 1)))
-
 (defn- whole-second-down
   ^LocalDateTime [^LocalDateTime t]
   (.truncatedTo t ChronoUnit/SECONDS))
@@ -319,44 +342,71 @@
   [driver clause]
   ((get-method sql.qp/->honeysql [:postgres (first clause)]) driver clause))
 
+(defn- exact-bounds?
+  "True if Cube keeps a bound of this column as it is, also the fraction."
+  [field]
+  (if-let [cube-meta (current-meta)]
+    (cube.probe/keeps-fractions? (:details (driver-api/database (driver-api/metadata-provider)))
+                                 cube-meta
+                                 (table-name-of-field field))
+    false))
+
+(defn- check-no-fraction!
+  [field & times]
+  (when (and (some fraction? times) (not (exact-bounds? field)))
+    (throw (ex-info (str "Cube drops the fraction of a second in a filter on a time, so the number would be wrong. Use whole "
+                         "seconds, or install the ClickHouse dialect, see cube-clickhouse/README.md.")
+                    {:type :invalid-query}))))
+
+(defn- not-merged
+  "The rows of `compiled`, a bound on `field`, in a form that Cube does not merge into a date range."
+  [driver field compiled]
+  (let [column (sql.qp/->honeysql driver field)]
+    [:and [:or compiled [:is column nil]] [:is-not column nil]]))
+
+(defn- rollup-on-column?
+  "True if a rollup can read this column. A rollup needs a date range."
+  [field]
+  (when-let [cube-meta (current-meta)]
+    (cube.probe/rollup-on-time? cube-meta (table-name-of-field field) (:name (stored-field field)))))
+
 (defmethod sql.qp/->honeysql [:cube :>]
   [driver [_ opts field value :as clause]]
-  (if-let [t (plain-bound-time field value)]
-    (postgres-clause driver [:>= opts field (at-time (.plusSeconds (whole-second-down t) 1))])
-    (postgres-clause driver clause)))
+  (let [t (plain-bound-time field value)]
+    (check-no-fraction! field t)
+    (cond
+      (or (nil? t) (exact-bounds? field)) (postgres-clause driver clause)
+      ;; A rolling window or a time shift reads whole buckets, so the rows inside one second do not change it.
+      *keep-date-ranges* (postgres-clause driver [:>= opts field (at-time (.plusSeconds (whole-second-down t) 1))])
+      :else (not-merged driver field (postgres-clause driver clause)))))
 
 (defmethod sql.qp/->honeysql [:cube :>=]
-  [driver [_ opts field value :as clause]]
-  (let [t (plain-bound-time field value)]
-    (postgres-clause driver (if (fraction? t) [:>= opts field (at-time (whole-second-up t))] clause))))
+  [driver [_ _opts field value :as clause]]
+  (check-no-fraction! field (plain-bound-time field value))
+  (postgres-clause driver clause))
 
 (defmethod sql.qp/->honeysql [:cube :<]
-  [driver [_ opts field value :as clause]]
+  [driver [_ _opts field value :as clause]]
   (let [t (plain-bound-time field value)]
-    (postgres-clause driver (if (fraction? t) [:<= opts field (at-time (whole-second-down t))] clause))))
+    (check-no-fraction! field t)
+    (if (or (nil? t) *keep-date-ranges* (exact-bounds? field) (rollup-on-column? field))
+      (postgres-clause driver clause)
+      (not-merged driver field (postgres-clause driver clause)))))
 
 (defmethod sql.qp/->honeysql [:cube :<=]
-  [driver [_ opts field value :as clause]]
-  (let [t (plain-bound-time field value)]
-    (postgres-clause driver (if (fraction? t) [:<= opts field (at-time (whole-second-down t))] clause))))
+  [driver [_ _opts field value :as clause]]
+  (check-no-fraction! field (plain-bound-time field value))
+  (postgres-clause driver clause))
 
 (defmethod sql.qp/->honeysql [:cube :between]
-  [driver [_ opts field low high :as clause]]
-  (let [low-time  (plain-bound-time field low)
-        high-time (plain-bound-time field high)]
-    (postgres-clause driver (if (or (fraction? low-time) (fraction? high-time))
-                              [:between opts field
-                               (if (fraction? low-time) (at-time (whole-second-up low-time)) low)
-                               (if (fraction? high-time) (at-time (whole-second-down high-time)) high)]
-                              clause))))
+  [driver [_ _opts field low high :as clause]]
+  (check-no-fraction! field (plain-bound-time field low) (plain-bound-time field high))
+  (postgres-clause driver clause))
 
 (doseq [op [:= :!=]]
   (defmethod sql.qp/->honeysql [:cube op]
     [driver [_ _opts field value :as clause]]
-    (when (fraction? (plain-bound-time field value))
-      (throw (ex-info (str "Cube reads a time as whole seconds, so it cannot compare a column with a time that has a fraction "
-                           "of a second. Use a range with >= and <.")
-                      {:type :invalid-query})))
+    (check-no-fraction! field (plain-bound-time field value))
     (postgres-clause driver clause)))
 
 (defn- zero-when-empty
@@ -656,6 +706,83 @@
                               (:name field))
                       {:type :invalid-query})))))
 
+(defn- table-name-of-field
+  "The name of the table of a stored field, or nil."
+  [clause]
+  (when-let [table-id (:table-id (stored-field clause))]
+    (:name (driver-api/table (driver-api/metadata-provider) table-id))))
+
+(defn- time-field?
+  [field]
+  (= "cube.dimension/time" (str (:database-type field))))
+
+(defn- full-member-name
+  [field]
+  (str (:name (driver-api/table (driver-api/metadata-provider) (:table-id field))) "." (:name field)))
+
+(defn- aggregated-measure-fields
+  [earlier stage]
+  (for [[_ field] (aggregated-fields earlier stage)
+        :when (= :measure (field-kind field))]
+    field))
+
+(defn- check-time-shift!
+  "With no time bucket and no date filter, Cube returns the total of all rows for a measure with a time shift."
+  [stages]
+  (let [stage   (peek stages)
+        earlier (pop stages)
+        time?   (fn [before clause] (time-field? (column-field before clause)))
+        bucket? (some (partial time? earlier) (:breakout stage))
+        filter? (some (fn [i]
+                        (let [before (subvec stages 0 i)]
+                          (some (partial time? before) (field-clauses (:filters (nth stages i))))))
+                      (range (count stages)))]
+    (when-not (or bucket? filter?)
+      (when-let [cube-meta (current-meta)]
+        (let [details (:details (driver-api/database (driver-api/metadata-provider)))]
+          (doseq [field (aggregated-measure-fields earlier stage)
+                  :let  [table-name (:name (driver-api/table (driver-api/metadata-provider) (:table-id field)))]
+                  :when (cube.probe/time-shift? details cube-meta table-name (full-member-name field))]
+            (throw (ex-info (format (str "%s has a time shift. With no time bucket and no date filter, Cube returns the total of "
+                                         "all rows, and a shift of that is not a number that you can read. Group by a time "
+                                         "bucket, or add a date filter.")
+                                    (:name field))
+                            {:type :invalid-query}))))))))
+
+(defn- check-custom-granularities!
+  "A breakout on a dimension that reads a custom granularity, with a measure that a rollup serves."
+  [stages]
+  (let [stage    (peek stages)
+        earlier  (pop stages)
+        measures (map full-member-name (aggregated-measure-fields earlier stage))]
+    (when (seq measures)
+      (when-let [cube-meta (current-meta)]
+        (let [details (:details (driver-api/database (driver-api/metadata-provider)))]
+          (doseq [clause (:breakout stage)
+                  :let   [field (column-field earlier clause)]
+                  :when  (time-field? field)
+                  :let   [[cube-name member granularity] (cube.probe/granularity-of-member
+                                                          cube-meta (full-member-name field))]
+                  :when  granularity]
+            (when-let [reason (cube.probe/wrong-bin-reason details cube-meta cube-name member granularity measures)]
+              (throw (ex-info reason {:type :invalid-query})))))))))
+
+(defn- check-equal-sql-breakout!
+  "Two `sub_query` dimensions with equal SQL in a query with a filter read one subquery."
+  [earlier {:keys [breakout filters]}]
+  (when (seq filters)
+    (when-let [cube-meta (current-meta)]
+      (doseq [[table-id fields] (group-by :table-id (filter :table-id (map (partial column-field earlier) breakout)))
+              :let [table-name (:name (driver-api/table (driver-api/metadata-provider) table-id))
+                    names      (map :name fields)]
+              group (cube.meta/same-sql-groups-of-cube cube-meta table-name)
+              :when (next (filter group names))]
+        (throw (ex-info (format (str "The columns %s have equal SQL. With a filter in the query, Cube reads the first subquery "
+                                     "for both columns, so one number would be wrong. Use one of these columns in a query, or "
+                                     "give one of them other SQL in the data model, such as {orders.count} + 0.")
+                                (str/join " and " (sort (filter group names))))
+                        {:type :invalid-query}))))))
+
 (defn- check-stages!
   [stages]
   (doseq [i (range (count stages))
@@ -665,7 +792,24 @@
       (check-no-group-by-member! (pop upto) stage)
       (check-no-filter-on-measure! (pop upto) stage)
       (check-row-values-give-measure! (pop upto) stage)
-      (check-aggregations! upto))))
+      (check-equal-sql-breakout! (pop upto) stage)
+      (check-aggregations! upto)
+      (check-time-shift! upto)
+      (check-custom-granularities! upto))))
+
+(defn- needs-date-ranges?
+  "True if a measure of a stage has a rolling window or can have a time shift."
+  [stages]
+  (let [cube-meta (current-meta)]
+    (some (fn [i]
+            (let [earlier (subvec stages 0 i)]
+              (some (fn [field]
+                      (or (rolling-field? field)
+                          (when cube-meta
+                            (cube.probe/time-shift-candidate? cube-meta (full-member-name field)))))
+                    (when-not (= :mbql.stage/native (:lib/type (nth stages i)))
+                      (aggregated-measure-fields earlier (nth stages i))))))
+          (range (count stages)))))
 
 (defn- aggregated-measures
   "A map from the name of each measure that a later stage aggregates to its field. Only these need the measure itself in a
@@ -803,13 +947,16 @@
       :else                                             [null-column])))
 
 (defn- later-same-source-fields
-  "The names of the fields in `fields` after the first one of each group of aliases of one member."
-  [fields]
+  "The names of the fields in `fields` after the first one of each group of aliases of one member. With `filtered?`, also after
+  the first one of each group with equal SQL: Cube reads one `sub_query` for them when the query has a filter."
+  [fields filtered?]
   (when-let [table-id (some #(:table-id (stored-field %)) fields)]
     (let [provider (driver-api/metadata-provider)
           groups   (try
-                     (cube.meta/same-source-groups-of-cube (cube.meta/cached-meta (:details (driver-api/database provider)))
-                                                           (:name (driver-api/table provider table-id)))
+                     (let [cube-meta  (cube.meta/cached-meta (:details (driver-api/database provider)))
+                           table-name (:name (driver-api/table provider table-id))]
+                       (concat (cube.meta/same-source-groups-of-cube cube-meta table-name)
+                               (when filtered? (cube.meta/same-sql-groups-of-cube cube-meta table-name))))
                      (catch Exception _ nil))
           selected (keep #(:name (stored-field %)) fields)]
       (into #{}
@@ -817,8 +964,8 @@
             groups))))
 
 (defmethod sql.qp/apply-top-level-clause [:cube :fields]
-  [driver _ honeysql-form {fields :fields}]
-  (let [same-source (later-same-source-fields fields)]
+  [driver _ honeysql-form {fields :fields, filters :filters}]
+  (let [same-source (later-same-source-fields fields (seq filters))]
     (update honeysql-form :select (fnil into []) (map (partial raw-select-item driver (set same-source))) fields)))
 
 ;; The SQL API plans a join only from __cubeJoinField on both sides. It takes the join condition from the data model.
@@ -1136,12 +1283,20 @@
     (cube.meta/cached-meta (:details (driver-api/database (driver-api/metadata-provider))))
     (catch Exception _ nil)))
 
+(defn- native-questions
+  "The answers from Cube that the scan of native SQL needs. See cube.native/check-native!."
+  [details cube-meta]
+  {:keeps-fractions? (cube.probe/keeps-fractions? details cube-meta nil)
+   :time-shift?      (partial cube.probe/time-shift? details cube-meta)
+   :wrong-bin-reason (partial cube.probe/wrong-bin-reason details cube-meta)})
+
 (defn- check-native-stages!
   [stages]
   (when-let [cube-meta (current-meta)]
-    (doseq [{:keys [native params]} stages
-            :when (string? native)]
-      (cube.native/check-native! cube-meta native (or params [])))))
+    (let [details (:details (driver-api/database (driver-api/metadata-provider)))]
+      (doseq [{:keys [native params]} stages
+              :when (string? native)]
+        (cube.native/check-native! cube-meta native (or params []) (native-questions details cube-meta))))))
 
 (defn- query-with-stages
   "`query` with the checks done and the limits added, the measures that a later stage aggregates, the columns that Cube reads as
@@ -1154,8 +1309,9 @@
       [(assoc query :stages (limit-subqueries (vec stages)))
        (aggregated-measures preprocessed)
        (named-measures preprocessed)
-       (row-measure-names preprocessed)])
-    [query {} {} #{}]))
+       (row-measure-names preprocessed)
+       (boolean (needs-date-ranges? preprocessed))])
+    [query {} {} #{} false]))
 
 (defmethod driver/mbql->native :cube
   [driver query]
@@ -1163,10 +1319,11 @@
             *raw-measures* (atom {})
             *null-columns* (atom #{})
             *row-measure-aliases* (atom #{})]
-    (let [[query aggregated named row-measures] (query-with-stages driver query)
+    (let [[query aggregated named row-measures date-ranges?] (query-with-stages driver query)
           honeysql-form (binding [*aggregated-measures* (into (set (keys aggregated)) row-measures)
                                   *named-measures*      named
-                                  *row-measures*        row-measures]
+                                  *row-measures*        row-measures
+                                  *keep-date-ranges*    date-ranges?]
                           (sql.qp/mbql->honeysql driver query))
           honeysql-form (restore-nested-measures honeysql-form @*raw-measures* @*row-measure-aliases* @*null-columns*)
           honeysql-form (if (and (map? honeysql-form) (seq @*week-numbers*))
@@ -1357,21 +1514,53 @@
     (every? #(= :mbql.stage/native (:lib/type %)) stages)
     (= :native type)))
 
+(defn- sync-query?
+  "True if this query only reads samples of a table for sync, which show no number to a person."
+  [query]
+  (contains? #{:table-rows-sample :fingerprint} (-> query :info :context)))
+
 (defn- check-sql!
   "Stop a shape of SQL text that gives a wrong number. Sync reads samples of a table and does not need this."
   [{{sql :query, params :params} :native, :as query}]
-  (when-not (= :table-rows-sample (-> query :info :context))
+  (when-not (sync-query? query)
     (when-let [cube-meta (current-meta)]
       (if (native-only? query)
-        (cube.native/check-native! cube-meta sql (or params []))
+        (cube.native/check-native! cube-meta sql (or params [])
+                                   (native-questions (:details (driver-api/database (driver-api/metadata-provider))) cube-meta))
         (cube.native/check-paths! cube-meta sql)))))
+
+;;; Numbers above 2^53. The Cube SQL API has the type Double for a number, and the ClickHouse driver of Cube reads JSON numbers, so
+;;; these lost digits before they reach this driver. The driver cannot get them back, so it stops the query.
+
+(def ^:private ^:dynamic *stop-big-numbers*
+  "True for a query with a result for a person. Sync reads samples, and a big number must not stop it."
+  false)
+
+(def ^:private max-exact-number 9007199254740992.0)
+
+(doseq [jdbc-type [Types/DOUBLE Types/FLOAT Types/REAL Types/BIGINT Types/NUMERIC Types/DECIMAL]]
+  (defmethod sql-jdbc.execute/read-column-thunk [:cube jdbc-type]
+    [driver ^ResultSet rs ^ResultSetMetaData rsmeta ^Integer i]
+    (let [thunk ((get-method sql-jdbc.execute/read-column-thunk [:postgres jdbc-type]) driver rs rsmeta i)]
+      (fn []
+        (let [value (thunk)]
+          (when (and *stop-big-numbers*
+                     (number? value)
+                     (>= (Math/abs (double value)) max-exact-number))
+            (throw (ex-info (format (str "Cube read %s in the column %s as a Double, so a number above 2^53 has lost digits. Add a "
+                                         "dimension with SQL toString(column) to the data model to read the full digits as text, "
+                                         "or filter out these rows.")
+                                    value (.getColumnLabel rsmeta i))
+                            {:type :invalid-query})))
+          value)))))
 
 (defmethod driver/execute-reducible-query :cube
   [driver query context respond]
   (cube.identity/assert-person! (:details (driver-api/database (driver-api/metadata-provider))))
   (check-sql! query)
   (try
-    (sql-jdbc.execute/execute-reducible-query driver query context respond)
+    (binding [*stop-big-numbers* (not (sync-query? query))]
+      (sql-jdbc.execute/execute-reducible-query driver query context respond))
     (catch Exception e
       (if-let [text (clear-error (exception-text e))]
         (throw (ex-info text {:type :invalid-query}))

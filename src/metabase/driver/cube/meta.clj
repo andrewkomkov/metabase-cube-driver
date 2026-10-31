@@ -36,21 +36,21 @@
                 secret
                 {:alg :hs256}))))
 
-(defn- meta-url
-  [details]
+(defn- api-url
+  [details path]
   (let [base (some-> (:cube-rest-url details) str/trim (str/replace #"/+$" ""))]
     (when (str/blank? base)
       (throw (ex-info "The Cube REST URL is not set." {})))
-    (str (if (str/ends-with? base "/cubejs-api") base (str base "/cubejs-api"))
-         "/v1/meta?extended=true")))
+    (str (if (str/ends-with? base "/cubejs-api") base (str base "/cubejs-api")) path)))
 
-(defn fetch-meta
-  "GET /cubejs-api/v1/meta?extended=true. Returns the decoded body."
-  [details]
-  (let [url      (meta-url details)
+(defn- api-get
+  "GET a path of the Cube REST API. Returns the status and the decoded body, or throws for another status than 200."
+  [details path query-params]
+  (let [url      (api-url details path)
         token    (api-token details)
         response (http/get url {:headers            (cond-> {"Accept" "application/json"}
                                                       token (assoc "Authorization" (str "Bearer " token)))
+                                :query-params       query-params
                                 :as                 :text
                                 :throw-exceptions   false
                                 :socket-timeout     http-timeout-ms
@@ -59,6 +59,26 @@
       (throw (ex-info (format "Cube REST API returned HTTP %s for %s" (:status response) url)
                       {:status (:status response)})))
     (json/decode+kw (:body response))))
+
+(defn fetch-meta
+  "GET /cubejs-api/v1/meta?extended=true. Returns the decoded body."
+  [details]
+  (api-get details "/v1/meta" {"extended" "true"}))
+
+(defn rest-get
+  "GET a path of the Cube REST API with a query."
+  [details path query]
+  (api-get details path {"query" (json/encode query)}))
+
+(defn rest-load
+  "The result of a query on /v1/load. Cube answers `Continue wait` while the query runs."
+  [details query]
+  (loop [tries 30]
+    (let [body (rest-get details "/v1/load" query)]
+      (if (and (= "Continue wait" (:error body)) (pos? tries))
+        (do (Thread/sleep 1000)
+            (recur (dec tries)))
+        body))))
 
 (def ^:private cached-meta-ttl-ms 60000)
 
@@ -482,6 +502,22 @@
   "The groups of `same-source-groups` for a cube or view by its name."
   [cube-meta cube-name]
   (same-source-groups (:dimensions (first (filter #(= cube-name (:name %)) (:cubes cube-meta))))))
+
+(defn same-sql-groups
+  "Sets of short names of dimensions that read another member with equal SQL, as a `sub_query` dimension does. /v1/meta has no
+  other sign of a `sub_query`."
+  [dimensions]
+  (into []
+        (comp (filter #(str/includes? (str (key %)) "${"))
+              (filter #(next (val %)))
+              (map (fn [[_ members]]
+                     (into #{} (map #(str/lower-case (last (str/split (:name %) #"\.")))) members))))
+        (group-by :sql (remove :aliasMember dimensions))))
+
+(defn same-sql-groups-of-cube
+  "The groups of `same-sql-groups` for a cube or view by its name."
+  [cube-meta cube-name]
+  (same-sql-groups (:dimensions (first (filter #(= cube-name (:name %)) (:cubes cube-meta))))))
 
 (defn time-granularities
   "The custom granularities of a time dimension, as Cube lists them, or nil."
