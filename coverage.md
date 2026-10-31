@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 729/760 pass on Cube with the ClickHouse dialect** (729 pass, 12 partial, 2 blocked, 12 unsupported, 5 fail of 760)
+**coverage: 731/760 pass on Cube with the ClickHouse dialect** (731 pass, 12 partial, 2 blocked, 12 unsupported, 3 fail of 760)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `53f06df98f94`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41164204601), 2026-10-31.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `a42f96658e74`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41165220419), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -637,10 +637,10 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `53f06df
 | `compile.week.week_of_year_monday` | pass |  |
 | `compile.join.explicit_measure_regular` | pass |  |
 | `compile.ch.integer_within_double` | pass |  |
-| `compile.xray.table_all_cards_run` | fail | 4 of 6 cards failed: [('Sales per product', 'no truth for the column products.name of the card'), ('Sales for each product category', 'no truth for the column products.category of the card'), ('Sales per state', 'no truth for the column users.state of the card'), ('Sales by coordinates', 'no truth for the column users.location__longitude of the card')] |
-| `compile.xray.field_all_cards_run` | fail | 9 of 13 cards failed: [('User → Lifetime Orders by Status', 'no truth for the column users.lifetime_orders of the card'), ('Status by User → Location', 'no truth for the column users.location of the card'), ('Status by User → City', 'no truth for the column users.city of the card'), ('Status by Cancel Status', 'no truth for the column orders.cancel_status of the card'), ('Status by Status Sorted', 'no truth for the column orders.status_sorted of the card'), ('Status by Product → Category', 'no truth for the column products.category of the card')] |
-| `compile.xray.time_field_all_cards_run` | fail | 9 of 15 cards failed: [('User → Lifetime Orders by Created at', 'no truth for the column users.lifetime_orders of the card'), ('Count of User → Location by Created at', 'no truth for the column users.location of the card'), ('Count of User → City by Created at', 'no truth for the column users.city of the card'), ('Count of Cancel Status by Created at', 'no truth for the column orders.cancel_status of the card'), ('Count of Status Sorted by Created at', 'no truth for the column orders.status_sorted of the card'), ('Count of Product → Category by Created at', 'no truth for the column products.category of the card')] |
-| `compile.xray.typed_table_all_cards_run` | fail | 3 of 15 cards failed: [('Events by Dec Amount', 'no truth for the column typed_events.dec_amount of the card'), ('Events by Dec Big', 'no truth for the column typed_events.dec_big of the card'), ('Events by F32', 'no truth for the column typed_events.f32 of the card')] |
+| `compile.xray.table_all_cards_run` | pass |  |
+| `compile.xray.field_all_cards_run` | fail | 1 of 13 cards failed: [('User → Lifetime Orders by Status', "card: got ['cancelled', 5000.0, 25.12562814070352], truth ['cancelled', 25130.0, 25.13]")] |
+| `compile.xray.time_field_all_cards_run` | fail | 1 of 15 cards failed: [('User → Lifetime Orders by Created at', "card: got ['2025-01-01T00:00:00', 5000.0, 25.12562814070352], truth ['2025-01-01T00:00:00', 10890.0, 25.150115473441108]")] |
+| `compile.xray.typed_table_all_cards_run` | fail | 1 of 15 cards failed: [('Events by Dec Big', 'card: got 9 rows, truth has 8. got=[[0.0, 124.0], [125000000000000.0, 125.0], [250000000000000.0, 125.0], [375000000000000.0, 125.0]] truth=[[0.0, 125.0], [125000000000000.0, 125.0], [250000000000000.0, 124.0], [375000000000000.0, 126.0]]')] |
 | `compile.granularity.native_offset_no_rollup` | pass |  |
 | `compile.filter.quote_in_value` | pass |  |
 | `compile.filter.backslash_quote_in_value` | pass |  |
@@ -732,7 +732,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `53f06df
 | `nested.question_on_question.date_filter` | pass |  |
 | `nested.measure_column.filter_with_no_key_refused` | pass |  |
 | `mcp.query.between_keeps_time` | pass |  |
-| `isolation.other_driver_mcp_between` | fail | these bounds cannot tell a whole day from the time: [[0]] |
+| `isolation.other_driver_mcp_between` | pass |  |
 | `isolation.other_driver_cache` | pass |  |
 | `isolation.other_driver_sync` | pass |  |
 | `compile.expr.measure_with_expression_breakout` | pass |  |
