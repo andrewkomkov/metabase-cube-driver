@@ -47,6 +47,8 @@ services:
       CUBEJS_PRE_AGGREGATIONS_ALLOW_NON_STRICT_DATE_RANGE_MATCH: "false"
       # Post-processing reads at most this many rows and then computes from a part of the data with no error. The default is 50000.
       CUBEJS_DB_QUERY_LIMIT: "2000000"
+      # jobs: preagg.refresh.scheduled_refresh_false_stays_old_until_a_job refreshes a rollup through the API.
+      CUBEJS_DEFAULT_API_SCOPES: meta,data,graphql,sql,jobs
       # The SQL API keeps the rewrite graph of each query, up to 2 x 500 graphs for each of 100 compiled models. Each change of the
       # model makes a new compiled model, so memory grows in dev mode: 2.6 GB in one run of the suite, 7.5 GB after a few. See docs/install.md.
       CUBESQL_QUERY_CACHE_SIZE: "50"

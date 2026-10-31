@@ -446,11 +446,12 @@
   #{})
 
 (defn- filter-parts
-  "The clauses of a filter that an AND joins."
+  "The clauses of a filter that an AND joins. The key :filters of a stage holds a list of clauses, and the key :filter holds one clause."
   [clause]
-  (if (= :and (first clause))
-    (mapcat filter-parts (drop 2 clause))
-    [clause]))
+  (cond
+    (not (keyword? (first clause))) (mapcat filter-parts clause)
+    (= :and (first clause))         (mapcat filter-parts (drop 2 clause))
+    :else                           [clause]))
 
 (defn- plain-column-id
   "The id of the column of a comparison with no time bucket, or nil."

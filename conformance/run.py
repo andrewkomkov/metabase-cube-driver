@@ -8095,11 +8095,12 @@ def _(ctx):
 
 
 def pa_latency(query):
-    """Milliseconds of a query with no cached result: renewQuery makes Cube run it."""
+    """Milliseconds of a query with no cached result: a new limit makes a new key, and each limit is above the number of rows."""
     times = []
     used = None
-    for _ in range(5):
-        q = dict(query, renewQuery=True)
+    base = int(time.time() * 10) % 10000000
+    for i in range(5):
+        q = dict(query, limit=100000 + base + i)
         start = time.time()
         res = pa_load(q)
         times.append((time.time() - start) * 1000)
@@ -8108,7 +8109,7 @@ def pa_latency(query):
 
 
 PA_LATENCY_HIT = {"measures": ["big_orders.revenue"], "dimensions": ["big_orders.status"], "timeDimensions": [{"dimension": "big_orders.created_at", "granularity": "month"}]}
-PA_LATENCY_MISS = {"measures": ["big_orders.revenue"], "dimensions": ["big_orders.user_id"], "timeDimensions": [{"dimension": "big_orders.created_at", "granularity": "year"}], "limit": 20}
+PA_LATENCY_MISS = {"measures": ["big_orders.revenue"], "dimensions": ["big_orders.user_id"], "timeDimensions": [{"dimension": "big_orders.created_at", "granularity": "year"}]}
 
 
 @check("preagg.latency.big_orders_hit_is_faster_than_a_miss")
