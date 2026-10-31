@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1075/1112 pass on Cube with the ClickHouse dialect** (1075 pass, 24 partial, 1 blocked, 12 unsupported, 0 fail of 1112)
+**coverage: 1076/1113 pass on Cube with the ClickHouse dialect** (1076 pass, 24 partial, 1 blocked, 12 unsupported, 0 fail of 1113)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `c4acc6f1ec4b`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41241318988), 2026-10-31.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `74f30e608efb`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41243783278), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -1096,6 +1096,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `c4acc
 | `preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit` | pass |  |
 | `preagg.type.original_sql_in_cube_store_with_an_index_stops` | partial | An index on an original_sql table in Cube Store names a column that the table does not have, so Cube stops with an error on each Cube. See cube-js/cube#7420. No number is wrong. The docs advise against this form. |
 | `preagg.refresh.cron_key_keeps_the_old_number_inside_its_time` | pass |  |
+| `preagg.metabase.time_zone_relative_range_hit` | pass |  |
 | `context.compile_context` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |

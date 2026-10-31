@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 1075,
+    "pass": 1076,
     "partial": 24,
     "blocked": 1,
     "unsupported": 12,
     "fail": 0,
-    "total": 1112
+    "total": 1113
   },
-  "coverage": "coverage: 1075/1112 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1076/1113 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -5447,6 +5447,11 @@
     },
     {
       "id": "preagg.refresh.cron_key_keeps_the_old_number_inside_its_time",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "preagg.metabase.time_zone_relative_range_hit",
       "status": "pass",
       "reason": ""
     },
