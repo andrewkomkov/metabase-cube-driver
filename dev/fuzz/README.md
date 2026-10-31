@@ -43,6 +43,7 @@ Settings: the report time zone and the first day of the week. These are global, 
 | `raw_error` | A raw error of Cube, with no message that tells what to do. | Yes |
 | `harness`, `truth_error` | The generator wrote a query that Metabase cannot read, or a truth that ClickHouse cannot run. | Yes |
 | `skip` | The form has no defined truth. | No |
+| `stock_known` | Only on stock Cube: a wrong number on `Date32` under a report time zone or on `DateTime64`. These are `stock-unmarked-date` and `stock-raw-datetime64` in `dev/review/known_limits.py`. | No |
 | `stock_no_rows` | Only on stock Cube: `sum`, `min` or `max` of no rows gives what ClickHouse gives, 0 or 1970-01-01. The truth stays `NULL`, which is what Metabase on Postgres gives. See "Known wrong numbers" in `docs/query-compilation.md`. | No |
 
 A failure runs a second time. If it does not come back, the report lists it under `flaky`.
