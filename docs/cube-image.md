@@ -57,8 +57,9 @@ To add a patch, push its commit to `mcd/patch-queue` and add a line to `queue.js
 3. It makes a fingerprint from the patched source tree, the build recipe and the platforms. It compares this value with the label of the last published image. If they are equal, the run makes no image.
 4. It builds the native module with cubesql and the Tesseract planner from source, in `rust:<channel>-trixie`. It builds Cube Store from source only if the queue changes `rust/cubestore/`. If not, it takes the released binary.
 5. It builds `packages/cubejs-docker/dev.Dockerfile` of the tag, plus `cube-image/image.tail.Dockerfile`, and pushes the candidate tag. A check compares the checksums of the two binaries in the image with the build.
-6. The gate runs the full conformance on the pinned Metabase and ClickHouse. It tests the candidate and stock Cube of the same tag, each with the dialect.
-7. The gate needs 0 fail on the candidate. The pass count of the candidate must also be equal to or higher than on stock Cube. Then the candidate gets the tag `<cube-tag>-mcd.<n>`.
+6. The gate runs the full conformance on the pinned Metabase and ClickHouse. It tests the candidate and stock Cube of the same tag.
+7. The gate needs 0 fail on the candidate. The candidate must also have a pass count that is equal to or higher than on stock Cube.
+8. The candidate then gets the tag `<cube-tag>-mcd.<n>`.
 
 An `arm64` image builds on `ubuntu-24.04-arm` when `platforms` in `queue.json` has `arm64`.
 
