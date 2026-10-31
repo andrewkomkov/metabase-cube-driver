@@ -84,6 +84,7 @@ Most shapes where Cube gives a wrong number now give the truth or stop with a cl
 [How queries reach Cube](docs/query-compilation.md#what-the-driver-stops). The driver cannot stop these, so each gives a number with no error. With [the ClickHouse dialect](cube-clickhouse/README.md):
 
 - A long decimal below 2^53 loses digits, because the Cube SQL API has the type Double, and its value fits a Double. A dimension with `sql: toString(column)` keeps them.
+- A filter on a time with an offset in its literal, as `2025-06-15T11:00:00Z`, under a report time zone. Metabase core drops the offset before the driver gets the query. A filter from the date picker has no offset.
 - Native SQL in a shape that the scan of the text does not read. The scan is not a SQL parser. It reads the shapes in [Native SQL](docs/query-compilation.md#native-sql).
 
 On stock Cube with no dialect, also:

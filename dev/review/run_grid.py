@@ -357,7 +357,7 @@ def main():
         all_shapes = [s for s in all_shapes if re.search(a.only, s["id"])]
     if a.every > 1:
         # A stable choice, so that the two channels read the same part of the grid.
-        all_shapes = [s for s in all_shapes if int(hashlib.md5(s["id"].encode()).hexdigest(), 16) % a.every == 0]
+        all_shapes = [s for s in all_shapes if s["id"].startswith("follow/") or int(hashlib.md5(s["id"].encode()).hexdigest(), 16) % a.every == 0]
 
     def job(sh):
         if a.channel == "mcp" and not getattr(mcps, "c", None):

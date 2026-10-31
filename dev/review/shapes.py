@@ -709,6 +709,8 @@ def grid_followup():
     for name, op, cond in (("gt", ">", ">"), ("le", "<=", "<="), ("ge", ">=", ">="), ("lt", "<", "<")):
         out.append({"id": "follow/text_next_to_bound/" + name, "table": "typed_events", "agg": ["m:typed_events.count"], "by": [], "where": [["contains", d + "lc", "a"], [op, d + "ts64_berlin", L1]],
                     "truth": "SELECT countIf(position(lc, 'a') >= 1 AND ts64_berlin %s toDateTime64('%s', 3, 'UTC')) FROM shop.typed_events" % (cond, L2)})
+    out.append({"id": "follow/text_next_to_bound/gt_ignore_case", "table": "typed_events", "agg": ["m:typed_events.count"], "by": [], "where": [["contains", d + "lc", "A", {"case-sensitive": False}], [">", d + "ts64_berlin", L1]],
+                "truth": "SELECT countIf(positionCaseInsensitive(lc, 'A') >= 1 AND ts64_berlin > toDateTime64('%s', 3, 'UTC')) FROM shop.typed_events" % L2})
     # Native count on no rows, also on the measure of a cube with a rollup.
     for name, sql in [("star", "SELECT COUNT(*) FROM orders WHERE status = 'nope'"), ("one", "SELECT COUNT(1) c FROM orders WHERE status = 'nope'"), ("measure", "SELECT MEASURE(count) FROM orders WHERE status = 'nope'"), ("distinct", "SELECT COUNT(DISTINCT user_id) FROM orders WHERE status = 'nope'"), ("no_rollup", "SELECT COUNT(*) FROM typed_events WHERE lc = 'nope'"), ("with_rows", "SELECT COUNT(*) FROM orders WHERE status = 'shipped'")]:
         out.append({"id": "follow/count_native/" + name, "native": sql, "truth": "SELECT countIf(status = 'shipped') FROM %s" % O if name == "with_rows" else "SELECT 0"})

@@ -1022,6 +1022,27 @@
                                 (:name field))
                         {:type :invalid-query}))))))
 
+(defn- check-no-end-of-second-next-to-text!
+  "A case-sensitive text filter sends the query to the database, and there stock Cube compares a time in whole seconds. Then `x > t` loses the
+  rows of the second after t, and `x <= t` gets them. Cube does not show the type of a column, so this acts on each time column."
+  [earlier {:keys [filters]}]
+  (let [nodes     (filter vector? (mapcat #(tree-seq vector? seq %) filters))
+        text?     (fn [[op opts]]
+                    (and (#{:contains :starts-with :ends-with} op)
+                         (:case-sensitive (when (map? opts) opts) true)))
+        end-bound (fn [[op opts field]]
+                    (and (#{:> :<= := :between} op)
+                         (vector? field)
+                         (= :field (first field))
+                         (contains? #{nil :default} (:temporal-unit (when (map? opts) (second field))))
+                         (time-field? (column-field earlier field))
+                         (not (exact-bounds? field))))]
+    (when (and (some text? nodes) (some end-bound nodes))
+      (throw (ex-info (str "This filter has a text filter next to a bound on a time. Stock Cube then compares a time in whole seconds, so on "
+                           "a DateTime64 the number could be wrong. Use >= and < for the time, or install the ClickHouse dialect, see "
+                           "cube-clickhouse/README.md.")
+                      {:type :invalid-query})))))
+
 (defn- check-custom-granularities!
   "A breakout on a dimension that reads a custom granularity, with a measure that a rollup serves."
   [stages]
@@ -1097,6 +1118,7 @@
       (check-time-shift! upto)
       (check-time-shift-bounds! upto)
       (check-date-only-columns! (pop upto) stage)
+      (check-no-end-of-second-next-to-text! (pop upto) stage)
       (check-custom-granularities! upto))))
 
 (defn- needs-date-ranges
