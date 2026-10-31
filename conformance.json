@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 736,
+    "pass": 739,
     "partial": 13,
     "blocked": 2,
     "unsupported": 12,
-    "fail": 4,
+    "fail": 1,
     "total": 767
   },
-  "coverage": "coverage: 736/767 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 739/767 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -842,8 +842,8 @@
     },
     {
       "id": "sqlapi.where_like",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-31T08:25:17.933528988Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/native\",\"native\":\"SELECT MEASURE(count) AS n FROM ord"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "restapi.compare_date_range",
@@ -3571,9 +3571,9 @@
       "reason": ""
     },
     {
-      "id": "native.count_on_no_rows_limit",
-      "status": "fail",
-      "reason": "Cube now gives [[0]] for SELECT COUNT(*) FROM orders WHERE status = 'nope'. Give this entry its full status"
+      "id": "native.count_on_no_rows",
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "nested.model.multi_stage_measure_column",
@@ -3713,12 +3713,12 @@
     {
       "id": "grid.compact.report_zone",
       "status": "fail",
-      "reason": "5 of 31 not expected: tz/America/New_York/stage filter on a bucket wrong rows: got 5, truth 6. First got [['2025-08-01T00:00:00-04:00', 27999.0], ['2025-09-01T00:00:00-04:00', 26460.0]], first truth [['2025-07-01', 27103], ['2025-08- | tz/America/New_York/stage equal on a bucket wrong rows: got 0, truth 1. First got [], first truth [['2025-07-01', 27103]] | tz/America/New_York/Date filter after wrong row 0: got [761], truth [785] | tz/America/New_York/Date filter before wrong row 0: got [215], truth [191] | tz/America/New_York/Date32 filter after wrong row 0: got [761], truth [785]"
+      "reason": "1 of 31 not expected: tz/America/New_York/stage filter on a bucket wrong rows: got 5, truth 6. First got [['2025-08-01T00:00:00-04:00', 27999.0], ['2025-09-01T00:00:00-04:00', 26460.0]], first truth [['2025-07-01', 27103], ['2025-08-"
     },
     {
       "id": "grid.compact.mcp_report_zone",
-      "status": "fail",
-      "reason": "2 of 31 not expected: tz/America/New_York/stage filter on a bucket wrong rows: got 5, truth 6. First got [['2025-08-01T00:00:00-04:00', 27999.0], ['2025-09-01T00:00:00-04:00', 26460.0]], first truth [['2025-07-01', 27103], ['2025-08- | tz/America/New_York/stage equal on a bucket wrong rows: got 0, truth 1. First got [], first truth [['2025-07-01', 27103]]"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "grid.compact.start_of_week",

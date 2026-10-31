@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 736/767 pass on Cube with the ClickHouse dialect** (736 pass, 13 partial, 2 blocked, 12 unsupported, 4 fail of 767)
+**coverage: 739/767 pass on Cube with the ClickHouse dialect** (739 pass, 13 partial, 2 blocked, 12 unsupported, 1 fail of 767)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `ed9dbdfb3ef3`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41183706365), 2026-10-31.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `0040e687a25c`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41185605606), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -174,7 +174,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `ed9db
 | `sqlapi.where_between` | pass |  |
 | `sqlapi.where_in` | pass |  |
 | `sqlapi.where_is_null` | pass |  |
-| `sqlapi.where_like` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-31T08:25:17.933528988Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"lib/type":"mbql/query","stages":[{"lib/type":"mbql.stage/native","native":"SELECT MEASURE(count) AS n FROM ord |
+| `sqlapi.where_like` | pass |  |
 | `restapi.compare_date_range` | unsupported | compareDateRange exists only in the REST API. No Metabase query shape maps to it. |
 | `restapi.total_query` | unsupported | A total query exists only in the REST API. No Metabase query shape maps to it. |
 | `clickhouse.bool` | pass |  |
@@ -720,7 +720,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `ed9db
 | `build.load_check_sends_the_api_secret` | pass |  |
 | `docs.query_compilation_agrees_with_code` | pass |  |
 | `compile.bound.datetime64_whole_seconds_limit` | pass |  |
-| `native.count_on_no_rows_limit` | fail | Cube now gives [[0]] for SELECT COUNT(*) FROM orders WHERE status = 'nope'. Give this entry its full status |
+| `native.count_on_no_rows` | pass |  |
 | `nested.model.multi_stage_measure_column` | pass |  |
 | `nested.question.multi_stage_outer_date_filter` | pass |  |
 | `nested.model.measure_column_bounds` | pass |  |
@@ -748,8 +748,8 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `ed9db
 | `measure.rolling.window_shorter_than_bucket` | pass |  |
 | `grid.compact.dataset` | pass |  |
 | `grid.compact.mcp` | pass |  |
-| `grid.compact.report_zone` | fail | 5 of 31 not expected: tz/America/New_York/stage filter on a bucket wrong rows: got 5, truth 6. First got [['2025-08-01T00:00:00-04:00', 27999.0], ['2025-09-01T00:00:00-04:00', 26460.0]], first truth [['2025-07-01', 27103], ['2025-08- \| tz/America/New_York/stage equal on a bucket wrong rows: got 0, truth 1. First got [], first truth [['2025-07-01', 27103]] \| tz/America/New_York/Date filter after wrong row 0: got [761], truth [785] \| tz/America/New_York/Date filter before wrong row 0: got [215], truth [191] \| tz/America/New_York/Date32 filter after wrong row 0: got [761], truth [785] |
-| `grid.compact.mcp_report_zone` | fail | 2 of 31 not expected: tz/America/New_York/stage filter on a bucket wrong rows: got 5, truth 6. First got [['2025-08-01T00:00:00-04:00', 27999.0], ['2025-09-01T00:00:00-04:00', 26460.0]], first truth [['2025-07-01', 27103], ['2025-08- \| tz/America/New_York/stage equal on a bucket wrong rows: got 0, truth 1. First got [], first truth [['2025-07-01', 27103]] |
+| `grid.compact.report_zone` | fail | 1 of 31 not expected: tz/America/New_York/stage filter on a bucket wrong rows: got 5, truth 6. First got [['2025-08-01T00:00:00-04:00', 27999.0], ['2025-09-01T00:00:00-04:00', 26460.0]], first truth [['2025-07-01', 27103], ['2025-08- |
+| `grid.compact.mcp_report_zone` | pass |  |
 | `grid.compact.start_of_week` | pass |  |
 | `context.compile_context` | pass |  |
 | `security.access_policy_groups` | pass |  |
