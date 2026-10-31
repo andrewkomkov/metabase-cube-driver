@@ -3,6 +3,8 @@
 import re
 
 LIMITS = [
+    {"id": "offset-literal-on-a-time", "variants": ("dialect", "stock"), "shapes": r"^tz/[^ ]*/filter offset literal",
+     "reason": "Metabase core drops the offset of a literal on a column with base type type/DateTime before the query reaches the driver, so the driver gets 11:00 from 2025-06-15T11:00:00Z. Base type type/DateTimeWithLocalTZ keeps the offset, but then Metabase core writes the end of a month filter with the offset of its start, so a filter on March includes one hour of April in New York. Metabase on Postgres with timestamptz gives 435 for that filter, truth 434. A filter from the date picker counts for more than an offset in a literal, so the base type stays."},
     {"id": "long-decimal", "variants": ("dialect", "stock"), "shapes": r"^edge/raw_dec_big$",
      "reason": "The Cube SQL API has the type Double for each number, so a long decimal below 2^53 loses digits before the driver reads it. The value fits a Double and /v1/meta does not show the column type, so the driver cannot see this, and a dialect does not change the type of the SQL API."},
     {"id": "stock-raw-datetime64", "variants": ("stock",), "shapes": r"^edge/raw_ts64$",

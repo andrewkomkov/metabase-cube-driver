@@ -4431,14 +4431,12 @@
   status: pass
   status_stock: pass
   check: compile.bound.datetime64_whole_seconds_limit
-- id: native.count_on_no_rows_limit
+- id: native.count_on_no_rows
   area: mb.native
   title: "native COUNT(*) on no rows"
-  status: partial
-  status_stock: partial
-  check: native.count_on_no_rows_limit
-  cap: partial
-  reason: "Limit of Cube: native COUNT(*) on no rows gives NULL where SQL gives 0 (m3). The driver does not change native text, and it cannot know that a NULL column is a count. MBQL gives 0."
+  status: todo
+  status_stock: todo
+  check: native.count_on_no_rows
 - id: security.dev_mode_warning_for_hidden_members
   area: security
   title: "native SQL reads hidden members in dev mode"

@@ -317,7 +317,7 @@ def one(ctx, mcp, sh, channel):
         return r
     r["got"] = rows[:6]
     r["rows"] = len(rows)
-    # The MCP tools give at most 4000 rows over all pages, on each database. This is a limit of Metabase.
+    # The MCP tools stop at 4000 rows over all pages here, with no error. The driver does not see the pages.
     if channel == "mcp" and want is not None and len(want) > 4000 and len(rows) == 4000:
         r["verdict"] = "skip"
         r["error"] = "skip: MCP gives at most 4000 rows"

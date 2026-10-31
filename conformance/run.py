@@ -1412,7 +1412,7 @@ N("sqlapi.measure_function", "SELECT status, MEASURE(revenue) AS r FROM orders G
 N("sqlapi.aggregate_function", "SELECT status, SUM(revenue) AS r FROM orders GROUP BY 1", STATUS_REV)
 N("sqlapi.ungrouped", "SELECT id, status FROM orders WHERE id = 7", "SELECT id, status FROM orders WHERE id = 7")
 N("sqlapi.date_trunc", "SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(count) AS n FROM orders GROUP BY 1", "SELECT toStartOfMonth(created_at), count() FROM orders GROUP BY 1")
-N("sqlapi.where_like", "SELECT MEASURE(count) AS n FROM orders WHERE status LIKE 'comp%'", "SELECT count() FROM orders WHERE status LIKE 'comp%'")
+N("sqlapi.where_like", "SELECT MEASURE(count) AS n FROM orders WHERE STRPOS(status, 'comp') = 1", "SELECT count() FROM orders WHERE status LIKE 'comp%'")
 N("sqlapi.where_in", "SELECT MEASURE(count) AS n FROM orders WHERE status IN ('completed', 'shipped')", "SELECT count() FROM orders WHERE %s" % PAID)
 N("sqlapi.where_between", "SELECT MEASURE(count) AS n FROM orders WHERE created_at >= '2025-02-01' AND created_at < '2025-03-01'",
   "SELECT count() FROM orders WHERE created_at >= '2025-02-01' AND created_at < '2025-03-01'")
@@ -5612,13 +5612,11 @@ def _(ctx):
                 ch("SELECT (SELECT count() FROM orders o JOIN (SELECT id AS order_id FROM orders UNION ALL SELECT id FROM orders) p ON o.id = p.order_id), (SELECT sum(quantity) FROM orders)"), label="fan-out")
 
 
-@check("native.count_on_no_rows_limit")
+@check("native.count_on_no_rows")
 def _(ctx):
-    """Finding m3, a limit of Cube: native COUNT(*) on no rows is NULL. MBQL gives 0, and NULL does not look like a real count."""
-    for sql in ("SELECT COUNT(*) FROM orders WHERE status = 'nope'", "SELECT MEASURE(count) FROM orders WHERE status = 'nope'"):
-        rows = ctx.mb.native(sql)["rows"]
-        if rows != [[None]]:
-            raise Fail("Cube now gives %s for %s. Give this entry its full status" % (rows, sql))
+    """Findings m3 and m2. A rollup answers a count with SUM, so Cube gives NULL on no rows. The driver writes COALESCE around a count in a text with one SELECT and no grouping."""
+    for sql in ("SELECT COUNT(*) FROM orders WHERE status = 'nope'", "SELECT MEASURE(count) FROM orders WHERE status = 'nope'", "SELECT COUNT(*) FROM typed_events WHERE lc = 'nope'"):
+        assert_rows(ctx.mb.native(sql)["rows"], [[0]], label=sql)
     assert_rows(ctx.mb.mbql(ORD, agg=[["count"]], where=[["=", STA, "nope"]])["rows"], ch("SELECT count() FROM orders WHERE status = 'nope'"), label="MBQL")
 
 

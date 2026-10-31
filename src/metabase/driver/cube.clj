@@ -441,10 +441,10 @@
         ((get-method sql.qp/apply-top-level-clause [:postgres top-level-clause]) driver top-level-clause honeysql-form query)))))
 
 (defn- post-processed-column?
-  "True if `field` is a column of an earlier stage with an aggregation. Cube keeps the limit on that stage, so this filter reads the
+  "True if this filter reads a column of an earlier stage with an aggregation. Cube keeps the limit on that stage, so this filter reads the
   result of the stage, where a time is in the zone of the session. A column of raw rows goes to the scan of Cube."
-  [[_ _ id]]
-  (and (string? id) *over-aggregated-stage*))
+  []
+  *over-aggregated-stage*)
 
 (defn- zone-bound
   "A comparison of `field` with a time, in the form for a report time zone, or nil if this comparison is not one."
@@ -454,7 +454,7 @@
              (vector? field)
              (= :field (first field))
              (contains? #{nil :default} (:temporal-unit (second field)))
-             (not (post-processed-column? field)))
+             (not (post-processed-column?)))
     (when-let [t (zone-bound-time value)]
       (let [compiled (postgres-clause driver [op opts field (at-time (utc-time t))])]
         (if (or *inside-not* *inside-case*)
