@@ -1,6 +1,6 @@
 [
  {
-  "image": "v1.8.15-mcd-candidate.ae9cfadfdaf0",
+  "image": "v1.8.15-mcd-candidate.91af2634c4af",
   "metabase": "v0.65.2.3",
   "cube": "v1.8.15",
   "clickhouse": "26.8.36-alpine",
@@ -17,11 +17,11 @@
   },
   "state": "candidate",
   "patches": "B1,datetime64,interval,M1-M2,N1,geo,propagate,gran,m5,N2,big",
-  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41194396826",
+  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41195941290",
   "date": "2026-10-31"
  },
  {
-  "image": "v1.8.15-mcd-candidate.ae9cfadfdaf0",
+  "image": "v1.8.15-mcd-candidate.91af2634c4af",
   "metabase": "v0.65.2.3",
   "cube": "v1.8.15",
   "clickhouse": "26.8.36-alpine",
@@ -38,7 +38,7 @@
   },
   "state": "candidate",
   "patches": "B1,datetime64,interval,M1-M2,N1,geo,propagate,gran,m5,N2,big",
-  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41194396826",
+  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41195941290",
   "date": "2026-10-31"
  }
 ]
