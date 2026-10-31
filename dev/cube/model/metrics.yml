@@ -1,21 +1,58 @@
+# The metric catalog. Each metric is in stock Cube form, and it has a truth in hand SQL in conformance/run.py.
 cubes:
   - name: metric_types
     title: Metric types
-    description: One measure of each Cube measure type, on shop.orders. The truth of each measure is the same aggregate in ClickHouse SQL.
+    description: One measure of each Cube measure type and option, on shop.orders. The truth of each measure is hand SQL on ClickHouse.
     sql_table: shop.orders
     sql_alias: mt
     refresh_key: { every: 1 hour }
     meta: { owner: finance, ai_hint: "Use these measures to check how a measure type is shown." }
+    joins:
+      - { name: metric_customers, relationship: many_to_one, sql: "{CUBE}.user_id = {metric_customers.id}" }
+      - { name: products, relationship: many_to_one, sql: "{CUBE}.product_id = {products.id}" }
+      - { name: payments, relationship: one_to_many, sql: "{CUBE}.id = {payments.order_id}" }
+      - { name: fiscal_calendar, relationship: many_to_one, sql: "toDate({CUBE}.created_at) = toDate({fiscal_calendar.date_key})" }
     dimensions:
       - { name: id, sql: id, type: number, primary_key: true, public: true }
       - { name: status, sql: status, type: string, public: true }
       - { name: quantity, sql: quantity, type: number, public: true }
       - { name: amount, sql: amount, type: number, public: true }
       - { name: user_id, sql: user_id, type: number, public: true }
+      - { name: product_id, sql: product_id, type: number, public: true }
       - { name: is_paid, sql: "status IN ('completed','shipped')", type: boolean, public: true }
       - { name: created_at, sql: created_at, type: time, public: true }
+      - name: size
+        type: string
+        description: Order size bucket from a case.
+        case:
+          when:
+            - { sql: "{CUBE}.quantity >= 3", label: large }
+          else: { label: small }
     measures:
-      - { name: m_count, type: count, title: Orders, description: Rows of shop.orders. }
+      # Each measure type.
+      - { name: m_count, type: count, title: Metric orders, description: Rows of shop.orders., drill_members: [id, status, created_at] }
+      - { name: m_users, type: count_distinct, sql: user_id, title: Metric customers, description: Distinct customers. }
+      - { name: m_users_approx, type: count_distinct_approx, sql: user_id, title: Metric customers approx, description: "Approximate distinct customers, from uniqHLL12." }
+      - { name: m_revenue, type: sum, sql: amount, format: currency, title: Metric revenue, description: Sum of amount in USD. }
+      - { name: m_avg_amount, type: avg, sql: amount, format: currency, title: Metric average order value, description: Average amount. }
+      - { name: m_min_amount, type: min, sql: amount, title: Smallest order, description: Minimum amount. }
+      - { name: m_max_amount, type: max, sql: amount, title: Largest order, description: Maximum amount. }
+      - { name: m_quantity_sum, type: sum, sql: quantity, title: Units, description: Units sold. }
+      - { name: m_avg_quantity, type: avg, sql: quantity, title: Average units, description: Average units of an order. }
+      - { name: m_ratio, type: number, sql: "1.0 * {m_revenue} / NULLIF({m_count}, 0)", format: currency, title: Revenue per order, description: "Revenue divided by orders, NULL when there are no orders." }
+      - { name: m_status_text, type: string, sql: "min({CUBE}.status)", title: First status, description: The first status of the group by name. }
+      - { name: m_last_order_at, type: time, sql: "max({CUBE}.created_at)", title: Last order, description: "Latest order time in the group." }
+      - { name: m_has_completed, type: boolean, sql: "max({CUBE}.status = 'completed')", title: Has completed, description: "True when the group has a completed order." }
+      - { name: m_median_agg, type: number_agg, multi_stage: true, sql: "quantile(0.5)(toFloat64({m_revenue}))", grain: { include: [id] }, title: Median by number_agg, description: Median amount. }
+      - name: m_rank
+        type: rank
+        multi_stage: true
+        title: Rank by revenue
+        description: Rank of the group by revenue.
+        reduce_by: [status]
+        order_by:
+          - { sql: "{m_revenue}", dir: desc }
+      # Filters.
       - name: m_count_completed
         type: count
         title: Completed orders
@@ -29,21 +66,353 @@ cubes:
         filters:
           - { sql: "{CUBE}.status = 'completed'" }
           - { sql: "{CUBE}.quantity >= 3" }
-      - { name: m_users, type: count_distinct, sql: user_id, title: Customers, description: Distinct customers. }
-      - { name: m_users_approx, type: count_distinct_approx, sql: user_id, title: Customers (approx), description: "Approximate distinct customers, from uniqHLL12." }
-      - { name: m_revenue, type: sum, sql: amount, format: currency, title: Revenue, description: Sum of amount in USD. }
-      - { name: m_avg_amount, type: avg, sql: amount, format: currency, title: Average order value, description: Average amount. }
-      - { name: m_min_amount, type: min, sql: amount, title: Smallest order, description: Minimum amount. }
-      - { name: m_max_amount, type: max, sql: amount, title: Largest order, description: Maximum amount. }
-      - { name: m_quantity_sum, type: sum, sql: quantity, title: Units, description: Units sold. }
-      - { name: m_ratio, type: number, sql: "{m_revenue} / NULLIF({m_count}, 0)", format: currency, title: Revenue per order, description: "Revenue divided by orders, NULL when there are no orders." }
-      - { name: m_status_text, type: string, sql: "any(status)", title: Some status, description: One status of the group. }
-      - { name: m_last_order_at, type: time, sql: "max({CUBE}.created_at)", title: Last order, description: "Latest order time in the group." }
-      - { name: m_has_completed, type: boolean, sql: "max({CUBE}.status = 'completed')", title: Has completed, description: "True when the group has a completed order." }
+      - name: m_count_completed_or_large
+        type: count
+        title: Completed or large orders
+        description: Count with one filter that holds an OR.
+        filters:
+          - { sql: "{CUBE}.status = 'completed' OR {CUBE}.quantity >= 3" }
+      - name: m_paid_revenue
+        type: sum
+        sql: amount
+        format: currency
+        title: Paid revenue
+        description: Sum of amount with a filter.
+        filters:
+          - { sql: "{CUBE}.status IN ('completed', 'shipped')" }
+      - name: m_paid_january
+        type: count
+        title: Paid orders of January
+        description: Paid orders in January 2025. The conversion of metric_customers reads it.
+        filters:
+          - { sql: "{CUBE}.status IN ('completed', 'shipped')" }
+          - { sql: "{CUBE}.created_at < toDateTime('2025-02-01 00:00:00', 'UTC')" }
+      # Rolling windows.
+      - { name: m_rev_trailing_3m, type: sum, sql: amount, rolling_window: { trailing: 3 month }, title: Revenue of 3 months, description: Revenue of the 3 months up to each point. }
+      - { name: m_rev_leading_1m, type: sum, sql: amount, rolling_window: { leading: 1 month, offset: start }, title: Revenue of the next month, description: Revenue of 1 month from the start of each point. }
+      - { name: m_rev_leading_next, type: sum, sql: amount, rolling_window: { leading: 1 month, offset: end }, title: Revenue with leading offset end, description: Revenue of 1 month after the end of each point. }
+      - { name: m_rev_offset_end, type: sum, sql: amount, rolling_window: { trailing: 1 month, offset: end }, title: Revenue with offset end, description: Trailing month that ends at the end of each point. }
+      - { name: m_rev_offset_start, type: sum, sql: amount, rolling_window: { trailing: 1 month, offset: start }, title: Revenue with offset start, description: Trailing month that ends at the start of each point. }
+      - { name: m_rev_mtd, type: sum, sql: amount, rolling_window: { type: to_date, granularity: month }, title: Revenue month to date, description: Month to date. }
+      - { name: m_rev_ytd, type: sum, sql: amount, rolling_window: { type: to_date, granularity: year }, title: Revenue year to date, description: Year to date. }
+      - { name: m_rev_running, type: sum, sql: amount, rolling_window: { trailing: unbounded }, title: Running revenue, description: Running total of revenue. }
+      # Multi-stage measures.
+      - name: m_rev_grand_total
+        multi_stage: true
+        sql: "{m_revenue}"
+        type: sum
+        grain: { keep_only: [] }
+        description: Revenue of all rows.
+      - name: m_rev_group_by
+        multi_stage: true
+        sql: "{m_revenue}"
+        type: sum
+        group_by: [status]
+        description: Revenue at the grain of status only.
+      - name: m_rev_reduce_by
+        multi_stage: true
+        sql: "{m_revenue}"
+        type: sum
+        reduce_by: [status]
+        description: Revenue with no grain of status.
+      - name: m_rev_add_group_by
+        multi_stage: true
+        sql: "{m_revenue}"
+        type: avg
+        add_group_by: [status]
+        description: Average over the statuses of the revenue of a status.
+      - name: m_rev_prior_month
+        multi_stage: true
+        sql: "{m_revenue}"
+        type: number
+        time_shift:
+          - { time_dimension: created_at, interval: 1 month, type: prior }
+        description: Revenue one month earlier.
+      - name: m_rev_prior_calendar
+        multi_stage: true
+        sql: "{m_revenue}"
+        type: number
+        time_shift:
+          - { name: prior_fiscal_month }
+        description: Revenue shifted by the fiscal calendar.
+      # Formats.
+      - { name: m_fmt_percent, type: number, sql: "1.0 * {m_paid_revenue} / NULLIF({m_revenue}, 0)", format: percent, description: Format percent. }
+      - { name: m_fmt_percent_0, type: number, sql: "1.0 * {m_paid_revenue} / NULLIF({m_revenue}, 0)", format: percent_0, description: Format percent_0. }
+      - { name: m_fmt_percent_2, type: number, sql: "1.0 * {m_paid_revenue} / NULLIF({m_revenue}, 0)", format: percent_2, description: Format percent_2. }
+      - { name: m_fmt_currency, type: sum, sql: amount, format: currency, description: Format currency. }
+      - { name: m_fmt_currency_0, type: sum, sql: amount, format: currency_0, description: Format currency_0. }
+      - { name: m_fmt_currency_3, type: sum, sql: amount, format: currency_3, description: Format currency_3. }
+      - { name: m_fmt_currency_eur, type: sum, sql: amount, format: currency, currency: EUR, description: Format currency with a code. }
+      - { name: m_fmt_number, type: sum, sql: amount, format: number, description: Format number. }
+      - { name: m_fmt_number_0, type: sum, sql: amount, format: number_0, description: Format number_0. }
+      - { name: m_fmt_number_3, type: sum, sql: amount, format: number_3, description: Format number_3. }
+      - { name: m_fmt_abbr, type: sum, sql: amount, format: abbr, description: Format abbr. }
+      - { name: m_fmt_abbr_1, type: sum, sql: amount, format: abbr_1, description: Format abbr_1. }
+      - { name: m_fmt_accounting, type: sum, sql: amount, format: accounting, description: Format accounting. }
+      - { name: m_fmt_accounting_0, type: sum, sql: amount, format: accounting_0, description: Format accounting_0. }
+      - { name: m_fmt_id, type: max, sql: id, format: id, description: Format id. }
+      - { name: m_fmt_d3, type: sum, sql: amount, format: "$,.3f", description: Format with a d3 string. }
+      - { name: m_fmt_d3_percent, type: number, sql: "1.0 * {m_paid_revenue} / NULLIF({m_revenue}, 0)", format: ".1%", description: Percent format with a d3 string. }
+      # Options.
       - { name: m_private_count, type: count, public: false, description: Not visible to people. }
       - name: m_formatted_count
         type: count
         title: Formatted count
         description: Count with a number format.
         format: number
-        meta: { owner: finance }
+        meta: { owner: finance, ai_hint: "Count of orders with member meta." }
+      # Business metrics.
+      - { name: b_aov_ratio, type: number, sql: "1.0 * {m_revenue} / NULLIF({m_count}, 0)", format: currency, description: Average order value as revenue over orders. }
+      - name: b_mom
+        multi_stage: true
+        type: number
+        sql: "1.0 * ({m_revenue} - {m_rev_prior_month}) / NULLIF({m_rev_prior_month}, 0)"
+        format: percent
+        description: Change from the prior month.
+      - { name: b_moving_avg_3m, type: number, sql: "1.0 * {m_rev_trailing_3m} / 3", description: Average revenue of a month over 3 months. }
+      - { name: b_median, type: number, sql: "quantile(0.5)(toFloat64({CUBE}.amount))", description: Median amount. }
+      - { name: b_p90, type: number, sql: "quantile(0.9)(toFloat64({CUBE}.amount))", description: 90th percentile of amount. }
+      - { name: b_amount_x_quantity, type: sum, sql: "amount * quantity", description: Amount weighted by units. }
+      - { name: b_weighted_amount, type: number, sql: "1.0 * {b_amount_x_quantity} / NULLIF({m_quantity_sum}, 0)", description: Average amount weighted by units. }
+      - { name: b_distinct_cities, type: count_distinct, sql: "{metric_customers.city}", description: Distinct cities of customers over a join. }
+      - { name: b_distinct_vip_customers, type: number, sql: "{metric_customers.vip_customers}", description: VIP customers with orders through a join. }
+      # Metrics made from other metrics.
+      - { name: c_ratio_of_sums, type: number, sql: "1.0 * {m_revenue} / NULLIF({m_quantity_sum}, 0)", description: Revenue per unit as a ratio of two sums. }
+      - { name: c_sum_of_row_ratios, type: sum, sql: "1.0 * amount / NULLIF(quantity, 0)", description: Sum over rows of the amount per unit. }
+      - { name: c_avg_of_ratio, type: avg, sql: "1.0 * amount / NULLIF(quantity, 0)", description: Average over rows of the amount per unit. }
+      - { name: c_ratio_of_avgs, type: number, sql: "1.0 * {m_avg_amount} / NULLIF({m_avg_quantity}, 0)", description: Ratio of two averages. }
+      - { name: c_cross_paid_ratio, type: number, sql: "1.0 * {payments.total} / NULLIF({m_revenue}, 0)", description: Payments over revenue through a join with fan-out. }
+      - { name: c_cross_count_ratio, type: number, sql: "1.0 * {payments.count} / NULLIF({m_count}, 0)", description: Payments per order through a join with fan-out. }
+      - { name: c_paid_share, type: number, sql: "1.0 * {m_paid_revenue} / NULLIF({m_revenue}, 0)", format: percent, description: Share of revenue that was paid. }
+      - { name: c_customers_per_order, type: number, sql: "1.0 * {m_users} / NULLIF({m_count}, 0)", description: Distinct customers over orders. }
+      - { name: c_revenue_per_customer, type: number, sql: "1.0 * {m_revenue} / NULLIF({m_users}, 0)", description: Revenue over distinct customers. }
+      - name: c_share_of_total
+        multi_stage: true
+        type: number
+        sql: "1.0 * {m_revenue} / NULLIF({m_rev_grand_total}, 0)"
+        format: percent
+        description: Revenue over the revenue of all rows.
+      - name: c_to_prior
+        multi_stage: true
+        type: number
+        sql: "1.0 * {m_revenue} / NULLIF({m_rev_prior_month}, 0)"
+        description: Revenue over the revenue of the prior month.
+      - { name: c_rolling_to_plain, type: number, sql: "1.0 * {m_rev_trailing_3m} / NULLIF({m_revenue}, 0)", description: Revenue of 3 months over the revenue of the point. }
+      - { name: c_cost, type: sum, sql: "quantity * 10", description: Cost at 10 for a unit. }
+      - { name: c_margin, type: number, sql: "1.0 * ({m_revenue} - {c_cost}) / NULLIF({c_cost}, 0)", description: The form (a - b) / b. }
+      - { name: c_product, type: number, sql: "1.0 * {m_avg_quantity} * {m_count}", description: A product of two metrics. }
+      - { name: c_nested_ratio, type: number, sql: "1.0 * {m_revenue} / NULLIF({m_quantity_sum}, 0) / NULLIF({m_count}, 0)", description: The form a / b / c. }
+
+  - name: metric_customers
+    title: Metric customers
+    description: Customers, with each dimension type that can feed a metric.
+    sql_table: shop.users
+    joins:
+      - { name: metric_types, relationship: one_to_many, sql: "{CUBE}.id = {metric_types.user_id}" }
+      - { name: regions, relationship: many_to_one, sql: "{CUBE}.state = {regions.state}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: city, sql: city, type: string, description: Billing city. }
+      - { name: state, sql: state, type: string, description: Billing state. }
+      - { name: is_vip, sql: is_vip, type: boolean, description: VIP program member. }
+      - { name: created_at, sql: created_at, type: time, description: Signup time. }
+      - name: location
+        type: geo
+        description: Billing location.
+        latitude: { sql: latitude }
+        longitude: { sql: longitude }
+      - { name: lifetime_orders, sql: "{metric_types.m_count}", type: number, sub_query: true, description: Orders of the customer. }
+      - { name: january_paid_orders, sql: "{metric_types.m_paid_january}", type: number, sub_query: true, description: Paid orders of the customer in January 2025. }
+    measures:
+      - { name: customers, type: count, title: Customers of the catalog, description: Number of customers. }
+      - { name: vip_customers, type: count, filters: [{ sql: "{CUBE}.is_vip" }], description: Number of VIP customers. }
+      - { name: converted, type: count, filters: [{ sql: "{CUBE.january_paid_orders} > 0" }], description: Customers with a paid order in January 2025. }
+      - { name: conversion, type: number, sql: "1.0 * {converted} / NULLIF({customers}, 0)", format: percent, description: Share of customers with a paid order in January 2025. }
+      - { name: revenue, type: number, sql: "{metric_types.m_revenue}", format: currency, description: Revenue of the orders of the customers through a join. }
+      - { name: payments_total, type: number, sql: "{payments.total}", format: currency, description: Payments of the customers through two joins. }
+
+  - name: metric_customer_months
+    title: Metric customer months
+    description: One row for each customer and month with an order. Retention, churn and repeat rate read it.
+    sql: >
+      SELECT a.user_id AS user_id, a.month_at AS month_at, a.orders_in_month AS orders_in_month, n.user_id != 0 AS active_next_month
+      FROM (SELECT user_id, toDateTime(toStartOfMonth(created_at), 'UTC') AS month_at, count() AS orders_in_month FROM shop.orders GROUP BY user_id, month_at) AS a
+      LEFT JOIN (SELECT DISTINCT user_id, toDateTime(toStartOfMonth(created_at), 'UTC') AS month_at FROM shop.orders) AS n
+      ON a.user_id = n.user_id AND toDateTime(addMonths(a.month_at, 1), 'UTC') = n.month_at
+    dimensions:
+      - { name: id, sql: "concat(toString(user_id), '-', toString(month_at))", type: string, primary_key: true, public: true }
+      - { name: user_id, sql: user_id, type: number, description: Customer. }
+      - { name: month_at, sql: month_at, type: time, description: Month of the activity. }
+      - { name: orders_in_month, sql: orders_in_month, type: number, description: Orders of the customer in the month. }
+      - { name: active_next_month, sql: active_next_month, type: boolean, description: The customer has an order in the next month. }
+    measures:
+      - { name: active, type: count_distinct, sql: user_id, description: Customers with an order. }
+      - { name: retained, type: count_distinct, sql: user_id, filters: [{ sql: "{CUBE}.active_next_month" }], description: Customers with an order in the next month too. }
+      - { name: repeat, type: count_distinct, sql: user_id, filters: [{ sql: "{CUBE}.orders_in_month >= 2" }], description: Customers with two orders in a month. }
+      - { name: retention, type: number, sql: "1.0 * {retained} / NULLIF({active}, 0)", format: percent, description: Share of customers who come back in the next month. }
+      - { name: churn, type: number, sql: "1.0 - 1.0 * {retained} / NULLIF({active}, 0)", format: percent, description: Share of customers who do not come back in the next month. }
+      - { name: repeat_rate, type: number, sql: "1.0 * {repeat} / NULLIF({active}, 0)", format: percent, description: Share of customers with two orders in a month. }
+
+  - name: metric_sales
+    title: Metric sales
+    description: Two years of sales, for a change from the prior year.
+    sql_table: shop.metric_sales
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: channel, sql: channel, type: string, description: Sales channel. }
+      - { name: sold_at, sql: sold_at, type: time, description: Time of the sale. }
+    measures:
+      - { name: revenue, type: sum, sql: amount, format: currency, description: Revenue of the sales. }
+      - name: revenue_prior_year
+        multi_stage: true
+        type: number
+        sql: "{revenue}"
+        time_shift:
+          - { time_dimension: sold_at, interval: 1 year, type: prior }
+        description: Revenue one year earlier.
+      - name: yoy
+        multi_stage: true
+        type: number
+        sql: "1.0 * ({revenue} - {revenue_prior_year}) / NULLIF({revenue_prior_year}, 0)"
+        format: percent
+        description: Change from the prior year.
+
+  - name: metric_edges
+    title: Metric edges
+    description: Zero, NULL and negative values in a numerator and a denominator.
+    sql_table: shop.metric_edges
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: grp, sql: grp, type: string, description: Kind of the edge. }
+      - { name: day, sql: day, type: time, description: Day of the row. }
+    measures:
+      - { name: rows, type: count, description: Rows. }
+      - { name: num, type: sum, sql: num, description: Sum of the numerator. }
+      - { name: den, type: sum, sql: den, description: Sum of the denominator. }
+      - { name: avg_num, type: avg, sql: num, description: Average of the numerator. }
+      - { name: min_den, type: min, sql: den, description: Smallest denominator. }
+      - { name: max_den, type: max, sql: den, description: Largest denominator. }
+      - { name: ratio, type: number, sql: "1.0 * {num} / NULLIF({den}, 0)", description: "Ratio of sums, NULL on a zero denominator." }
+      - { name: ratio_raw, type: number, sql: "1.0 * {num} / {den}", description: Ratio of sums with no guard. }
+      - { name: sum_of_ratios, type: sum, sql: "1.0 * num / NULLIF(den, 0)", description: Sum of the ratios of rows. }
+      - { name: avg_of_ratios, type: avg, sql: "1.0 * num / NULLIF(den, 0)", description: Average of the ratios of rows. }
+      - { name: change, type: number, sql: "1.0 * ({num} - {den}) / NULLIF({den}, 0)", description: The form (a - b) / b. }
+      - { name: positive_num, type: sum, sql: num, filters: [{ sql: "{CUBE}.num > 0" }], description: Sum of the numerators above zero. }
+      - { name: positive_share, type: number, sql: "1.0 * {positive_num} / NULLIF({num}, 0)", description: A filtered numerator over the whole sum. }
+
+  - name: metric_rollup_sales
+    title: Metric rollup sales
+    description: An additive and a non-additive metric with a rollup by day.
+    sql_table: shop.orders
+    sql_alias: mrs
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string, description: Order status. }
+      - { name: created_at, sql: created_at, type: time, description: Time of the order. }
+    measures:
+      - { name: revenue, type: sum, sql: amount, description: An additive metric. }
+      - { name: units, type: sum, sql: quantity, description: An additive metric. }
+      - { name: customers, type: count_distinct, sql: user_id, description: A metric that is not additive. }
+      - { name: per_unit, type: number, sql: "1.0 * {revenue} / NULLIF({units}, 0)", description: A ratio of two additive metrics. }
+      - { name: per_customer, type: number, sql: "1.0 * {revenue} / NULLIF({customers}, 0)", description: A ratio with a metric that is not additive. }
+      - { name: revenue_30d, type: sum, sql: amount, rolling_window: { trailing: 30 day }, description: Revenue of 30 days up to each point. }
+      - { name: revenue_1m, type: sum, sql: amount, rolling_window: { trailing: 1 month }, description: Revenue of 1 month up to each point. }
+      - { name: revenue_mtd, type: sum, sql: amount, rolling_window: { type: to_date, granularity: month }, description: Revenue of the month up to each point. }
+      - { name: revenue_running, type: sum, sql: amount, rolling_window: { trailing: unbounded }, description: Running revenue. }
+    pre_aggregations:
+      - name: by_status_day
+        measures: [revenue, units, customers, revenue_30d, revenue_1m, revenue_mtd, revenue_running]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        refresh_key: { every: 1 hour }
+        indexes:
+          - { name: status_idx, columns: [status] }
+
+  - name: metric_balances
+    title: Metric balances
+    description: A balance that adds up over accounts and not over time.
+    sql_table: shop.metric_balances
+    sql_alias: mb
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: account_id, sql: account_id, type: number, description: Account. }
+      - { name: region, sql: region, type: string, description: Region of the account. }
+      - { name: ts, sql: ts, type: time, description: Time of the balance. }
+      - { name: balance_day, sql: "toDateTime(toDate(ts), 'UTC')", type: time, description: Day of the balance. }
+    measures:
+      - { name: balance_total, type: sum, sql: balance, format: currency, description: Sum of the balance rows. It has a meaning only for one day. }
+      - name: balance_closing
+        type: sum
+        sql: balance
+        rolling_window: { trailing: 1 day, offset: end }
+        format: currency
+        description: Sum over the accounts of the balances of the last day of a period.
+      - name: balance_last_day
+        multi_stage: true
+        type: number_agg
+        sql: "argMax({balance_total}, {balance_day})"
+        add_group_by: [balance_day]
+        format: currency
+        description: The total of the last day of a group. It adds up over accounts and not over time.
+      - { name: balance_days, type: count_distinct, sql: "toDate(ts)", description: Days with a balance. }
+      - { name: balance_daily_average, type: number, sql: "1.0 * {balance_total} / NULLIF({balance_days}, 0)", format: currency, description: Average over days of the total of a day. }
+    pre_aggregations:
+      - name: by_region_day
+        measures: [balance_total, balance_closing, balance_days]
+        dimensions: [region]
+        time_dimension: ts
+        granularity: day
+        refresh_key: { every: 1 hour }
+        indexes:
+          - { name: region_idx, columns: [region] }
+
+  - name: metric_base
+    public: false
+    title: Metric base
+    description: Base of an extended cube.
+    sql_table: shop.orders
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string, description: Order status. }
+    measures:
+      - { name: revenue, type: sum, sql: amount, description: Revenue. }
+      - { name: units, type: sum, sql: quantity, description: Units. }
+      - { name: per_unit, type: number, sql: "1.0 * {revenue} / NULLIF({units}, 0)", description: Revenue per unit. }
+
+  - name: metric_extended
+    extends: metric_base
+    public: true
+    title: Metric extended
+    description: An extended cube. It overrides revenue, so an inherited ratio reads the new revenue.
+    measures:
+      - { name: revenue, type: sum, sql: "amount * 2", description: Revenue that is doubled. }
+      - { name: per_order, type: number, sql: "1.0 * {revenue} / NULLIF({order_rows}, 0)", description: Doubled revenue per order. }
+      - { name: order_rows, type: count, description: Orders. }
+
+views:
+  - name: metric_view
+    title: Metric view
+    description: A view of the catalog, with a metric of its own and a metric through two joins.
+    cubes:
+      - join_path: metric_types
+        includes: [status, created_at, m_revenue, m_count, m_quantity_sum, m_users, c_ratio_of_sums, c_paid_share]
+      - join_path: metric_types.metric_customers
+        prefix: true
+        includes: [city, is_vip]
+      - join_path: metric_types.metric_customers.regions
+        prefix: true
+        includes: [region]
+    measures:
+      - name: revenue_per_order
+        type: number
+        multi_stage: true
+        sql: "1.0 * {CUBE.m_revenue} / NULLIF({CUBE.m_count}, 0)"
+        description: A metric of the view.
+
+  - name: metric_calendar
+    title: Metric calendar
+    description: Revenue by the fiscal calendar.
+    cubes:
+      - { join_path: metric_types, includes: [m_revenue, m_rev_prior_calendar] }
+      - { join_path: metric_types.fiscal_calendar, prefix: true, includes: [date] }
