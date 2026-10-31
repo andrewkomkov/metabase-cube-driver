@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 715,
-    "partial": 15,
+    "pass": 723,
+    "partial": 16,
     "blocked": 2,
     "unsupported": 12,
-    "fail": 9,
-    "total": 753
+    "fail": 3,
+    "total": 756
   },
-  "coverage": "coverage: 715/753 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 723/756 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -57,8 +57,8 @@
     },
     {
       "id": "measure.multi_stage.filter_exclude",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-31T00:57:20.550260609Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: revenue_all_statuses has a time shift. With no time bucket and no date filter, Cube returns the total of all rows,"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "measure.multi_stage.grain_exclude",
@@ -752,8 +752,8 @@
     },
     {
       "id": "preagg.original_sql",
-      "status": "fail",
-      "reason": "SELECT status, MEASURE(revenue) FROM lambda_orders GROUP BY 1: query failed: Cube cannot read a rollup_lambda on ClickHouse with a range that reads source rows. Add a date filter inside the range of the rollup, or read this measure from a plain rollup. Cube said: Error executing query: ERROR: Database Execution Error: Stream query failed: Error: Unknown table expression iden"
+      "status": "partial",
+      "reason": "cube-clickhouse builds an original_sql pre-aggregation, and a query on the cube reads it. Its indexes have no effect. A rollup with use_original_sql_pre_aggregations still fails with Unknown table expression identifier, also with the dialect, so the query stops and no number is wrong."
     },
     {
       "id": "preagg.partitioned",
@@ -1708,7 +1708,7 @@
     {
       "id": "mcp.document_write",
       "status": "fail",
-      "reason": "the document has no card 60: {\"type\": \"doc\", \"content\": [{\"type\": \"heading\", \"attrs\": {\"level\": 1, \"_id\": \"27677449-27b0-44c0-a6c8-716a2fd4baa4\"}, \"content\": [{\"type\": \"text\", \"text\": \"Orders\"}]}, {\"type\": \"paragraph\", \"attrs\": {\"_id\": \"7077aa64-6818-448c-8f8d-bf1b781166ed\"}, \"content\": [{\"type\": \"text\", \"text\": \"Orders by status.\"}]}, {\"type\": \"resizeNode\", \"attrs\": {\"height\": 442, \"minHeight\": 280}, \"content\": [{\"type\": \"ca"
+      "reason": "document_write: An update needs exactly one of content_markdown (full rewrite) or edits (surgical text edits). To change only collection_id/collection_position/archived, pass edits: []."
     },
     {
       "id": "mcp.duplicate_content",
@@ -1837,8 +1837,8 @@
     },
     {
       "id": "mcp.render_drill_through",
-      "status": "fail",
-      "reason": "the query of the handle: HTTP 403 {\"error\":\"scope_not_permitted\",\"message\":\"Scoped tokens cannot access this endpoint.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.run_saved_question",
@@ -1882,8 +1882,8 @@
     },
     {
       "id": "mcp.visualize_query",
-      "status": "fail",
-      "reason": "the query of the handle: HTTP 403 {\"error\":\"scope_not_permitted\",\"message\":\"Scoped tokens cannot access this endpoint.\"}"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "inherit.cube.members",
@@ -3277,8 +3277,8 @@
     },
     {
       "id": "measure.multi_stage.time_shift_no_bucket_limit",
-      "status": "fail",
-      "reason": "the error has no 'has a time shift': "
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "clickhouse.datetime64_millis",
@@ -3577,8 +3577,8 @@
     },
     {
       "id": "nested.model.multi_stage_measure_column",
-      "status": "fail",
-      "reason": "1 of 5 differ. all statuses: ERROR revenue_all_statuses has a time shift. With no time bucket and no date filter, Cube returns the total of all rows, and a shift of that is not a number that you "
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "nested.question.multi_stage_outer_date_filter",
@@ -3652,6 +3652,21 @@
     },
     {
       "id": "dialect.n2_legacy_planner",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.subquery_filter_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.bound.alias_in_a_subquery",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.bound.datetime64_last_second_limit",
       "status": "pass",
       "reason": ""
     },

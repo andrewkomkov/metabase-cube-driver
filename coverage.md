@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 715/753 pass on Cube with the ClickHouse dialect** (715 pass, 15 partial, 2 blocked, 12 unsupported, 9 fail of 753)
+**coverage: 723/756 pass on Cube with the ClickHouse dialect** (723 pass, 16 partial, 2 blocked, 12 unsupported, 3 fail of 756)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `1e3d883781a3`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41152729731), 2026-10-31.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `6eee2eef926f`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41153297515), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -17,7 +17,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `1e3d883
 | `measure.format.percent` | pass |  |
 | `measure.format.percent_n` | pass |  |
 | `measure.multi_stage.case_switch` | pass |  |
-| `measure.multi_stage.filter_exclude` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-31T00:57:20.550260609Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: revenue_all_statuses has a time shift. With no time bucket and no date filter, Cube returns the total of all rows, |
+| `measure.multi_stage.filter_exclude` | pass |  |
 | `measure.multi_stage.grain_exclude` | pass |  |
 | `measure.multi_stage.grain_include` | pass |  |
 | `measure.multi_stage.grain_keep_only` | pass |  |
@@ -156,7 +156,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `1e3d883
 | `hierarchy.levels` | pass |  |
 | `hierarchy.public_false` | pass |  |
 | `preagg.indexes` | pass |  |
-| `preagg.original_sql` | fail | SELECT status, MEASURE(revenue) FROM lambda_orders GROUP BY 1: query failed: Cube cannot read a rollup_lambda on ClickHouse with a range that reads source rows. Add a date filter inside the range of the rollup, or read this measure from a plain rollup. Cube said: Error executing query: ERROR: Database Execution Error: Stream query failed: Error: Unknown table expression iden |
+| `preagg.original_sql` | partial | cube-clickhouse builds an original_sql pre-aggregation, and a query on the cube reads it. Its indexes have no effect. A rollup with use_original_sql_pre_aggregations still fails with Unknown table expression identifier, also with the dialect, so the query stops and no number is wrong. |
 | `preagg.partitioned` | pass |  |
 | `preagg.rollup` | pass |  |
 | `preagg.rollup_join` | pass |  |
@@ -347,7 +347,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `1e3d883
 | `mcp.connect_oauth` | pass |  |
 | `mcp.dashboard_write` | pass |  |
 | `mcp.dashboard_write.create_and_filter` | pass |  |
-| `mcp.document_write` | fail | the document has no card 60: {"type": "doc", "content": [{"type": "heading", "attrs": {"level": 1, "_id": "27677449-27b0-44c0-a6c8-716a2fd4baa4"}, "content": [{"type": "text", "text": "Orders"}]}, {"type": "paragraph", "attrs": {"_id": "7077aa64-6818-448c-8f8d-bf1b781166ed"}, "content": [{"type": "text", "text": "Orders by status."}]}, {"type": "resizeNode", "attrs": {"height": 442, "minHeight": 280}, "content": [{"type": "ca |
+| `mcp.document_write` | fail | document_write: An update needs exactly one of content_markdown (full rewrite) or edits (surgical text edits). To change only collection_id/collection_position/archived, pass edits: []. |
 | `mcp.duplicate_content` | pass |  |
 | `mcp.execute_query` | pass |  |
 | `mcp.execute_query.breakout` | pass |  |
@@ -373,7 +373,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `1e3d883
 | `mcp.question_write.native` | pass |  |
 | `mcp.question_write.query` | pass |  |
 | `mcp.question_write.query_handle` | pass |  |
-| `mcp.render_drill_through` | fail | the query of the handle: HTTP 403 {"error":"scope_not_permitted","message":"Scoped tokens cannot access this endpoint."} |
+| `mcp.render_drill_through` | pass |  |
 | `mcp.run_saved_question` | pass |  |
 | `mcp.search` | pass |  |
 | `mcp.search.measure` | pass |  |
@@ -382,7 +382,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `1e3d883
 | `mcp.search.view_description` | pass |  |
 | `mcp.segment_write` | pass |  |
 | `mcp.subscription_write` | pass |  |
-| `mcp.visualize_query` | fail | the query of the handle: HTTP 403 {"error":"scope_not_permitted","message":"Scoped tokens cannot access this endpoint."} |
+| `mcp.visualize_query` | pass |  |
 | `inherit.cube.members` | pass |  |
 | `inherit.cube.override_measure` | pass |  |
 | `inherit.cube.override_dimension` | pass |  |
@@ -661,7 +661,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `1e3d883
 | `mcp.agent.error_join_on` | pass |  |
 | `mcp.execute_query.paging_measure` | pass |  |
 | `dimension.opt.propagate_filters_next_to_another_sub_query` | partial | Cube with the Tesseract planner reads the first subquery for two sub_query dimensions with equal SQL when the query has a filter. The driver stops a query that groups by both, and raw rows show NULL in the later column. With other SQL, such as {orders.count} + 0, both work, and each is right alone, see dimension.opt.propagate_filters. |
-| `measure.multi_stage.time_shift_no_bucket_limit` | fail | the error has no 'has a time shift':  |
+| `measure.multi_stage.time_shift_no_bucket_limit` | pass |  |
 | `clickhouse.datetime64_millis` | pass |  |
 | `compile.rolling.by_day_on_boundaries` | pass |  |
 | `compile.rolling.no_time_bucket_gives_error` | pass |  |
@@ -721,7 +721,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `1e3d883
 | `docs.query_compilation_agrees_with_code` | pass |  |
 | `compile.bound.datetime64_whole_seconds_limit` | pass |  |
 | `native.count_on_no_rows_limit` | partial | Limit of Cube: native COUNT(*) on no rows gives NULL where SQL gives 0 (m3). The driver does not change native text, and it cannot know that a NULL column is a count. MBQL gives 0. |
-| `nested.model.multi_stage_measure_column` | fail | 1 of 5 differ. all statuses: ERROR revenue_all_statuses has a time shift. With no time bucket and no date filter, Cube returns the total of all rows, and a shift of that is not a number that you  |
+| `nested.model.multi_stage_measure_column` | pass |  |
 | `nested.question.multi_stage_outer_date_filter` | pass |  |
 | `nested.model.measure_column_bounds` | pass |  |
 | `nested.model.relative_and_bucket_filters` | pass |  |
@@ -737,6 +737,9 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `1e3d883
 | `dialect.b1_strict_lower_bound` | pass |  |
 | `dialect.interval_in_native_sql` | pass |  |
 | `dialect.n2_legacy_planner` | pass |  |
+| `native.subquery_filter_refused` | pass |  |
+| `native.bound.alias_in_a_subquery` | pass |  |
+| `native.bound.datetime64_last_second_limit` | pass |  |
 | `context.compile_context` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |
