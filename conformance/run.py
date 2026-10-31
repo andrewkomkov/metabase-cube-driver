@@ -3781,9 +3781,12 @@ class XrayTruth:
 
 
 XRAY_TOTAL_REFUSAL = "Cube cannot add up the dimension"
+XRAY_ABOVE_2_53 = re.compile(
+    r"Cube read (\S+) in the column \S+ as a Double, so a number above 2\^53 has lost digits\. Add a dimension with SQL "
+    r"toString\(column\) to the data model to read the full digits as text, or filter out these rows\.")
 
 
-def xray_cards(ctx, path, table, refused=0):
+def xray_cards(ctx, path, table, refused=0, above_2_53_stops=False):
     """Runs each card of the X-ray, and compares its rows with a query on ClickHouse. `refused` is the number of cards that add up a
     dimension of a joined cube, where Cube gives another number and the driver stops the query."""
     dash = ctx.mb.api("GET", "/api/automagic-dashboards/" + path)
@@ -3797,6 +3800,9 @@ def xray_cards(ctx, path, table, refused=0):
             res = ctx.mb.api("POST", "/api/dataset", query, ok=(200, 202, 400, 500))
             if XRAY_TOTAL_REFUSAL in str(res.get("error") or ""):
                 stopped.append(card.get("name"))
+                continue
+            above = above_2_53_stops and XRAY_ABOVE_2_53.fullmatch(str(res.get("error") or ""))
+            if above and abs(float(above.group(1))) >= 2 ** 53:
                 continue
             if res.get("error") or res.get("status") == "failed":
                 raise Fail("query failed: %s" % str(res.get("error") or res.get("error_type"))[:300])
@@ -3829,7 +3835,8 @@ def _(ctx):
 @check("compile.xray.typed_table_all_cards_run")
 def _(ctx):
     ensure_table(ctx, TE)
-    xray_cards(ctx, "table/%d" % ctx.mb.table(TE)["id"], TE)
+    # A bin label above 2^53 cannot keep its digits, so the driver stops that card with the documented message.
+    xray_cards(ctx, "table/%d" % ctx.mb.table(TE)["id"], TE, above_2_53_stops=True)
 
 
 # which queries read a rollup
