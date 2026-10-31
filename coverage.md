@@ -4,7 +4,7 @@ CI generates this page from `conformance/run.py`. Do not edit it.
 
 **coverage: 739/767 pass on Cube with the ClickHouse dialect** (739 pass, 13 partial, 2 blocked, 12 unsupported, 1 fail of 767)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `0040e687a25c`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41190161590), 2026-10-31.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `a63846ba7eee`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41190170233), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
