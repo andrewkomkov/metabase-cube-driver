@@ -1169,9 +1169,9 @@ def _(ctx):
     """A granularity of a calendar cube with its own SQL: the fiscal month starts 10 days before the calendar month."""
     ensure_table(ctx, "calendar_sales")
     fiscal = "toStartOfMonth(toDate(created_at) + 10)"
-    expect_native_rows(ctx, "SELECT DATE_TRUNC('fiscal_month', fiscal_calendar_date) AS m, MEASURE(revenue) AS r FROM calendar_sales GROUP BY 1",
+    expect_native_rows(ctx, "SELECT DATE_TRUNC('month', fiscal_calendar_fiscal_date) AS m, MEASURE(revenue) AS r FROM calendar_sales GROUP BY 1",
                        "SELECT %s AS m, sum(amount) FROM orders GROUP BY m" % fiscal)
-    assert_rows(ctx.mb.mbql("calendar_sales", agg=["m:calendar_sales.revenue"], by=["d:calendar_sales.fiscal_calendar_fiscal_month"])["rows"],
+    assert_rows(ctx.mb.mbql("calendar_sales", agg=["m:calendar_sales.revenue"], by=["d:calendar_sales.fiscal_calendar_fiscal_date@month"])["rows"],
                 ch("SELECT %s AS m, sum(amount) FROM orders GROUP BY m" % fiscal), label="query builder")
 
 

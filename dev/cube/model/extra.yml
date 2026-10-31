@@ -117,9 +117,12 @@ cubes:
         type: time
         time_shift:
           - { name: prior_fiscal_month, sql: "{CUBE}.prior_fiscal_date" }
+      - name: fiscal_date
+        sql: date_key
+        type: time
+        description: The date, with a month that starts 10 days before the calendar month.
         granularities:
-          - { name: fiscal_month, sql: "{CUBE}.fiscal_month_start" }
-      - { name: fiscal_month, sql: "{date.fiscal_month}", type: time, description: Fiscal month that starts 10 days before the calendar month. }
+          - { name: month, sql: "{CUBE}.fiscal_month_start" }
 
   - name: second_source_tickets
     data_source: second

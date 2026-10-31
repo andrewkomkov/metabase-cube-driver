@@ -81,7 +81,7 @@ views:
     description: Orders by the fiscal calendar.
     cubes:
       - { join_path: orders, includes: [revenue, revenue_prior_fiscal] }
-      - { join_path: orders.fiscal_calendar, prefix: true, includes: [date, fiscal_month] }
+      - { join_path: orders.fiscal_calendar, prefix: true, includes: [date, fiscal_date] }
 
   - name: hidden_sales
     public: false
