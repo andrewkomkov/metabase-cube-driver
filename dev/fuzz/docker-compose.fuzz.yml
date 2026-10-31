@@ -2,7 +2,8 @@
 # ClickHouse has a port here, because the oracle reads it directly. All ports bind to the loopback interface only.
 services:
   clickhouse:
-    mem_limit: 1g
+    # With 1g, a group of the table of ten million rows can stop on its memory limit.
+    mem_limit: 1500m
     ports: ["127.0.0.1:18123:8123"]
   cube:
     mem_limit: 1g
