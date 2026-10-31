@@ -166,6 +166,11 @@
     (and (parent driver details)
          (some? (cube.meta/fetch-meta details)))))
 
+;; Metabase 0.65 compiles the stages of a query with the parent driver :postgres as WITH. The driver reads a subquery in :from, and
+;; Cube plans MEASURE() of a column of a subquery, so a stage stays a subquery. Metabase 0.64 has no such method.
+(when-let [use-ctes-for-stages? (resolve 'metabase.driver.sql.query-processor/use-ctes-for-stages?)]
+  (.addMethod ^clojure.lang.MultiFn @use-ctes-for-stages? :cube (constantly false)))
+
 ;; Cube always starts weeks on Monday.
 (defmethod driver/db-start-of-week :cube [_] :monday)
 
