@@ -1,0 +1,42 @@
+{
+ "found": {
+  "diff": "rows: got 2, truth 1. First got [['2025-01-01T00:00:00-05:00', 155.0], ['2025-02-01T00:00:00-05:00', 27059.0]], first truth [['2025-02-01', '27059']]",
+  "error": null,
+  "index": 129,
+  "seed": "dev3",
+  "truth_sql": "SELECT toStartOfMonth(addMonths(toTimeZone(o.created_at, 'America/New_York'), 1)) AS m, sumOrNull(o.amount) AS v FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE 1 GROUP BY m HAVING m >= toDate('2025-01-15') AND m < toDate('2025-03-01') SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "m": "revenue_prior_month"
+   }
+  ],
+  "by": [
+   {
+    "c": "created_at",
+    "unit": "month"
+   }
+  ],
+  "source": "orders",
+  "week": null,
+  "where": [
+   {
+    "c": "created_at",
+    "op": ">=",
+    "v": [
+     "2025-01-15"
+    ]
+   },
+   {
+    "c": "created_at",
+    "op": "<",
+    "v": [
+     "2025-03-01"
+    ]
+   }
+  ],
+  "zone": "America/New_York"
+ }
+}

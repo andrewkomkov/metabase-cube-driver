@@ -1,0 +1,37 @@
+{
+ "found": {
+  "diff": "row 0: got [62562.5], truth ['31250']",
+  "error": null,
+  "index": 702,
+  "seed": "dev6",
+  "truth_sql": "SELECT sumOrNull(t.dec_amount) AS c0 FROM shop.typed_events t WHERE (NOT (toNullable(toString(t.lc_n)) IN ('t0', 's1', 'beta'))) SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "m": "sum_dec"
+   }
+  ],
+  "by": [],
+  "source": "typed_events",
+  "week": null,
+  "where": [
+   {
+    "a": [
+     {
+      "c": "lc_n",
+      "op": "=",
+      "v": [
+       "t0",
+       "s1",
+       "beta"
+      ]
+     }
+    ],
+    "op": "not"
+   }
+  ],
+  "zone": null
+ }
+}

@@ -1,0 +1,26 @@
+{
+ "found": {
+  "diff": null,
+  "error": "ERROR: Rewrite Error: Dimension 'users_state' was used with the aggregate function 'COUNTDISTINCT()'. Please use a measure instead. Please check logs for additional information\nQUERY: SELECT count(DISTINCT \"paid_sales\".\"users_state\") AS \"count\", MEASURE(\"paid_sales\".\"net_sales\") AS \"sum\" FROM \"paid_sales\"",
+  "index": 98,
+  "seed": "dev3",
+  "truth_sql": "SELECT uniqExact(u.state) AS c0, sumOrNull(o.amount) AS c1 FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE (o.status = 'completed') SETTINGS join_use_nulls = 1",
+  "verdict": "raw_error"
+ },
+ "spec": {
+  "agg": [
+   {
+    "c": "users_state",
+    "f": "distinct"
+   },
+   {
+    "m": "net_sales"
+   }
+  ],
+  "by": [],
+  "source": "paid_sales",
+  "week": null,
+  "where": [],
+  "zone": null
+ }
+}

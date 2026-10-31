@@ -1,0 +1,23 @@
+{
+ "found": {
+  "diff": "row 0: got [8.366600265340756], truth [8.366317947580045]",
+  "error": null,
+  "index": 668,
+  "seed": "dev6",
+  "truth_sql": "SELECT stddevPopOrNull(toFloat64(p.price)) AS c0 FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE 1 SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "c": "products.price",
+    "f": "stddev"
+   }
+  ],
+  "by": [],
+  "source": "orders",
+  "week": null,
+  "where": [],
+  "zone": null
+ }
+}

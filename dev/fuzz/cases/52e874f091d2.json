@@ -1,0 +1,41 @@
+{
+ "found": {
+  "diff": "rows: got 10, truth 6. First got [[1.0, 2.0, 'C2'], [2.0, 3.0, 'C3']], first truth [[1, 2, 'C2'], [2, 3, 'C3']]",
+  "error": null,
+  "index": 632,
+  "seed": "dev6",
+  "truth_sql": "SELECT o.id AS c0, o.customer_id AS c1, c.name AS c2 FROM shop.orphan_orders o LEFT JOIN shop.orphan_customers c ON o.customer_id = c.id WHERE (NOT (c.name IN (''))) ORDER BY c0 ASC LIMIT 500 SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "fields": [
+   "id",
+   "customer_id",
+   "orphan_customers.name"
+  ],
+  "limit": 500,
+  "order": [
+   {
+    "dir": "asc",
+    "field": 0
+   }
+  ],
+  "source": "orphan_orders",
+  "week": null,
+  "where": [
+   {
+    "a": [
+     {
+      "c": "orphan_customers.name",
+      "op": "=",
+      "v": [
+       ""
+      ]
+     }
+    ],
+    "op": "not"
+   }
+  ],
+  "zone": null
+ }
+}

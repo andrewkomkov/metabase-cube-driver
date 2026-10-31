@@ -1,0 +1,32 @@
+{
+ "found": {
+  "diff": null,
+  "error": "ERROR: Database Execution Error: Query failed: Error: Cannot convert NULL value to non-Nullable type: while executing 'FUNCTION CAST(toDateTime64(__table2.n_ts, 3_UInt8, 'Europe/Berlin'_String) :: 8, 'String'_String :: 3) -> CAST(toDateTime64(__table2.n_ts, 3_UInt8, 'Europe/Berlin'_String), 'String'_String) String : 2': While executing MergeTreeSelect(pool: ReadPoolInOrder, algorithm: InOrder). ; query id: 1a6a7de4-096f-4823-88ae-1a6eaddc1074-9db2af4e-1f41-4360-8e77-e5593a2aa3ba",
+  "index": 631,
+  "seed": "dev5",
+  "truth_sql": "SELECT minOrNull(toInt64(length(t.nums))) AS c0 FROM shop.typed_events t WHERE (toHour(toTimeZone(t.n_ts, 'Europe/Berlin')) = 5) SETTINGS join_use_nulls = 1",
+  "verdict": "raw_error"
+ },
+ "spec": {
+  "agg": [
+   {
+    "c": "nums_len",
+    "f": "min"
+   }
+  ],
+  "by": [],
+  "source": "typed_events",
+  "week": null,
+  "where": [
+   {
+    "c": "n_ts",
+    "op": "=",
+    "unit": "hour-of-day",
+    "v": [
+     5
+    ]
+   }
+  ],
+  "zone": "Europe/Berlin"
+ }
+}

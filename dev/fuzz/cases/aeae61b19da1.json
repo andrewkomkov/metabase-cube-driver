@@ -1,0 +1,23 @@
+{
+ "found": {
+  "diff": "row 0: got [72.16876], truth [72.16874756430238]",
+  "error": null,
+  "index": 117,
+  "seed": "dev3",
+  "truth_sql": "SELECT stddevPopOrNull(toFloat64(toFloat64(t.f32))) AS c0 FROM shop.typed_events t WHERE 1 SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "c": "f32",
+    "f": "stddev"
+   }
+  ],
+  "by": [],
+  "source": "typed_events",
+  "week": null,
+  "where": [],
+  "zone": null
+ }
+}

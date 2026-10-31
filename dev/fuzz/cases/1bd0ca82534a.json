@@ -1,0 +1,31 @@
+{
+ "found": {
+  "diff": "row 0: got [50067.125], truth ['60462.875']",
+  "error": null,
+  "index": 680,
+  "seed": "dev4",
+  "truth_sql": "SELECT sumOrNull(t.dec_amount) AS c0 FROM shop.typed_events t WHERE (toDateTime((toDate(toTimeZone(t.n_ts, 'UTC')) - toIntervalDay(((toDayOfWeek(toTimeZone(t.n_ts, 'UTC')) - 0 + 7) % 7))), 'UTC') != toDateTime((toDate(toDateTime64('2025-03-31', 3, 'UTC')) - toIntervalDay(((toDayOfWeek(toDateTime64('2025-03-31', 3, 'UTC')) - 0 + 7) % 7))), 'UTC') OR t.n_ts IS NULL) SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "m": "sum_dec"
+   }
+  ],
+  "by": [],
+  "source": "typed_events",
+  "week": null,
+  "where": [
+   {
+    "c": "n_ts",
+    "op": "!=",
+    "unit": "week",
+    "v": [
+     "2025-03-31"
+    ]
+   }
+  ],
+  "zone": null
+ }
+}

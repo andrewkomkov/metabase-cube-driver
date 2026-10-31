@@ -1,0 +1,43 @@
+{
+ "found": {
+  "diff": "row 0: got [0], truth [None]",
+  "error": null,
+  "index": 538,
+  "seed": "dev5",
+  "truth_sql": "SELECT sumOrNull(c3) AS o0 FROM (SELECT e.id AS c0, toTimeZone(e.day, 'UTC') AS c1, toString(e.grp) AS c2, 1 AS c3 FROM shop.metric_edges e WHERE 1) WHERE (toDate(toDateTime64(c1, 3, 'UTC')) < toDate('2024-12-31')) SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "fields": [
+   "id",
+   "day",
+   "grp"
+  ],
+  "measure_fields": [
+   "rows"
+  ],
+  "source": "metric_edges",
+  "stage": {
+   "agg": [
+    {
+     "f": "sum",
+     "i": 3
+    }
+   ],
+   "by": [],
+   "via": "inline",
+   "where": [
+    {
+     "i": 1,
+     "op": "<",
+     "v": [
+      "2024-12-31"
+     ]
+    }
+   ]
+  },
+  "week": null,
+  "where": [],
+  "zone": null
+ }
+}

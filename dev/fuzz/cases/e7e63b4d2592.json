@@ -1,0 +1,26 @@
+{
+ "found": {
+  "diff": "row 0: got [0.0398], truth [1]",
+  "error": null,
+  "index": 208,
+  "seed": "dev3",
+  "truth_sql": "SELECT (sumOrNull(if((toBool(u.is_vip) IS NOT NULL), 1, 0)) / count()) AS c0 FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE 1 SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "f": "share",
+    "p": {
+     "c": "users_is_vip",
+     "op": "not-null"
+    }
+   }
+  ],
+  "by": [],
+  "source": "sales",
+  "week": null,
+  "where": [],
+  "zone": null
+ }
+}

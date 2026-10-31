@@ -1,0 +1,40 @@
+{
+ "found": {
+  "diff": "row 1: got ['2025-03-01T00:00:00Z', 3], truth ['2025-03-01', '2']",
+  "error": null,
+  "index": 246,
+  "seed": "dev6",
+  "truth_sql": "SELECT toStartOfMonth(toTimeZone(t.n_ts, 'UTC')) AS c0, uniqExact(toString(t.lc)) AS c1 FROM shop.typed_events t WHERE (NOT (t.n_bool IN (false))) GROUP BY c0 SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "m": "distinct_lc"
+   }
+  ],
+  "by": [
+   {
+    "c": "n_ts",
+    "unit": "month"
+   }
+  ],
+  "source": "typed_events",
+  "week": null,
+  "where": [
+   {
+    "a": [
+     {
+      "c": "n_bool",
+      "op": "=",
+      "v": [
+       false
+      ]
+     }
+    ],
+    "op": "not"
+   }
+  ],
+  "zone": null
+ }
+}

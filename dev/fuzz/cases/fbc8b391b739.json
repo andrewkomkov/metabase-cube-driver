@@ -1,0 +1,29 @@
+{
+ "found": {
+  "diff": "row 0: got [1e-07], truth [0.00144]",
+  "error": null,
+  "index": 732,
+  "seed": "dev4",
+  "truth_sql": "SELECT (sumOrNull(if((toDate(toTimeZone(b.created_at, 'UTC')) = toDate('2025-11-02')), 1, 0)) / count()) AS c0 FROM shop.big_orders b WHERE 1 SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "f": "share",
+    "p": {
+     "c": "created_at",
+     "op": "=",
+     "v": [
+      "2025-11-02"
+     ]
+    }
+   }
+  ],
+  "by": [],
+  "source": "big_orders",
+  "week": null,
+  "where": [],
+  "zone": null
+ }
+}

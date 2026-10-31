@@ -13,3 +13,4 @@ __pycache__/
 /.clj-kondo/.lsp/
 /.lsp/
 dev/review/out/
+dev/fuzz/out/

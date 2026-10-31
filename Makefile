@@ -2,7 +2,7 @@
 package:
 	sh scripts/package.sh
 
-.PHONY: up down load-check conformance conformance-down grid tools lint docs
+.PHONY: up down load-check conformance conformance-down grid fuzz tools lint docs
 up: package
 	cd dev && docker compose up -d --wait clickhouse cube cube-secure mail
 	cd dev && docker compose up -d metabase
@@ -20,6 +20,10 @@ conformance:
 # Runs dev/review/shapes.py with its truth, on stock Cube and with cube-clickhouse. See dev/review/README.md.
 grid:
 	sh dev/review/grid.sh $(ARGS)
+
+# Random queries against a truth from ClickHouse. See dev/fuzz/README.md.
+fuzz:
+	SEED="$(SEED)" COUNT="$(COUNT)" sh dev/fuzz/fuzz.sh $(ARGS)
 
 conformance-down:
 	cd dev && docker compose -f docker-compose.yml -f docker-compose.conformance.yml rm -sfv metabase-conformance

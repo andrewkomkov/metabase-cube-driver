@@ -1,0 +1,28 @@
+{
+ "found": {
+  "diff": null,
+  "error": "ERROR: Rewrite Error: Schema contains duplicate unqualified field name 'Utf8(\"10.0\")'. Please check logs for additional information\nQUERY: SELECT (floor((\"orders\".\"amount_dim\" - CAST('10.0' AS DOUBLE PRECISION)) / 10.0) * CAST('10.0' AS DOUBLE PRECISION)) + 10.0 AS \"amount_dim\", count(DISTINCT \"orders\".\"status\") AS \"count\" FROM \"orders\" GROUP BY (floor((\"orders\".\"amount_dim\" - CAST('10.0' AS DOUBLE PRECISION)) / 10.0) * CAST('10.0' AS DOUBLE PRECISION)) + 10.0 ORDER BY (floor((\"orders\".\"amount_dim\" - CAST('10.0' AS DOUBLE PRECISION)) / 10.0) * CAST('10.0' AS DOUBLE PRECISION)) + 10.0 ASC",
+  "index": 33,
+  "seed": "dev7",
+  "truth_sql": "SELECT (floor(toFloat64(o.amount) / 10.0) * 10.0) AS c0, uniqExact(toString(o.status)) AS c1 FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE 1 GROUP BY c0 SETTINGS join_use_nulls = 1",
+  "verdict": "raw_error"
+ },
+ "spec": {
+  "agg": [
+   {
+    "c": "status",
+    "f": "distinct"
+   }
+  ],
+  "by": [
+   {
+    "bin": 10,
+    "c": "amount_dim"
+   }
+  ],
+  "source": "orders",
+  "week": null,
+  "where": [],
+  "zone": null
+ }
+}

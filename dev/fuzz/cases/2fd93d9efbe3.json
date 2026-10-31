@@ -1,0 +1,31 @@
+{
+ "found": {
+  "diff": null,
+  "error": "ERROR: Rewrite Error: Column #SUM(CASE WHEN NOT lower(typed_events.lc) LIKE Utf8(\"%gre%\") OR typed_events.lc IS NULL THEN typed_events.n_dec ELSE Float64(0) END) not found in provided schemas. Please check logs for additional information\nQUERY: SELECT SUM(CASE WHEN NOT (LOWER(\"typed_events\".\"lc\") LIKE '%gre%') OR (\"typed_events\".\"lc\" IS NULL) THEN \"typed_events\".\"n_dec\" ELSE 0.0 END) AS \"sum_where_n_dec\" FROM \"typed_events\"",
+  "index": 691,
+  "seed": "dev4",
+  "truth_sql": "SELECT sumOrNull(if((NOT (positionUTF8(lowerUTF8(toString(t.lc)), lowerUTF8('gre')) > 0) OR toString(t.lc) IS NULL), toFloat64(t.n_dec), 0)) AS c0 FROM shop.typed_events t WHERE 1 SETTINGS join_use_nulls = 1",
+  "verdict": "raw_error"
+ },
+ "spec": {
+  "agg": [
+   {
+    "c": "n_dec",
+    "f": "sum-where",
+    "p": {
+     "c": "lc",
+     "ci": true,
+     "op": "does-not-contain",
+     "v": [
+      "gre"
+     ]
+    }
+   }
+  ],
+  "by": [],
+  "source": "typed_events",
+  "week": null,
+  "where": [],
+  "zone": null
+ }
+}

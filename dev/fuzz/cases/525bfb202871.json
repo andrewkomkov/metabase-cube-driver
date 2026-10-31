@@ -1,0 +1,31 @@
+{
+ "found": {
+  "diff": null,
+  "error": "ERROR: Database Execution Error: Query failed: Error: Cannot convert NULL value to non-Nullable type: while executing 'FUNCTION CAST(toDateTime64(__table2.n_ts, 3_UInt8, 'Pacific/Apia'_String) :: 8, 'String'_String :: 3) -> CAST(toDateTime64(__table2.n_ts, 3_UInt8, 'Pacific/Apia'_String), 'String'_String) String : 2': While executing MergeTreeSelect(pool: ReadPoolInOrder, algorithm: InOrder). ; query id: aaee5b3a-1132-49a7-bb61-8d7f5fa15c3b-eac209d5-538c-46e1-a9ed-eb1090b2c715",
+  "index": 499,
+  "seed": "dev5",
+  "truth_sql": "SELECT sumOrNull(t.dec_amount) AS c0 FROM shop.typed_events t WHERE (toHour(toTimeZone(t.n_ts, 'Pacific/Apia')) = 0) SETTINGS join_use_nulls = 1",
+  "verdict": "raw_error"
+ },
+ "spec": {
+  "agg": [
+   {
+    "m": "sum_dec"
+   }
+  ],
+  "by": [],
+  "source": "typed_events",
+  "week": null,
+  "where": [
+   {
+    "c": "n_ts",
+    "op": "=",
+    "unit": "hour-of-day",
+    "v": [
+     0
+    ]
+   }
+  ],
+  "zone": "Pacific/Apia"
+ }
+}

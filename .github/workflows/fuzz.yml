@@ -1,0 +1,71 @@
+# Runs the random query generator with a new seed. A failure opens one issue. See dev/fuzz/README.md.
+name: fuzz
+
+on:
+  schedule:
+    - cron: "43 1 * * *"
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: Seed. Empty means a new seed.
+        type: string
+        default: ""
+      count:
+        description: Number of queries.
+        type: string
+        default: "5000"
+
+permissions: {}
+
+concurrency:
+  group: fuzz
+  cancel-in-progress: false
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run the generator
+        id: run
+        env:
+          SEED: ${{ inputs.seed || github.run_id }}
+          COUNT: ${{ inputs.count || '5000' }}
+        run: |
+          echo "seed=$SEED" >> "$GITHUB_OUTPUT"
+          make fuzz SEED="$SEED" COUNT="$COUNT"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: fuzz-report
+          path: |
+            dev/fuzz/out
+            dev/fuzz/cases
+          retention-days: 30
+
+      - name: Open one issue
+        if: failure() && steps.run.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SEED: ${{ steps.run.outputs.seed }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          body="Seed $SEED fails: $RUN_URL. The artifact fuzz-report has the report and the smallest form of each failure. Commit each new file of dev/fuzz/cases with its fix."
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "fuzz: a random query fails in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "fuzz: a random query fails" --body "$body"
+          fi
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose -p mcd-fuzz -f dev/docker-compose.yml -f dev/fuzz/docker-compose.fuzz.yml down -v

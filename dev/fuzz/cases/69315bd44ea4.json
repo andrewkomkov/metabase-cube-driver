@@ -1,0 +1,56 @@
+{
+ "found": {
+  "diff": null,
+  "error": "ERROR: Database Execution Error: Query failed: Error: Illegal type Enum8('red' = 1, 'green' = 2) of argument of function lower: In scope SELECT COUNTDistinct(typed_events.n_str) AS measure_typed_ev FROM shop.typed_events AS typed_events WHERE ((((LOWER(typed_events.en) NOT LIKE '%s4%') OR (typed_events.en IS NULL)) AND (toDateTime64(typed_events.day, 3, 'UTC') < parseDateTime64BestEffort('2025-01-01T00:00:00.000Z', 3, 'UTC'))) AND (NOT (length(nums) >= 0))). ; query id: 38ce957e-65fc-45ca-94a5-f5e6634ed710-86ac17f4-a4fc-442d-8f53-4fd75c881c9d",
+  "index": 577,
+  "seed": "dev4",
+  "truth_sql": "SELECT uniqExact(t.n_str) AS c0 FROM shop.typed_events t WHERE (NOT ((positionUTF8(lowerUTF8(toString(t.en)), lowerUTF8('s4')) > 0) OR (toDateTime(toStartOfQuarter(toDateTime(t.day, 'UTC')), 'UTC') >= toDateTime(toStartOfQuarter(toDateTime64('2025-03-01', 3, 'UTC')), 'UTC')) OR (toInt64(length(t.nums)) >= 0))) SETTINGS join_use_nulls = 1",
+  "verdict": "raw_error"
+ },
+ "spec": {
+  "agg": [
+   {
+    "m": "distinct_n_str"
+   }
+  ],
+  "by": [],
+  "source": "typed_events",
+  "week": null,
+  "where": [
+   {
+    "a": [
+     {
+      "a": [
+       {
+        "c": "en",
+        "ci": true,
+        "op": "contains",
+        "v": [
+         "s4"
+        ]
+       },
+       {
+        "c": "day",
+        "op": ">=",
+        "unit": "quarter",
+        "v": [
+         "2025-03-01"
+        ]
+       },
+       {
+        "c": "nums_len",
+        "op": ">=",
+        "v": [
+         0
+        ]
+       }
+      ],
+      "op": "or"
+     }
+    ],
+    "op": "not"
+   }
+  ],
+  "zone": null
+ }
+}

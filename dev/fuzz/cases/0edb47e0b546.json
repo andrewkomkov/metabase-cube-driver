@@ -1,0 +1,30 @@
+{
+ "found": {
+  "diff": "row 0: got [39.0], truth ['48']",
+  "error": null,
+  "index": 63,
+  "seed": "dev4",
+  "truth_sql": "SELECT maxOrNull(o.amount) AS c0 FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE (toFloat64(o.amount / 1000) < 0.044) SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "m": "max_amount"
+   }
+  ],
+  "by": [],
+  "source": "orders",
+  "week": null,
+  "where": [
+   {
+    "c": "amount_pct",
+    "op": "<",
+    "v": [
+     0.044
+    ]
+   }
+  ],
+  "zone": null
+ }
+}

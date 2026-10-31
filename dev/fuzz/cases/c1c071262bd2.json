@@ -1,0 +1,23 @@
+{
+ "found": {
+  "diff": null,
+  "error": "ERROR: Database Execution Error: Query failed: Error: Cannot convert NULL value to non-Nullable type: while executing 'FUNCTION CAST(toDateTime64(__table2.n_ts, 3_UInt8, 'America/St_Johns'_String) :: 0, 'String'_String :: 3) -> CAST(toDateTime64(__table2.n_ts, 3_UInt8, 'America/St_Johns'_String), 'String'_String) String : 2'. ; query id: 2287e523-ac89-494e-992f-54a2e7568b29-549cfcbc-b14a-46bd-b9ff-9c735ac68426",
+  "index": 115,
+  "seed": "dev5",
+  "truth_sql": "SELECT toHour(toTimeZone(t.n_ts, 'America/St_Johns')) AS c0 FROM shop.typed_events t WHERE 1 GROUP BY c0 SETTINGS join_use_nulls = 1",
+  "verdict": "raw_error"
+ },
+ "spec": {
+  "agg": [],
+  "by": [
+   {
+    "c": "n_ts",
+    "unit": "hour-of-day"
+   }
+  ],
+  "source": "typed_events",
+  "week": null,
+  "where": [],
+  "zone": "America/St_Johns"
+ }
+}

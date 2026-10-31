@@ -1,0 +1,42 @@
+{
+ "found": {
+  "diff": "row 0: got [1.0, 'WA', 'Seattle', 2.0], truth [2, 'MA', 'Boston', 3]",
+  "error": null,
+  "index": 324,
+  "seed": "dev6",
+  "truth_sql": "SELECT o.id AS c0, u.state AS c1, u.city AS c2, o.user_id AS c3 FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE (NOT (nullIf(toString(o.status), 'completed') IN ('cancelled'))) ORDER BY c0 ASC LIMIT 1 SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "fields": [
+   "id",
+   "users.state",
+   "users.city",
+   "user_id"
+  ],
+  "limit": 1,
+  "order": [
+   {
+    "dir": "asc",
+    "field": 0
+   }
+  ],
+  "source": "orders",
+  "week": null,
+  "where": [
+   {
+    "a": [
+     {
+      "c": "cancel_status",
+      "op": "=",
+      "v": [
+       "cancelled"
+      ]
+     }
+    ],
+    "op": "not"
+   }
+  ],
+  "zone": null
+ }
+}

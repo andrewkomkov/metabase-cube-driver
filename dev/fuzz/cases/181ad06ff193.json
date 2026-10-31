@@ -1,0 +1,46 @@
+{
+ "found": {
+  "diff": "row 0: got [361], truth ['362']",
+  "error": null,
+  "index": 504,
+  "seed": "dev5",
+  "truth_sql": "SELECT count() AS o0 FROM (SELECT toDate(toTimeZone(o.created_at, 'Pacific/Apia')) AS c0, uniqExactIf(u.id, u.is_vip) AS c1 FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE (o.status = 'completed') GROUP BY c0) WHERE (toDateTime(toStartOfYear(toDateTime64(c0, 3, 'Pacific/Apia')), 'Pacific/Apia') >= toDateTime(toStartOfYear(toDateTime64('2025-04-01', 3, 'Pacific/Apia')), 'Pacific/Apia') AND toDateTime(toStartOfYear(toDateTime64(c0, 3, 'Pacific/Apia')), 'Pacific/Apia') <= toDateTime(toStartOfYear(toDateTime64('2025-06-15', 3, 'Pacific/Apia')), 'Pacific/Apia')) SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "m": "users_vip_count"
+   }
+  ],
+  "by": [
+   {
+    "c": "created_at"
+   }
+  ],
+  "source": "paid_sales",
+  "stage": {
+   "agg": [
+    {
+     "f": "count"
+    }
+   ],
+   "by": [],
+   "via": "inline",
+   "where": [
+    {
+     "i": 0,
+     "op": "between",
+     "unit": "year",
+     "v": [
+      "2025-04-01",
+      "2025-06-15"
+     ]
+    }
+   ]
+  },
+  "week": null,
+  "where": [],
+  "zone": "Pacific/Apia"
+ }
+}

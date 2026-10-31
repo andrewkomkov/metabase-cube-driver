@@ -1,0 +1,32 @@
+{
+ "found": {
+  "diff": null,
+  "error": "ERROR: Database Execution Error: Query failed: Error: Illegal type Enum8('red' = 1, 'green' = 2) of argument of function lower: In scope SELECT MIN(typed_events.f32) AS min_typed_events FROM shop.typed_events AS typed_events WHERE ((LOWER(typed_events.en) NOT LIKE '%igh%') OR (typed_events.en IS NULL)). ; query id: f2073d63-a1ff-4eaa-9caa-a04dca90afde-cefdb912-7d0b-431c-b023-84654775319a",
+  "index": 479,
+  "seed": "dev4",
+  "truth_sql": "SELECT minOrNull(toFloat64(t.f32)) AS c0 FROM shop.typed_events t WHERE (NOT (positionUTF8(lowerUTF8(toString(t.en)), lowerUTF8('igh')) > 0) OR toString(t.en) IS NULL) SETTINGS join_use_nulls = 1",
+  "verdict": "raw_error"
+ },
+ "spec": {
+  "agg": [
+   {
+    "c": "f32",
+    "f": "min"
+   }
+  ],
+  "by": [],
+  "source": "typed_events",
+  "week": null,
+  "where": [
+   {
+    "c": "en",
+    "ci": true,
+    "op": "does-not-contain",
+    "v": [
+     "igh"
+    ]
+   }
+  ],
+  "zone": null
+ }
+}

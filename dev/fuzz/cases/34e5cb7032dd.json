@@ -1,0 +1,46 @@
+{
+ "found": {
+  "diff": null,
+  "error": "Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the same time column. Add a date filter. Cube said: Error executing query: ERROR: Internal Error: Date range is required for time series\nQUERY: SELECT MEASURE(\"__mb_source\".\"revenue\") AS \"sum\" FROM (SELECT \"orders\".\"id\" AS \"id\", \"orders\".\"user_id\" AS \"user_id\", \"orders\".\"created_label\" AS \"created_label\", \"orders\".\"revenue\" AS \"revenue\" FROM \"orders\" WHERE NOT (\"orders\".\"large\" = true)) AS \"__mb_source\" ERROR: Internal Error: Date range is required for time series\nQUERY: SELECT MEASURE(\"__mb_source\".\"revenue\") AS \"sum\" FROM (SELECT \"orders\".\"id\" AS \"id\", \"orders\".\"user_id\" AS \"user_id\", \"",
+  "index": 535,
+  "seed": "dev3",
+  "truth_sql": "SELECT sumOrNull(c4) AS o0 FROM (SELECT o.id AS c0, o.user_id AS c1, toTimeZone(o.created_at, 'UTC') AS c2, 1 AS c3, o.amount AS c4 FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE (NOT (o.quantity >= 3))) SETTINGS join_use_nulls = 1",
+  "verdict": "raw_error"
+ },
+ "spec": {
+  "fields": [
+   "id",
+   "user_id",
+   "created_label"
+  ],
+  "measure_fields": [
+   "count",
+   "revenue"
+  ],
+  "source": "orders",
+  "stage": {
+   "agg": [
+    {
+     "f": "sum",
+     "i": 4
+    }
+   ],
+   "by": [],
+   "via": "inline",
+   "where": []
+  },
+  "week": null,
+  "where": [
+   {
+    "a": [
+     {
+      "op": "segment",
+      "s": "large"
+     }
+    ],
+    "op": "not"
+   }
+  ],
+  "zone": null
+ }
+}
