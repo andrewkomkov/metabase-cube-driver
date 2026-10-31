@@ -56,6 +56,10 @@ CUBE_LEGACY = os.environ.get("CUBE_LEGACY_REST_URL", "http://127.0.0.1:4402").rs
 CUBE_LEGACY_SECRET = "cube-legacy-dev-only-secret-0123456789"
 
 
+class Blocked(Exception):
+    """The check ran and a limit of a version outside this repository stops the feature. The text is the reason."""
+
+
 class Fail(Exception):
     """A check found a wrong or missing value."""
 
@@ -937,8 +941,9 @@ Q("measure.format.d3", ORD, REV, agg=["m:orders.revenue_d3"], post=expect_format
 
 Q("measure.rolling.trailing", ORD, monthly("sumIf(o.amount, o.created_at >= addDays(e, -30) AND o.created_at <= e)"),
   ordered=True, agg=["m:orders.revenue_trailing_30d"], **BY_MONTH)
-Q("measure.rolling.leading_offset", ORD, monthly("sumIf(o.amount, o.created_at >= m AND o.created_at < addDays(m, 7))"),
-  ordered=True, agg=["m:orders.revenue_leading_7d"], **BY_MONTH)
+Q("measure.rolling.leading_offset", ORD,
+  "SELECT d, sumIf(o.amount, o.created_at >= d AND o.created_at < d + INTERVAL 7 DAY) FROM (SELECT toDateTime('2025-03-03', 'UTC') + toIntervalDay(number) AS d FROM numbers(2)) AS w CROSS JOIN orders o GROUP BY d ORDER BY d",
+  ordered=True, agg=["m:orders.revenue_leading_7d"], by=["d:orders.created_at@day"], where=[[">=", "d:orders.created_at", "2025-03-03"], ["<", "d:orders.created_at", "2025-03-05"]], order=[["asc", "d:orders.created_at@day"]])
 Q("measure.rolling.to_date_month", ORD, monthly("sumIf(o.amount, o.created_at >= m AND o.created_at <= e)"),
   ordered=True, agg=["m:orders.revenue_mtd"], **BY_MONTH)
 Q("measure.rolling.to_date_year", ORD, monthly("sumIf(o.amount, o.created_at >= toStartOfYear(m) AND o.created_at <= e)"),
@@ -1462,7 +1467,7 @@ for _unit, _truth in [
     ("week", "toStartOfWeek(created_at, 0)"), ("month", "toStartOfMonth(created_at)"), ("quarter", "toStartOfQuarter(created_at)"),
     ("year", "toStartOfYear(created_at)"), ("minute-of-hour", "toMinute(created_at)"), ("hour-of-day", "toHour(created_at)"),
     ("day-of-week", "toDayOfWeek(created_at, 3)"), ("day-of-month", "toDayOfMonth(created_at)"), ("day-of-year", "toDayOfYear(created_at)"),
-    ("week-of-year", "toWeek(created_at, 0) + 1"), ("month-of-year", "toMonth(created_at)"), ("quarter-of-year", "toQuarter(created_at)"),
+    ("week-of-year", "ceiling(toDayOfYear(toStartOfWeek(created_at, 0)) / 7)"), ("month-of-year", "toMonth(created_at)"), ("quarter-of-year", "toQuarter(created_at)"),
 ]:
     _by = "d:orders.created_at@%s" % _unit
     Q("mb.bucket.%s" % _unit, ORD, "SELECT x, count() FROM (SELECT %s AS x FROM orders) GROUP BY x ORDER BY x LIMIT 5" % _truth, ordered=True,
@@ -2896,7 +2901,7 @@ C("compile.week.saturday_without_granularity", ORD, "SELECT toStartOfWeek(addDay
   agg=[["count"]], by=[WK])
 C("compile.week.day_of_week_monday", ORD, "SELECT toDayOfWeek(created_at), count() FROM orders GROUP BY 1", kind="pushdown", setting=MON, agg=[["count"]], by=["d:orders.created_at@day-of-week"])
 C("compile.week.day_of_week_sunday", ORD, "SELECT toDayOfWeek(created_at, 3), count() FROM orders GROUP BY 1", kind="pushdown", setting=SUN, agg=[["count"]], by=["d:orders.created_at@day-of-week"])
-C("compile.week.week_of_year_monday", ORD, "SELECT toWeek(created_at, 1) + if(toDayOfWeek(toStartOfYear(created_at)) > 4, 1, 0), count() FROM orders GROUP BY 1", kind="pushdown", setting=MON,
+C("compile.week.week_of_year_monday", ORD, "SELECT ceiling(toDayOfYear(toStartOfWeek(created_at, 1)) / 7), count() FROM orders GROUP BY 1", kind="pushdown", setting=MON,
   agg=[["count"]], by=["d:orders.created_at@week-of-year"])
 
 # date parts stay right on 10 million rows, where post-processing would see only a part of the rows
@@ -4550,11 +4555,24 @@ def _(ctx):
         else:
             raise Fail("Metabase did not cache the control question, so this check shows nothing")
         assert_rows(res["data"]["rows"], ch(REV_BY_CITY), label="control from the cache")
+        # The same question on per-person data, by two people in turn. Each run reads Cube, so no run has the rows of the person before it.
         for _i in range(4):
             for email in CITY_OF:
                 res = sec.person(email).api("POST", "/api/card/%d/query" % card["id"], {"parameters": []})
                 assert_rows(res["data"]["rows"], city_rev(CITY_OF[email]), label="%s, cached=%s" % (email, res.get("cached")))
+                if res.get("cached"):
+                    raise Fail("%s got a result from the cache on per-person data" % email)
             time.sleep(1)
+        # The same through a dashboard, which has its own path to the query processor.
+        dashboard = admin.api("POST", "/api/dashboard", {"name": "cache"})
+        admin.api("PUT", "/api/dashboard/%d" % dashboard["id"], {"dashcards": [{"id": -1, "card_id": card["id"], "row": 0, "col": 0, "size_x": 4, "size_y": 4}]})
+        dashcard = admin.api("GET", "/api/dashboard/%d" % dashboard["id"])["dashcards"][0]["id"]
+        for _i in range(2):
+            for email in CITY_OF:
+                res = sec.person(email).api("POST", "/api/dashboard/%d/dashcard/%d/card/%d/query" % (dashboard["id"], dashcard, card["id"]), {"parameters": []})
+                assert_rows(res["data"]["rows"], city_rev(CITY_OF[email]), label="dashboard, %s, cached=%s" % (email, res.get("cached")))
+                if res.get("cached"):
+                    raise Fail("%s got a result from the cache on a dashboard on per-person data" % email)
     finally:
         admin.api("DELETE", "/api/cache", {"model": "root", "model_id": [0]})
 
@@ -5604,13 +5622,139 @@ def _(ctx):
     assert_rows(ctx.mb.mbql(ORD, agg=[["count"]], where=[["=", STA, "nope"]])["rows"], ch("SELECT count() FROM orders WHERE status = 'nope'"), label="MBQL")
 
 
+UNBOUNDED_TWO_MONTHS = ("SELECT toDateTime('2025-04-01','UTC'), countIf(created_at <= '2025-04-30 23:59:59') FROM orders "
+                        "UNION ALL SELECT toDateTime('2025-05-01','UTC'), countIf(created_at <= '2025-05-31 23:59:59') FROM orders")
+
+
 @check("measure.rolling.unbounded_one_bucket")
 def _(ctx):
-    """Finding m4: `trailing: unbounded` works for one bucket, and for more it stops with a message that tells this."""
+    """Finding m4: `trailing: unbounded` works for one bucket. For more, ClickHouse 26.10 runs the join and gives the truth, and an older ClickHouse rejects it, so the driver
+    stops with a message that tells this."""
     expect_rows(ctx, ctx.mb.inner(ORD, agg=["m:orders.cumulative_count"], by=MONTH, where=[[">=", CRT, "2025-04-01"], ["<", CRT, "2025-05-01"]]),
                 "SELECT toDateTime('2025-04-01','UTC'), countIf(created_at <= '2025-04-30 23:59:59') FROM orders", "one month")
-    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.cumulative_count"], by=MONTH, where=[[">=", CRT, "2025-04-01"], ["<", CRT, "2025-06-01"]]), "for more than one bucket")
+    query = ctx.mb.inner(ORD, agg=["m:orders.cumulative_count"], by=MONTH, where=[[">=", CRT, "2025-04-01"], ["<", CRT, "2025-06-01"]])
+    rows, error = outcome(ctx, query)
+    if error:
+        if "for more than one bucket" not in error:
+            raise Fail("two months: the error has no 'for more than one bucket': %s" % error[:300])
+    else:
+        assert_rows(rows, ch(UNBOUNDED_TWO_MONTHS), label="two months")
     expect_clear_error(ctx, ctx.mb.inner(ORD, agg=[["max", "d:orders.revenue_trailing_30d"]]), "cannot compute max")
+
+
+@check("measure.rolling.unbounded")
+def _(ctx):
+    """`trailing: unbounded` for more than one bucket. Cube writes a join with only an inequality. ClickHouse 26.10 runs it. An older ClickHouse rejects it, and this entry is then blocked."""
+    query = ctx.mb.inner(ORD, agg=["m:orders.cumulative_count"], by=MONTH, where=[[">=", CRT, "2025-04-01"], ["<", CRT, "2025-06-01"]])
+    rows, error = outcome(ctx, query)
+    if error and "for more than one bucket" in error:
+        raise Blocked("ClickHouse before 26.10 rejects the join with only an inequality that Cube writes for more than one bucket: Cannot determine join keys in JOIN ON expression. The driver stops this query with a clear message. trailing: 100 year in the data model works.")
+    if error:
+        raise Fail(error[:300])
+    assert_rows(rows, ch(UNBOUNDED_TWO_MONTHS), label="two months")
+
+
+@check("measure.rolling.window_shorter_than_bucket")
+def _(ctx):
+    """Finding M1. A window that is shorter than the bucket has no one meaning, so the driver stops it, in the query builder and in native SQL."""
+    half = [[">=", CRT, "2025-01-01"], ["<", CRT, "2025-07-01"]]
+    for measure, unit, where in (("revenue_mtd", "quarter", half), ("revenue_trailing_30d", "quarter", half), ("revenue_leading_7d", "month", half)):
+        expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.%s" % measure], by=[CRT + "@" + unit], where=where), "shorter than a %s" % unit)
+        expect_native_refusal(ctx, "SELECT DATE_TRUNC('%s', created_at), MEASURE(%s) FROM orders WHERE created_at >= '2025-01-01' AND created_at < '2025-07-01' GROUP BY 1" % (unit, measure), "shorter than a %s" % unit)
+    # A window as long as the bucket has a truth.
+    expect_rows(ctx, ctx.mb.inner(ORD, agg=["m:orders.revenue_ytd"], by=[CRT + "@quarter"], where=half),
+                "SELECT toDateTime(q, 'UTC'), sumIf(amount, created_at >= toStartOfYear(q) AND created_at < addMonths(q, 3)) FROM (SELECT toStartOfQuarter(addMonths(toDate('2025-01-01'), toInt64(number) * 3)) q FROM numbers(2)) AS s CROSS JOIN orders GROUP BY q", "year to date by a quarter")
+
+
+# ----------------------------------------------------------------- a compact form of the review grid
+#
+# dev/review has the whole grid, see `make grid`. These checks run a stable part of its shapes, so that CI catches them. A wrong number or a missing refusal that is not in
+# dev/review/known_limits.py fails the check.
+
+
+def review_grid():
+    sys.path.insert(0, os.path.join(REPO, "dev", "review"))
+    import grid as review  # noqa: PLC0415
+    import lib as review_lib  # noqa: PLC0415
+    import run_grid  # noqa: PLC0415
+    import settings_grid  # noqa: PLC0415
+    import shapes  # noqa: PLC0415
+
+    # The truth comes from the same place as the truth of each other check.
+    review_lib.ch = lambda sql: ch(sql)
+    return review, review_lib, run_grid, settings_grid, shapes
+
+
+def compact_context(ctx):
+    if not getattr(ctx, "review_ctx", None):
+        review, review_lib, run_grid, _settings, _shapes = review_grid()
+        mb = review_lib.Metabase(MB, ctx.mb.password, ADMIN_EMAIL).login()
+        ctx.review_mb = mb
+        ctx.review_ctx = run_grid.Ctx(mb, ctx.mb.api("GET", "/api/database/%d" % ctx.mb.need_db())["name"])
+    return ctx.review_ctx
+
+
+def run_compact(ctx, shapes_list, channel):
+    review, review_lib, run_grid, _settings, _shapes = review_grid()
+    rctx = compact_context(ctx)
+    mcp = review_lib.Mcp(ctx.review_mb) if channel == "mcp" else None
+    results = [run_grid.one(rctx, mcp, sh, channel) for sh in shapes_list]
+    counts, unexpected = review.judge(results, "dialect" if DIALECT else "stock", set())
+    print("         %d shapes, %d pass, %d wrong, %d no refusal, %d refused, %d on the list of known limits" % (len(results), counts["pass"], counts["wrong"], counts["no refusal"], counts["refused"], counts["known"]))
+    if unexpected:
+        raise Fail("%d of %d not expected: %s" % (len(unexpected), len(results), " | ".join("%s %s %s" % (r["id"], r["verdict"], str(r.get("diff") or r.get("error") or r.get("got"))[:160]) for r in unexpected[:6])))
+
+
+def stable_part(items, every, keep=r"^(follow|time/multi)/"):
+    """Each shape that came from a finding, and each `every`-th other shape. The choice does not change between runs."""
+    return [s for s in items if re.search(keep, s["id"]) or int(hashlib.md5(s["id"].encode()).hexdigest(), 16) % every == 0]
+
+
+def zone_part(items, settings):
+    keep = r"(filter (one date|ge time|two times|not ge|bound in or|equal|hour of day)$|hour-of-day/count|week-of-year/count|rolling revenue_mtd|prior month|stage|model filter|Date|native)"
+    return [s for s in items if re.search(keep, s["id"])]
+
+
+@check("grid.compact.dataset")
+def _(ctx):
+    """A part of the shapes of the review grid through /api/dataset, each with its truth from ClickHouse."""
+    _r, _l, _g, _s, shapes = review_grid()
+    run_compact(ctx, stable_part(shapes.shapes(), 8), "dataset")
+
+
+@check("grid.compact.mcp")
+def _(ctx):
+    """A smaller part of the same shapes through the MCP tools execute_query and execute_sql."""
+    _r, _l, _g, _s, shapes = review_grid()
+    run_compact(ctx, [s for s in stable_part(shapes.shapes(), 32, keep=r"^(follow/(eq|case|window_short|shift|not|count_native))")], "mcp")
+
+
+@check("grid.compact.report_zone")
+def _(ctx):
+    """Shapes under a report time zone: one with a clock change and one with an offset of part of an hour."""
+    _r, _l, _g, settings, _s = review_grid()
+    for zone in ("America/New_York", "Asia/Kathmandu"):
+        with_report_timezone(ctx, zone, lambda z=zone: run_compact(ctx, zone_part(settings.zone_shapes(z), settings), "dataset"))
+
+
+@check("grid.compact.mcp_report_zone")
+def _(ctx):
+    """The same shapes under a report time zone, through MCP."""
+    _r, _l, _g, settings, _s = review_grid()
+    with_report_timezone(ctx, "America/New_York", lambda: run_compact(ctx, zone_part(settings.zone_shapes("America/New_York"), settings), "mcp"))
+
+
+@check("grid.compact.start_of_week")
+def _(ctx):
+    """Week, day of week and week of year for each first day of the week. The truth is the rule of Metabase core, and the grid compares it with Metabase on Postgres."""
+    _r, _l, _g, settings, _s = review_grid()
+    prev = ctx.mb.api("GET", "/api/setting/start-of-week")
+    try:
+        for day, n in settings.DAYS.items():
+            ctx.mb.api("PUT", "/api/setting/start-of-week", {"value": day})
+            run_compact(ctx, [s for s in settings.week_shapes(day, n) if s["id"].endswith(("/count", "first days"))], "dataset")
+    finally:
+        ctx.mb.api("PUT", "/api/setting/start-of-week", {"value": prev if isinstance(prev, str) and prev else None})
 
 
 @check("demo.lambda_cube_is_hidden")
@@ -5943,6 +6087,25 @@ def _(ctx):
         raise Fail("with the dialect: %s, truth %s" % (got, truth))
     if not DIALECT and close:
         raise Fail("stock Cube now gives the truth on the legacy planner. Give this entry its full status")
+    # Finding M4. /v1/sql shows the planner, so the driver stops this query on stock Cube. With the dialect it gives the truth.
+    details = {"host": os.environ.get("CUBE_LEGACY_SQL_HOST", "cube-legacy"), "port": 15432, "dbname": "cube", "user": "cube", "password": "cube-dev-only",
+               "cube-rest-url": os.environ.get("CUBE_LEGACY_REST_INTERNAL_URL", "http://cube-legacy:4000"), "cube-api-secret-value": CUBE_LEGACY_SECRET, "ssl": False}
+    db = ctx.mb.api("POST", "/api/database", {"engine": "cube", "name": "Cube legacy planner", "details": details})
+    sql = ("SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_trailing_30d) FROM orders "
+           "WHERE created_at >= '2025-02-01' AND created_at < '2025-04-01' GROUP BY 1")
+    try:
+        res = ctx.mb.api("POST", "/api/dataset", {"database": db["id"], "type": "native", "native": {"query": sql, "template-tags": {}}}, ok=(200, 202, 400, 403, 500))
+        error = res.get("error") or res.get("message")
+        if DIALECT:
+            if error:
+                raise Fail("native on the legacy planner with the dialect: %s" % str(error)[:300])
+            assert_close = [float(r[1]) for r in res["data"]["rows"]]
+            if len(assert_close) != len(truth) or any(abs(a - b) >= 0.01 for a, b in zip(assert_close, truth)):
+                raise Fail("native on the legacy planner with the dialect: %s, truth %s" % (assert_close, truth))
+        elif "CUBEJS_TESSERACT_SQL_PLANNER" not in str(error):
+            raise Fail("stock Cube on the legacy planner did not stop: %s" % str(error or res["data"]["rows"])[:300])
+    finally:
+        ctx.mb.api("DELETE", "/api/database/%d" % db["id"])
 
 
 @check("preagg.original_sql")
@@ -6338,6 +6501,8 @@ def run_suite(args):
             if cid not in CHECKS:
                 raise Fail("unknown check %s" % cid)
             CHECKS[cid](ctx)
+        except Blocked as e:
+            final[fid], reasons[fid] = "blocked", str(e)
         except Fail as e:
             final[fid], reasons[fid] = "fail", str(e)
         except Exception as e:  # a reply of an unexpected shape must not stop the run

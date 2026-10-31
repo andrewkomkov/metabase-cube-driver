@@ -504,7 +504,7 @@ def grid_boundary():
         s("raw_ui64_big", None, None, [["=", d + "id", 2]], None, fields=[d + "id", d + "ui64"], expect="refusal"),
         s("raw_ui64_text", None, None, [["=", d + "id", 2]], "SELECT id, toString(ui64) FROM %s WHERE id = 2" % T, fields=[d + "id", d + "ui64_text"]),
         s("sum_ui64_big", ["m:typed_events.sum_ui64"], [], [], None, expect="refusal"),
-        s("raw_dec_big", None, None, [["=", d + "id", 1]], "SELECT id, toString(dec_big) FROM %s WHERE id = 1" % T, fields=[d + "id", d + "dec_big"], known="README: a long decimal below 2^53"),
+        s("raw_dec_big", None, None, [["=", d + "id", 1]], "SELECT id, toString(dec_big) FROM %s WHERE id = 1" % T, fields=[d + "id", d + "dec_big"], tol=0, known="README: a long decimal below 2^53"),
         s("sum_big", ["m:typed_events.sum_big"], [], [], None, expect="refusal"),
     ]
     # Strings with characters that must stay literal.

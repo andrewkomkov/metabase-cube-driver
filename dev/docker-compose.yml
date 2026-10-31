@@ -80,7 +80,7 @@ services:
     volumes: ["./cube-secure/cube.js:/cube/conf/cube.js:ro", "./cube-secure/model:/cube/conf/model:ro", "../cube-clickhouse:/cube/conf/cube-clickhouse:ro"]
     ports: ["127.0.0.1:4401:4000", "127.0.0.1:15434:15432"]
     restart: unless-stopped
-  # The legacy planner, for the check of N2. It reads the same model and answers on the REST API only.
+  # The legacy planner, for the check of N2. It reads the same model.
   cube-legacy:
     image: cubejs/cube:${CUBE_VERSION:-v1.8.15}
     depends_on: { clickhouse: { condition: service_healthy } }
@@ -102,11 +102,14 @@ services:
       CUBEJS_DS_SECOND_DB_NAME: shop_second
       CUBEJS_DS_SECOND_DB_USER: shop
       CUBEJS_DS_SECOND_DB_PASS: shop-dev-only
+      CUBEJS_PG_SQL_PORT: "15432"
+      CUBEJS_SQL_USER: cube
+      CUBEJS_SQL_PASSWORD: cube-dev-only
       CUBEJS_TELEMETRY: "false"
       CUBEJS_TESSERACT_SQL_PLANNER: "false"
       CUBE_CLICKHOUSE_FIXES: ${CUBE_CLICKHOUSE_FIXES:-on}
     volumes: ["./cube/model:/cube/conf/model:ro", "./cube/cube.js:/cube/conf/cube.js:ro", "../cube-clickhouse:/cube/conf/cube-clickhouse:ro"]
-    ports: ["127.0.0.1:4402:4000"]
+    ports: ["127.0.0.1:4402:4000", "127.0.0.1:15436:15432"]
     restart: unless-stopped
   metabase:
     image: metabase/metabase:${METABASE_VERSION:-v0.65.2.3}

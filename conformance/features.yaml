@@ -212,9 +212,9 @@
 - id: measure.rolling.unbounded
   area: cube.measures
   title: "measure rolling unbounded"
-  status: blocked
-  status_stock: blocked
-  reason: "For more than one bucket, Cube writes the window as a join with only an inequality, and ClickHouse 26.8 rejects it: Cannot determine join keys in JOIN ON expression. allow_experimental_join_condition=1 does not change this. One bucket works, and more buckets stop with a clear message, see measure.rolling.unbounded_one_bucket. trailing: 100 year in the data model works for more buckets. Bounded windows work, see measure.rolling.trailing."
+  status: todo
+  status_stock: todo
+  check: measure.rolling.unbounded
 - id: measure.type.avg
   area: cube.measures
   title: "measure type avg"
@@ -4575,10 +4575,8 @@
   area: dialect
   title: "a rolling measure on the legacy planner"
   status: pass
-  status_stock: partial
+  status_stock: pass
   check: dialect.n2_legacy_planner
-  cap_stock: partial
-  reason_stock: "Known wrong number. Only with CUBEJS_TESSERACT_SQL_PLANNER=false, not the default: each bucket of a rolling measure gets the same wrong number. The driver cannot see the planner. cube-clickhouse fixes this."
 - id: native.subquery_filter_refused
   area: native
   title: "an outer filter over a subquery in native SQL"
@@ -4605,3 +4603,39 @@
   status: pass
   status_stock: pass
   check: compile.raw.switch_dimension_keeps_one_row
+- id: measure.rolling.window_shorter_than_bucket
+  area: cube.measures
+  title: "a rolling window that is shorter than the bucket stops (M1)"
+  status: todo
+  status_stock: todo
+  check: measure.rolling.window_shorter_than_bucket
+- id: grid.compact.dataset
+  area: grid
+  title: "a compact form of the review grid through /api/dataset"
+  status: todo
+  status_stock: todo
+  check: grid.compact.dataset
+- id: grid.compact.mcp
+  area: grid
+  title: "a compact form of the review grid through MCP"
+  status: todo
+  status_stock: todo
+  check: grid.compact.mcp
+- id: grid.compact.report_zone
+  area: grid
+  title: "the review grid under a report time zone"
+  status: todo
+  status_stock: todo
+  check: grid.compact.report_zone
+- id: grid.compact.mcp_report_zone
+  area: grid
+  title: "the review grid under a report time zone through MCP"
+  status: todo
+  status_stock: todo
+  check: grid.compact.mcp_report_zone
+- id: grid.compact.start_of_week
+  area: grid
+  title: "week units for each first day of the week"
+  status: todo
+  status_stock: todo
+  check: grid.compact.start_of_week

@@ -47,6 +47,17 @@ jobs:
       jar-artifact: cube.metabase-driver
       load-check: false
 
+  conformance-stock:
+    needs: build
+    uses: ./.github/workflows/reusable-stack.yml
+    with:
+      name: conformance on the pinned pair with stock Cube
+      artifact-name: conformance-release-stock
+      ref: ${{ inputs.tag }}
+      jar-artifact: cube.metabase-driver
+      load-check: false
+      clickhouse-fixes: "off"
+
   package:
     name: checksum, SBOM, attestations and image
     needs: build
@@ -123,11 +134,12 @@ jobs:
 
   publish:
     name: publish
-    needs: [build, load-check, conformance, package]
-    # The gates block a real release. A dry run continues so that it can test the steps below.
+    needs: [build, load-check, conformance, conformance-stock, package]
+    # The gates block a real release. A dry run continues so that it can test the steps below, and the job gates reports the result of the gates.
     if: >-
       ${{ !cancelled() && needs.package.result == 'success'
-      && (inputs.dry-run || (needs.load-check.result == 'success' && needs.conformance.result == 'success')) }}
+      && (inputs.dry-run || (needs.load-check.result == 'success' && needs.conformance.result == 'success'
+      && needs.conformance-stock.result == 'success')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -193,3 +205,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag }}
         run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+
+  # publish can succeed in a dry run with a red gate, so its result alone shows nothing. This job is the result of the gates, in a dry run too.
+  gates:
+    name: gates
+    needs: [load-check, conformance, conformance-stock, publish]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Fail if a gate failed
+        env:
+          LOAD: ${{ needs.load-check.result }}
+          CONFORMANCE: ${{ needs.conformance.result }}
+          STOCK: ${{ needs.conformance-stock.result }}
+        run: |
+          echo "load-check=$LOAD conformance=$CONFORMANCE conformance-stock=$STOCK"
+          [ "$LOAD" = success ] && [ "$CONFORMANCE" = success ] && [ "$STOCK" = success ]
