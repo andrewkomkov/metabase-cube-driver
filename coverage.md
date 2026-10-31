@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 741/767 pass on Cube with the ClickHouse dialect** (741 pass, 13 partial, 1 blocked, 12 unsupported, 0 fail of 767)
+**coverage: 888/919 pass on Cube with the ClickHouse dialect** (888 pass, 17 partial, 1 blocked, 12 unsupported, 1 fail of 919)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `43471101a69d`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41208563734), 2026-10-31.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `9b4a97e60aa6`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41212319321), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -429,7 +429,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `43471
 | `semantic.format.currency` | pass |  |
 | `semantic.format.percent` | pass |  |
 | `semantic.format.link` | pass |  |
-| `semantic.fk.from_joins` | pass |  |
+| `semantic.fk.from_joins` | fail | payments.order_id has target 292 and type type/FK |
 | `semantic.fk.join_removed` | pass |  |
 | `semantic.drill_members` | pass |  |
 | `semantic.agent_reads_notes` | pass |  |
@@ -751,6 +751,158 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `43471
 | `grid.compact.report_zone` | pass |  |
 | `grid.compact.mcp_report_zone` | pass |  |
 | `grid.compact.start_of_week` | pass |  |
+| `metric.business.average_order_value` | pass |  |
+| `metric.business.churn` | pass |  |
+| `metric.business.conversion` | pass |  |
+| `metric.business.cube_measure_through_two_joins` | pass |  |
+| `metric.business.distinct_key_over_join` | pass |  |
+| `metric.business.distinct_over_join` | pass |  |
+| `metric.business.extended_base_hidden` | pass |  |
+| `metric.business.inherited_ratio_reads_override` | pass |  |
+| `metric.business.median` | pass |  |
+| `metric.business.month_over_month` | pass |  |
+| `metric.business.moving_average` | pass |  |
+| `metric.business.non_additive` | pass |  |
+| `metric.business.on_a_view` | pass |  |
+| `metric.business.on_an_extended_cube` | pass |  |
+| `metric.business.percentile` | pass |  |
+| `metric.business.ratio_on_a_view` | pass |  |
+| `metric.business.ratio_zero_null_denominator` | pass |  |
+| `metric.business.repeat_rate` | pass |  |
+| `metric.business.retention` | pass |  |
+| `metric.business.revenue` | pass |  |
+| `metric.business.running_total` | pass |  |
+| `metric.business.share_of_total` | pass |  |
+| `metric.business.through_two_joins` | pass |  |
+| `metric.business.weighted_average` | pass |  |
+| `metric.business.year_over_year` | pass |  |
+| `metric.composite.avg_of_ratio` | pass |  |
+| `metric.composite.cross_cube_count_ratio` | pass |  |
+| `metric.composite.cross_cube_sum_ratio` | pass |  |
+| `metric.composite.difference_over_base` | pass |  |
+| `metric.composite.distinct_over_count` | pass |  |
+| `metric.composite.filtered_numerator` | pass |  |
+| `metric.composite.nested_ratio` | pass |  |
+| `metric.composite.product` | pass |  |
+| `metric.composite.ratio_of_avgs` | pass |  |
+| `metric.composite.ratio_of_sums` | pass |  |
+| `metric.composite.rolling_over_plain` | pass |  |
+| `metric.composite.sum_of_row_ratios` | pass |  |
+| `metric.composite.sum_over_distinct` | pass |  |
+| `metric.composite.value_over_prior` | pass |  |
+| `metric.composite.value_over_total` | pass |  |
+| `metric.dimension.boolean` | pass |  |
+| `metric.dimension.case` | pass |  |
+| `metric.dimension.geo` | pass |  |
+| `metric.dimension.geo_with_a_joined_metric` | pass |  |
+| `metric.dimension.joined_string` | pass |  |
+| `metric.dimension.number` | pass |  |
+| `metric.dimension.ratio_by_sub_query` | pass |  |
+| `metric.dimension.string` | pass |  |
+| `metric.dimension.sub_query` | pass |  |
+| `metric.dimension.time` | pass |  |
+| `metric.edge.avg_ignores_null` | pass |  |
+| `metric.edge.avg_of_row_ratios` | pass |  |
+| `metric.edge.change_over_base` | pass |  |
+| `metric.edge.filtered_share` | pass |  |
+| `metric.edge.filtered_sum` | pass |  |
+| `metric.edge.max_negative` | pass |  |
+| `metric.edge.min_negative` | pass |  |
+| `metric.edge.ratio_with_no_guard` | pass |  |
+| `metric.edge.rows` | pass |  |
+| `metric.edge.sum_of_denominator` | pass |  |
+| `metric.edge.sum_of_numerator` | pass |  |
+| `metric.edge.sum_of_row_ratios` | pass |  |
+| `metric.expression.avg_over_avg` | pass |  |
+| `metric.expression.distinct_over_count` | pass |  |
+| `metric.expression.filtered_over_plain` | pass |  |
+| `metric.expression.ratio_of_two_sums` | pass |  |
+| `metric.expression.same_as_the_cube_metric` | pass |  |
+| `metric.expression.sum_over_count` | pass |  |
+| `metric.expression.sum_over_distinct` | pass |  |
+| `metric.expression.zero_and_null_denominator` | pass |  |
+| `metric.format.abbr` | partial | Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
+| `metric.format.abbr_1` | partial | Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
+| `metric.format.accounting` | partial | Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
+| `metric.format.accounting_0` | partial | Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
+| `metric.format.currency` | pass |  |
+| `metric.format.currency_0` | pass |  |
+| `metric.format.currency_3` | pass |  |
+| `metric.format.currency_code` | pass |  |
+| `metric.format.d3` | pass |  |
+| `metric.format.d3_percent` | pass |  |
+| `metric.format.id` | pass |  |
+| `metric.format.number` | pass |  |
+| `metric.format.number_0` | pass |  |
+| `metric.format.number_3` | pass |  |
+| `metric.format.percent` | pass |  |
+| `metric.format.percent_0` | pass |  |
+| `metric.format.percent_2` | pass |  |
+| `metric.mcp.discovery` | pass |  |
+| `metric.model.stock_form` | pass |  |
+| `metric.opt.add_group_by` | pass |  |
+| `metric.opt.drill_members` | pass |  |
+| `metric.opt.drill_members_text` | pass |  |
+| `metric.opt.filter_on_sum` | pass |  |
+| `metric.opt.filter_one` | pass |  |
+| `metric.opt.filter_or` | pass |  |
+| `metric.opt.filter_several` | pass |  |
+| `metric.opt.group_by` | pass |  |
+| `metric.opt.meta` | pass |  |
+| `metric.opt.multi_stage` | pass |  |
+| `metric.opt.public_false` | pass |  |
+| `metric.opt.reduce_by` | pass |  |
+| `metric.opt.rolling_leading` | pass |  |
+| `metric.opt.rolling_leading_offset_end` | pass |  |
+| `metric.opt.rolling_offset_end` | pass |  |
+| `metric.opt.rolling_offset_start` | pass |  |
+| `metric.opt.rolling_shorter_than_bucket_refused` | pass |  |
+| `metric.opt.rolling_to_date` | pass |  |
+| `metric.opt.rolling_to_date_year` | pass |  |
+| `metric.opt.rolling_trailing` | pass |  |
+| `metric.opt.rolling_unbounded` | pass |  |
+| `metric.opt.time_shift_calendar` | pass |  |
+| `metric.opt.time_shift_needs_a_range` | pass |  |
+| `metric.opt.time_shift_prior` | pass |  |
+| `metric.rollup.additive_at_rollup_grain_hit` | pass |  |
+| `metric.rollup.additive_coarser_hit` | pass |  |
+| `metric.rollup.additive_finer_miss` | pass |  |
+| `metric.rollup.day_window_by_month_refused` | pass |  |
+| `metric.rollup.non_additive_at_rollup_grain_hit` | pass |  |
+| `metric.rollup.non_additive_coarser_miss` | pass |  |
+| `metric.rollup.non_additive_finer_miss` | pass |  |
+| `metric.rollup.ratio_of_sums_coarser_hit` | pass |  |
+| `metric.rollup.ratio_of_sums_finer_miss` | pass |  |
+| `metric.rollup.ratio_of_sums_status_hit` | pass |  |
+| `metric.rollup.sum_over_distinct_coarser_miss` | pass |  |
+| `metric.semi_additive.closing_at_rollup_grain_hit` | pass |  |
+| `metric.semi_additive.closing_by_month_refused` | pass |  |
+| `metric.semi_additive.closing_finer_miss` | pass |  |
+| `metric.semi_additive.closing_region_at_rollup_grain_hit` | pass |  |
+| `metric.semi_additive.daily_average_at_rollup_grain_hit` | pass |  |
+| `metric.semi_additive.daily_average_coarser_miss` | pass |  |
+| `metric.semi_additive.is_not_additive_over_time` | pass |  |
+| `metric.semi_additive.last_day_at_day_and_total` | pass |  |
+| `metric.semi_additive.last_day_coarser_miss` | pass |  |
+| `metric.semi_additive.total_of_one_day_over_regions_hit` | pass |  |
+| `metric.type.avg` | pass |  |
+| `metric.type.boolean` | pass |  |
+| `metric.type.count` | pass |  |
+| `metric.type.count_distinct` | pass |  |
+| `metric.type.count_distinct_approx` | pass |  |
+| `metric.type.max` | pass |  |
+| `metric.type.min` | pass |  |
+| `metric.type.number` | pass |  |
+| `metric.type.number_agg` | pass |  |
+| `metric.type.rank` | pass |  |
+| `metric.type.string` | pass |  |
+| `metric.type.sum` | pass |  |
+| `metric.type.time` | pass |  |
+| `metric.composite.value_over_total_with_a_filter` | pass |  |
+| `metric.rollup.day_window_by_day_hit` | pass |  |
+| `metric.rollup.month_window_by_month_hit` | pass |  |
+| `metric.rollup.to_date_by_month_hit` | pass |  |
+| `metric.rollup.unbounded_by_month_hit` | pass |  |
 | `context.compile_context` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |

@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 741,
-    "partial": 13,
+    "pass": 888,
+    "partial": 17,
     "blocked": 1,
     "unsupported": 12,
-    "fail": 0,
-    "total": 767
+    "fail": 1,
+    "total": 919
   },
-  "coverage": "coverage: 741/767 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 888/919 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -2117,8 +2117,8 @@
     },
     {
       "id": "semantic.fk.from_joins",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "payments.order_id has target 292 and type type/FK"
     },
     {
       "id": "semantic.fk.join_removed",
@@ -3722,6 +3722,766 @@
     },
     {
       "id": "grid.compact.start_of_week",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.average_order_value",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.churn",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.conversion",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.cube_measure_through_two_joins",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.distinct_key_over_join",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.distinct_over_join",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.extended_base_hidden",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.inherited_ratio_reads_override",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.median",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.month_over_month",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.moving_average",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.non_additive",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.on_a_view",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.on_an_extended_cube",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.percentile",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.ratio_on_a_view",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.ratio_zero_null_denominator",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.repeat_rate",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.retention",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.revenue",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.running_total",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.share_of_total",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.through_two_joins",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.weighted_average",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.business.year_over_year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.avg_of_ratio",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.cross_cube_count_ratio",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.cross_cube_sum_ratio",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.difference_over_base",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.distinct_over_count",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.filtered_numerator",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.nested_ratio",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.product",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.ratio_of_avgs",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.ratio_of_sums",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.rolling_over_plain",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.sum_of_row_ratios",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.sum_over_distinct",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.value_over_prior",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.value_over_total",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.dimension.boolean",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.dimension.case",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.dimension.geo",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.dimension.geo_with_a_joined_metric",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.dimension.joined_string",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.dimension.number",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.dimension.ratio_by_sub_query",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.dimension.string",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.dimension.sub_query",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.dimension.time",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.edge.avg_ignores_null",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.edge.avg_of_row_ratios",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.edge.change_over_base",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.edge.filtered_share",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.edge.filtered_sum",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.edge.max_negative",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.edge.min_negative",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.edge.ratio_with_no_guard",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.edge.rows",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.edge.sum_of_denominator",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.edge.sum_of_numerator",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.edge.sum_of_row_ratios",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.expression.avg_over_avg",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.expression.distinct_over_count",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.expression.filtered_over_plain",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.expression.ratio_of_two_sums",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.expression.same_as_the_cube_metric",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.expression.sum_over_count",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.expression.sum_over_distinct",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.expression.zero_and_null_denominator",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.format.abbr",
+      "status": "partial",
+      "reason": "Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+    },
+    {
+      "id": "metric.format.abbr_1",
+      "status": "partial",
+      "reason": "Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+    },
+    {
+      "id": "metric.format.accounting",
+      "status": "partial",
+      "reason": "Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+    },
+    {
+      "id": "metric.format.accounting_0",
+      "status": "partial",
+      "reason": "Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+    },
+    {
+      "id": "metric.format.currency",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.format.currency_0",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.format.currency_3",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.format.currency_code",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.format.d3",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.format.d3_percent",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.format.id",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.format.number",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.format.number_0",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.format.number_3",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.format.percent",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.format.percent_0",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.format.percent_2",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.mcp.discovery",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.model.stock_form",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.add_group_by",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.drill_members",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.drill_members_text",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.filter_on_sum",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.filter_one",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.filter_or",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.filter_several",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.group_by",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.meta",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.multi_stage",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.public_false",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.reduce_by",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.rolling_leading",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.rolling_leading_offset_end",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.rolling_offset_end",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.rolling_offset_start",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.rolling_shorter_than_bucket_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.rolling_to_date",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.rolling_to_date_year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.rolling_trailing",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.rolling_unbounded",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.time_shift_calendar",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.time_shift_needs_a_range",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.opt.time_shift_prior",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.rollup.additive_at_rollup_grain_hit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.rollup.additive_coarser_hit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.rollup.additive_finer_miss",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.rollup.day_window_by_month_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.rollup.non_additive_at_rollup_grain_hit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.rollup.non_additive_coarser_miss",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.rollup.non_additive_finer_miss",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.rollup.ratio_of_sums_coarser_hit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.rollup.ratio_of_sums_finer_miss",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.rollup.ratio_of_sums_status_hit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.rollup.sum_over_distinct_coarser_miss",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.semi_additive.closing_at_rollup_grain_hit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.semi_additive.closing_by_month_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.semi_additive.closing_finer_miss",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.semi_additive.closing_region_at_rollup_grain_hit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.semi_additive.daily_average_at_rollup_grain_hit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.semi_additive.daily_average_coarser_miss",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.semi_additive.is_not_additive_over_time",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.semi_additive.last_day_at_day_and_total",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.semi_additive.last_day_coarser_miss",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.semi_additive.total_of_one_day_over_regions_hit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.type.avg",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.type.boolean",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.type.count",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.type.count_distinct",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.type.count_distinct_approx",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.type.max",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.type.min",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.type.number",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.type.number_agg",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.type.rank",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.type.string",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.type.sum",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.type.time",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.composite.value_over_total_with_a_filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.rollup.day_window_by_day_hit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.rollup.month_window_by_month_hit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.rollup.to_date_by_month_hit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "metric.rollup.unbounded_by_month_hit",
       "status": "pass",
       "reason": ""
     },
