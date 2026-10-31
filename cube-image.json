@@ -17,7 +17,7 @@
   },
   "state": "candidate",
   "patches": "B1,datetime64,interval,M1-M2,N1,geo,propagate,gran,m5,N2,big",
-  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41199587235",
+  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41201389241",
   "date": "2026-10-31"
  },
  {
@@ -38,7 +38,7 @@
   },
   "state": "candidate",
   "patches": "B1,datetime64,interval,M1-M2,N1,geo,propagate,gran,m5,N2,big",
-  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41199587235",
+  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41201389241",
   "date": "2026-10-31"
  }
 ]
