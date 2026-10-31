@@ -232,6 +232,46 @@
                          "week, use a window in months, or remove this measure from the rollup.")
                     short-name window-text (name unit))))))))
 
+;;; Rolling windows in a zone. The dialect reads the bounds of a bucket in the zone of the query, and stock Cube reads them in UTC.
+
+(defn rolling-zone-reason
+  "A text if Cube does not read the bounds of a rolling window in `zone`, or nil. With no answer this stops the query: the number is wrong on stock Cube, so a query
+  needs a sign that it is right. This asks for one hour by the minute, because a rollup does not serve that, and a query with a rollup can also read the database."
+  [details measure time-dimension zone]
+  (let [{:keys [text]} (when (and measure time-dimension)
+                         (cached details [:rolling-zone measure time-dimension zone]
+                                 (fn []
+                                   (try
+                                     (sql-of details {:measures       [measure]
+                                                      :timeDimensions [{:dimension time-dimension, :granularity "minute"
+                                                                        :dateRange ["2025-01-01T00:00:00" "2025-01-01T00:59:59"]}]
+                                                      :timezone       zone
+                                                      :limit          1})
+                                     (catch Exception _ nil)))))]
+    (when-not (and text (or (str/includes? text (str "', 3, '" zone "') f,"))
+                            (str/includes? text (str "(dates.1, 3, '" zone "')"))))
+      (format (str "%s is a rolling window measure. With a report time zone that is not UTC, stock Cube reads the bounds of each window in UTC and adds the wrong months "
+                   "together, so the number would be wrong. Install the ClickHouse dialect, see cube-clickhouse/README.md, or remove the report time zone.")
+              (last (str/split (str measure) #"\."))))))
+
+(defn time-shift-zone-reason
+  "A text if Cube adds the interval of this time shift to a column in UTC under a report time zone, or nil. Stock Cube adds 24 hours next to a clock change of `zone`, so a row moves to
+  another day. The dialect adds the day in the zone. With no answer this stops nothing."
+  [details measure-name time-dimension zone]
+  (when time-dimension
+    (let [{:keys [text]} (cached details [:time-shift-zone measure-name time-dimension zone]
+                                 (fn []
+                                   (try
+                                     (sql-of details {:measures       [measure-name]
+                                                      :timeDimensions [{:dimension time-dimension, :granularity "day", :dateRange ["2025-01-01" "2025-01-31"]}]
+                                                      :timezone       zone
+                                                      :limit          1})
+                                     (catch Exception _ nil))))]
+      (when (and text (re-find #"(?i)\b(?:add|sub)Date\(\s*(?!toDateTime64)" text))
+        (format (str "%s has a time shift. With a report time zone that is not UTC, stock Cube adds the interval in UTC, so next to a clock change a row moves to another day, and the "
+                     "number would be wrong. Install the ClickHouse dialect, see cube-clickhouse/README.md, or remove the report time zone.")
+                (last (str/split (str measure-name) #"\.")))))))
+
 ;;; Date columns.
 
 (defn date-only?

@@ -511,7 +511,7 @@
   "A comparison of `field` with a time, in the form for a report time zone, or nil if this comparison is not one."
   [driver [op opts field value :as clause]]
   (when (and (report-zone?)
-             (not= :shift *keep-date-ranges*)
+             (nil? *keep-date-ranges*)
              (vector? field)
              (= :field (first field))
              (contains? #{nil :default} (:temporal-unit (second field)))
@@ -918,11 +918,11 @@
                               measure-name)
                       {:type :invalid-query})))
     (when (report-zone?)
-      (throw (ex-info (format (str "%s is a rolling window measure. With a report time zone that is not UTC, Cube adds the wrong months "
-                                   "together, so the number would be wrong. Remove the report time zone, or use a measure with no "
-                                   "rolling window and a date filter.")
-                              measure-name)
-                      {:type :invalid-query})))
+      (when-let [reason (cube.probe/rolling-zone-reason (:details (driver-api/database (driver-api/metadata-provider)))
+                                                        (full-member-name field)
+                                                        (rolling-time-member (peek stages) (pop stages))
+                                                        (str (session-zone)))]
+        (throw (ex-info reason {:type :invalid-query}))))
     (when-let [reason (cube.probe/rolling-window-reason (:details (driver-api/database (driver-api/metadata-provider)))
                                                         (full-member-name field)
                                                         (rolling-time-member (peek stages) (pop stages))
@@ -1007,6 +1007,20 @@
   (for [[_ field] (aggregated-fields earlier stage)
         :when (= :measure (field-kind field))]
     field))
+
+(defn- check-time-shift-zone!
+  "See `cube.probe/time-shift-zone-reason`."
+  [stages]
+  (when (report-zone?)
+    (when-let [cube-meta (current-meta)]
+      (let [details (:details (driver-api/database (driver-api/metadata-provider)))
+            stage   (peek stages)
+            earlier (pop stages)]
+        (doseq [field (aggregated-measure-fields earlier stage)
+                :let  [table-name (:name (driver-api/table (driver-api/metadata-provider) (:table-id field)))]
+                :when (cube.probe/time-shift? details cube-meta table-name (full-member-name field))]
+          (when-let [reason (cube.probe/time-shift-zone-reason details (full-member-name field) (rolling-time-member stage earlier) (str (session-zone)))]
+            (throw (ex-info reason {:type :invalid-query}))))))))
 
 (defn- check-time-shift!
   "With no time bucket and no date filter, Cube returns the total of all rows for a measure with a time shift."
@@ -1173,6 +1187,7 @@
       (check-equal-sql-breakout! (pop upto) stage)
       (check-aggregations! upto)
       (check-time-shift! upto)
+      (check-time-shift-zone! upto)
       (check-time-shift-bounds! upto)
       (check-date-only-columns! (pop upto) stage)
       (check-no-end-of-second-next-to-text! (pop upto) stage)
@@ -1529,12 +1544,12 @@
 
 (defn- filter-goes-to-the-database?
   "True if a filter of this stage is SQL for the database and not a filter of Cube: a case-sensitive text filter, a NOT, or each filter
-  under a report time zone. Cube cannot use a custom granularity next to such a filter."
+  under a report time zone, except in a query that keeps its date ranges. Cube cannot use a custom granularity next to such a filter."
   []
   (let [stage   sql.qp/*inner-query*
         clauses (concat (when-let [one (:filter stage)] [one]) (:filters stage))]
     (and (seq clauses)
-         (or (report-zone?)
+         (or (and (report-zone?) (nil? *keep-date-ranges*))
              (some #(and (vector? %) (#{:contains :starts-with :ends-with :not} (first %)))
                    (mapcat #(tree-seq vector? seq %) clauses))))))
 
@@ -1546,7 +1561,14 @@
       (if-let [granularity (when-not (filter-goes-to-the-database?)
                              (some-> *bucketed-field* (week-granularity start)))]
         (date-trunc granularity expr)
-        (week-number start expr)))))
+        (do
+          ;; A week number has no time series, so Cube computes a rolling window for one bucket or none.
+          (when (= :rolling *keep-date-ranges*)
+            (throw (ex-info (str "This query has a rolling window measure, and Cube has weeks from Monday only. A week that starts on another day has no time series here, so "
+                                 "the number would be wrong. Add a custom granularity with `interval: 1 week` and the offset of that day to the time dimension, remove a text "
+                                 "filter that Cube cannot read, or set the first day of the week to Monday.")
+                            {:type :invalid-query})))
+          (week-number start expr))))))
 
 (defn- nest-week-numbers
   "Move a query that groups by week number into a subquery, and turn the numbers into dates in the outer query."
@@ -1686,6 +1708,9 @@
   {:keeps-fractions? (cube.probe/keeps-fractions? details cube-meta nil)
    :report-zone?     (report-zone?)
    :rolling-reason   (partial cube.probe/rolling-window-reason details)
+   :rolling-zone-reason (when (report-zone?)
+                          (fn [measure time-dimension _unit]
+                            (cube.probe/rolling-zone-reason details measure time-dimension (str (session-zone)))))
    :time-shift?      (partial cube.probe/time-shift? details cube-meta)
    :wrong-bin-reason (partial cube.probe/wrong-bin-reason details cube-meta)})
 

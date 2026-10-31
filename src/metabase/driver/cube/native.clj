@@ -463,15 +463,10 @@
           (tables toks))))
 
 (defn- check-rolling!
-  [index toks params {:keys [report-zone? rolling-reason]}]
+  [index toks params {:keys [rolling-reason rolling-zone-reason]}]
   (when-let [measure (first (used-rolling index toks))]
     (let [columns (time-columns index toks)
           units   (date-trunc-units toks columns)]
-      (when report-zone?
-        (refuse! (format (str "%s is a rolling window measure. With a report time zone that is not UTC, Cube adds the wrong months "
-                              "together, so the number would be wrong. Remove the report time zone, or use a measure with no rolling window "
-                              "and a date filter.")
-                         measure)))
       (when (empty? units)
         (refuse! (format (str "%s is a rolling window measure. With no time bucket, Cube returns the total of all rows, not "
                               "the window. Group by DATE_TRUNC on a time column and add a date filter on whole buckets.")
@@ -493,10 +488,11 @@
           (refuse! (format (str "%s is a rolling window measure, and this scan cannot read the bucket '%s' of native SQL. "
                                 "Use a bucket of day, week, month, quarter or year, or the query builder.")
                            measure unit)))
-        (when rolling-reason
-          (when-let [table (first (filter #(contains? (:rolling (get index %)) measure) (tables toks)))]
-            (let [cube-name (:cube-name (get index table))]
-              (when-let [reason (rolling-reason (str cube-name "." measure) (str cube-name "." column) (keyword unit))]
+        (when-let [table (first (filter #(contains? (:rolling (get index %)) measure) (tables toks)))]
+          (let [cube-name (:cube-name (get index table))]
+            (doseq [question [rolling-zone-reason rolling-reason]
+                    :when    question]
+              (when-let [reason (question (str cube-name "." measure) (str cube-name "." column) (keyword unit))]
                 (refuse! reason)))))
         (doseq [{:keys [op literal low high negated]} (comparisons toks params #{column})]
           (let [ok? (case op
