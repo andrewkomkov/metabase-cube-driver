@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 999,
-    "partial": 19,
+    "pass": 1075,
+    "partial": 24,
     "blocked": 1,
     "unsupported": 12,
-    "fail": 81,
+    "fail": 0,
     "total": 1112
   },
-  "coverage": "coverage: 999/1112 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1075/1112 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -1592,8 +1592,8 @@
     },
     {
       "id": "mb.search.segment",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-31T18:50:49.834224877Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/mbql\",\"source-table\":42,\"aggregation\":[[\"count\",{\"lib"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.search.table",
@@ -1857,8 +1857,8 @@
     },
     {
       "id": "mcp.search.segment",
-      "status": "fail",
-      "reason": "execute_query: Query failed: \"This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Error executing query: ERROR: Planning Error: Initial planning error: Error during planning: No field named 'pa_types.paid'. Valid fields are 'orders.count', 'orders.unique_customers', 'orders.approx_customers', 'orders.revenue', 'orders.avg_order_value', 'orders.min_amount', 'orders.max_amount', 'orders.paid_revenue"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.search.table_by_description",
@@ -5012,8 +5012,8 @@
     },
     {
       "id": "preagg.option.external_false_hit",
-      "status": "fail",
-      "reason": "truth SQL failed: SELECT pa_loop_name FROM system.tables WHERE database = 'dev_pre_aggregations' AND pa_loop_name LIKE 'pa_options_internal%': Received exception from server (version 26.10.3):\nCode: 47. DB::Exception: Received from localhost:9000. DB::Exception: Unknown expression identifier `pa_loop_name`. In scope SELECT pa_loop_name FROM system.tables WHERE (database = 'dev_pre_aggregations') AND (pa_loop_name LIKE 'pa_options_internal%"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.option.external_false_miss",
@@ -5037,388 +5037,388 @@
     },
     {
       "id": "preagg.option.no_index",
-      "status": "fail",
-      "reason": "GET http://127.0.0.1:4400/cubejs-api/v1/meta: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.option.non_strict_inside_a_bucket_reads_whole_buckets",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "partial",
+      "reason": "allow_non_strict_date_range_match: true on a rollup is the slight discrepancy of the docs. With a range inside a bucket, the rollup gives other rows than the truth, with no error. The env var that this stack and docs/query-compilation.md set to false does not change a rollup with this key."
     },
     {
       "id": "preagg.option.non_strict_on_a_boundary_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.option.read_only_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.option.scheduled_refresh_false_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.option.strict_date_range_inside_a_bucket_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.option.strict_date_range_on_a_boundary_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.option.two_time_dimensions_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.option.unique_key_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.option.use_original_sql_coarser_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.option.use_original_sql_same_grain_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.partition.day_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.partition.hour_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.partition.month_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.partition.quarter_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.partition.range_inside_a_day_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.partition.range_over_two_partitions_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.partition.week_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.partition.year_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.refresh.every_old_number_ends_in_time",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: <urlopen error [Errno 111] Connection refused>"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.refresh.incremental_keeps_a_partition_out_of_the_window",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: <urlopen error [Errno 111] Connection refused>"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.refresh.incremental_refreshes_the_update_window",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: <urlopen error [Errno 111] Connection refused>"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.refresh.long_key_keeps_the_old_number_inside_its_time",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.refresh.no_update_window_refreshes_only_the_last_partition",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.refresh.sql_key_old_number_ends_in_time",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.refresh.through_metabase",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.rolling.finer_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.rolling.running_same_grain_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.rolling.to_date_coarser_time_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.rolling.to_date_same_grain_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.rolling.trailing_coarser_time_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.rolling.trailing_same_grain_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.date_range_inside_a_bucket_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.date_range_on_day_boundary_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.date_range_on_month_boundary_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.extended_cube_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.extended_cube_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.filter_on_a_rollup_dimension_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.filter_on_another_dimension_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: <urlopen error [Errno 32] Broken pipe>"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.join_dimension_in_the_rollup_coarser_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.join_dimension_in_the_rollup_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: <urlopen error [Errno 32] Broken pipe>"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.join_dimension_not_in_the_rollup_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: <urlopen error [Errno 32] Broken pipe>"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.join_with_fan_out_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: <urlopen error [Errno 32] Broken pipe>"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.month_bucket_with_a_day_range_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.segment_in_the_rollup_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.segment_not_in_the_rollup_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.view_finer_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.view_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.view_joined_dimension_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.view_joined_dimension_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.view_non_additive_coarser_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.shape.view_other_dimension_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.time_zone.boundary_of_a_local_day_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.time_zone.coarser_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.time_zone.finer_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.time_zone.inside_a_local_day_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.time_zone.partitioned_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.time_zone.same_grain_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.type.count_distinct_approx_stops",
-      "status": "fail",
-      "reason": "GET http://127.0.0.1:4400/cubejs-api/v1/meta: [Errno 104] Connection reset by peer"
+      "status": "partial",
+      "reason": "Cube has no sketch that ClickHouse can write and Cube Store can read. A rollup of count_distinct_approx stops each query on that measure, and each run of the refresh worker, so all other rollups go stale. No number is wrong while the query stops. The driver shows a clear message. The live model has no such rollup. A query with no such rollup reads the table."
     },
     {
       "id": "preagg.type.original_sql_in_clickhouse",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.type.original_sql_in_cube_store",
-      "status": "fail",
-      "reason": "GET http://127.0.0.1:4400/cubejs-api/v1/meta: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.type.rollup_join_coarser_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.type.rollup_join_filter_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.type.rollup_join_finer_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.type.rollup_join_other_dimension_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.type.rollup_join_other_measure_miss",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.type.rollup_join_same_grain_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.type.rollup_join_through_metabase",
-      "status": "fail",
-      "reason": "unexpected ConnectionResetError: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.type.rollup_join_total_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.type.rollup_lambda_after_the_batch_with_source",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "partial",
+      "reason": "A run gives the truth or the error of cube-js/cube#12285, Stream query failed: aborted. The driver shows a clear message, and no number is wrong."
     },
     {
       "id": "preagg.type.rollup_lambda_filter_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.type.rollup_lambda_inside_the_batch_hit",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.type.rollup_lambda_miss_on_a_finer_grain",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.type.rollup_lambda_over_the_batch_with_source",
-      "status": "fail",
-      "reason": "POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer"
+      "status": "partial",
+      "reason": "A run gives the truth or the error of cube-js/cube#12285, Stream query failed: aborted. The driver shows a clear message, and no number is wrong."
     },
     {
       "id": "preagg.metabase.time_zone_one_bound_miss",
-      "status": "fail",
-      "reason": "unexpected ConnectionResetError: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.metabase.time_zone_range_next_to_a_filter_hit",
-      "status": "fail",
-      "reason": "unexpected ConnectionResetError: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.metabase.time_zone_range_without_a_bucket_hit",
-      "status": "fail",
-      "reason": "unexpected ConnectionResetError: [Errno 104] Connection reset by peer"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.refresh.scheduled_refresh_false_stays_old_until_a_job",
@@ -5442,8 +5442,8 @@
     },
     {
       "id": "preagg.type.original_sql_in_cube_store_with_an_index_stops",
-      "status": "fail",
-      "reason": "GET http://127.0.0.1:4400/cubejs-api/v1/meta: [Errno 104] Connection reset by peer"
+      "status": "partial",
+      "reason": "An index on an original_sql table in Cube Store names a column that the table does not have, so Cube stops with an error on each Cube. See cube-js/cube#7420. No number is wrong. The docs advise against this form."
     },
     {
       "id": "preagg.refresh.cron_key_keeps_the_old_number_inside_its_time",

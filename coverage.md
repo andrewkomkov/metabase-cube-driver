@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 999/1112 pass on Cube with the ClickHouse dialect** (999 pass, 19 partial, 1 blocked, 12 unsupported, 81 fail of 1112)
+**coverage: 1075/1112 pass on Cube with the ClickHouse dialect** (1075 pass, 24 partial, 1 blocked, 12 unsupported, 0 fail of 1112)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `53901ca51442`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41229968583), 2026-10-31.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `a3eed5ea6e29`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41233254370), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -324,7 +324,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `53901
 | `mb.field_values.search` | pass |  |
 | `mb.search.by_description` | pass |  |
 | `mb.search.measure` | pass |  |
-| `mb.search.segment` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-31T18:50:49.834224877Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"lib/type":"mbql/query","stages":[{"lib/type":"mbql.stage/mbql","source-table":42,"aggregation":[["count",{"lib |
+| `mb.search.segment` | pass |  |
 | `mb.search.table` | pass |  |
 | `mb.xray.candidates` | pass |  |
 | `mb.xray.table` | pass |  |
@@ -377,7 +377,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `53901
 | `mcp.run_saved_question` | pass |  |
 | `mcp.search` | pass |  |
 | `mcp.search.measure` | pass |  |
-| `mcp.search.segment` | fail | execute_query: Query failed: "This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Error executing query: ERROR: Planning Error: Initial planning error: Error during planning: No field named 'pa_types.paid'. Valid fields are 'orders.count', 'orders.unique_customers', 'orders.approx_customers', 'orders.revenue', 'orders.avg_order_value', 'orders.min_amount', 'orders.max_amount', 'orders.paid_revenue |
+| `mcp.search.segment` | pass |  |
 | `mcp.search.table_by_description` | pass |  |
 | `mcp.search.view_description` | pass |  |
 | `mcp.segment_write` | pass |  |
@@ -1008,93 +1008,93 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `53901
 | `preagg.non_additive.mixed_with_additive_miss` | pass |  |
 | `preagg.non_additive.ratio_with_a_distinct_leaf_miss` | pass |  |
 | `preagg.option.external_false_coarser_hit` | pass |  |
-| `preagg.option.external_false_hit` | fail | truth SQL failed: SELECT pa_loop_name FROM system.tables WHERE database = 'dev_pre_aggregations' AND pa_loop_name LIKE 'pa_options_internal%': Received exception from server (version 26.10.3): Code: 47. DB::Exception: Received from localhost:9000. DB::Exception: Unknown expression identifier `pa_loop_name`. In scope SELECT pa_loop_name FROM system.tables WHERE (database = 'dev_pre_aggregations') AND (pa_loop_name LIKE 'pa_options_internal% |
+| `preagg.option.external_false_hit` | pass |  |
 | `preagg.option.external_false_miss` | pass |  |
 | `preagg.option.index_aggregate_hit` | pass |  |
 | `preagg.option.index_on_a_null_column_hit` | pass |  |
 | `preagg.option.index_regular_hit` | pass |  |
-| `preagg.option.no_index` | fail | GET http://127.0.0.1:4400/cubejs-api/v1/meta: [Errno 104] Connection reset by peer |
-| `preagg.option.non_strict_inside_a_bucket_reads_whole_buckets` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.option.non_strict_on_a_boundary_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.option.read_only_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.option.scheduled_refresh_false_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.option.strict_date_range_inside_a_bucket_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.option.strict_date_range_on_a_boundary_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.option.two_time_dimensions_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.option.unique_key_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.option.use_original_sql_coarser_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.option.use_original_sql_same_grain_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.partition.day_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.partition.hour_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.partition.month_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.partition.quarter_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.partition.range_inside_a_day_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.partition.range_over_two_partitions_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.partition.week_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.partition.year_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.refresh.every_old_number_ends_in_time` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: <urlopen error [Errno 111] Connection refused> |
-| `preagg.refresh.incremental_keeps_a_partition_out_of_the_window` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: <urlopen error [Errno 111] Connection refused> |
-| `preagg.refresh.incremental_refreshes_the_update_window` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: <urlopen error [Errno 111] Connection refused> |
-| `preagg.refresh.long_key_keeps_the_old_number_inside_its_time` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.refresh.no_update_window_refreshes_only_the_last_partition` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.refresh.sql_key_old_number_ends_in_time` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.refresh.through_metabase` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.rolling.finer_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.rolling.running_same_grain_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.rolling.to_date_coarser_time_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.rolling.to_date_same_grain_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.rolling.trailing_coarser_time_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.rolling.trailing_same_grain_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.date_range_inside_a_bucket_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.date_range_on_day_boundary_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.date_range_on_month_boundary_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.extended_cube_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.extended_cube_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.filter_on_a_rollup_dimension_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.filter_on_another_dimension_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: <urlopen error [Errno 32] Broken pipe> |
-| `preagg.shape.join_dimension_in_the_rollup_coarser_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.join_dimension_in_the_rollup_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: <urlopen error [Errno 32] Broken pipe> |
-| `preagg.shape.join_dimension_not_in_the_rollup_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: <urlopen error [Errno 32] Broken pipe> |
-| `preagg.shape.join_with_fan_out_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: <urlopen error [Errno 32] Broken pipe> |
-| `preagg.shape.month_bucket_with_a_day_range_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.segment_in_the_rollup_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.segment_not_in_the_rollup_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.view_finer_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.view_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.view_joined_dimension_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.view_joined_dimension_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.view_non_additive_coarser_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.shape.view_other_dimension_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.time_zone.boundary_of_a_local_day_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.time_zone.coarser_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.time_zone.finer_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.time_zone.inside_a_local_day_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.time_zone.partitioned_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.time_zone.same_grain_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.type.count_distinct_approx_stops` | fail | GET http://127.0.0.1:4400/cubejs-api/v1/meta: [Errno 104] Connection reset by peer |
-| `preagg.type.original_sql_in_clickhouse` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.type.original_sql_in_cube_store` | fail | GET http://127.0.0.1:4400/cubejs-api/v1/meta: [Errno 104] Connection reset by peer |
-| `preagg.type.rollup_join_coarser_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.type.rollup_join_filter_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.type.rollup_join_finer_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.type.rollup_join_other_dimension_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.type.rollup_join_other_measure_miss` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.type.rollup_join_same_grain_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.type.rollup_join_through_metabase` | fail | unexpected ConnectionResetError: [Errno 104] Connection reset by peer |
-| `preagg.type.rollup_join_total_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.type.rollup_lambda_after_the_batch_with_source` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.type.rollup_lambda_filter_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.type.rollup_lambda_inside_the_batch_hit` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.type.rollup_lambda_miss_on_a_finer_grain` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.type.rollup_lambda_over_the_batch_with_source` | fail | POST http://127.0.0.1:4400/cubejs-api/v1/load: [Errno 104] Connection reset by peer |
-| `preagg.metabase.time_zone_one_bound_miss` | fail | unexpected ConnectionResetError: [Errno 104] Connection reset by peer |
-| `preagg.metabase.time_zone_range_next_to_a_filter_hit` | fail | unexpected ConnectionResetError: [Errno 104] Connection reset by peer |
-| `preagg.metabase.time_zone_range_without_a_bucket_hit` | fail | unexpected ConnectionResetError: [Errno 104] Connection reset by peer |
+| `preagg.option.no_index` | pass |  |
+| `preagg.option.non_strict_inside_a_bucket_reads_whole_buckets` | partial | allow_non_strict_date_range_match: true on a rollup is the slight discrepancy of the docs. With a range inside a bucket, the rollup gives other rows than the truth, with no error. The env var that this stack and docs/query-compilation.md set to false does not change a rollup with this key. |
+| `preagg.option.non_strict_on_a_boundary_hit` | pass |  |
+| `preagg.option.read_only_hit` | pass |  |
+| `preagg.option.scheduled_refresh_false_hit` | pass |  |
+| `preagg.option.strict_date_range_inside_a_bucket_miss` | pass |  |
+| `preagg.option.strict_date_range_on_a_boundary_hit` | pass |  |
+| `preagg.option.two_time_dimensions_hit` | pass |  |
+| `preagg.option.unique_key_hit` | pass |  |
+| `preagg.option.use_original_sql_coarser_hit` | pass |  |
+| `preagg.option.use_original_sql_same_grain_hit` | pass |  |
+| `preagg.partition.day_hit` | pass |  |
+| `preagg.partition.hour_hit` | pass |  |
+| `preagg.partition.month_hit` | pass |  |
+| `preagg.partition.quarter_hit` | pass |  |
+| `preagg.partition.range_inside_a_day_miss` | pass |  |
+| `preagg.partition.range_over_two_partitions_hit` | pass |  |
+| `preagg.partition.week_hit` | pass |  |
+| `preagg.partition.year_hit` | pass |  |
+| `preagg.refresh.every_old_number_ends_in_time` | pass |  |
+| `preagg.refresh.incremental_keeps_a_partition_out_of_the_window` | pass |  |
+| `preagg.refresh.incremental_refreshes_the_update_window` | pass |  |
+| `preagg.refresh.long_key_keeps_the_old_number_inside_its_time` | pass |  |
+| `preagg.refresh.no_update_window_refreshes_only_the_last_partition` | pass |  |
+| `preagg.refresh.sql_key_old_number_ends_in_time` | pass |  |
+| `preagg.refresh.through_metabase` | pass |  |
+| `preagg.rolling.finer_miss` | pass |  |
+| `preagg.rolling.running_same_grain_hit` | pass |  |
+| `preagg.rolling.to_date_coarser_time_hit` | pass |  |
+| `preagg.rolling.to_date_same_grain_hit` | pass |  |
+| `preagg.rolling.trailing_coarser_time_hit` | pass |  |
+| `preagg.rolling.trailing_same_grain_hit` | pass |  |
+| `preagg.shape.date_range_inside_a_bucket_miss` | pass |  |
+| `preagg.shape.date_range_on_day_boundary_hit` | pass |  |
+| `preagg.shape.date_range_on_month_boundary_hit` | pass |  |
+| `preagg.shape.extended_cube_hit` | pass |  |
+| `preagg.shape.extended_cube_miss` | pass |  |
+| `preagg.shape.filter_on_a_rollup_dimension_hit` | pass |  |
+| `preagg.shape.filter_on_another_dimension_miss` | pass |  |
+| `preagg.shape.join_dimension_in_the_rollup_coarser_hit` | pass |  |
+| `preagg.shape.join_dimension_in_the_rollup_hit` | pass |  |
+| `preagg.shape.join_dimension_not_in_the_rollup_miss` | pass |  |
+| `preagg.shape.join_with_fan_out_miss` | pass |  |
+| `preagg.shape.month_bucket_with_a_day_range_hit` | pass |  |
+| `preagg.shape.segment_in_the_rollup_hit` | pass |  |
+| `preagg.shape.segment_not_in_the_rollup_miss` | pass |  |
+| `preagg.shape.view_finer_miss` | pass |  |
+| `preagg.shape.view_hit` | pass |  |
+| `preagg.shape.view_joined_dimension_hit` | pass |  |
+| `preagg.shape.view_joined_dimension_miss` | pass |  |
+| `preagg.shape.view_non_additive_coarser_miss` | pass |  |
+| `preagg.shape.view_other_dimension_miss` | pass |  |
+| `preagg.time_zone.boundary_of_a_local_day_hit` | pass |  |
+| `preagg.time_zone.coarser_hit` | pass |  |
+| `preagg.time_zone.finer_miss` | pass |  |
+| `preagg.time_zone.inside_a_local_day_miss` | pass |  |
+| `preagg.time_zone.partitioned_hit` | pass |  |
+| `preagg.time_zone.same_grain_hit` | pass |  |
+| `preagg.type.count_distinct_approx_stops` | partial | Cube has no sketch that ClickHouse can write and Cube Store can read. A rollup of count_distinct_approx stops each query on that measure, and each run of the refresh worker, so all other rollups go stale. No number is wrong while the query stops. The driver shows a clear message. The live model has no such rollup. A query with no such rollup reads the table. |
+| `preagg.type.original_sql_in_clickhouse` | pass |  |
+| `preagg.type.original_sql_in_cube_store` | pass |  |
+| `preagg.type.rollup_join_coarser_hit` | pass |  |
+| `preagg.type.rollup_join_filter_hit` | pass |  |
+| `preagg.type.rollup_join_finer_miss` | pass |  |
+| `preagg.type.rollup_join_other_dimension_miss` | pass |  |
+| `preagg.type.rollup_join_other_measure_miss` | pass |  |
+| `preagg.type.rollup_join_same_grain_hit` | pass |  |
+| `preagg.type.rollup_join_through_metabase` | pass |  |
+| `preagg.type.rollup_join_total_hit` | pass |  |
+| `preagg.type.rollup_lambda_after_the_batch_with_source` | partial | A run gives the truth or the error of cube-js/cube#12285, Stream query failed: aborted. The driver shows a clear message, and no number is wrong. |
+| `preagg.type.rollup_lambda_filter_hit` | pass |  |
+| `preagg.type.rollup_lambda_inside_the_batch_hit` | pass |  |
+| `preagg.type.rollup_lambda_miss_on_a_finer_grain` | pass |  |
+| `preagg.type.rollup_lambda_over_the_batch_with_source` | partial | A run gives the truth or the error of cube-js/cube#12285, Stream query failed: aborted. The driver shows a clear message, and no number is wrong. |
+| `preagg.metabase.time_zone_one_bound_miss` | pass |  |
+| `preagg.metabase.time_zone_range_next_to_a_filter_hit` | pass |  |
+| `preagg.metabase.time_zone_range_without_a_bucket_hit` | pass |  |
 | `preagg.refresh.scheduled_refresh_false_stays_old_until_a_job` | pass |  |
 | `preagg.shape.segment_left_out_hit` | pass |  |
 | `preagg.type.rollup_lambda_gap_loses_the_last_partition` | partial | Cube reads each rollup of a rollup_lambda only up to the start of its last partition. If the next rollup does not hold that partition, those rows are not in the result, with no error. The docs say that the speed layer must hold the newer data. The model must overlap, see preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit. |
 | `preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit` | pass |  |
-| `preagg.type.original_sql_in_cube_store_with_an_index_stops` | fail | GET http://127.0.0.1:4400/cubejs-api/v1/meta: [Errno 104] Connection reset by peer |
+| `preagg.type.original_sql_in_cube_store_with_an_index_stops` | partial | An index on an original_sql table in Cube Store names a column that the table does not have, so Cube stops with an error on each Cube. See cube-js/cube#7420. No number is wrong. The docs advise against this form. |
 | `preagg.refresh.cron_key_keeps_the_old_number_inside_its_time` | pass |  |
 | `context.compile_context` | pass |  |
 | `security.access_policy_groups` | pass |  |
