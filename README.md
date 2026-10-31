@@ -50,6 +50,8 @@ chmod 777 "$MB_PLUGINS_DIR"
 `MB_PLUGINS_DIR` is the plugins directory of your Metabase. If Metabase cannot write to it, Metabase uses `/tmp` and
 starts with no error and no Cube driver. Look for `Registered driver :cube` in its log. See [`docs/install.md`](docs/install.md).
 
+On ClickHouse, also install [`cube-clickhouse`](cube-clickhouse/README.md) on Cube, in one step. It holds the fixes that wait for a change in Cube, on the stock image.
+
 ## Connect
 
 The connection fields are in [`resources/metabase-plugin.yaml`](resources/metabase-plugin.yaml). These
@@ -66,16 +68,22 @@ for fake data, and every port binds to the loopback interface only. Do not use t
 
 ## Known wrong numbers
 
-Most shapes where Cube gives a wrong number now stop with a clear message. See the list of what the driver stops in
-[How queries reach Cube](docs/query-compilation.md#what-the-driver-stops). The driver cannot stop these, so each gives a number with no error:
+Most shapes where Cube gives a wrong number now give the truth or stop with a clear message. See the list of what the driver stops in
+[How queries reach Cube](docs/query-compilation.md#what-the-driver-stops). The driver cannot stop these, so each gives a number with no error. With [the ClickHouse dialect](cube-clickhouse/README.md):
 
-- A time shift measure with no time bucket gives the total of all rows. Cube has no clear intent for this.
-- A custom granularity with an offset can give a wrong bin on a measure that a rollup serves. Use an `origin` before all rows.
-- A filter on a `DateTime64` column reads whole seconds, so a row in the first second after a bound of `>` is out.
-- A number above 2^53 loses digits.
-- A `propagate_filters_to_sub_query` dimension next to a second `sub_query` dimension with equal SQL reads the first subquery.
-- `between` with a time part in the MCP tool `execute_query` is whole days, because Metabase changes it before the driver.
-- Native SQL in a shape that the scan of the text does not read. See [Known wrong numbers](docs/query-compilation.md#known-wrong-numbers).
+- A long decimal below 2^53 loses digits, because the Cube SQL API has the type Double, and its value fits a Double. A dimension with `sql: toString(column)` keeps them.
+- Native `COUNT(*)` on no rows gives `NULL` where SQL gives 0.
+- Native `SELECT *`, or a raw select of a `switch` dimension, gives each row once for each value of the dimension.
+- Native SQL in a shape that the scan of the text does not read, such as an expression on the time column, or a filter in a `WITH` query.
+
+On stock Cube with no dialect, also:
+
+- Native `x >= a AND x < b` on a `DateTime64` leaves out the last second before `b`. The query builder has this only on a column with a rollup.
+- `NOT (x > t)` on a `DateTime64` compares whole seconds, and a time shift with `x > t` on a `DateTime64` leaves out the first second after `t`.
+- A raw `DateTime64` value shows whole seconds.
+- With `CUBEJS_TESSERACT_SQL_PLANNER=false`, which is not the default, each bucket of a rolling window gets one wrong number.
+
+The table with the entries is in [Known wrong numbers](docs/query-compilation.md#known-wrong-numbers).
 
 ## Use with an AI agent
 

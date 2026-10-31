@@ -45,6 +45,22 @@ In Metabase, go to **Admin > Databases > Add database** and select **Cube**.
 
 Set `CUBEJS_PRE_AGGREGATIONS_ALLOW_NON_STRICT_DATE_RANGE_MATCH=false` and raise `CUBEJS_DB_QUERY_LIMIT` on Cube. With the defaults, Cube returns wrong numbers with no error. See [How queries reach Cube](query-compilation.md).
 
+## Memory of Cube
+
+The SQL API of Cube keeps the rewrite graph of each query in memory, up to 500 graphs in each of two caches, for each of 100 compiled models. A graph is several MB. A change of the data model makes a new compiled model, so in dev mode the memory grows with each change. On the demo stack, one run of the suite took 2.6 GB, and a process that lived through a few runs reached 7.5 GB. The memory stays until the entries go idle for one hour.
+
+Set `CUBESQL_QUERY_CACHE_SIZE` and `CUBEJS_COMPILER_CACHE_SIZE`, and give the container a memory limit. The demo stack has `50`, `4` and `2g`. A query that is not in the cache takes the time of a new rewrite, which is at most about a second.
+
+## The ClickHouse dialect
+
+On ClickHouse, install [`cube-clickhouse`](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) in one step: copy the directory next to `cube.js`, then add `...require('./cube-clickhouse')` to the export of `cube.js`. With no `cube.js`:
+
+```sh
+echo "module.exports = require('./cube-clickhouse');" > cube.js
+```
+
+It holds the fixes that wait for a change in Cube, as a subclass of `ClickHouseQuery`, on the stock `cubejs/cube` image. The driver works with no dialect too. Then it stops more queries with a clear message, see [How queries reach Cube](query-compilation.md#date-bounds).
+
 ## Demo stack
 
 Start the demo stack with `make up`. These are fixed throwaway values for fake data, and each port binds
@@ -55,3 +71,6 @@ to the loopback interface only.
 | Cube SQL API | `127.0.0.1:15433` | `cube:15432` |
 | Cube REST API | `127.0.0.1:4400` | `cube:4000` |
 | Metabase | `127.0.0.1:3300` | not applicable |
+| Mail catcher, its web page | `127.0.0.1:8025` | `mail:1025` for SMTP |
+
+The demo stack uses `cube-clickhouse`. Set `CUBE_CLICKHOUSE_FIXES=off` for stock Cube.

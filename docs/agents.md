@@ -78,7 +78,7 @@ A join with `ON` fails. Cube takes the join condition from the data model.
 | `through different join paths` | Use one of the two columns in a query, or a view with a join alias for each path. |
 | `Cube reads > on` | In native SQL, write `>=` with the next second. |
 | `Cube reads the end of BETWEEN` | In native SQL, write the time in the literals, or use `>=` and `<`. |
-| `Cube reads a time as whole seconds` | Use a range with `>=` and `<` in place of `=`. |
+| `Cube drops the fraction of a second` | Use whole seconds, with `>=` and `<=`. |
 
 ## Numbers that you must not trust
 
