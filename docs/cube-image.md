@@ -91,4 +91,4 @@ gh workflow run cube-image.yml -f tag=v1.8.15 -f test-mode=bad-patch
 gh workflow run cube-image.yml -f tag=v1.8.15 -f test-mode=empty-queue
 ```
 
-Each opens one issue. Close it after the test. `python3 cube-image/test_image.py` tests the decisions with no network.
+Each opens one issue. Close it after the test. The input `clickhouse-version` runs the gate on another ClickHouse, and this run also publishes nothing. `python3 cube-image/test_image.py` tests the decisions with no network.
