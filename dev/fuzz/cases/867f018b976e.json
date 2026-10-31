@@ -1,0 +1,49 @@
+{
+ "found": {
+  "diff": "row 0: got ['2025-04-01T00:00:00Z', None], truth ['2025-04-01', '0']",
+  "error": null,
+  "index": 1043,
+  "seed": "7001",
+  "truth_sql": "SELECT b, countIf(t > toDateTime(0, 'UTC') AND t <= e) FROM (SELECT DISTINCT toStartOfQuarter(d) AS b, addSeconds(toDateTime(toStartOfQuarter(d) + INTERVAL 1 QUARTER, 'UTC'), -1) AS e FROM (SELECT toDate('2025-04-01') + toIntervalDay(number) AS d FROM numbers(toUInt64(dateDiff('day', toDate('2025-04-01'), toDate('2025-10-01')))))) AS s CROSS JOIN (SELECT toTimeZone(o.created_at, 'UTC') AS t, toNullable(o.amount) AS amt FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE (toString(o.status) IN ('no such')) UNION ALL SELECT toDateTime(0, 'UTC'), CAST(NULL, 'Nullable(Decimal(12, 2))')) AS r GROUP BY b SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "m": "cumulative_count"
+   }
+  ],
+  "by": [
+   {
+    "c": "created_at",
+    "unit": "quarter"
+   }
+  ],
+  "source": "orders",
+  "week": null,
+  "where": [
+   {
+    "c": "created_at",
+    "op": ">=",
+    "v": [
+     "2025-04-01"
+    ]
+   },
+   {
+    "c": "created_at",
+    "op": "<",
+    "v": [
+     "2025-10-01"
+    ]
+   },
+   {
+    "c": "status",
+    "op": "=",
+    "v": [
+     "no such"
+    ]
+   }
+  ],
+  "zone": null
+ }
+}

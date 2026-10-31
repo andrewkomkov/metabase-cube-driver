@@ -1,0 +1,50 @@
+{
+ "found": {
+  "diff": null,
+  "error": "ERROR: Database Execution Error: Query failed: Error: Column 'fk_aggregate.id' is not under aggregate function and not in GROUP BY keys. In query  cte_1 AS cte_1. ; query id: 4ce8fd2e-3530-4b2d-a10f-87e61cdf576b-2424fd4c-80cb-428f-afb3-5c27ca141dcf",
+  "index": 307,
+  "seed": "7001",
+  "truth_sql": "SELECT count() AS o0 FROM (SELECT o.id AS c0, toBool(o.status IN ('completed','shipped')) AS c1, toString(o.status) AS c2, o.product_id AS c3, o.amount AS c4 FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE (positionUTF8(if(o.quantity >= 3, 'large', 'small'), 'lar') > 0)) WHERE ((c2 != '%' OR c2 IS NULL)) SETTINGS join_use_nulls = 1",
+  "verdict": "raw_error"
+ },
+ "spec": {
+  "fields": [
+   "id",
+   "is_paid",
+   "status",
+   "product_id",
+   "amount"
+  ],
+  "measure_fields": [],
+  "source": "metric_types",
+  "stage": {
+   "agg": [
+    {
+     "f": "count"
+    }
+   ],
+   "by": [],
+   "via": "inline",
+   "where": [
+    {
+     "i": 2,
+     "op": "!=",
+     "v": [
+      "%"
+     ]
+    }
+   ]
+  },
+  "week": null,
+  "where": [
+   {
+    "c": "size",
+    "op": "contains",
+    "v": [
+     "lar"
+    ]
+   }
+  ],
+  "zone": null
+ }
+}

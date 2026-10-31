@@ -1386,6 +1386,8 @@
           (and (= agg-type :count) (nil? arg)) (zero-when-empty (parent driver clause))
           (nil? field)                         (parent driver clause)
           (not (own-aggregation? agg-type field)) (parent driver clause)
+          ;; A time series keeps each bucket, so a window of no rows is a row with NULL, and SQL has 0 there.
+          (= "cube.measure/cumulative-count" (str (:database-type field))) [:coalesce [:measure (sql.qp/->honeysql driver arg)] [:inline 0]]
           (count-field? field)                 (zero-when-empty [:measure (sql.qp/->honeysql driver arg)])
           :else                                [:measure (sql.qp/->honeysql driver arg)])))))
 
@@ -2056,6 +2058,9 @@
    ["lead to row multiplication"
     (str "Cube cannot add up an expression on columns of two joined cubes, because a join multiplies rows. Add a measure to the data "
          "model, or start from one cube.")]
+   ["is not under aggregate function"
+    (str "Cube wrote SQL that ClickHouse cannot run for this cube, with a filter inside the first stage and an aggregation in the next. "
+         "Put the filter in the last stage, or use one stage.")]
    ["duplicate unqualified field name"
     (str "Cube cannot plan a bin next to this aggregation, because two parts of the query have one name. Use a measure in place of the "
          "aggregation, or add a dimension for the bin to the data model.")]

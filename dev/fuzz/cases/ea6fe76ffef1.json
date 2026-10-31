@@ -1,0 +1,47 @@
+{
+ "found": {
+  "diff": null,
+  "error": "ERROR: Database Execution Error: Query failed: Error: Column 'fk_aggregate.id' is not under aggregate function and not in GROUP BY keys. In query  cte_1 AS cte_1. ; query id: 04ceec1b-7c87-4640-8424-c7bb3cb93c93-653f5838-14a0-406d-95e5-a514a377e0f8",
+  "index": 673,
+  "seed": "7001",
+  "truth_sql": "SELECT count() AS o0 FROM (SELECT o.id AS c0, o.product_id AS c1, o.quantity AS c2, toBool(o.status IN ('completed','shipped')) AS c3, o.user_id AS c4, 1 AS c5, o.amount AS c6 FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE (toHour(toTimeZone(o.created_at, 'UTC')) = 23)) SETTINGS join_use_nulls = 1",
+  "verdict": "raw_error"
+ },
+ "spec": {
+  "fields": [
+   "id",
+   "product_id",
+   "quantity",
+   "is_paid",
+   "user_id"
+  ],
+  "measure_fields": [
+   "m_count",
+   "m_revenue"
+  ],
+  "source": "metric_types",
+  "stage": {
+   "agg": [
+    {
+     "f": "sum",
+     "i": 5
+    }
+   ],
+   "by": [],
+   "via": "inline",
+   "where": []
+  },
+  "week": null,
+  "where": [
+   {
+    "c": "created_at",
+    "op": "=",
+    "unit": "hour-of-day",
+    "v": [
+     23
+    ]
+   }
+  ],
+  "zone": null
+ }
+}
