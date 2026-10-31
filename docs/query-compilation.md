@@ -114,7 +114,9 @@ These queries fail with a message that tells what to do. The message includes th
 | Rolling window measure that is shorter than the bucket, such as month to date by a quarter | Cube can add the windows of the whole bucket, and no one number is what this means. A window of 30 days counts as a month, so it is allowed by a month. `/v1/sql` shows the window. |
 | Rolling window measure in days, by a month, a quarter or a year, when a rollup serves it | Cube Store reads the wrong days for a month that has another length than the month before it, with no error. The source gives the truth, and a window in months gives the truth from the rollup. `metric.rollup.day_window_by_month_refused` shows this. |
 | Rolling window with a length in months after the end of a bucket, such as `leading: 1 month, offset: end`, by a month, a quarter or a year | Cube reads whole months for each bucket except the last, and it cuts the last one at the end of its window. By a day, the number is right. |
-| Rolling window measure with a report time zone that is not UTC | Cube adds the wrong months together, also on its REST API. |
+| Rolling window measure with a report time zone that is not UTC, on stock Cube | Stock Cube reads the bounds of each window in UTC and adds the wrong months together, also on its REST API. The dialect gives the truth. See `zone.*.rolling`. |
+| A time shift measure with a report time zone that is not UTC, on stock Cube | Stock Cube adds the interval in UTC, so next to a clock change a row moves to another day. The dialect gives the truth. |
+| Rolling window measure by a week that starts on another day than Monday, with no custom granularity on the time dimension | The week is a number, so Cube has no time series. Add a granularity with `interval: 1 week` and the offset of that day. |
 | Rolling window measure on stock Cube with `CUBEJS_TESSERACT_SQL_PLANNER=false` | Each bucket gets one wrong number. `/v1/sql` shows the planner. The dialect gives the truth. |
 | A time shift measure with one date bound | Cube reads a time shift only with a date range, so it gives periods outside the filter. |
 | A time shift measure with `x > t` on stock Cube | A date range on stock Cube has no form for this bound that is right for a `DateTime64`. Use `>=` with the next second, or the dialect. |
@@ -146,7 +148,7 @@ The driver changes native SQL in one case: it writes `COALESCE(x, 0)` around a c
 | `x BETWEEN a AND 'yyyy-mm-dd'`, also `NOT BETWEEN` and a date parameter | This is documented behaviour of Cube: it pads a date with no time at the end of a date range to the end of that day, as [its REST API docs](https://github.com/cube-js/cube/blob/master/docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx) describe. SQL reads it as midnight, and the SQL API docs do not warn about it. Write the time, use `DATE 'yyyy-mm-dd'`, or use `>=` and `<`. |
 | `x > a AND x <= b` or `x < b` | See [Date bounds](#date-bounds). Write `>=` with the next second. |
 | Two columns from one member through different join paths | See the table above. |
-| A rolling window measure that is shorter than the bucket, or with a report time zone | See the table above. |
+| A rolling window measure that is shorter than the bucket, or with a report time zone on stock Cube | See the table above. |
 | `x = t` next to `DATE_TRUNC` on `x` | Cube returns the whole bucket. Write `x >= t AND x <= t`. |
 | `x LIKE` a pattern with a wildcard and a letter, also `NOT LIKE`, `STRPOS(x, 'a') > 0`, `LEFT(x, n) =` and `RIGHT(x, n) =` | Cube reads these as an operator that ignores case on ClickHouse. Write `ILIKE`, or `STRPOS(x, 'a') >= 1` to keep the case. |
 | A raw select of a `switch` dimension, also `SELECT *` | Each row comes once for each value. |

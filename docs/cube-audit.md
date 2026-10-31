@@ -1247,6 +1247,19 @@ These results come from that work.
 
 **A date filter under a report time zone did not read a rollup.** This was a defect of the driver. The driver wrote each bound in a form that Cube does not merge, because Cube reads a bound that is not in a date range as UTC. The number was right, and each query read ClickHouse. Now two bounds on a column with a rollup stay a date range in the zone. A third bound, one bound alone, and a bound inside `OR` or `NOT` keep the old form. See `preagg.metabase.time_zone_day_hit`.
 
+### rolling-window-zone
+
+**A rolling window under a time zone adds the wrong rows, with no error.** This has four causes in Cube, and `cube-clickhouse` fixes each one.
+
+1. The planner writes the bounds of each bucket as local times, and ClickHouse reads them in UTC. So in New York the first day of a month starts in the month before, and a window to date adds that month. East of UTC, a window also takes the first hours of the next bucket. The planner reads its templates once for all queries, and the data of `time_series_select` has no zone. So the template holds a mark, and the dialect writes the zone of the query in `buildSqlAndParamsRust`.
+2. The planner writes the range of a window as a local time with no offset, and each other range with `Z`. The dialect parses both with the zone of the query. Stock Cube and the old dialect cut the last hours of the range in New York, and the first hours in Kolkata.
+3. A time shift and a window add their interval to the raw column. On a column in UTC this adds 24 hours, so next to a clock change a row moves to another day. The dialect converts the value to the zone first, and ClickHouse then adds a day on the clock of that zone.
+4. On a rollup, the filter of a window converts a bucket with `CONVERT_TZ` and the offset of today, but a bucket of a rollup in a zone is a local time already. West of UTC the window loses its first bucket. The dialect sets `externalDialectFactory`, and its `convertTz` on Cube Store keeps the bucket.
+
+The driver asks Cube how it writes a window under the report time zone, and it stops the query on stock Cube. A request to the REST API of stock Cube has no driver in front of it, so it stays wrong. See the checks `zone.*.rolling` and `zone.*.rollup.rolling`.
+
+A rollup does not need a setting for a zone: Cube builds one table for each zone of a query, or for each zone in `CUBEJS_SCHEDULED_REFRESH_TIMEZONES` or in the selector of a job. A query never reads the table of another zone. See `zone.*.rollup.tables` and `zone.*.rollup.job`.
+
 ### Limits that stay
 
 | Form | Result | Entry |
