@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 1076,
+    "pass": 1279,
     "partial": 24,
     "blocked": 1,
     "unsupported": 12,
     "fail": 0,
-    "total": 1113
+    "total": 1316
   },
-  "coverage": "coverage: 1076/1113 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1279/1316 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -5452,6 +5452,1021 @@
     },
     {
       "id": "preagg.metabase.time_zone_relative_range_hit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a.report.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a.report.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a.report.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a.report.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a.report.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a.rest.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a.rest.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a.rest.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a.rest.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a.rest.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a.plain.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a.plain.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a.plain.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a.plain.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a.plain.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a64.report.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a64.report.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a64.report.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a64.report.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a64.report.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a64.rest.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a64.rest.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a64.rest.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a64.rest.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a64.rest.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a64.plain.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a64.plain.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a64.plain.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a64.plain.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.a64.plain.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.b.report.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.b.report.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.b.report.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.b.report.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.b.report.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.b.rest.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.b.rest.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.b.rest.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.b.rest.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.b.rest.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.b.plain.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.b.plain.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.b.plain.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.b.plain.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.b.plain.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.c.report.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.c.report.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.c.report.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.c.report.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.c.report.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.c.rest.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.c.rest.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.c.rest.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.c.rest.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.c.rest.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.c.plain.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.c.plain.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.c.plain.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.c.plain.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.c.plain.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.cs.report.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.cs.report.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.cs.report.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.cs.report.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.cs.report.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.cs.rest.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.cs.rest.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.cs.rest.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.cs.rest.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.cs.rest.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.cs.plain.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.cs.plain.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.cs.plain.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.cs.plain.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.cs.plain.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.d.report.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.d.report.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.d.report.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.d.report.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.d.report.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.d.rest.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.d.rest.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.d.rest.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.d.rest.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.d.rest.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.d.plain.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.d.plain.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.d.plain.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.d.plain.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.d.plain.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a.report.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a.report.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a.report.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a.report.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a.report.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a.rest.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a.rest.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a.rest.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a.rest.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a.rest.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a.plain.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a.plain.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a.plain.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a.plain.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a.plain.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a64.report.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a64.report.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a64.report.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a64.report.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a64.report.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a64.rest.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a64.rest.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a64.rest.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a64.rest.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a64.rest.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a64.plain.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a64.plain.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a64.plain.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a64.plain.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.a64.plain.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.b.report.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.b.report.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.b.report.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.b.report.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.b.report.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.b.rest.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.b.rest.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.b.rest.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.b.rest.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.b.rest.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.b.plain.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.b.plain.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.b.plain.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.b.plain.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.b.plain.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.c.report.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.c.report.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.c.report.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.c.report.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.c.report.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.c.rest.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.c.rest.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.c.rest.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.c.rest.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.c.rest.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.c.plain.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.c.plain.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.c.plain.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.c.plain.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.c.plain.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.cs.report.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.cs.report.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.cs.report.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.cs.report.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.cs.report.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.cs.rest.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.cs.rest.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.cs.rest.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.cs.rest.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.cs.rest.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.cs.plain.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.cs.plain.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.cs.plain.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.cs.plain.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.cs.plain.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.d.report.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.d.report.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.d.report.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.d.report.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.d.report.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.d.rest.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.d.rest.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.d.rest.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.d.rest.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.d.rest.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.d.plain.day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.d.plain.coarse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.d.plain.filter",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.d.plain.stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.d.plain.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.rollup.tables",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.rollup.job",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.rollup.metabase",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.rollup.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.rollup.stored_day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.rollup.text_day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.rollup.tables",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.rollup.job",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.rollup.metabase",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.rollup.rolling",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.rollup.stored_day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.rollup.text_day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.stored_day_other_zone",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.time_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.native",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.mcp",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.ny.catalog",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.stored_day_other_zone",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.time_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.native",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.mcp",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.kol.catalog",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.rolling.sunday_week_with_no_granularity_refused",
       "status": "pass",
       "reason": ""
     },
