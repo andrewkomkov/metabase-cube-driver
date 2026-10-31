@@ -6,18 +6,18 @@
   "clickhouse": "26.10.3-alpine",
   "clickhouse_fixes": "off",
   "conformance": "failure",
-  "coverage": "coverage: 728/767 pass on stock Cube",
+  "coverage": "coverage: 729/767 pass on stock Cube",
   "counts": {
-   "pass": 728,
-   "partial": 13,
+   "pass": 729,
+   "partial": 11,
    "blocked": 1,
    "unsupported": 12,
-   "fail": 13,
+   "fail": 14,
    "total": 767
   },
   "state": "candidate",
   "patches": "B1,datetime64,interval,M1-M2,N1,geo,propagate,gran,m5,N2,big",
-  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41201389241",
+  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41204830989",
   "date": "2026-10-31"
  },
  {
@@ -27,18 +27,18 @@
   "clickhouse": "26.10.3-alpine",
   "clickhouse_fixes": "on",
   "conformance": "failure",
-  "coverage": "coverage: 740/767 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 741/767 pass on Cube with the ClickHouse dialect",
   "counts": {
-   "pass": 740,
-   "partial": 13,
+   "pass": 741,
+   "partial": 11,
    "blocked": 1,
    "unsupported": 12,
-   "fail": 1,
+   "fail": 2,
    "total": 767
   },
   "state": "candidate",
   "patches": "B1,datetime64,interval,M1-M2,N1,geo,propagate,gran,m5,N2,big",
-  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41201389241",
+  "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41204830989",
   "date": "2026-10-31"
  }
 ]
