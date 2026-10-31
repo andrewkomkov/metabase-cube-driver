@@ -49,7 +49,9 @@
   [details cube-meta cube-name]
   (let [cube (or (some->> cube-name (cube-named cube-meta))
                  (first (filter (comp seq real-time-dimensions) (:cubes cube-meta))))
-        time-dimension (first (real-time-dimensions cube))]
+        ;; Each time dimension of a view is an alias.
+        time-dimension (or (first (real-time-dimensions cube))
+                           (first (filter #(= "time" (:type %)) (:dimensions cube))))]
     (if-not time-dimension
       true
       (cached details [:keeps-fractions (:name cube)]

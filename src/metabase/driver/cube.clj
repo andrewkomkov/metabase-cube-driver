@@ -314,6 +314,15 @@
   "True if a measure of this query needs a date range: a rolling window or a time shift reads no other filter as a range."
   false)
 
+(def ^:private ^:dynamic *inside-not*
+  "True inside a NOT. Cube does not merge it into a date range, and the form with IS NULL would keep the rows with no value."
+  false)
+
+(defmethod sql.qp/->honeysql [:cube :not]
+  [driver clause]
+  (binding [*inside-not* true]
+    ((get-method sql.qp/->honeysql [:postgres :not]) driver clause)))
+
 (defn- plain-bound-time
   "The time of the value in a comparison of a column with no time bucket, or nil."
   ^LocalDateTime [field value]
@@ -375,7 +384,7 @@
   (let [t (plain-bound-time field value)]
     (check-no-fraction! field t)
     (cond
-      (or (nil? t) (exact-bounds? field)) (postgres-clause driver clause)
+      (or (nil? t) *inside-not* (exact-bounds? field)) (postgres-clause driver clause)
       ;; A rolling window or a time shift reads whole buckets, so the rows inside one second do not change it.
       *keep-date-ranges* (postgres-clause driver [:>= opts field (at-time (.plusSeconds (whole-second-down t) 1))])
       :else (not-merged driver field (postgres-clause driver clause)))))
@@ -389,7 +398,7 @@
   [driver [_ _opts field value :as clause]]
   (let [t (plain-bound-time field value)]
     (check-no-fraction! field t)
-    (if (or (nil? t) *keep-date-ranges* (exact-bounds? field) (rollup-on-column? field))
+    (if (or (nil? t) *inside-not* *keep-date-ranges* (exact-bounds? field) (rollup-on-column? field))
       (postgres-clause driver clause)
       (not-merged driver field (postgres-clause driver clause)))))
 

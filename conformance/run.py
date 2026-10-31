@@ -5773,7 +5773,6 @@ def _(ctx):
     if not ids:
         raise Fail("the document has no card: %s" % text[:600])
     assert_rows(ctx.mb.run_card(ids[0])["rows"], ch(STATUS_CNT))
-    ctx.mcp.call("document_write", method="update", id=doc_id, archived=True)
 
 
 @check("mcp.glossary")
