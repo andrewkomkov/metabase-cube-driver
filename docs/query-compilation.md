@@ -193,6 +193,13 @@ A custom expression `a / b` of two measures gives the same number as the Cube me
 
 ClickHouse is fast on this table, and Metabase adds most of the time to a small result. The rollup gains more when a query has more rows to scan.
 
+`preagg.latency.big_orders_hit_is_faster_than_a_miss` compares a hit and a miss on the REST API of Cube, with no cached result. It proves each one from `usedPreAggregations`. One run gave these medians of five:
+
+| Query on `big_orders` | Rollup | Time |
+| --- | --- | --- |
+| Revenue by status and month | `daily`, a hit | 56 ms |
+| Revenue by customer and year | none, a miss that reads 10 million rows | 2441 ms |
+
 ## Limits of Cube that the driver cannot change
 
 - A number above 2^53 stops with a clear message, because the Cube SQL API has the type Double, and the ClickHouse driver of Cube sends JSON numbers. `SELECT ui64` read 9007199254740996 where the truth is 9007199254740995. A long decimal below 2^53 fits a Double, so the driver cannot see it. A dimension with `sql: toString(column)` keeps the digits of both.
