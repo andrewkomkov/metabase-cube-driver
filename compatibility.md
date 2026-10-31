@@ -3,10 +3,13 @@
 CI generates this table from the version matrix. Do not edit it. Only the pinned pair is required.
 The other pairs report only.
 
-| Metabase | Cube | ClickHouse | Pair | Jar loads | Conformance | Coverage | Run |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `v0.64.3` | `v1.8.15` | `26.8.36-alpine` | pinned | success | failure | coverage: 314/405 pass | [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41073915153) |
-| `v0.63.22.1` | `v1.8.15` | `26.8.36-alpine` | report only | success | failure | coverage: 223/405 pass | [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41073915153) |
-| `v0.65.0.14-beta` | `v1.8.15` | `26.8.36-alpine` | report only | success | failure | coverage: 281/405 pass | [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41073915153) |
+| Metabase | Cube | ClickHouse | cube-clickhouse | Pair | Jar loads | Conformance | Coverage | Run |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `v0.65.2.3` | `v1.8.15` | `26.8.36-alpine` | on | pinned | success | failure | coverage: 739/767 pass on Cube with the ClickHouse dialect | [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41190161590) |
+| `v0.65.2.3` | `v1.8.15` | `26.8.36-alpine` | off | pinned | success | failure | coverage: 735/767 pass on stock Cube | [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41190161590) |
+| `v0.64.4.4` | `v1.8.15` | `26.8.36-alpine` | on | report only | success | failure | coverage: 739/767 pass on Cube with the ClickHouse dialect | [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41190161590) |
+| `v0.64.4.4` | `v1.8.15` | `26.8.36-alpine` | off | report only | success | failure | coverage: 735/767 pass on stock Cube | [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41190161590) |
+| `v0.65.0.14-beta` | `v1.8.15` | `26.8.36-alpine` | on | report only | success | failure | coverage: 739/767 pass on Cube with the ClickHouse dialect | [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41190161590) |
+| `v0.65.0.14-beta` | `v1.8.15` | `26.8.36-alpine` | off | report only | success | failure | coverage: 735/767 pass on stock Cube | [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41190161590) |
 
-Commit `6398413bc0e7`, 2026-10-30.
+Commit `0040e687a25c`, 2026-10-31.
