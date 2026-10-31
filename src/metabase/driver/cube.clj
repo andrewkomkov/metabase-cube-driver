@@ -457,8 +457,8 @@
   [[_ _ field]]
   (when (and (vector? field)
              (= :field (first field))
-             (contains? #{nil :default} (:temporal-unit (nth field 2 nil))))
-    (second field)))
+             (contains? #{nil :default} (:temporal-unit (second field))))
+    (nth field 2)))
 
 (defn- range-of-column
   "The clauses of the only two bounds, or the only `between`, on one column with a rollup. Cube reads these as a date range in the zone

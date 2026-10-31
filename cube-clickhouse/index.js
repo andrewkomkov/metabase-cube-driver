@@ -49,6 +49,17 @@ class ClickHouseFixes extends ClickHouseQuery {
     return `SELECT parseDateTimeBestEffort(dates.1) as date_from, parseDateTimeBestEffort(dates.2) as date_to FROM (SELECT arrayJoin(arrayZip(${from}, ${to})) as dates)`;
   }
 
+  // Range of a partitioned rollup: no pull request yet, see docs/cube-audit.md#rollup-range-zone.
+  // Cube reads the first and the last time of the data as UTC. convertTz gives them in the zone of the query, so west of UTC a rollup
+  // leaves out the last hours of the data, and east of UTC the first hours.
+  aggSelectForDimension(cube, dimension, aggFunction) {
+    const sql = super.aggSelectForDimension(cube, dimension, aggFunction);
+    if (!this.timezone || this.timezone === 'UTC') {
+      return sql;
+    }
+    return sql.replace(/^select (\w+)\((.*?)\) from /s, "select toTimeZone($1($2), 'UTC') from ");
+  }
+
   // m5: no pull request yet, branch fix/clickhouse-original-sql-no-index, see docs/cube-audit.md#m5.
   // An original_sql table has the columns of the cube SQL, and an index names members, so a sort key or an index on it fails.
   // A rollup with no index: no pull request yet. Stock Cube stops each query on it, but the docs give this form. See docs/cube-audit.md#rollup-no-index.

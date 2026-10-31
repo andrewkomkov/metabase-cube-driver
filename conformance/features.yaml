@@ -6371,12 +6371,6 @@
   status: todo
   status_stock: todo
   check: preagg.refresh.no_update_window_refreshes_only_the_last_partition
-- id: preagg.refresh.scheduled_refresh_false
-  area: cube.pre_aggregations
-  title: "preagg refresh scheduled refresh false"
-  status: todo
-  status_stock: todo
-  check: preagg.refresh.scheduled_refresh_false
 - id: preagg.refresh.sql_key_old_number_ends_in_time
   area: cube.pre_aggregations
   title: "preagg refresh sql key old number ends in time"
@@ -6503,12 +6497,6 @@
   status: todo
   status_stock: todo
   check: preagg.shape.segment_in_the_rollup_hit
-- id: preagg.shape.segment_left_out_miss
-  area: cube.pre_aggregations
-  title: "preagg shape segment left out miss"
-  status: todo
-  status_stock: todo
-  check: preagg.shape.segment_left_out_miss
 - id: preagg.shape.segment_not_in_the_rollup_miss
   area: cube.pre_aggregations
   title: "preagg shape segment not in the rollup miss"
@@ -6581,6 +6569,8 @@
   status: todo
   status_stock: todo
   check: preagg.time_zone.partitioned_hit
+  cap_stock: partial
+  reason_stock: "West of UTC, stock Cube leaves out the last hours of the data on a partitioned rollup with no build range end, with no error. East of UTC it leaves out the first hours. cube-clickhouse gives the truth."
 - id: preagg.time_zone.same_grain_hit
   area: cube.pre_aggregations
   title: "preagg time zone same grain hit"
@@ -6685,12 +6675,6 @@
   status: todo
   status_stock: todo
   check: preagg.type.rollup_lambda_miss_on_a_finer_grain
-- id: preagg.type.rollup_lambda_of_two_rollups_hit
-  area: cube.pre_aggregations
-  title: "preagg type rollup lambda of two rollups hit"
-  status: todo
-  status_stock: todo
-  check: preagg.type.rollup_lambda_of_two_rollups_hit
 - id: preagg.type.rollup_lambda_over_the_batch_with_source
   area: cube.pre_aggregations
   title: "preagg type rollup lambda over the batch with source"
@@ -6717,3 +6701,29 @@
   status: todo
   status_stock: todo
   check: preagg.metabase.time_zone_range_without_a_bucket_hit
+- id: preagg.refresh.scheduled_refresh_false_stays_old_until_a_job
+  area: cube.pre_aggregations
+  title: "preagg refresh scheduled refresh false stays old until a job"
+  status: todo
+  status_stock: todo
+  check: preagg.refresh.scheduled_refresh_false_stays_old_until_a_job
+- id: preagg.shape.segment_left_out_hit
+  area: cube.pre_aggregations
+  title: "preagg shape segment left out hit"
+  status: todo
+  status_stock: todo
+  check: preagg.shape.segment_left_out_hit
+- id: preagg.type.rollup_lambda_gap_loses_the_last_partition
+  area: cube.pre_aggregations
+  title: "preagg type rollup lambda gap loses the last partition"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_lambda_gap_loses_the_last_partition
+  cap: partial
+  reason: "Cube reads each rollup of a rollup_lambda only up to the start of its last partition. If the next rollup does not hold that partition, those rows are not in the result, with no error. The docs say that the speed layer must hold the newer data. The model must overlap, see preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit."
+- id: preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit
+  area: cube.pre_aggregations
+  title: "preagg type rollup lambda of two rollups with overlap hit"
+  status: todo
+  status_stock: todo
+  check: preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit

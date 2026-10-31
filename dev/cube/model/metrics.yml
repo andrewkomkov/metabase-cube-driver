@@ -803,6 +803,43 @@ cubes:
         indexes:
           - { name: idx, columns: [status] }
 
+  - name: pa_lambda_overlap
+    title: Rollup lambda with an overlap
+    description: A rollup_lambda with no source data. The second rollup holds the last partition of the first.
+    sql_table: shop.orders
+    refresh_key: { every: 1 hour }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string, description: Order status. }
+      - { name: created_at, sql: created_at, type: time, description: Time of the order. }
+    measures:
+      - { name: revenue, type: sum, sql: amount, description: Through the rollup_lambda. }
+    pre_aggregations:
+      - name: two_parts
+        type: rollup_lambda
+        union_with_source_data: false
+        rollups: [pa_lambda_overlap.first_half, pa_lambda_overlap.second_half]
+      - name: first_half
+        measures: [revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        partition_granularity: month
+        build_range_start: { sql: "SELECT toDateTime('2025-01-01 00:00:00', 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime('2025-06-30 23:59:59', 'UTC')" }
+        indexes:
+          - { name: idx, columns: [status] }
+      - name: second_half
+        measures: [revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        partition_granularity: month
+        build_range_start: { sql: "SELECT toDateTime('2025-06-01 00:00:00', 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime('2026-01-31 23:59:59', 'UTC')" }
+        indexes:
+          - { name: idx, columns: [status] }
+
   - name: pa_no_index
     title: Rollup with no index
     description: The smallest form in the docs. It has no index.
