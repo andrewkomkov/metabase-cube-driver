@@ -42,11 +42,12 @@ jobs:
     permissions:
       contents: read
     with:
-      name: Metabase ${{ matrix.metabase }} and Cube ${{ matrix.cube }}
+      name: Metabase ${{ matrix.metabase }} and Cube ${{ matrix.cube }} with cube-clickhouse ${{ matrix.fixes }}
       artifact-name: conformance-${{ matrix.id }}
       metabase-version: ${{ matrix.metabase }}
       cube-version: ${{ matrix.cube }}
       clickhouse-version: ${{ matrix.clickhouse }}
+      clickhouse-fixes: ${{ matrix.fixes }}
       required: ${{ matrix.required }}
       report-only: ${{ !matrix.required }}
 

@@ -13,6 +13,10 @@ inputs:
     description: ClickHouse image tag. Empty means the pin in the compose file.
     required: false
     default: ""
+  clickhouse-fixes:
+    description: on runs Cube with cube-clickhouse. off runs stock Cube.
+    required: false
+    default: "on"
 runs:
   using: composite
   steps:
@@ -22,14 +26,16 @@ runs:
         METABASE: ${{ inputs.metabase-version }}
         CUBE: ${{ inputs.cube-version }}
         CLICKHOUSE: ${{ inputs.clickhouse-version }}
+        FIXES: ${{ inputs.clickhouse-fixes }}
       run: |
+        echo "CUBE_CLICKHOUSE_FIXES=$FIXES" >> "$GITHUB_ENV"
         [ -z "$METABASE" ] || echo "METABASE_VERSION=$METABASE" >> "$GITHUB_ENV"
         [ -z "$CUBE" ] || echo "CUBE_VERSION=$CUBE" >> "$GITHUB_ENV"
         [ -z "$CLICKHOUSE" ] || echo "CLICKHOUSE_VERSION=$CLICKHOUSE" >> "$GITHUB_ENV"
     - name: Start ClickHouse and Cube
       shell: bash
       working-directory: dev
-      run: docker compose up -d --wait clickhouse cube cube-secure
+      run: docker compose up -d --wait clickhouse cube cube-secure cube-legacy mail browser
     - name: Check that Cube agrees with ClickHouse
       shell: bash
       working-directory: dev

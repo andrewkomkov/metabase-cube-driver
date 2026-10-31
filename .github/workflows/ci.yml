@@ -43,6 +43,16 @@ jobs:
       artifact-name: conformance-pinned
       load-check: false
 
+  conformance-stock:
+    uses: ./.github/workflows/reusable-stack.yml
+    permissions:
+      contents: read
+    with:
+      name: conformance on the pinned pair with stock Cube
+      artifact-name: conformance-pinned-stock
+      load-check: false
+      clickhouse-fixes: "off"
+
   status:
     needs: conformance
     if: ${{ !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
