@@ -58,7 +58,7 @@ class ClickHouseFixes extends ClickHouseQuery {
   }
 }
 
+// Cube refuses an unknown key in its options, so this exports only the option.
 module.exports = {
-  ClickHouseFixes,
   dialectFactory: ({ dbType }) => (dbType === 'clickhouse' ? ClickHouseFixes : undefined),
 };

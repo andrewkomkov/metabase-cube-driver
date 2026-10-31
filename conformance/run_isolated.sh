@@ -23,6 +23,18 @@ run_variant() {
   shift
   export CUBE_CLICKHOUSE_FIXES="$variant"
   compose up -d --wait clickhouse cube cube-secure cube-legacy mail browser
+  # A container that restarts counts as started, so this asks Cube.
+  for url in http://127.0.0.1:4400 http://127.0.0.1:4401 http://127.0.0.1:4402; do
+    tries=0
+    until curl -fsS -o /dev/null "$url/readyz"; do
+      tries=$((tries + 1))
+      if [ "$tries" -gt 60 ]; then
+        echo "error: $url did not start" >&2
+        return 2
+      fi
+      sleep 2
+    done
+  done
   compose exec -T clickhouse clickhouse-client -u shop --password shop-dev-only --multiquery < "$root/dev/clickhouse/seed-extra.sql"
   compose rm -sfv metabase-conformance
   docker volume rm -f metabase-cube-driver_metabase-conformance-data
