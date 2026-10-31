@@ -63,6 +63,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     continue-on-error: ${{ inputs.report-only }}
+    env:
+      CUBE_CLICKHOUSE_FIXES: ${{ inputs.clickhouse-fixes }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -90,7 +92,6 @@ jobs:
           metabase-version: ${{ inputs.metabase-version }}
           cube-version: ${{ inputs.cube-version }}
           clickhouse-version: ${{ inputs.clickhouse-version }}
-          clickhouse-fixes: ${{ inputs.clickhouse-fixes }}
 
       - name: Check that Metabase loads the jar
         id: load
@@ -126,7 +127,6 @@ jobs:
           LOAD: ${{ steps.load.outcome }}
           CONFORMANCE: ${{ steps.conformance.outcome }}
           REQUIRED: ${{ inputs.required }}
-          FIXES: ${{ inputs.clickhouse-fixes }}
           NAME: ${{ inputs.name }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
@@ -135,7 +135,7 @@ jobs:
           pins=$(python3 .github/scripts/pins.py read)
           [ "$STACK" = success ] || LOAD=stack-failed
           jq -n --argjson pins "$pins" --arg name "$NAME" --arg load "$LOAD" --arg conformance "$CONFORMANCE" \
-            --argjson required "$REQUIRED" --arg fixes "$FIXES" --arg sha "$(git rev-parse HEAD)" --arg run_url "$RUN_URL" --arg date "$(date -u +%F)" \
+            --argjson required "$REQUIRED" --arg fixes "$CUBE_CLICKHOUSE_FIXES" --arg sha "$(git rev-parse HEAD)" --arg run_url "$RUN_URL" --arg date "$(date -u +%F)" \
             --arg metabase "${METABASE_VERSION:-}" --arg cube "${CUBE_VERSION:-}" --arg clickhouse "${CLICKHOUSE_VERSION:-}" \
             '{name: $name, load: $load, conformance: $conformance, required: $required, clickhouse_fixes: $fixes, sha: $sha, run_url: $run_url, date: $date,
               metabase: (if $metabase == "" then $pins.metabase else $metabase end),
