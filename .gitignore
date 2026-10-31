@@ -12,3 +12,4 @@ __pycache__/
 /.clj-kondo/.cache/
 /.clj-kondo/.lsp/
 /.lsp/
+dev/review/out/

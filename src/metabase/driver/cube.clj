@@ -432,13 +432,28 @@
 
 (declare subquery-limit)
 
+(defn- reads-aggregated-stage?
+  "True if the compiled `form` reads a stage with an aggregation, also through stages with no aggregation."
+  [form]
+  (let [source (ffirst (:from form))]
+    (and (map? source)
+         (boolean (or (:group-by source)
+                      (= subquery-limit (:limit source))
+                      (reads-aggregated-stage? source))))))
+
 (doseq [clause-key [:filter :filters]]
   (defmethod sql.qp/apply-top-level-clause [:cube clause-key]
     [driver top-level-clause honeysql-form query]
-    (let [source (ffirst (:from honeysql-form))]
-      (binding [*over-aggregated-stage* (and (map? source)
-                                             (boolean (or (:group-by source) (= subquery-limit (:limit source)))))]
-        ((get-method sql.qp/apply-top-level-clause [:postgres top-level-clause]) driver top-level-clause honeysql-form query)))))
+    (binding [*over-aggregated-stage* (reads-aggregated-stage? honeysql-form)]
+      ((get-method sql.qp/apply-top-level-clause [:postgres top-level-clause]) driver top-level-clause honeysql-form query))))
+
+;; A total has one row, so its order has no effect. The MCP tools sort by the aggregation. With COALESCE around the measure, that order sends
+;; the query to the database, where stock Cube compares a time in whole seconds.
+(defmethod sql.qp/apply-top-level-clause [:cube :order-by]
+  [driver top-level-clause honeysql-form query]
+  (if (and (seq (:aggregation query)) (empty? (:breakout query)))
+    honeysql-form
+    ((get-method sql.qp/apply-top-level-clause [:postgres top-level-clause]) driver top-level-clause honeysql-form query)))
 
 (defn- post-processed-column?
   "True if this filter reads a column of an earlier stage with an aggregation. Cube keeps the limit on that stage, so this filter reads the

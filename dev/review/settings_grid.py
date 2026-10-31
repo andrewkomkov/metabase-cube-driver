@@ -98,6 +98,12 @@ def zone_shapes(tz):
     for name, clause, cond in (("equal", ["=", "d:typed_events.day", "2025-03-09"], "day = '2025-03-09'"), ("after", [">", "d:typed_events.day", "2025-03-09"], "day > '2025-03-09'"),
                                ("before", ["<", "d:typed_events.day", "2025-03-09"], "day < '2025-03-09'"), ("between", ["between", "d:typed_events.day", "2025-03-08", "2025-03-10"], "day BETWEEN '2025-03-08' AND '2025-03-10'")):
         out.append({"id": "tz/%s/Date filter %s" % (tz, name), "table": "typed_events", "agg": ["m:typed_events.count"], "where": [clause], "truth": "SELECT count() FROM typed_events WHERE %s" % cond})
+    # A stored day stays on its day, and it does not move twice. A time column makes its day in the zone.
+    for unit, expr in (("day", "day"), ("week", "toStartOfWeek(day)"), ("quarter", "toStartOfQuarter(day)"), ("year", "toStartOfYear(day)")):
+        out.append({"id": "tz/%s/Date by %s" % (tz, unit), "table": "typed_events", "agg": ["m:typed_events.count"], "by": ["d:typed_events.day@%s" % unit], "truth": "SELECT %s, count() FROM typed_events GROUP BY 1" % expr})
+    out.append({"id": "tz/%s/Date by day with a Date filter" % tz, "table": "typed_events", "agg": ["m:typed_events.count"], "by": ["d:typed_events.day@day"], "where": [["between", "d:typed_events.day", "2025-03-08", "2025-03-10"]],
+                "truth": "SELECT day, count() FROM typed_events WHERE day BETWEEN '2025-03-08' AND '2025-03-10' GROUP BY 1"})
+    out.append({"id": "tz/%s/UTC column by day" % tz, "table": "typed_events", "agg": ["m:typed_events.count"], "by": ["d:typed_events.ts_utc@day"], "truth": "SELECT toDate(%s), count() FROM typed_events GROUP BY 1" % X})
     # The same column type with no mark in the model.
     out.append({"id": "tz/%s/Date32 by month" % tz, "table": "typed_events", "agg": ["m:typed_events.count"], "by": ["d:typed_events.day32@month"], "truth": "SELECT toStartOfMonth(day32), count() FROM typed_events GROUP BY 1"})
     out.append({"id": "tz/%s/Date32 filter after" % tz, "table": "typed_events", "agg": ["m:typed_events.count"], "where": [[">", "d:typed_events.day32", "2025-03-09"]], "truth": "SELECT count() FROM typed_events WHERE day32 > '2025-03-09'"})
