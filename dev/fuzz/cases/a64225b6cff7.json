@@ -1,0 +1,30 @@
+{
+ "found": {
+  "diff": "row 0: got [0.5364], truth [0.5392]",
+  "error": null,
+  "index": 532,
+  "seed": "7201",
+  "truth_sql": "SELECT (sumOrNull(if((toDateTime(toDate(toTimeZone(o.created_at, 'Australia/Sydney')), 'Australia/Sydney') >= toDateTime(toDate(toDateTime64('2025-06-15', 3, 'Australia/Sydney')), 'Australia/Sydney')), 1, 0)) / count()) AS c0 FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE 1 SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "f": "share",
+    "p": {
+     "c": "created_at",
+     "op": ">=",
+     "unit": "day",
+     "v": [
+      "2025-06-15"
+     ]
+    }
+   }
+  ],
+  "by": [],
+  "source": "sales",
+  "week": null,
+  "where": [],
+  "zone": "Australia/Sydney"
+ }
+}

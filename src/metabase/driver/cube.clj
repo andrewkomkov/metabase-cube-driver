@@ -521,20 +521,29 @@
 (defn- zone-bound
   "A comparison of `field` with a time, in the form for a report time zone, or nil if this comparison is not one."
   [driver [op opts field value :as clause]]
-  (when (and (report-zone?)
-             (nil? *keep-date-ranges*)
-             (vector? field)
-             (= :field (first field))
-             (contains? #{nil :default} (:temporal-unit (second field)))
-             (not (post-processed-column?)))
-    (when-let [t (zone-bound-time value)]
-      (if (contains? *rollup-ranges* clause)
-        ;; The time of the session, also for a relative bound: Cube reads the two bounds of a date range in that zone.
-        (postgres-clause driver [op opts field (at-time t)])
-        (let [compiled (postgres-clause driver [op opts field (at-time (utc-time t))])]
-          (if (or *inside-not* *inside-case*)
-            compiled
-            (not-merged driver field compiled)))))))
+  (if (and (report-zone?)
+           *inside-case*
+           (vector? field)
+           (= :field (first field))
+           (bucket-rank (:temporal-unit (second field)))
+           (zone-bound-time value))
+    ;; A CASE goes to the database, which reads the literal as UTC and makes the bucket of the column in the zone. So the literal is the start of the
+    ;; bucket, in UTC.
+    (postgres-clause driver [op opts field (at-time (utc-time (zone-bound-time value)))])
+    (when (and (report-zone?)
+               (nil? *keep-date-ranges*)
+               (vector? field)
+               (= :field (first field))
+               (contains? #{nil :default} (:temporal-unit (second field)))
+               (not (post-processed-column?)))
+      (when-let [t (zone-bound-time value)]
+        (if (contains? *rollup-ranges* clause)
+          ;; The time of the session, also for a relative bound: Cube reads the two bounds of a date range in that zone.
+          (postgres-clause driver [op opts field (at-time t)])
+          (let [compiled (postgres-clause driver [op opts field (at-time (utc-time t))])]
+            (if (or *inside-not* *inside-case*)
+              compiled
+              (not-merged driver field compiled))))))))
 
 (defn- check-no-strict-bound-with-shift!
   "A time shift needs a date range, and a date range on stock Cube has no form for `x > t` that is right for a DateTime64."
