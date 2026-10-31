@@ -441,11 +441,56 @@
                       (= subquery-limit (:limit source))
                       (reads-aggregated-stage? source))))))
 
+(def ^:private ^:dynamic *rollup-ranges*
+  "The clauses of a filter that stay a date range in the zone of the session, so that a rollup can read them."
+  #{})
+
+(defn- filter-parts
+  "The clauses of a filter that an AND joins."
+  [clause]
+  (if (= :and (first clause))
+    (mapcat filter-parts (drop 2 clause))
+    [clause]))
+
+(defn- plain-column-id
+  "The id of the column of a comparison with no time bucket, or nil."
+  [[_ _ field]]
+  (when (and (vector? field)
+             (= :field (first field))
+             (contains? #{nil :default} (:temporal-unit (nth field 2 nil))))
+    (second field)))
+
+(defn- range-of-column
+  "The clauses of the only two bounds, or the only `between`, on one column with a rollup. Cube reads these as a date range in the zone
+  of the session, and a rollup needs a date range. A third bound or another filter on the column makes the literals UTC, so this gives nil."
+  [parts id]
+  (let [on-column  (filter #(some #{id} (tree-seq vector? seq %)) parts)
+        lower      (filter #(= :>= (first %)) on-column)
+        upper      (filter #(#{:< :<=} (first %)) on-column)
+        between    (filter #(= :between (first %)) on-column)
+        times      (fn [clause] (every? zone-bound-time (drop 3 clause)))]
+    (when (and (every? times on-column)
+               (every? #(= id (plain-column-id %)) on-column)
+               (rollup-on-column? (nth (first on-column) 2))
+               (or (= 1 (count on-column) (count between))
+                   (and (= 2 (count on-column)) (= 1 (count lower) (count upper)))))
+      on-column)))
+
+(defn- rollup-ranges
+  "See `*rollup-ranges*`. A stage over an aggregation filters the rows of a result, and those have no date range."
+  [clause over-aggregated-stage?]
+  (if (and (seq clause) (report-zone?) (not over-aggregated-stage?))
+    (let [parts (filter-parts clause)]
+      (into #{} (mapcat #(range-of-column parts %)) (distinct (keep plain-column-id parts))))
+    #{}))
+
 (doseq [clause-key [:filter :filters]]
   (defmethod sql.qp/apply-top-level-clause [:cube clause-key]
     [driver top-level-clause honeysql-form query]
-    (binding [*over-aggregated-stage* (reads-aggregated-stage? honeysql-form)]
-      ((get-method sql.qp/apply-top-level-clause [:postgres top-level-clause]) driver top-level-clause honeysql-form query))))
+    (let [over-aggregated (reads-aggregated-stage? honeysql-form)]
+      (binding [*over-aggregated-stage* over-aggregated
+                *rollup-ranges*         (rollup-ranges (get query clause-key) over-aggregated)]
+        ((get-method sql.qp/apply-top-level-clause [:postgres top-level-clause]) driver top-level-clause honeysql-form query)))))
 
 ;; A total has one row, so its order has no effect. The MCP tools sort by the aggregation. With COALESCE around the measure, that order sends
 ;; the query to the database, where stock Cube compares a time in whole seconds.
@@ -463,8 +508,9 @@
 
 (defn- zone-bound
   "A comparison of `field` with a time, in the form for a report time zone, or nil if this comparison is not one."
-  [driver [op opts field value]]
+  [driver [op opts field value :as clause]]
   (when (and (report-zone?)
+             (not (contains? *rollup-ranges* clause))
              (not= :shift *keep-date-ranges*)
              (vector? field)
              (= :field (first field))
@@ -524,7 +570,10 @@
 (defmethod sql.qp/->honeysql [:cube :between]
   [driver [_ opts field low high :as clause]]
   (check-no-fraction! field (plain-bound-time field low) (plain-bound-time field high))
-  (if (and (zone-bound-time low) (zone-bound-time high) (zone-bound driver [:>= opts field low]))
+  (if (and (not (contains? *rollup-ranges* clause))
+           (zone-bound-time low)
+           (zone-bound-time high)
+           (zone-bound driver [:>= opts field low]))
     [:and
      (sql.qp/->honeysql driver [:>= opts field low])
      (sql.qp/->honeysql driver [:<= opts field high])]
@@ -1863,6 +1912,15 @@
    ["Cannot determine join keys in JOIN ON expression"
     (str "Cube cannot compute a rolling window with `trailing: unbounded` for more than one bucket on ClickHouse. Use one "
          "bucket, or a window with a size in the data model.")]
+   ["approximate distinct count is not supported"
+    (str "A rollup holds this count_distinct_approx measure, and Cube cannot store it for ClickHouse. Remove the measure from the "
+         "rollup in the data model. The rollup also stops each run of the refresh worker of Cube.")]
+   ["doesn't support pre-aggregations without indexes"
+    (str "Stock Cube cannot build this rollup on ClickHouse, because it has no index. Add an index to the rollup in the data "
+         "model, or install the ClickHouse dialect, see cube-clickhouse/README.md.")]
+   ["Unknown table expression identifier"
+    (str "Stock Cube cannot build a rollup with use_original_sql_pre_aggregations on ClickHouse. Remove the option in the data "
+         "model, or install the ClickHouse dialect, see cube-clickhouse/README.md.")]
    ["Stream query failed"
     (str "Cube cannot read a rollup_lambda on ClickHouse with a range that reads source rows. Add a date "
          "filter inside the range of the rollup, or read this measure from a plain rollup.")]

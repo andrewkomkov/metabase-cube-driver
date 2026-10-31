@@ -935,10 +935,8 @@
   status: partial
   status_stock: partial
   check: preagg.original_sql
-  cap: partial
-  reason: "cube-clickhouse builds an original_sql pre-aggregation, and a query on the cube reads it. Its indexes have no effect. A rollup with use_original_sql_pre_aggregations still fails with Unknown table expression identifier, also with the dialect, so the query stops and no number is wrong."
   cap_stock: partial
-  reason_stock: "Stock Cube has no working form of original_sql on ClickHouse: with an index it fails with Missing columns, and with no index it refuses. The query stops with this error, so no number is wrong. cube-clickhouse builds it. Its indexes then have no effect."
+  reason_stock: "Stock Cube stops an original_sql pre-aggregation with Missing columns, and a rollup over it with its own error. No number is wrong. cube-clickhouse builds both."
 - id: preagg.partitioned
   area: cube.pre_aggregations
   title: "preagg partitioned"
@@ -5815,6 +5813,8 @@
   status: todo
   status_stock: todo
   check: preagg.build_range.date_range_over_the_end_reads_only_the_range
+  cap: partial
+  reason: "The docs warn that Cube does not return rows out of the build range. Buckets after the end are not in the result, with no error. Use rollup_lambda, or a build range over all rows."
 - id: preagg.build_range.inside_hit
   area: cube.pre_aggregations
   title: "preagg build range inside hit"
@@ -5827,6 +5827,8 @@
   status: todo
   status_stock: todo
   check: preagg.build_range.whole_table_reads_only_the_range
+  cap: partial
+  reason: "The docs warn that Cube does not return rows out of the build range. The rollup gives the sum of the range with no error. Use rollup_lambda, or a build range over all rows. The driver cannot see the range, because /meta has no such field."
 - id: preagg.granularity.day_hit
   area: cube.pre_aggregations
   title: "preagg granularity day hit"
@@ -6223,12 +6225,16 @@
   status: todo
   status_stock: todo
   check: preagg.option.no_index
+  cap_stock: partial
+  reason_stock: "Stock Cube stops this form on ClickHouse with a clear error, and no number is wrong. cube-clickhouse builds it."
 - id: preagg.option.non_strict_inside_a_bucket_reads_whole_buckets
   area: cube.pre_aggregations
   title: "preagg option non strict inside a bucket reads whole buckets"
   status: todo
   status_stock: todo
   check: preagg.option.non_strict_inside_a_bucket_reads_whole_buckets
+  cap: partial
+  reason: "allow_non_strict_date_range_match: true on a rollup is the slight discrepancy of the docs. With a range inside a bucket, the rollup gives other rows than the truth, with no error. The env var that this stack and docs/query-compilation.md set to false does not change a rollup with this key."
 - id: preagg.option.non_strict_on_a_boundary_hit
   area: cube.pre_aggregations
   title: "preagg option non strict on a boundary hit"
@@ -6277,12 +6283,16 @@
   status: todo
   status_stock: todo
   check: preagg.option.use_original_sql_coarser_hit
+  cap_stock: partial
+  reason_stock: "Stock Cube stops this form on ClickHouse with a clear error, and no number is wrong. cube-clickhouse builds it."
 - id: preagg.option.use_original_sql_same_grain_hit
   area: cube.pre_aggregations
   title: "preagg option use original sql same grain hit"
   status: todo
   status_stock: todo
   check: preagg.option.use_original_sql_same_grain_hit
+  cap_stock: partial
+  reason_stock: "Stock Cube stops this form on ClickHouse with a clear error, and no number is wrong. cube-clickhouse builds it."
 - id: preagg.partition.day_hit
   area: cube.pre_aggregations
   title: "preagg partition day hit"
@@ -6583,18 +6593,24 @@
   status: todo
   status_stock: todo
   check: preagg.type.count_distinct_approx_stops
+  cap: partial
+  reason: "Cube has no sketch that ClickHouse can write and Cube Store can read. A rollup of count_distinct_approx stops each query on that measure, and each run of the refresh worker, so all other rollups go stale. No number is wrong while the query stops. The driver shows a clear message. The live model has no such rollup. A query with no such rollup reads the table."
 - id: preagg.type.original_sql_in_clickhouse
   area: cube.pre_aggregations
   title: "preagg type original sql in clickhouse"
   status: todo
   status_stock: todo
   check: preagg.type.original_sql_in_clickhouse
+  cap_stock: partial
+  reason_stock: "Stock Cube stops this form on ClickHouse with a clear error, and no number is wrong. cube-clickhouse builds it."
 - id: preagg.type.original_sql_in_cube_store
   area: cube.pre_aggregations
   title: "preagg type original sql in cube store"
   status: todo
   status_stock: todo
   check: preagg.type.original_sql_in_cube_store
+  cap_stock: partial
+  reason_stock: "Stock Cube stops this form on ClickHouse with a clear error, and no number is wrong. cube-clickhouse builds it."
 - id: preagg.type.rollup_join_coarser_hit
   area: cube.pre_aggregations
   title: "preagg type rollup join coarser hit"
@@ -6649,6 +6665,8 @@
   status: todo
   status_stock: todo
   check: preagg.type.rollup_lambda_after_the_batch_with_source
+  cap: partial
+  reason: "A run gives the truth or the error of cube-js/cube#12285, Stream query failed: aborted. The driver shows a clear message, and no number is wrong."
 - id: preagg.type.rollup_lambda_filter_hit
   area: cube.pre_aggregations
   title: "preagg type rollup lambda filter hit"
@@ -6679,3 +6697,23 @@
   status: todo
   status_stock: todo
   check: preagg.type.rollup_lambda_over_the_batch_with_source
+  cap: partial
+  reason: "A run gives the truth or the error of cube-js/cube#12285, Stream query failed: aborted. The driver shows a clear message, and no number is wrong."
+- id: preagg.metabase.time_zone_one_bound_miss
+  area: cube.pre_aggregations
+  title: "preagg metabase time zone one bound miss"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.time_zone_one_bound_miss
+- id: preagg.metabase.time_zone_range_next_to_a_filter_hit
+  area: cube.pre_aggregations
+  title: "preagg metabase time zone range next to a filter hit"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.time_zone_range_next_to_a_filter_hit
+- id: preagg.metabase.time_zone_range_without_a_bucket_hit
+  area: cube.pre_aggregations
+  title: "preagg metabase time zone range without a bucket hit"
+  status: todo
+  status_stock: todo
+  check: preagg.metabase.time_zone_range_without_a_bucket_hit

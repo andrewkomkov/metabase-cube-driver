@@ -6141,16 +6141,19 @@ def _(ctx):
 
 @check("preagg.original_sql")
 def _(ctx):
-    """m5. The dialect builds an original_sql pre-aggregation, and a query on the cube reads it. A rollup over it stays a limit of Cube. Stock Cube stops each form on ClickHouse with its own error. These cubes are hidden, because they fail on stock Cube, and the demo Cube in dev mode reads a hidden cube."""
+    """m5. The dialect builds an original_sql pre-aggregation and a rollup over it. Stock Cube stops each form on ClickHouse with its own error."""
     sql = "SELECT status, MEASURE(revenue) FROM original_sql_orders GROUP BY 1"
+    truth = "SELECT status, sum(amount) FROM orders GROUP BY status"
     if DIALECT:
-        expect_native_rows(ctx, sql, "SELECT status, sum(amount) FROM orders GROUP BY status")
+        expect_native_rows(ctx, sql, truth)
         used_rollup({"measures": ["original_sql_orders.revenue"], "dimensions": ["original_sql_orders.status"]}, "base")(ctx, None)
+        expect_native_rows(ctx, "SELECT status, MEASURE(revenue) FROM lambda_orders GROUP BY 1", truth)
+        used_rollup({"measures": ["lambda_orders.revenue"], "dimensions": ["lambda_orders.status"]}, "daily")(ctx, None)
     else:
         expect_native_refusal(ctx, sql, "Missing columns")
-    rows, error = native_outcome(ctx, "SELECT status, MEASURE(revenue) FROM lambda_orders GROUP BY 1", None, None)
-    if error is None:
-        raise Fail("a rollup over original_sql now works: %s. Give this entry its full status" % rows[:3])
+        rows, error = native_outcome(ctx, "SELECT status, MEASURE(revenue) FROM lambda_orders GROUP BY 1", None, None)
+        if error is None:
+            raise Fail("a rollup over original_sql now works on stock Cube: %s" % rows[:3])
 
 
 # ----------------------------------------------------------------- delivery by mail
@@ -7457,23 +7460,63 @@ PA("preagg.non_additive.mixed_with_additive_miss", pa_query(["pa_types.revenue",
    "SELECT status, toDate(created_at), sum(amount), uniqExact(user_id) FROM orders GROUP BY 1, 2", [])
 
 
+PA_APPROX_MODEL = """cubes:
+  - name: pa_approx
+    sql_table: shop.orders
+    refresh_key: { every: 1 hour }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string }
+    measures:
+      - { name: buyers_approx, type: count_distinct_approx, sql: user_id }
+      - { name: orders, type: count }
+    pre_aggregations:
+      - name: approx
+        measures: [buyers_approx]
+        dimensions: [status]
+        indexes:
+          - { name: idx, columns: [status] }
+"""
+
+
+def pa_refresh_errors(since):
+    p = subprocess.run(["docker", "compose", "-f", os.path.join(REPO, "dev", "docker-compose.yml"), "logs", "cube", "--since", since], capture_output=True, text=True, timeout=120)
+    return p.stdout.count("Refresh Scheduler Error")
+
+
 @check("preagg.type.count_distinct_approx_stops")
 def _(ctx):
-    """Cube has no sketch for ClickHouse, so a rollup of this type stops each query on the measure. A measure out of the rollup stays right."""
-    query = pa_query(["pa_approx.buyers_approx"], ["pa_approx.status"])
-    status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
-    if status == 200:
-        raise Fail("a rollup of count_distinct_approx now works: %s. Give this entry its full status" % text[:200])
-    if "approximate distinct count is not supported" not in text:
-        raise Fail("another error: %s" % text[:300])
-    other = pa_query(["pa_approx.orders"], ["pa_approx.status"])
-    res = pa_load(other)
-    pa_expect_used(res, [], other)
-    assert_rows(pa_rows(res, other), ch("SELECT status, count() FROM orders GROUP BY 1"))
-    ensure_table(ctx, "pa_approx")
-    rows, error = native_outcome(ctx, "SELECT status, MEASURE(buyers_approx) FROM pa_approx GROUP BY 1", None, None)
-    if error is None or "approximate" not in error.lower():
-        raise Fail("the driver must stop this with a clear message: %s %s" % (rows, error))
+    """Cube has no sketch for ClickHouse. A rollup of this type stops each query on the measure, and each run of the refresh worker.
+    So this check adds the rollup for a short time. The live model has none, because it stops the refresh of each other rollup too."""
+    start = time.time()
+    with open(PROBE_FILE, "w", encoding="utf-8") as f:
+        f.write(PA_APPROX_MODEL)
+    try:
+        query = pa_query(["pa_approx.buyers_approx"], ["pa_approx.status"])
+        text = ""
+        for _ in range(60):
+            status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
+            if "approximate distinct count is not supported" in text:
+                break
+            time.sleep(2)
+        else:
+            raise Fail("a rollup of count_distinct_approx now works, or Cube gives another error: %s. Give this entry its full status" % text[:200])
+        other = pa_query(["pa_approx.orders"], ["pa_approx.status"])
+        res = pa_load(other)
+        pa_expect_used(res, [], other)
+        assert_rows(pa_rows(res, other), ch("SELECT status, count() FROM orders GROUP BY 1"))
+        for _ in range(45):
+            if pa_refresh_errors("%ds" % (time.time() - start + 1)):
+                return
+            time.sleep(2)
+        raise Fail("the refresh worker now goes on with this rollup. Give this entry its full status")
+    finally:
+        os.remove(PROBE_FILE)
+        for _ in range(60):
+            status, text, _h = http("GET", CUBE + "/cubejs-api/v1/meta")
+            if status == 200 and "pa_approx" not in text:
+                break
+            time.sleep(2)
 
 
 # ----- rolling windows and multi-stage measures read a rollup too
@@ -7579,10 +7622,21 @@ PM("preagg.metabase.view_miss", "pa_view", "SELECT product_id, sum(amount) FROM 
 PM("preagg.metabase.extended_cube_hit", "pa_extended", "SELECT toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1", ["pa_extended_additive_day"], agg=["m:pa_extended.revenue"], by=["d:pa_extended.created_at@month"])
 PM("preagg.metabase.join_through_a_view_hit", "pa_view", "SELECT u.state, count() FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1", ["pa_types_by_state_day"],
    agg=["m:pa_view.count"], by=["d:pa_view.pa_customers_state"])
-PM("preagg.metabase.time_zone_month_hit", PAT, "SELECT %s, sum(amount) FROM orders GROUP BY 1" % PA_NY_MONTH, HIT, setting=ZONE, agg=[PR], by=[PD + "@month"])
-PM("preagg.metabase.time_zone_day_hit", PAT, "SELECT %s AS d, sum(amount) FROM orders WHERE d BETWEEN '2025-03-05' AND '2025-03-09' GROUP BY 1" % PA_NY_DAY, HIT, setting=ZONE,
+# Metabase gives a bucket with its offset, so each truth here is the instant of the local start of the bucket, in UTC.
+PA_NY_MONTH_START = "toTimeZone(toDateTime(%s, '%s'), 'UTC')" % (PA_NY_MONTH, NY)
+PA_NY_DAY_START = "toTimeZone(toDateTime(%s, '%s'), 'UTC')" % (PA_NY_DAY, NY)
+PA_NY_HOUR_START = "toTimeZone(toStartOfHour(toTimeZone(created_at, '%s')), 'UTC')" % NY
+PM("preagg.metabase.time_zone_month_hit", PAT, "SELECT %s, sum(amount) FROM orders GROUP BY 1" % PA_NY_MONTH_START, HIT, setting=ZONE, agg=[PR], by=[PD + "@month"])
+PM("preagg.metabase.time_zone_day_hit", PAT, "SELECT %s, sum(amount) FROM orders WHERE %s BETWEEN '2025-03-05' AND '2025-03-09' GROUP BY 1" % (PA_NY_DAY_START, PA_NY_DAY), HIT, setting=ZONE,
    agg=[PR], by=[PD + "@day"], where=[["between", PD, "2025-03-05", "2025-03-09"]])
-PM("preagg.metabase.time_zone_finer_miss", PAT, "SELECT toStartOfHour(toTimeZone(created_at, '%s')), sum(amount) FROM orders WHERE %s = '2025-03-05' GROUP BY 1" % (NY, PA_NY_DAY), [], setting=ZONE,
+PM("preagg.metabase.time_zone_range_without_a_bucket_hit", PAT, "SELECT sum(amount) FROM orders WHERE %s BETWEEN '2025-03-05' AND '2025-03-09'" % PA_NY_DAY, HIT, setting=ZONE,
+   agg=[PR], where=[["between", PD, "2025-03-05", "2025-03-09"]])
+PM("preagg.metabase.time_zone_range_next_to_a_filter_hit", PAT, "SELECT sum(amount) FROM orders WHERE status = 'shipped' AND %s BETWEEN '2025-03-05' AND '2025-03-09'" % PA_NY_DAY, HIT, setting=ZONE,
+   agg=[PR], where=[["=", PS, "shipped"], ["between", PD, "2025-03-05", "2025-03-09"]])
+# One bound is no date range. Cube reads it as UTC, so the driver writes it in UTC, and the rollup cannot read it.
+PM("preagg.metabase.time_zone_one_bound_miss", PAT, "SELECT sum(amount) FROM orders WHERE created_at >= toDateTime('2025-03-05 00:00:00', '%s')" % NY, [], setting=ZONE,
+   agg=[PR], where=[[">=", PD, "2025-03-05T00:00:00"]])
+PM("preagg.metabase.time_zone_finer_miss", PAT, "SELECT %s, sum(amount) FROM orders WHERE %s = '2025-03-05' GROUP BY 1" % (PA_NY_HOUR_START, PA_NY_DAY), [], setting=ZONE,
    agg=[PR], by=[PD + "@hour"], where=[["=", PD, "2025-03-05"]])
 
 # ----- each granularity. The coarse rollups come first in the model, so a rollup of a wrong grain fails here.
