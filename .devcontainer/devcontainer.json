@@ -2,7 +2,7 @@
   "name": "metabase-cube-driver",
   "image": "mcr.microsoft.com/devcontainers/java:21",
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {"moby": false},
+    "ghcr.io/devcontainers/features/docker-in-docker:4": {"moby": false},
     "ghcr.io/devcontainers/features/python:1": {"version": "3.12"},
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
