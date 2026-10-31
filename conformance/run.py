@@ -5790,6 +5790,15 @@ def _(ctx):
 
 # ----------------------------------------------------------------- findings of the random query generator, see dev/fuzz/README.md
 
+@check("clickhouse.aggregate_on_no_rows")
+def _(ctx):
+    """SQL and Metabase on Postgres give NULL for min, max and a time measure of no rows. The dialect gives it. On stock Cube this stays a known wrong number."""
+    rows = ctx.mb.mbql(ORD, agg=["m:orders.min_amount", "m:orders.max_amount", "m:orders.first_order_at"], where=[["=", "d:orders.status", "no such status"]])["rows"]
+    if DIALECT and rows != [[None, None, None]]:
+        raise Fail("got %s, truth NULL" % rows)
+    if not DIALECT and rows != [[0.0, 0.0, "1970-01-01T00:00:00.000"]] and rows != [[None, None, None]]:
+        raise Fail("got %s, the known value on stock Cube is 0, 0 and 1970-01-01" % rows)
+
 Q("filter.case_dimension_on_raw_rows", ORD, "SELECT id, if(quantity >= 3, 'large', 'small') FROM orders WHERE id <= 3",
   fields=["d:orders.id", "d:orders.size"], where=[["<=", "d:orders.id", 3]])
 Q("filter.fraction_beyond_the_scale_of_a_decimal", "typed_events", "SELECT count() FROM typed_events WHERE toFloat64(dec_amount) < 12.50001",
@@ -5830,7 +5839,7 @@ def fuzz_runner(ctx):
     sys.path.insert(0, os.path.join(REPO, "dev", "fuzz"))
     import fuzz  # noqa: PLC0415
 
-    return fuzz, fuzz.Runner(ctx.review_mb, rctx)
+    return fuzz, fuzz.Runner(ctx.review_mb, rctx, stock=not DIALECT)
 
 
 @check("fuzz.cases")

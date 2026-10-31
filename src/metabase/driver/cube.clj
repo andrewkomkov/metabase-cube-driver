@@ -2058,6 +2058,8 @@
    ["lead to row multiplication"
     (str "Cube cannot add up an expression on columns of two joined cubes, because a join multiplies rows. Add a measure to the data "
          "model, or start from one cube.")]
+   ["accumulator not implemented"
+    (str "Cube cannot compute min or max of a true or false column in a later stage. Use the measure in the first stage, or filter on it.")]
    ["is not under aggregate function"
     (str "Cube wrote SQL that ClickHouse cannot run for this cube, with a filter inside the first stage and an aggregation in the next. "
          "Put the filter in the last stage, or use one stage.")]

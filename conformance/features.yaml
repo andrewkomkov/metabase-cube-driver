@@ -4623,6 +4623,14 @@
   status: pass
   status_stock: pass
   check: fuzz.sample
+- id: clickhouse.aggregate_on_no_rows
+  area: mb.compile.ch
+  title: "sum, min and max of no rows are NULL"
+  status: pass
+  status_stock: partial
+  check: clickhouse.aggregate_on_no_rows
+  cap_stock: partial
+  reason_stock: "Stock Cube sends no setting for this, so ClickHouse gives 0 and 1970-01-01 on no rows. Metabase on Postgres gives NULL. The dialect gives NULL."
 - id: filter.case_dimension_on_raw_rows
   area: cube.dimensions
   title: "a raw row shows a case dimension"

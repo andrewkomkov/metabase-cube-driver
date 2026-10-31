@@ -12,7 +12,7 @@
 | `mbql.py` | Writes a spec as a query for `/api/dataset`. |
 | `fuzz.py` | Runs a seed, judges each query, reduces each failure and saves it. |
 | `cases/` | The permanent cases: the smallest form of each failure that the generator found. Each run replays them first. |
-| `docker-compose.fuzz.yml` | The small stack: ClickHouse, Cube with the dialect and one Metabase, with compose project `mcd-fuzz`. |
+| `docker-compose.fuzz.yml` | The small stack: ClickHouse with its stock profile, Cube with the dialect and one Metabase, with compose project `mcd-fuzz`. `CUBE_CLICKHOUSE_FIXES=off` gives stock Cube. |
 
 Output goes to `dev/fuzz/out/report-<seed>.json`. `FUZZ_PROJECT` changes the compose project. `ARGS="--workers 2"` gives options to `fuzz.py`, and `ARGS="--replay"` runs only the permanent cases.
 
@@ -43,6 +43,7 @@ Settings: the report time zone and the first day of the week. These are global, 
 | `raw_error` | A raw error of Cube, with no message that tells what to do. | Yes |
 | `harness`, `truth_error` | The generator wrote a query that Metabase cannot read, or a truth that ClickHouse cannot run. | Yes |
 | `skip` | The form has no defined truth. | No |
+| `stock_no_rows` | Only on stock Cube: `sum`, `min` or `max` of no rows gives what ClickHouse gives, 0 or 1970-01-01. The truth stays `NULL`, which is what Metabase on Postgres gives. See "Known wrong numbers" in `docs/query-compilation.md`. | No |
 
 A failure runs a second time. If it does not come back, the report lists it under `flaky`.
 

@@ -32,6 +32,7 @@ PASSWORD = os.environ.get("REVIEW_PASSWORD", "fuzz-dev-only-1")
 INVALID = re.compile(r"Invalid (MBQL|output)|does not match schema|Cannot determine the source table")
 
 
+STOCK_NO_ROWS = re.compile(r"\b(sum|min|max)OrNull\(")
 # The connection broke. This says nothing about the query, so it is no refusal.
 BROKEN = re.compile(r"I/O error|Connection (refused|reset)|This connection has been closed|Connection is closed")
 
@@ -54,8 +55,8 @@ def run_query(mb, query):
 
 
 class Runner:
-    def __init__(self, mb, ctx):
-        self.mb, self.ctx = mb, ctx
+    def __init__(self, mb, ctx, stock=False):
+        self.mb, self.ctx, self.stock = mb, ctx, stock
         self.settings = (None, None)
         self.truth_cache = {}
         self.lock = threading.Lock()
@@ -119,6 +120,9 @@ class Runner:
         diff = lib.compare(rows, want, ordered=t["ordered"], tol=t["tol"])
         if diff is None:
             return dict(out, verdict="pass", rows=len(rows))
+        if self.stock and lib.compare(rows, self.truth(STOCK_NO_ROWS.sub(r"\1(", t["sql"])), ordered=t["ordered"], tol=t["tol"]) is None:
+            # The truth stays NULL, and stock Cube has no way to it. See "Known wrong numbers" in docs/query-compilation.md.
+            return dict(out, verdict="stock_no_rows", rows=len(rows))
         return dict(out, verdict="wrong", diff=diff[:800], got=rows[:4], want=want[:4], rows=len(rows))
 
     def check(self, spec):
@@ -374,7 +378,7 @@ def main():
         return 0
     os.makedirs(a.out, exist_ok=True)
     mb, ctx = connect()
-    runner = Runner(mb, ctx)
+    runner = Runner(mb, ctx, stock=os.environ.get("CUBE_CLICKHOUSE_FIXES") == "off")
     runner.reset()
     try:
         replayed = replay(runner)

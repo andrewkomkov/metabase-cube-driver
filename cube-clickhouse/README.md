@@ -31,6 +31,7 @@ Then restart Cube. A cube on another data source keeps its own dialect.
 | range in a zone | none yet | A partitioned rollup in a report time zone has all rows of the build range. |
 | N2 | none yet | A rolling measure is right on the legacy planner. |
 | rolling window in a zone | none yet | A rolling or to-date window and a time shift are right by a day, a week, a month and a year in a report time zone, from the source and from a rollup. |
+| aggregate of no rows | none yet | `sum`, `min` and `max` of no rows are `NULL`, as in SQL and in Metabase on Postgres. A `readonly` ClickHouse user keeps 0 and 1970-01-01. |
 | M3 | none yet | With a report time zone, a `Date` or `Date32` column stays on its day, in a bucket and in a filter. |
 
 Each override in `index.js` has the link. Remove an override when Cube ships its fix. The driver asks Cube how it writes a date range, so it needs no setting for this.

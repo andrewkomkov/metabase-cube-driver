@@ -20,6 +20,19 @@ PreAggregationLoader.prototype.refresh = function refreshWithVersionedNames(...a
 
 const SERIES_ZONE = 'zone-of-the-query';
 
+// Aggregate of no rows: no pull request yet. SQL gives NULL for sum, min and max of no rows, and Metabase on Postgres shows it. ClickHouse gives 0 and
+// 1970-01-01, also for a measure with its own SQL, so only this setting of the query reaches each form. A readonly user cannot send a setting.
+const { ClickHouseDriver } = require('@cubejs-backend/clickhouse-driver');
+for (const method of ['queryResponse', 'stream']) {
+  const original = ClickHouseDriver.prototype[method];
+  ClickHouseDriver.prototype[method] = function withNullOnNoRows(...args) {
+    if (!this.readOnlyMode) {
+      this.config.clickhouseSettings.aggregate_functions_null_for_empty = 1;
+    }
+    return original.apply(this, args);
+  };
+}
+
 class ClickHouseFixes extends ClickHouseQuery {
   // B1: https://github.com/cube-js/cube/pull/12532
   // parseDateTimeBestEffort drops the milliseconds of a bound, and the SQL API starts a strict bound 1 ms later, so the row at
