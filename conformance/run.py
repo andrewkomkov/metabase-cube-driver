@@ -994,13 +994,8 @@ Q("dimension.type.geo.implicit_join", ORD, "SELECT u.latitude, u.longitude, coun
   agg=[["count"]], by=["d:orders>users.location__latitude", "d:orders>users.location__longitude"], post=expect_map_columns)
 
 
-@check("dimension.type.geo.view")
-def _(ctx):
-    """Cube fails on a geo dimension of a view, so the view must keep working without it. This fails when Cube can read it."""
-    query = json.dumps({"dimensions": ["customer_locations.location"], "measures": ["customer_locations.count"], "limit": 1})
-    _status, text, _h = http("GET", CUBE + "/cubejs-api/v1/load?query=" + urllib.parse.quote(query))
-    if "Cannot read properties of undefined" not in text:
-        raise Fail("Cube has a new answer for a geo dimension of a view, so remove the limit in cube.meta/with-geo-parts: %s" % text[:200])
+def geo_view_on_stock_cube(ctx):
+    """The view must keep working without the geo dimension."""
     if ctx.mb.has_field("customer_locations", "location__latitude"):
         raise Fail("the view has a latitude field that Cube cannot read")
     if ctx.mb.field("customer_locations", "location").get("visibility_type") != "hidden":
@@ -1012,6 +1007,35 @@ def _(ctx):
     # A person can ask for the hidden column too.
     data = ctx.mb.mbql("customer_locations", fields=["d:customer_locations.id", "d:customer_locations.location"], order=[["asc", "d:customer_locations.id"]], limit=3)
     assert_rows(data["rows"], ch("SELECT id, NULL FROM users ORDER BY id LIMIT 3"), ordered=True)
+
+
+def geo_view_on_fixed_cube(ctx):
+    """The driver must show the coordinates, the same as on a cube."""
+    parts = ["d:customer_locations.location__latitude", "d:customer_locations.location__longitude"]
+    if ctx.mb.field("customer_locations", "location").get("visibility_type") == "hidden":
+        raise Fail("Cube reads a geo dimension of this view, and customer_locations.location is hidden")
+    data = ctx.mb.mbql("customer_locations", agg=["m:customer_locations.count"], by=parts)
+    expect_map_columns(ctx, data)
+    assert_rows(data["rows"], ch("SELECT latitude, longitude, count() FROM users GROUP BY 1, 2"))
+    data = ctx.mb.mbql("customer_locations", fields=["d:customer_locations.id", "d:customer_locations.location"], order=[["asc", "d:customer_locations.id"]], limit=3)
+    assert_rows(data["rows"], ch("SELECT id, concat(toString(latitude), ',', toString(longitude)) FROM users ORDER BY id LIMIT 3"), ordered=True)
+
+
+@check("dimension.type.geo.view")
+def _(ctx):
+    """Asks Cube if it reads a geo dimension of a view, and then tests what the driver must do on that Cube."""
+    query = json.dumps({"dimensions": ["customer_locations.location"], "measures": ["customer_locations.count"], "limit": 1})
+    for _try in range(30):
+        _status, text, _h = http("GET", CUBE + "/cubejs-api/v1/load?query=" + urllib.parse.quote(query))
+        if "Continue wait" not in text:
+            break
+        time.sleep(1)
+    if "Cannot read properties of undefined" in text:
+        geo_view_on_stock_cube(ctx)
+    elif '"data":[' in text:
+        geo_view_on_fixed_cube(ctx)
+    else:
+        raise Fail("Cube has an unknown answer for a geo dimension of a view: %s" % text[:200])
 
 
 @check("dimension.type.geo.auto_bin")

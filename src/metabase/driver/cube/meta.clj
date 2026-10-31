@@ -60,10 +60,13 @@
                       {:status (:status response)})))
     (json/decode+kw (:body response))))
 
+(declare mark-geo-views)
+
 (defn fetch-meta
-  "GET /cubejs-api/v1/meta?extended=true. Returns the decoded body."
+  "GET /cubejs-api/v1/meta?extended=true. Returns the decoded body, with `:geo-readable?` on each view if Cube can read a
+  geo dimension of a view."
   [details]
-  (api-get details "/v1/meta" {"extended" "true"}))
+  (mark-geo-views details (api-get details "/v1/meta" {"extended" "true"})))
 
 (defn rest-get
   "GET a path of the Cube REST API with a query."
@@ -223,13 +226,37 @@
       (with-part shortTitle) (assoc :shortTitle (with-part shortTitle)))))
 
 (defn- with-geo-parts
-  "A dimension, with its number columns if it is a geo dimension. Cube v1.8.15 fails each query on a geo dimension of a
-  view with \"Cannot read properties of undefined\", so there it stays one hidden column that raw rows show as NULL."
+  "A dimension, with its number columns if it is a geo dimension. Stock Cube fails each query on a geo dimension of a view
+  with \"Cannot read properties of undefined\", so there it stays one hidden column that raw rows show as NULL."
   [cube dimension]
   (cond
-    (not= "geo" (:type dimension)) [dimension]
-    (= "view" (:type cube))        [(assoc dimension :type "geo-in-view")]
-    :else                          (cons dimension (geo-part-members dimension))))
+    (not= "geo" (:type dimension))                     [dimension]
+    (and (= "view" (:type cube))
+         (not (:geo-readable? cube)))                  [(assoc dimension :type "geo-in-view")]
+    :else                                              (cons dimension (geo-part-members dimension))))
+
+(defn- first-geo-dimension-of-a-view
+  [cube-meta]
+  (first (for [cube      (:cubes cube-meta)
+               :when     (= "view" (:type cube))
+               dimension (:dimensions cube)
+               :when     (and (= "geo" (:type dimension)) (public? dimension))]
+           (:name dimension))))
+
+(defn- reads-geo-dimension?
+  "True if Cube writes SQL for this geo dimension. /v1/sql runs nothing. Any other answer gives false, because the hidden
+  column works on each Cube."
+  [details dimension-name]
+  (try
+    (some? (not-empty (first (get-in (rest-get details "/v1/sql" {:dimensions [dimension-name], :limit 1}) [:sql :sql]))))
+    (catch Exception _ false)))
+
+(defn- mark-geo-views
+  [details cube-meta]
+  (let [dimension-name (first-geo-dimension-of-a-view cube-meta)]
+    (if (and dimension-name (reads-geo-dimension? details dimension-name))
+      (update cube-meta :cubes (partial mapv #(cond-> % (= "view" (:type %)) (assoc :geo-readable? true))))
+      cube-meta)))
 
 (defn- dimension->field
   [member]
