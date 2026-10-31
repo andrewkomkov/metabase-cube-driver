@@ -717,6 +717,8 @@ def grid_followup():
     # The native form of a known limit of stock Cube.
     out.append({"id": "edge/ts64_native_half_open", "native": "SELECT MEASURE(count) FROM typed_events WHERE ts64_berlin >= '2025-03-01 07:00:00' AND ts64_berlin < '2025-03-01 07:00:01'",
                 "truth": "SELECT countIf(ts64_berlin >= toDateTime64('2025-03-01 07:00:00', 3, 'UTC') AND ts64_berlin < toDateTime64('2025-03-01 07:00:01', 3, 'UTC')) FROM shop.typed_events"})
+    out.append({"id": "edge/ts64_native_not", "native": "SELECT MEASURE(count) FROM typed_events WHERE NOT (ts64_berlin > '2025-03-01 07:00:00')",
+                "truth": "SELECT countIf(NOT (ts64_berlin > toDateTime64('2025-03-01 07:00:00', 3, 'UTC'))) FROM shop.typed_events"})
     return out
 
 
