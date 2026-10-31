@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 724/756 pass on Cube with the ClickHouse dialect** (724 pass, 16 partial, 2 blocked, 12 unsupported, 2 fail of 756)
+**coverage: 727/757 pass on Cube with the ClickHouse dialect** (727 pass, 16 partial, 2 blocked, 12 unsupported, 0 fail of 757)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `797e78be5198`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41155532535), 2026-10-31.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `6bcfb7e25117`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41156784958), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -331,7 +331,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `797e78b
 | `mb.xray.view` | pass |  |
 | `mb.report_timezone` | pass |  |
 | `mb.other.actions` | unsupported | Metabase actions write data. The Cube SQL API is read only. |
-| `mb.other.drill_through_ui` | fail | the drill-through shows 2000 rows, truth 1000 |
+| `mb.other.drill_through_ui` | pass |  |
 | `mb.other.model_persistence` | unsupported | Model persistence needs CREATE TABLE. The Cube SQL API is read only. |
 | `mb.other.uploads` | unsupported | CSV uploads write tables. The Cube SQL API is read only. |
 | `mcp.agent_journey_no_cube_knowledge` | pass |  |
@@ -690,7 +690,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `797e78b
 | `measure.rolling.through_model` | pass |  |
 | `measure.rolling.through_model_whole_buckets` | pass |  |
 | `measure.rolling.filter_in_the_model` | pass |  |
-| `measure.rolling.strict_bound_on_boundary` | fail | strict bound: got 2 rows, truth has 1. got=[['2025-03-01T00:00:00', 26428.0], ['2025-04-01T00:00:00', 27332.0]] truth=[['2025-04-01T00:00:00', 27332.0]] |
+| `measure.rolling.strict_bound_on_boundary` | pass |  |
 | `nested.measure_column.filter_gives_row_values` | pass |  |
 | `nested.measure_column.breakout_gives_row_values` | pass |  |
 | `compile.filter.hidden_measure_column_refused` | pass |  |
@@ -740,6 +740,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `797e78b
 | `native.subquery_filter_refused` | pass |  |
 | `native.bound.alias_in_a_subquery` | pass |  |
 | `native.bound.datetime64_last_second_limit` | pass |  |
+| `compile.raw.switch_dimension_keeps_one_row` | pass |  |
 | `context.compile_context` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |

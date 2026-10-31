@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 724,
+    "pass": 727,
     "partial": 16,
     "blocked": 2,
     "unsupported": 12,
-    "fail": 2,
-    "total": 756
+    "fail": 0,
+    "total": 757
   },
-  "coverage": "coverage: 724/756 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 727/757 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -1627,8 +1627,8 @@
     },
     {
       "id": "mb.other.drill_through_ui",
-      "status": "fail",
-      "reason": "the drill-through shows 2000 rows, truth 1000"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.other.model_persistence",
@@ -3422,8 +3422,8 @@
     },
     {
       "id": "measure.rolling.strict_bound_on_boundary",
-      "status": "fail",
-      "reason": "strict bound: got 2 rows, truth has 1. got=[['2025-03-01T00:00:00', 26428.0], ['2025-04-01T00:00:00', 27332.0]] truth=[['2025-04-01T00:00:00', 27332.0]]"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "nested.measure_column.filter_gives_row_values",
@@ -3667,6 +3667,11 @@
     },
     {
       "id": "native.bound.datetime64_last_second_limit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.raw.switch_dimension_keeps_one_row",
       "status": "pass",
       "reason": ""
     },
