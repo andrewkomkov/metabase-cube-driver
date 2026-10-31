@@ -4640,920 +4640,920 @@
 - id: metric.business.average_order_value
   area: cube.metrics
   title: "metric business average order value"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.average_order_value
 - id: metric.business.churn
   area: cube.metrics
   title: "metric business churn"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.churn
 - id: metric.business.conversion
   area: cube.metrics
   title: "metric business conversion"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.conversion
 - id: metric.business.cube_measure_through_two_joins
   area: cube.metrics
   title: "metric business cube measure through two joins"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.cube_measure_through_two_joins
 - id: metric.business.distinct_key_over_join
   area: cube.metrics
   title: "metric business distinct key over join"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.distinct_key_over_join
 - id: metric.business.distinct_over_join
   area: cube.metrics
   title: "metric business distinct over join"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.distinct_over_join
 - id: metric.business.extended_base_hidden
   area: cube.metrics
   title: "metric business extended base hidden"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.extended_base_hidden
 - id: metric.business.inherited_ratio_reads_override
   area: cube.metrics
   title: "metric business inherited ratio reads override"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.inherited_ratio_reads_override
 - id: metric.business.median
   area: cube.metrics
   title: "metric business median"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.median
 - id: metric.business.month_over_month
   area: cube.metrics
   title: "metric business month over month"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.month_over_month
 - id: metric.business.moving_average
   area: cube.metrics
   title: "metric business moving average"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.moving_average
 - id: metric.business.non_additive
   area: cube.metrics
   title: "metric business non additive"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.non_additive
 - id: metric.business.on_a_view
   area: cube.metrics
   title: "metric business on a view"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.on_a_view
 - id: metric.business.on_an_extended_cube
   area: cube.metrics
   title: "metric business on an extended cube"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.on_an_extended_cube
 - id: metric.business.percentile
   area: cube.metrics
   title: "metric business percentile"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.percentile
 - id: metric.business.ratio_on_a_view
   area: cube.metrics
   title: "metric business ratio on a view"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.ratio_on_a_view
 - id: metric.business.ratio_zero_null_denominator
   area: cube.metrics
   title: "metric business ratio zero null denominator"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.ratio_zero_null_denominator
 - id: metric.business.repeat_rate
   area: cube.metrics
   title: "metric business repeat rate"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.repeat_rate
 - id: metric.business.retention
   area: cube.metrics
   title: "metric business retention"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.retention
 - id: metric.business.revenue
   area: cube.metrics
   title: "metric business revenue"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.revenue
 - id: metric.business.running_total
   area: cube.metrics
   title: "metric business running total"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.running_total
 - id: metric.business.share_of_total
   area: cube.metrics
   title: "metric business share of total"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.share_of_total
 - id: metric.business.through_two_joins
   area: cube.metrics
   title: "metric business through two joins"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.through_two_joins
 - id: metric.business.weighted_average
   area: cube.metrics
   title: "metric business weighted average"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.weighted_average
 - id: metric.business.year_over_year
   area: cube.metrics
   title: "metric business year over year"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.business.year_over_year
 - id: metric.composite.avg_of_ratio
   area: cube.metrics
   title: "metric composite avg of ratio"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.avg_of_ratio
 - id: metric.composite.cross_cube_count_ratio
   area: cube.metrics
   title: "metric composite cross cube count ratio"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.cross_cube_count_ratio
 - id: metric.composite.cross_cube_sum_ratio
   area: cube.metrics
   title: "metric composite cross cube sum ratio"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.cross_cube_sum_ratio
 - id: metric.composite.difference_over_base
   area: cube.metrics
   title: "metric composite difference over base"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.difference_over_base
 - id: metric.composite.distinct_over_count
   area: cube.metrics
   title: "metric composite distinct over count"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.distinct_over_count
 - id: metric.composite.filtered_numerator
   area: cube.metrics
   title: "metric composite filtered numerator"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.filtered_numerator
 - id: metric.composite.nested_ratio
   area: cube.metrics
   title: "metric composite nested ratio"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.nested_ratio
 - id: metric.composite.product
   area: cube.metrics
   title: "metric composite product"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.product
 - id: metric.composite.ratio_of_avgs
   area: cube.metrics
   title: "metric composite ratio of avgs"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.ratio_of_avgs
 - id: metric.composite.ratio_of_sums
   area: cube.metrics
   title: "metric composite ratio of sums"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.ratio_of_sums
 - id: metric.composite.rolling_over_plain
   area: cube.metrics
   title: "metric composite rolling over plain"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.rolling_over_plain
 - id: metric.composite.sum_of_row_ratios
   area: cube.metrics
   title: "metric composite sum of row ratios"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.sum_of_row_ratios
 - id: metric.composite.sum_over_distinct
   area: cube.metrics
   title: "metric composite sum over distinct"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.sum_over_distinct
 - id: metric.composite.value_over_prior
   area: cube.metrics
   title: "metric composite value over prior"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.value_over_prior
 - id: metric.composite.value_over_total
   area: cube.metrics
   title: "metric composite value over total"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.value_over_total
 - id: metric.dimension.boolean
   area: cube.metrics
   title: "metric dimension boolean"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.dimension.boolean
 - id: metric.dimension.case
   area: cube.metrics
   title: "metric dimension case"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.dimension.case
 - id: metric.dimension.geo
   area: cube.metrics
   title: "metric dimension geo"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.dimension.geo
 - id: metric.dimension.geo_with_a_joined_metric
   area: cube.metrics
   title: "metric dimension geo with a joined metric"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.dimension.geo_with_a_joined_metric
 - id: metric.dimension.joined_string
   area: cube.metrics
   title: "metric dimension joined string"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.dimension.joined_string
 - id: metric.dimension.number
   area: cube.metrics
   title: "metric dimension number"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.dimension.number
 - id: metric.dimension.ratio_by_sub_query
   area: cube.metrics
   title: "metric dimension ratio by sub query"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.dimension.ratio_by_sub_query
 - id: metric.dimension.string
   area: cube.metrics
   title: "metric dimension string"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.dimension.string
 - id: metric.dimension.sub_query
   area: cube.metrics
   title: "metric dimension sub query"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.dimension.sub_query
 - id: metric.dimension.time
   area: cube.metrics
   title: "metric dimension time"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.dimension.time
 - id: metric.edge.avg_ignores_null
   area: cube.metrics
   title: "metric edge avg ignores null"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.edge.avg_ignores_null
 - id: metric.edge.avg_of_row_ratios
   area: cube.metrics
   title: "metric edge avg of row ratios"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.edge.avg_of_row_ratios
 - id: metric.edge.change_over_base
   area: cube.metrics
   title: "metric edge change over base"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.edge.change_over_base
 - id: metric.edge.filtered_share
   area: cube.metrics
   title: "metric edge filtered share"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.edge.filtered_share
 - id: metric.edge.filtered_sum
   area: cube.metrics
   title: "metric edge filtered sum"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.edge.filtered_sum
 - id: metric.edge.max_negative
   area: cube.metrics
   title: "metric edge max negative"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.edge.max_negative
 - id: metric.edge.min_negative
   area: cube.metrics
   title: "metric edge min negative"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.edge.min_negative
 - id: metric.edge.ratio_with_no_guard
   area: cube.metrics
   title: "metric edge ratio with no guard"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.edge.ratio_with_no_guard
 - id: metric.edge.rows
   area: cube.metrics
   title: "metric edge rows"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.edge.rows
 - id: metric.edge.sum_of_denominator
   area: cube.metrics
   title: "metric edge sum of denominator"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.edge.sum_of_denominator
 - id: metric.edge.sum_of_numerator
   area: cube.metrics
   title: "metric edge sum of numerator"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.edge.sum_of_numerator
 - id: metric.edge.sum_of_row_ratios
   area: cube.metrics
   title: "metric edge sum of row ratios"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.edge.sum_of_row_ratios
 - id: metric.expression.avg_over_avg
   area: cube.metrics
   title: "metric expression avg over avg"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.expression.avg_over_avg
 - id: metric.expression.distinct_over_count
   area: cube.metrics
   title: "metric expression distinct over count"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.expression.distinct_over_count
 - id: metric.expression.filtered_over_plain
   area: cube.metrics
   title: "metric expression filtered over plain"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.expression.filtered_over_plain
 - id: metric.expression.ratio_of_two_sums
   area: cube.metrics
   title: "metric expression ratio of two sums"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.expression.ratio_of_two_sums
 - id: metric.expression.same_as_the_cube_metric
   area: cube.metrics
   title: "metric expression same as the cube metric"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.expression.same_as_the_cube_metric
 - id: metric.expression.sum_over_count
   area: cube.metrics
   title: "metric expression sum over count"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.expression.sum_over_count
 - id: metric.expression.sum_over_distinct
   area: cube.metrics
   title: "metric expression sum over distinct"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.expression.sum_over_distinct
 - id: metric.expression.zero_and_null_denominator
   area: cube.metrics
   title: "metric expression zero and null denominator"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.expression.zero_and_null_denominator
 - id: metric.format.abbr
   area: cube.metrics
   title: "metric format abbr"
-  status: todo
-  status_stock: todo
+  status: partial
+  status_stock: partial
   check: metric.format.abbr
   cap: partial
   reason: "Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: metric.format.abbr_1
   area: cube.metrics
   title: "metric format abbr 1"
-  status: todo
-  status_stock: todo
+  status: partial
+  status_stock: partial
   check: metric.format.abbr_1
   cap: partial
   reason: "Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: metric.format.accounting
   area: cube.metrics
   title: "metric format accounting"
-  status: todo
-  status_stock: todo
+  status: partial
+  status_stock: partial
   check: metric.format.accounting
   cap: partial
   reason: "Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: metric.format.accounting_0
   area: cube.metrics
   title: "metric format accounting 0"
-  status: todo
-  status_stock: todo
+  status: partial
+  status_stock: partial
   check: metric.format.accounting_0
   cap: partial
   reason: "Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: metric.format.currency
   area: cube.metrics
   title: "metric format currency"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.format.currency
 - id: metric.format.currency_0
   area: cube.metrics
   title: "metric format currency 0"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.format.currency_0
 - id: metric.format.currency_3
   area: cube.metrics
   title: "metric format currency 3"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.format.currency_3
 - id: metric.format.currency_code
   area: cube.metrics
   title: "metric format currency code"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.format.currency_code
 - id: metric.format.d3
   area: cube.metrics
   title: "metric format d3"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.format.d3
 - id: metric.format.d3_percent
   area: cube.metrics
   title: "metric format d3 percent"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.format.d3_percent
 - id: metric.format.id
   area: cube.metrics
   title: "metric format id"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.format.id
 - id: metric.format.number
   area: cube.metrics
   title: "metric format number"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.format.number
 - id: metric.format.number_0
   area: cube.metrics
   title: "metric format number 0"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.format.number_0
 - id: metric.format.number_3
   area: cube.metrics
   title: "metric format number 3"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.format.number_3
 - id: metric.format.percent
   area: cube.metrics
   title: "metric format percent"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.format.percent
 - id: metric.format.percent_0
   area: cube.metrics
   title: "metric format percent 0"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.format.percent_0
 - id: metric.format.percent_2
   area: cube.metrics
   title: "metric format percent 2"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.format.percent_2
 - id: metric.mcp.discovery
   area: cube.metrics
   title: "metric mcp discovery"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.mcp.discovery
 - id: metric.model.stock_form
   area: cube.metrics
   title: "metric model stock form"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.model.stock_form
 - id: metric.opt.add_group_by
   area: cube.metrics
   title: "metric opt add group by"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.add_group_by
 - id: metric.opt.drill_members
   area: cube.metrics
   title: "metric opt drill members"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.drill_members
 - id: metric.opt.drill_members_text
   area: cube.metrics
   title: "metric opt drill members text"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.drill_members_text
 - id: metric.opt.filter_on_sum
   area: cube.metrics
   title: "metric opt filter on sum"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.filter_on_sum
 - id: metric.opt.filter_one
   area: cube.metrics
   title: "metric opt filter one"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.filter_one
 - id: metric.opt.filter_or
   area: cube.metrics
   title: "metric opt filter or"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.filter_or
 - id: metric.opt.filter_several
   area: cube.metrics
   title: "metric opt filter several"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.filter_several
 - id: metric.opt.group_by
   area: cube.metrics
   title: "metric opt group by"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.group_by
 - id: metric.opt.meta
   area: cube.metrics
   title: "metric opt meta"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.meta
 - id: metric.opt.multi_stage
   area: cube.metrics
   title: "metric opt multi stage"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.multi_stage
 - id: metric.opt.public_false
   area: cube.metrics
   title: "metric opt public false"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.public_false
 - id: metric.opt.reduce_by
   area: cube.metrics
   title: "metric opt reduce by"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.reduce_by
 - id: metric.opt.rolling_leading
   area: cube.metrics
   title: "metric opt rolling leading"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.rolling_leading
 - id: metric.opt.rolling_leading_offset_end
   area: cube.metrics
   title: "metric opt rolling leading offset end"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.rolling_leading_offset_end
 - id: metric.opt.rolling_offset_end
   area: cube.metrics
   title: "metric opt rolling offset end"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.rolling_offset_end
 - id: metric.opt.rolling_offset_start
   area: cube.metrics
   title: "metric opt rolling offset start"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.rolling_offset_start
 - id: metric.opt.rolling_shorter_than_bucket_refused
   area: cube.metrics
   title: "metric opt rolling shorter than bucket refused"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.rolling_shorter_than_bucket_refused
 - id: metric.opt.rolling_to_date
   area: cube.metrics
   title: "metric opt rolling to date"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.rolling_to_date
 - id: metric.opt.rolling_to_date_year
   area: cube.metrics
   title: "metric opt rolling to date year"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.rolling_to_date_year
 - id: metric.opt.rolling_trailing
   area: cube.metrics
   title: "metric opt rolling trailing"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.rolling_trailing
 - id: metric.opt.rolling_unbounded
   area: cube.metrics
   title: "metric opt rolling unbounded"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.rolling_unbounded
 - id: metric.opt.time_shift_calendar
   area: cube.metrics
   title: "metric opt time shift calendar"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.time_shift_calendar
 - id: metric.opt.time_shift_needs_a_range
   area: cube.metrics
   title: "metric opt time shift needs a range"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.time_shift_needs_a_range
 - id: metric.opt.time_shift_prior
   area: cube.metrics
   title: "metric opt time shift prior"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.opt.time_shift_prior
 - id: metric.rollup.additive_at_rollup_grain_hit
   area: cube.metrics
   title: "metric rollup additive at rollup grain hit"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.rollup.additive_at_rollup_grain_hit
 - id: metric.rollup.additive_coarser_hit
   area: cube.metrics
   title: "metric rollup additive coarser hit"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.rollup.additive_coarser_hit
 - id: metric.rollup.additive_finer_miss
   area: cube.metrics
   title: "metric rollup additive finer miss"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.rollup.additive_finer_miss
 - id: metric.rollup.day_window_by_month_refused
   area: cube.metrics
   title: "metric rollup day window by month refused"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.rollup.day_window_by_month_refused
 - id: metric.rollup.non_additive_at_rollup_grain_hit
   area: cube.metrics
   title: "metric rollup non additive at rollup grain hit"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.rollup.non_additive_at_rollup_grain_hit
 - id: metric.rollup.non_additive_coarser_miss
   area: cube.metrics
   title: "metric rollup non additive coarser miss"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.rollup.non_additive_coarser_miss
 - id: metric.rollup.non_additive_finer_miss
   area: cube.metrics
   title: "metric rollup non additive finer miss"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.rollup.non_additive_finer_miss
 - id: metric.rollup.ratio_of_sums_coarser_hit
   area: cube.metrics
   title: "metric rollup ratio of sums coarser hit"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.rollup.ratio_of_sums_coarser_hit
 - id: metric.rollup.ratio_of_sums_finer_miss
   area: cube.metrics
   title: "metric rollup ratio of sums finer miss"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.rollup.ratio_of_sums_finer_miss
 - id: metric.rollup.ratio_of_sums_status_hit
   area: cube.metrics
   title: "metric rollup ratio of sums status hit"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.rollup.ratio_of_sums_status_hit
 - id: metric.rollup.sum_over_distinct_coarser_miss
   area: cube.metrics
   title: "metric rollup sum over distinct coarser miss"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.rollup.sum_over_distinct_coarser_miss
 - id: metric.semi_additive.closing_at_rollup_grain_hit
   area: cube.metrics
   title: "metric semi additive closing at rollup grain hit"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.semi_additive.closing_at_rollup_grain_hit
 - id: metric.semi_additive.closing_by_month_refused
   area: cube.metrics
   title: "metric semi additive closing by month refused"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.semi_additive.closing_by_month_refused
 - id: metric.semi_additive.closing_finer_miss
   area: cube.metrics
   title: "metric semi additive closing finer miss"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.semi_additive.closing_finer_miss
 - id: metric.semi_additive.closing_region_at_rollup_grain_hit
   area: cube.metrics
   title: "metric semi additive closing region at rollup grain hit"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.semi_additive.closing_region_at_rollup_grain_hit
 - id: metric.semi_additive.daily_average_at_rollup_grain_hit
   area: cube.metrics
   title: "metric semi additive daily average at rollup grain hit"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.semi_additive.daily_average_at_rollup_grain_hit
 - id: metric.semi_additive.daily_average_coarser_miss
   area: cube.metrics
   title: "metric semi additive daily average coarser miss"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.semi_additive.daily_average_coarser_miss
 - id: metric.semi_additive.is_not_additive_over_time
   area: cube.metrics
   title: "metric semi additive is not additive over time"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.semi_additive.is_not_additive_over_time
 - id: metric.semi_additive.last_day_at_day_and_total
   area: cube.metrics
   title: "metric semi additive last day at day and total"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.semi_additive.last_day_at_day_and_total
 - id: metric.semi_additive.last_day_coarser_miss
   area: cube.metrics
   title: "metric semi additive last day coarser miss"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.semi_additive.last_day_coarser_miss
 - id: metric.semi_additive.total_of_one_day_over_regions_hit
   area: cube.metrics
   title: "metric semi additive total of one day over regions hit"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.semi_additive.total_of_one_day_over_regions_hit
 - id: metric.type.avg
   area: cube.metrics
   title: "metric type avg"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.type.avg
 - id: metric.type.boolean
   area: cube.metrics
   title: "metric type boolean"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.type.boolean
 - id: metric.type.count
   area: cube.metrics
   title: "metric type count"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.type.count
 - id: metric.type.count_distinct
   area: cube.metrics
   title: "metric type count distinct"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.type.count_distinct
 - id: metric.type.count_distinct_approx
   area: cube.metrics
   title: "metric type count distinct approx"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.type.count_distinct_approx
 - id: metric.type.max
   area: cube.metrics
   title: "metric type max"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.type.max
 - id: metric.type.min
   area: cube.metrics
   title: "metric type min"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.type.min
 - id: metric.type.number
   area: cube.metrics
   title: "metric type number"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.type.number
 - id: metric.type.number_agg
   area: cube.metrics
   title: "metric type number agg"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.type.number_agg
 - id: metric.type.rank
   area: cube.metrics
   title: "metric type rank"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.type.rank
 - id: metric.type.string
   area: cube.metrics
   title: "metric type string"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.type.string
 - id: metric.type.sum
   area: cube.metrics
   title: "metric type sum"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.type.sum
 - id: metric.type.time
   area: cube.metrics
   title: "metric type time"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.type.time
 - id: metric.composite.value_over_total_with_a_filter
   area: cube.metrics
   title: "metric composite value over total with a filter"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.composite.value_over_total_with_a_filter
 - id: metric.rollup.day_window_by_day_hit
   area: cube.metrics
   title: "metric rollup day window by day hit"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.rollup.day_window_by_day_hit
 - id: metric.rollup.month_window_by_month_hit
   area: cube.metrics
   title: "metric rollup month window by month hit"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.rollup.month_window_by_month_hit
 - id: metric.rollup.to_date_by_month_hit
   area: cube.metrics
   title: "metric rollup to date by month hit"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.rollup.to_date_by_month_hit
 - id: metric.rollup.unbounded_by_month_hit
   area: cube.metrics
   title: "metric rollup unbounded by month hit"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: metric.rollup.unbounded_by_month_hit
