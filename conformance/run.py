@@ -80,7 +80,6 @@ def load_features(path=FEATURES):
 
 def write_statuses(results, path=FEATURES):
     """Replace only the status lines. `status` is the result with the dialect, `status_stock` the result on stock Cube."""
-    key = "status" if DIALECT else "status_stock"
     with open(path, encoding="utf-8") as f:
         lines = f.readlines()
     out = []
@@ -89,13 +88,17 @@ def write_statuses(results, path=FEATURES):
         m = re.match(r"^- id: (.*)$", line)
         if m:
             current = m.group(1).strip()
-        if current in results and line.startswith("  %s: " % key):
+        if current not in results:
+            out.append(line)
+        elif line.startswith("  status_stock: ") and not DIALECT:
             continue
-        if current in results and line.startswith("  status: ") and not DIALECT:
+        elif line.startswith("  status: ") and DIALECT:
+            out.append("  status: %s\n" % results[current])
+        elif line.startswith("  status: "):
             out.append(line)
             out.append("  status_stock: %s\n" % results[current])
-            continue
-        out.append("  status: %s\n" % results[current] if current in results and line.startswith("  status: ") else line)
+        else:
+            out.append(line)
     with open(path, "w", encoding="utf-8") as f:
         f.writelines(out)
 
