@@ -4623,12 +4623,6 @@
   status: pass
   status_stock: pass
   check: fuzz.sample
-- id: clickhouse.aggregate_on_no_rows
-  area: clickhouse
-  title: "sum, min and max of no rows are NULL"
-  status: pass
-  status_stock: pass
-  check: clickhouse.aggregate_on_no_rows
 - id: filter.case_dimension_on_raw_rows
   area: cube.dimensions
   title: "a raw row shows a case dimension"

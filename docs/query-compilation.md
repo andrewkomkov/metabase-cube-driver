@@ -17,12 +17,6 @@ Set these two values on a Cube that Metabase reads. Without them, Cube returns w
 | `CUBEJS_PRE_AGGREGATIONS_ALLOW_NON_STRICT_DATE_RANGE_MATCH` | `false` | The default `true` lets a rollup of months answer a filter on one day. In the demo, that filter gave NULL where the truth was 14. |
 | `CUBEJS_DB_QUERY_LIMIT` | Above the largest group count of a post-processing query | The default is 50000. Post-processing then computes from 50000 rows with no error. In the demo, the count of 100000 customers gave 50000. |
 
-Set this value on ClickHouse, for the user that Cube signs in with. `dev/clickhouse/profile.xml` has the form.
-
-| Setting | Value | Reason |
-| --- | --- | --- |
-| `aggregate_functions_null_for_empty` | `1` | SQL gives `NULL` for `sum`, `min` and `max` of no rows. Without this setting, ClickHouse gives 0, and a measure with `sql: min(created_at)` gives 1970-01-01. |
-
 `CUBESQL_STREAM_MODE=true` also removes the limit, but then each query that a rollup serves fails with `Streaming queries to Cube Store aren't supported`.
 
 ## What the driver writes

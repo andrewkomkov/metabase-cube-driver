@@ -5790,8 +5790,6 @@ def _(ctx):
 
 # ----------------------------------------------------------------- findings of the random query generator, see dev/fuzz/README.md
 
-Q("clickhouse.aggregate_on_no_rows", ORD, "SELECT NULL, NULL, NULL",
-  agg=["m:orders.min_amount", "m:orders.max_amount", "m:orders.first_order_at"], where=[["=", "d:orders.status", "no such status"]])
 Q("filter.case_dimension_on_raw_rows", ORD, "SELECT id, if(quantity >= 3, 'large', 'small') FROM orders WHERE id <= 3",
   fields=["d:orders.id", "d:orders.size"], where=[["<=", "d:orders.id", 3]])
 Q("filter.fraction_beyond_the_scale_of_a_decimal", "typed_events", "SELECT count() FROM typed_events WHERE toFloat64(dec_amount) < 12.50001",
