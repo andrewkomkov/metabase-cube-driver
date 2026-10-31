@@ -437,13 +437,13 @@ cubes:
       - { name: revenue, type: sum, sql: amount, description: Additive. }
       - { name: min_amount, type: min, sql: amount, description: Additive. }
       - { name: max_amount, type: max, sql: amount, description: Additive. }
-      - { name: users_approx, type: count_distinct_approx, sql: user_id, description: Additive through a sketch. }
+      - { name: buyers_approx, type: count_distinct_approx, sql: user_id, description: Additive through a sketch. }
       - { name: paid_count, type: count, filters: [{ sql: "{CUBE}.status IN ('completed','shipped')" }], description: Additive with a filter. }
       - { name: paid_revenue, type: sum, sql: amount, filters: [{ sql: "{CUBE}.status IN ('completed','shipped')" }], description: Additive with a filter. }
       - { name: per_order, type: number, sql: "1.0 * {revenue} / NULLIF({count}, 0)", description: A ratio of additive leaf measures. }
-      - { name: users, type: count_distinct, sql: user_id, description: Not additive. }
+      - { name: buyers, type: count_distinct, sql: user_id, description: Not additive. }
       - { name: avg_amount, type: avg, sql: amount, description: Not additive in the docs. }
-      - { name: per_user, type: number, sql: "1.0 * {revenue} / NULLIF({users}, 0)", description: A ratio with a leaf measure that is not additive. }
+      - { name: per_buyer, type: number, sql: "1.0 * {revenue} / NULLIF({buyers}, 0)", description: A ratio with a leaf measure that is not additive. }
       - { name: median_amount, type: number, sql: "quantile(0.5)(toFloat64({CUBE}.amount))", description: Not additive. }
       - { name: first_status, type: string, sql: "min({CUBE}.status)", description: A string measure. }
       - { name: last_at, type: time, sql: "max({CUBE}.created_at)", description: A time measure. }
@@ -468,12 +468,12 @@ cubes:
         indexes:
           - { name: status_idx, columns: [status] }
       - name: approx_day
-        measures: [users_approx]
+        measures: [buyers_approx]
         dimensions: [status]
         time_dimension: created_at
         granularity: day
       - name: non_additive_day
-        measures: [users, avg_amount, median_amount, first_status, last_at, any_completed]
+        measures: [buyers, avg_amount, median_amount, first_status, last_at, any_completed]
         dimensions: [status]
         time_dimension: created_at
         granularity: day
@@ -837,7 +837,7 @@ views:
     description: A view of pa_types, so a query through it reads the rollups of the cube.
     cubes:
       - join_path: pa_types
-        includes: [status, product_id, created_at, count, revenue, users, per_order, paid_revenue]
+        includes: [status, product_id, created_at, count, revenue, buyers, per_order, paid_revenue]
       - join_path: pa_types.pa_customers
         prefix: true
         includes: [state, city]
