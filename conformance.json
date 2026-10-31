@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 727,
-    "partial": 16,
+    "pass": 729,
+    "partial": 12,
     "blocked": 2,
     "unsupported": 12,
-    "fail": 0,
-    "total": 757
+    "fail": 5,
+    "total": 760
   },
-  "coverage": "coverage: 727/757 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 729/760 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -3157,23 +3157,23 @@
     },
     {
       "id": "compile.xray.table_all_cards_run",
-      "status": "partial",
-      "reason": "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
+      "status": "fail",
+      "reason": "4 of 6 cards failed: [('Sales per product', 'no truth for the column products.name of the card'), ('Sales for each product category', 'no truth for the column products.category of the card'), ('Sales per state', 'no truth for the column users.state of the card'), ('Sales by coordinates', 'no truth for the column users.location__longitude of the card')]"
     },
     {
       "id": "compile.xray.field_all_cards_run",
-      "status": "partial",
-      "reason": "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
+      "status": "fail",
+      "reason": "9 of 13 cards failed: [('User \u2192 Lifetime Orders by Status', 'no truth for the column users.lifetime_orders of the card'), ('Status by User \u2192 Location', 'no truth for the column users.location of the card'), ('Status by User \u2192 City', 'no truth for the column users.city of the card'), ('Status by Cancel Status', 'no truth for the column orders.cancel_status of the card'), ('Status by Status Sorted', 'no truth for the column orders.status_sorted of the card'), ('Status by Product \u2192 Category', 'no truth for the column products.category of the card')]"
     },
     {
       "id": "compile.xray.time_field_all_cards_run",
-      "status": "partial",
-      "reason": "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
+      "status": "fail",
+      "reason": "9 of 15 cards failed: [('User \u2192 Lifetime Orders by Created at', 'no truth for the column users.lifetime_orders of the card'), ('Count of User \u2192 Location by Created at', 'no truth for the column users.location of the card'), ('Count of User \u2192 City by Created at', 'no truth for the column users.city of the card'), ('Count of Cancel Status by Created at', 'no truth for the column orders.cancel_status of the card'), ('Count of Status Sorted by Created at', 'no truth for the column orders.status_sorted of the card'), ('Count of Product \u2192 Category by Created at', 'no truth for the column products.category of the card')]"
     },
     {
       "id": "compile.xray.typed_table_all_cards_run",
-      "status": "partial",
-      "reason": "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
+      "status": "fail",
+      "reason": "3 of 15 cards failed: [('Events by Dec Amount', 'no truth for the column typed_events.dec_amount of the card'), ('Events by Dec Big', 'no truth for the column typed_events.dec_big of the card'), ('Events by F32', 'no truth for the column typed_events.f32 of the card')]"
     },
     {
       "id": "compile.granularity.native_offset_no_rollup",
@@ -3627,6 +3627,21 @@
     },
     {
       "id": "mcp.query.between_keeps_time",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "isolation.other_driver_mcp_between",
+      "status": "fail",
+      "reason": "these bounds cannot tell a whole day from the time: [[0]]"
+    },
+    {
+      "id": "isolation.other_driver_cache",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "isolation.other_driver_sync",
       "status": "pass",
       "reason": ""
     },
