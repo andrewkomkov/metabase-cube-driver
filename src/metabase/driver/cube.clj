@@ -969,8 +969,14 @@
                        (concat (cube.meta/same-source-groups-of-cube cube-meta table-name)
                                (when filtered? (cube.meta/same-sql-groups-of-cube cube-meta table-name))))
                      (catch Exception _ nil))
-          selected (keep #(:name (stored-field %)) fields)]
-      (into #{}
+          selected (keep #(:name (stored-field %)) fields)
+          switches (when (next selected)
+                     (try
+                       (cube.meta/switch-dimension-names (cube.meta/cached-meta (:details (driver-api/database provider)))
+                                                         (:name (driver-api/table provider table-id)))
+                       (catch Exception _ nil)))]
+      ;; Cube gives each row once for each value of a switch dimension, so raw rows show NULL for it, and each row stays one row.
+      (into (set (filter #(contains? switches (str/lower-case %)) selected))
             (mapcat (fn [group] (rest (filter group selected))))
             groups))))
 

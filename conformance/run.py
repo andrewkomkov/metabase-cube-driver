@@ -5094,6 +5094,23 @@ def _(ctx):
     expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE status <> 'revenue_trailing_30d'", "SELECT count() FROM orders")
 
 
+@check("compile.raw.switch_dimension_keeps_one_row")
+def _(ctx):
+    """Cube gives each row once for each value of a switch dimension. Raw rows of a table must stay one row for each row, also through a model."""
+    tid = ctx.mb.table(ORD)["id"]
+    status = ctx.mb.field(ORD, "status")["id"]
+    res = ctx.mb.api("POST", "/api/dataset", {"database": ctx.mb.need_db(), "type": "query", "query": {"source-table": tid, "filter": ["=", ["field", status, None], "shipped"], "limit": 5000}})
+    truth = ch(SHIPPED)[0][0]
+    if len(res["data"]["rows"]) != truth:
+        raise Fail("raw rows: %d, truth %d" % (len(res["data"]["rows"]), truth))
+    model = ctx.mb.card("switch model", {"database": ctx.mb.need_db(), "type": "query", "query": {"source-table": tid}}, "model")
+    assert_rows(ctx.mb.api("POST", "/api/dataset", {"database": ctx.mb.need_db(), "type": "query", "query": {"source-table": "card__%d" % model["id"], "aggregation": [["count"]]}})["data"]["rows"],
+                ch(CNT_O), label="count through a model")
+    # With a measure, the values of the switch are the groups.
+    assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.revenue_in_currency"], by=["d:orders.display_currency"], where=[["=", "d:orders.display_currency", "EUR"]])["rows"],
+                ch("SELECT 'EUR', toFloat64(sum(amount)) * 0.5 FROM orders"), tol=0.01, label="groups")
+
+
 @check("native.subquery_filter_refused")
 def _(ctx):
     """B2 and B4 in native SQL: an outer filter over a subquery. The driver cannot change the text, so it stops the query. A limit in the subquery gives the truth."""

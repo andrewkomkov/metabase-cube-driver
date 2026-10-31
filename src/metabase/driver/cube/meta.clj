@@ -503,6 +503,20 @@
   [cube-meta cube-name]
   (same-source-groups (:dimensions (first (filter #(= cube-name (:name %)) (:cubes cube-meta))))))
 
+(defn switch-dimension-names
+  "The short names of the `switch` dimensions of a cube or view. Cube gives each row once for each value of such a dimension. /v1/meta
+  shows it as a string with no SQL, and an alias of a view has an `aliasMember`."
+  [cube-meta cube-name]
+  (let [dimension-named (into {} (comp (mapcat :dimensions) (map (juxt :name identity))) (:cubes cube-meta))
+        switch?         (fn switch? [dimension]
+                          (if-let [source (dimension-named (:aliasMember dimension))]
+                            (switch? source)
+                            (and (= "string" (:type dimension)) (nil? (:sql dimension)))))]
+    (into #{}
+          (comp (filter switch?)
+                (map #(str/lower-case (short-name (:name %)))))
+          (:dimensions (first (filter #(= cube-name (:name %)) (:cubes cube-meta)))))))
+
 (defn same-sql-groups
   "Sets of short names of dimensions that read another member with equal SQL, as a `sub_query` dimension does. /v1/meta has no
   other sign of a `sub_query`."
