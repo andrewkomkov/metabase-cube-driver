@@ -1,0 +1,92 @@
+{
+ "steps": [
+  {
+   "id": "rest_rollup_over_original",
+   "rest": {
+    "measures": [
+     "lambda_orders.revenue"
+    ],
+    "dimensions": [
+     "lambda_orders.status"
+    ],
+    "order": {
+     "lambda_orders.status": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_only_base",
+   "rest": {
+    "measures": [
+     "only_base.revenue"
+    ],
+    "dimensions": [
+     "only_base.status"
+    ],
+    "order": {
+     "only_base.status": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_only_base_idx",
+   "rest": {
+    "measures": [
+     "only_base_idx.revenue"
+    ],
+    "dimensions": [
+     "only_base_idx.status"
+    ],
+    "order": {
+     "only_base_idx.status": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_rollup_internal",
+   "rest": {
+    "measures": [
+     "rollup_internal.revenue"
+    ],
+    "dimensions": [
+     "rollup_internal.status"
+    ],
+    "order": {
+     "rollup_internal.status": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_no_index",
+   "rest": {
+    "measures": [
+     "base_no_index.revenue"
+    ],
+    "dimensions": [
+     "base_no_index.status"
+    ],
+    "order": {
+     "base_no_index.status": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "sql_rollup_over_original",
+   "sql": "SELECT status, MEASURE(revenue) r FROM lambda_orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "truth",
+   "truth": "SELECT status, sum(amount) r FROM repro.orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "log",
+   "logs": "Missing columns|Unknown identifier|UNKNOWN_IDENTIFIER|CREATE TABLE|ADD INDEX",
+   "tail": 8
+  }
+ ]
+}

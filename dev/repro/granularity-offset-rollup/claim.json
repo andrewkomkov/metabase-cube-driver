@@ -1,0 +1,108 @@
+{
+ "steps": [
+  {
+   "id": "rest_offset_rollup",
+   "rest": {
+    "measures": [
+     "orders.revenue"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "fiscal_quarter"
+     }
+    ],
+    "order": {
+     "orders.created_at": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_offset_no_rollup",
+   "rest": {
+    "measures": [
+     "orders.revenue_no_rollup"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "fiscal_quarter"
+     }
+    ],
+    "order": {
+     "orders.created_at": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_origin_rollup",
+   "rest": {
+    "measures": [
+     "orders.revenue"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "fiscal_quarter_origin"
+     }
+    ],
+    "order": {
+     "orders.created_at": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_origin_no_rollup",
+   "rest": {
+    "measures": [
+     "orders.revenue_no_rollup"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "fiscal_quarter_origin"
+     }
+    ],
+    "order": {
+     "orders.created_at": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_old_origin_rollup",
+   "rest": {
+    "measures": [
+     "orders.revenue"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "fiscal_quarter_old_origin"
+     }
+    ],
+    "order": {
+     "orders.created_at": "asc"
+    }
+   },
+   "rest_sql": true,
+   "note": "an origin before all rows"
+  },
+  {
+   "id": "sql_offset_rollup",
+   "sql": "SELECT DATE_TRUNC('fiscal_quarter', created_at) q, MEASURE(revenue) r FROM orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "truth",
+   "note": "quarters start in Feb, May, Aug, Nov",
+   "truth": "SELECT CASE WHEN created_at < '2025-02-01' THEN '2024-11-01' WHEN created_at < '2025-05-01' THEN '2025-02-01' ELSE '2025-05-01' END q, sum(amount) r FROM repro.orders GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "truth_rows",
+   "truth": "SELECT created_at, amount FROM repro.orders ORDER BY 1"
+  }
+ ]
+}

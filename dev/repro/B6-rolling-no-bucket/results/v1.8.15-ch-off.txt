@@ -1,0 +1,133 @@
+# B6-rolling-no-bucket v1.8.15 clickhouse tesseract=off ready=True
+## sql_no_bucket
+$ psql> SELECT MEASURE(revenue_trailing_30d) FROM orders
+measure(orders.revenue_trailing_30d)
+1111
+$ psql> EXPLAIN SELECT MEASURE(revenue_trailing_30d) FROM orders
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.revenue_trailing_30d"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "order": []
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.revenue_trailing_30d"],"dimensions":[],"segments":[],"order":[]}
+## sql_no_bucket_date_filter
+$ psql> SELECT MEASURE(revenue_trailing_30d) FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-05-01'
+measure(orders.revenue_trailing_30d)
+100
+$ psql> EXPLAIN SELECT MEASURE(revenue_trailing_30d) FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-05-01'
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.revenue_trailing_30d"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "timeDimensions": [
+    {
+      "dimension": "orders.created_at",
+      "dateRange": [
+        "2025-04-01T00:00:00.000Z",
+        "2025-04-30T23:59:59.999Z"
+      ]
+    }
+  ],
+  "order": []
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.revenue_trailing_30d"],"dimensions":[],"segments":[],"timeDimensions":[{"dimension":"orders.created_at","dateRange":["2025-04-01T00:00:00.000Z","2025-04-30T23:59:59.999Z"]}],"order":[]}
+## sql_filter_inside_bucket
+$ psql> SELECT DATE_TRUNC('month',created_at) m, MEASURE(revenue_trailing_30d) r FROM orders WHERE created_at >= '2025-04-15' AND created_at < '2025-06-01' GROUP BY 1 ORDER BY 1
+m | r
+2025-04-01 00:00:00.000000 | 1100
+2025-05-01 00:00:00.000000 | 1100
+$ psql> EXPLAIN SELECT DATE_TRUNC('month',created_at) m, MEASURE(revenue_trailing_30d) r FROM orders WHERE created_at >= '2025-04-15' AND created_at < '2025-06-01' GROUP BY 1 ORDER BY 1
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.revenue_trailing_30d"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "timeDimensions": [
+    {
+      "dimension": "orders.created_at",
+      "granularity": "month",
+      "dateRange": [
+        "2025-04-15T00:00:00.000Z",
+        "2025-05-31T23:59:59.999Z"
+      ]
+    }
+  ],
+  "order": [
+    [
+      "orders.created_at",
+      "asc"
+    ]
+  ]
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.revenue_trailing_30d"],"dimensions":[],"segments":[],"timeDimensions":[{"dimension":"orders.created_at","granularity":"month","dateRange":["2025-04-15T00:00:00.000Z","2025-05-31T23:59:59.999Z"]}],"order":[["orders.created_at","asc"]]}
+## sql_whole_buckets
+$ psql> SELECT DATE_TRUNC('month',created_at) m, MEASURE(revenue_trailing_30d) r FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-06-01' GROUP BY 1 ORDER BY 1
+m | r
+2025-04-01 00:00:00.000000 | 1100
+2025-05-01 00:00:00.000000 | 1100
+$ psql> EXPLAIN SELECT DATE_TRUNC('month',created_at) m, MEASURE(revenue_trailing_30d) r FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-06-01' GROUP BY 1 ORDER BY 1
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.revenue_trailing_30d"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "timeDimensions": [
+    {
+      "dimension": "orders.created_at",
+      "granularity": "month",
+      "dateRange": [
+        "2025-04-01T00:00:00.000Z",
+        "2025-05-31T23:59:59.999Z"
+      ]
+    }
+  ],
+  "order": [
+    [
+      "orders.created_at",
+      "asc"
+    ]
+  ]
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.revenue_trailing_30d"],"dimensions":[],"segments":[],"timeDimensions":[{"dimension":"orders.created_at","granularity":"month","dateRange":["2025-04-01T00:00:00.000Z","2025-05-31T23:59:59.999Z"]}],"order":[["orders.created_at","asc"]]}
+## rest_no_time
+$ POST /cubejs-api/v1/load {"measures": ["orders.revenue_trailing_30d"]}
+HTTP 200 [{"orders.revenue_trailing_30d": "1111"}]
+SQL: SELECT  sum(`orders_revenue_trailing_30d_cumulative__orders`.amount) `orders__revenue_trailing_30d` FROM repro.orders AS `orders_revenue_trailing_30d_cumulative__orders`   LIMIT 10000
+PARAMS: []
+## rest_date_range_no_granularity
+$ POST /cubejs-api/v1/load {"measures": ["orders.revenue_trailing_30d"], "timeDimensions": [{"dimension": "orders.created_at", "dateRange": ["2025-04-01", "2025-04-30"]}]}
+HTTP 200 [{"orders.revenue_trailing_30d": "100"}]
+SQL: SELECT `orders__revenue_trailing_30d` `orders__revenue_trailing_30d` FROM (SELECT sum(`orders_revenue_trailing_30d_cumulative__orders`.amount) `orders__revenue_trailing_30d` FROM repro.orders AS `orders_revenue_trailing_30d_cumulative__orders`  WHERE (toTimeZone(toDateTime64(`orders_revenue_trailing_30d_cumulative__orders`.created_at, 0), 'UTC') > subDate(toTimeZone(toDateTime64(parseDateTimeBestEffort(?), 0), 'UTC'), INTERVAL 30 DAY) AND toTimeZone(toDateTime64(`orders_revenue_trailing_30d_cumulative__orders`.created_at, 0), 'UTC') <= toTimeZone(toDateTime64(parseDateTimeBestEffort(?), 0), 'UTC'))) AS q_0  LIMIT 10000
+PARAMS: ["2025-04-30T23:59:59.999Z", "2025-04-30T23:59:59.999Z"]
+## rest_filter_inside_bucket
+$ POST /cubejs-api/v1/load {"measures": ["orders.revenue_trailing_30d"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month", "dateRange": ["2025-04-15", "2025-05-31"]}]}
+HTTP 200 [{"orders.created_at.month": "2025-04-01T00:00:00.000", "orders.revenue_trailing_30d": "1100", "orders.created_at": "2025-04-01T00:00:00.000"}, {"orders.created_at.month": "2025-05-01T00:00:00.000", "orders.revenue_trailing_30d": "1100", "orders.created_at": "2025-05-01T00:00:00.000"}]
+SQL: SELECT q_0.`orders__created_at_month` `orders__created_at_month`, `orders__revenue_trailing_30d` `orders__revenue_trailing_30d` FROM (SELECT `orders.created_at_series`.`date_from` `orders__created_at_month`, sum(`orders__revenue_trailing_30d`) `orders__revenue_trailing_30d` FROM (SELECT parseDateTimeBestEffort(arrayJoin(['2025-04-01T00:00:00.000','2025-05-01T00:00:00.000'])) as date_from, parseDateTimeBestEffort(arrayJoin(['2025-04-30T23:59:59.999','2025-05-31T23:59:59.999'])) as date_to) AS `orders.created_at_series` LEFT JOIN (SELECT toDateTime64(toStartOfDay(toTimeZone(toDateTime64(`orders_revenue_trailing_30d_cumulative__orders`.created_at, 0), 'UTC'), 'UTC'), 0, 'UTC') `orders__created_at_month`, sum(`orders_revenue_trailing_30d_cumulative__orders`.amount) `orders__revenue_trailing_30d` FROM repro.orders AS `orders_revenue_trailing_30d_cumulative__orders`  WHERE (toTimeZone(toDateTime64(`orders_revenue_trailing_30d_cumulative__orders`.created_at, 0), 'UTC') > subDate(parseDateTimeBestEffort(?), INTERVAL 30 DAY) AND toTimeZone(toDateTime64(`orders_revenue_trailing_30d_cumulative__orders`.created_at, 0), 'UTC') <= parseDateTimeBestEffort(?)) GROUP BY `orders__created_at_month`) AS `orders_revenue_trailing_30d_cumulative__base` ON `orders_revenue_trailing_30d_cumulative__base`.`orders__created_at_month` > subDate(`orders.created_at_series`.`date_to`, INTERVAL 30 DAY) AND `orders_revenue_trailing_30d_cumulative__base`.`orders__created_at_month` <= `orders.created_at_series`.`date_to` GROUP BY `orders__created_at_month`) AS q_0  ORDER BY `orders__created_at_month` ASC LIMIT 10000
+PARAMS: ["2025-04-01T00:00:00.000", "2025-05-31T23:59:59.999"]
+## truth_all
+$ clickhouse> SELECT sum(amount) FROM repro.orders
+sum(amount)
+1111
+## truth_30d_to_apr30 -- trailing 30 days from 2025-04-30 23:59:59
+$ clickhouse> SELECT sum(amount) FROM repro.orders WHERE created_at > '2025-03-31 23:59:59' AND created_at <= '2025-04-30 23:59:59'
+sum(amount)
+100
+## truth_30d_to_may31
+$ clickhouse> SELECT sum(amount) FROM repro.orders WHERE created_at > '2025-05-01 23:59:59' AND created_at <= '2025-05-31 23:59:59'
+sum(amount)
+1000

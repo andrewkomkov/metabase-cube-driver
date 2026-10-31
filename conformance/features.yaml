@@ -4,2025 +4,4604 @@
 - id: measure.format.abbr
   area: cube.measures
   title: "measure format abbr"
-  status: todo
+  status: partial
+  status_stock: partial
   check: measure.format.abbr
+  cap: partial
+  reason: "Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: measure.format.accounting
   area: cube.measures
   title: "measure format accounting"
-  status: todo
+  status: partial
+  status_stock: partial
   check: measure.format.accounting
+  cap: partial
+  reason: "Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: measure.format.currency
   area: cube.measures
   title: "measure format currency"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.format.currency
 - id: measure.format.currency_code
   area: cube.measures
   title: "measure format currency code"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.format.currency_code
 - id: measure.format.d3
   area: cube.measures
   title: "measure format d3"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.format.d3
 - id: measure.format.number_n
   area: cube.measures
   title: "measure format number n"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.format.number_n
 - id: measure.format.percent
   area: cube.measures
   title: "measure format percent"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.format.percent
 - id: measure.format.percent_n
   area: cube.measures
   title: "measure format percent n"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.format.percent_n
 - id: measure.multi_stage.case_switch
   area: cube.measures
   title: "measure multi stage case switch"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.multi_stage.case_switch
 - id: measure.multi_stage.filter_exclude
   area: cube.measures
   title: "measure multi stage filter exclude"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.multi_stage.filter_exclude
 - id: measure.multi_stage.grain_exclude
   area: cube.measures
   title: "measure multi stage grain exclude"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.multi_stage.grain_exclude
 - id: measure.multi_stage.grain_include
   area: cube.measures
   title: "measure multi stage grain include"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.multi_stage.grain_include
 - id: measure.multi_stage.grain_keep_only
   area: cube.measures
   title: "measure multi stage grain keep only"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.multi_stage.grain_keep_only
 - id: measure.multi_stage.group_by_legacy
   area: cube.measures
   title: "measure multi stage group by legacy"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.multi_stage.group_by_legacy
 - id: measure.multi_stage.share_of_total
   area: cube.measures
   title: "measure multi stage share of total"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.multi_stage.share_of_total
 - id: measure.multi_stage.time_shift_named_calendar
   area: cube.measures
   title: "measure multi stage time shift named calendar"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.multi_stage.time_shift_named_calendar
 - id: measure.multi_stage.time_shift_next
   area: cube.measures
   title: "measure multi stage time shift next"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.multi_stage.time_shift_next
 - id: measure.multi_stage.time_shift_prior
   area: cube.measures
   title: "measure multi stage time shift prior"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.multi_stage.time_shift_prior
 - id: measure.opt.cross_cube_reference
   area: cube.measures
   title: "measure opt cross cube reference"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.opt.cross_cube_reference
 - id: measure.opt.description
   area: cube.measures
   title: "measure opt description"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.opt.description
 - id: measure.opt.drill_members
   area: cube.measures
   title: "measure opt drill members"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.opt.drill_members
 - id: measure.opt.filters
   area: cube.measures
   title: "measure opt filters"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.opt.filters
 - id: measure.opt.filters_on_count
   area: cube.measures
   title: "measure opt filters on count"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.opt.filters_on_count
 - id: measure.opt.mask
   area: cube.measures
   title: "measure opt mask"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.opt.mask
 - id: measure.opt.meta
   area: cube.measures
   title: "measure opt meta"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.opt.meta
 - id: measure.opt.multi_stage
   area: cube.measures
   title: "measure opt multi stage"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.multi_stage.share_of_total
 - id: measure.opt.public_false
   area: cube.measures
   title: "measure opt public false"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.opt.public_false
 - id: measure.opt.rolling_type_deprecated
   area: cube.measures
   title: "measure opt rolling type deprecated"
   status: unsupported
+  status_stock: unsupported
   reason: "year_to_date, quarter_to_date and month_to_date are deprecated and Tesseract does not read them. The demo model uses to_date."
 - id: measure.opt.time_shift
   area: cube.measures
   title: "measure opt time shift"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.multi_stage.time_shift_prior
 - id: measure.opt.title
   area: cube.measures
   title: "measure opt title"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.opt.title
 - id: measure.rolling.leading_offset
   area: cube.measures
   title: "measure rolling leading offset"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.rolling.leading_offset
 - id: measure.rolling.to_date_month
   area: cube.measures
   title: "measure rolling to date month"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.rolling.to_date_month
 - id: measure.rolling.to_date_year
   area: cube.measures
   title: "measure rolling to date year"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.rolling.to_date_year
 - id: measure.rolling.trailing
   area: cube.measures
   title: "measure rolling trailing"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.rolling.trailing
 - id: measure.rolling.unbounded
   area: cube.measures
   title: "measure rolling unbounded"
-  status: todo
-  check: measure.rolling.unbounded
+  status: blocked
+  status_stock: blocked
+  reason: "For more than one bucket, Cube writes the window as a join with only an inequality, and ClickHouse 26.8 rejects it: Cannot determine join keys in JOIN ON expression. allow_experimental_join_condition=1 does not change this. One bucket works, and more buckets stop with a clear message, see measure.rolling.unbounded_one_bucket. trailing: 100 year in the data model works for more buckets. Bounded windows work, see measure.rolling.trailing."
 - id: measure.type.avg
   area: cube.measures
   title: "measure type avg"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.type.avg
 - id: measure.type.boolean
   area: cube.measures
   title: "measure type boolean"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.type.boolean
 - id: measure.type.count
   area: cube.measures
   title: "measure type count"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.type.count
 - id: measure.type.count_distinct
   area: cube.measures
   title: "measure type count distinct"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.type.count_distinct
 - id: measure.type.count_distinct_approx
   area: cube.measures
   title: "measure type count distinct approx"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.type.count_distinct_approx
 - id: measure.type.max
   area: cube.measures
   title: "measure type max"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.type.max
 - id: measure.type.min
   area: cube.measures
   title: "measure type min"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.type.min
 - id: measure.type.number
   area: cube.measures
   title: "measure type number"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.type.number
 - id: measure.type.number_agg
   area: cube.measures
   title: "measure type number agg"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.type.number_agg
 - id: measure.type.rank
   area: cube.measures
   title: "measure type rank"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.type.rank
 - id: measure.type.string
   area: cube.measures
   title: "measure type string"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.type.string
 - id: measure.type.sum
   area: cube.measures
   title: "measure type sum"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.type.sum
 - id: measure.type.time
   area: cube.measures
   title: "measure type time"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.type.time
 - id: dimension.format.abbr
   area: cube.dimensions
   title: "dimension format abbr"
-  status: todo
+  status: partial
+  status_stock: partial
   check: dimension.format.abbr
+  cap: partial
+  reason: "Metabase has no setting for an abbreviated number. The field has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: dimension.format.currency
   area: cube.dimensions
   title: "dimension format currency"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.format.currency
 - id: dimension.format.currency_code
   area: cube.dimensions
   title: "dimension format currency code"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.format.currency_code
 - id: dimension.format.id
   area: cube.dimensions
   title: "dimension format id"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.format.id
 - id: dimension.format.image_url
   area: cube.dimensions
   title: "dimension format image url"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.format.image_url
 - id: dimension.format.link
   area: cube.dimensions
   title: "dimension format link"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.format.link
 - id: dimension.format.link_label
   area: cube.dimensions
   title: "dimension format link label"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.format.link_label
 - id: dimension.format.percent
   area: cube.dimensions
   title: "dimension format percent"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.format.percent
 - id: dimension.format.time
   area: cube.dimensions
   title: "dimension format time"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.format.time
 - id: dimension.opt.case_label_sql
   area: cube.dimensions
   title: "dimension opt case label sql"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.opt.case_label_sql
 - id: dimension.opt.case_sql
   area: cube.dimensions
   title: "dimension opt case sql"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.opt.case_sql
 - id: dimension.opt.description
   area: cube.dimensions
   title: "dimension opt description"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.opt.description
 - id: dimension.opt.links
   area: cube.dimensions
   title: "dimension opt links"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.opt.links
 - id: dimension.opt.mask_sql
   area: cube.dimensions
   title: "dimension opt mask sql"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.opt.mask_sql
 - id: dimension.opt.mask_static
   area: cube.dimensions
   title: "dimension opt mask static"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.opt.mask_static
 - id: dimension.opt.meta
   area: cube.dimensions
   title: "dimension opt meta"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.opt.meta
 - id: dimension.opt.order
   area: cube.dimensions
   title: "dimension opt order"
   status: blocked
+  status_stock: blocked
   reason: "A Metabase field has no default sort order. The driver cannot apply this option without a Metabase change, which is out of scope."
 - id: dimension.opt.primary_key
   area: cube.dimensions
   title: "dimension opt primary key"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.opt.primary_key
 - id: dimension.opt.propagate_filters
   area: cube.dimensions
   title: "dimension opt propagate filters"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.opt.propagate_filters
 - id: dimension.opt.public_false
   area: cube.dimensions
   title: "dimension opt public false"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.opt.public_false
 - id: dimension.opt.sub_query
   area: cube.dimensions
   title: "dimension opt sub query"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.opt.sub_query
 - id: dimension.opt.synthetic_hidden
   area: cube.dimensions
   title: "dimension opt synthetic hidden"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.opt.synthetic_hidden
 - id: dimension.opt.time_shift_calendar
   area: cube.dimensions
   title: "dimension opt time shift calendar"
-  status: todo
+  status: pass
+  status_stock: pass
   check: measure.multi_stage.time_shift_named_calendar
 - id: dimension.opt.title
   area: cube.dimensions
   title: "dimension opt title"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.opt.title
 - id: dimension.type.boolean
   area: cube.dimensions
   title: "dimension type boolean"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.type.boolean
 - id: dimension.type.geo
   area: cube.dimensions
   title: "dimension type geo"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.type.geo
+- id: dimension.type.geo.map_points
+  area: cube.dimensions
+  title: "dimension type geo: points on a map"
+  status: pass
+  status_stock: pass
+  check: dimension.type.geo.map_points
+- id: dimension.type.geo.map_grid
+  area: cube.dimensions
+  title: "dimension type geo: grid map with bins"
+  status: pass
+  status_stock: pass
+  check: dimension.type.geo.map_grid
+- id: dimension.type.geo.raw_rows
+  area: cube.dimensions
+  title: "dimension type geo: raw rows"
+  status: pass
+  status_stock: pass
+  check: dimension.type.geo.raw_rows
+- id: dimension.type.geo.filter
+  area: cube.dimensions
+  title: "dimension type geo: filter on coordinates"
+  status: pass
+  status_stock: pass
+  check: dimension.type.geo.filter
+- id: dimension.type.geo.implicit_join
+  area: cube.dimensions
+  title: "dimension type geo: coordinates through a foreign key"
+  status: pass
+  status_stock: pass
+  check: dimension.type.geo.implicit_join
+- id: dimension.type.geo.view
+  area: cube.dimensions
+  title: "dimension type geo: coordinates in a view"
+  status: partial
+  status_stock: partial
+  check: dimension.type.geo.view
+  cap: partial
+  reason: "Cube v1.8.15 fails each query on a geo dimension of a view, also on the REST API: Cannot read properties of undefined (reading 'sql'). No map can work on a view. The driver hides this column and shows it as NULL, so the view stays usable. A map works on the cube of the dimension."
+- id: dimension.type.geo.auto_bin
+  area: cube.dimensions
+  title: "dimension type geo: automatic bins"
+  status: pass
+  status_stock: pass
+  check: dimension.type.geo.auto_bin
+- id: dimension.type.geo.second_stage
+  area: cube.dimensions
+  title: "dimension type geo: coordinates in a second query stage"
+  status: pass
+  status_stock: pass
+  check: dimension.type.geo.second_stage
+- id: dimension.type.geo.fingerprint
+  area: cube.dimensions
+  title: "dimension type geo: fingerprint of coordinates"
+  status: pass
+  status_stock: pass
+  check: dimension.type.geo.fingerprint
 - id: dimension.type.number
   area: cube.dimensions
   title: "dimension type number"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.type.number
 - id: dimension.type.string
   area: cube.dimensions
   title: "dimension type string"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.type.string
 - id: dimension.type.switch
   area: cube.dimensions
   title: "dimension type switch"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.type.switch
 - id: dimension.type.time
   area: cube.dimensions
   title: "dimension type time"
-  status: todo
+  status: pass
+  status_stock: pass
   check: dimension.type.time
 - id: granularity.custom.interval_hours
   area: cube.dimensions
   title: "granularity custom interval hours"
-  status: todo
+  status: pass
+  status_stock: pass
   check: granularity.custom.interval_hours
 - id: granularity.custom.negative_offset
   area: cube.dimensions
   title: "granularity custom negative offset"
-  status: todo
+  status: pass
+  status_stock: pass
   check: granularity.custom.negative_offset
 - id: granularity.custom.offset
   area: cube.dimensions
   title: "granularity custom offset"
-  status: todo
+  status: partial
+  status_stock: partial
   check: granularity.custom.offset
+  cap: partial
+  reason: "Cube Store puts a time before the origin of a custom granularity in months in the wrong bin, and no released Cube has a fix. The driver stops such a query when a rollup serves the measure and the data starts before the origin. An offset has its origin in the current year, so this stops most offsets on a rollup. A measure that no rollup serves gives the truth. An origin before all rows gives the truth on a rollup."
 - id: granularity.custom.origin
   area: cube.dimensions
   title: "granularity custom origin"
-  status: todo
+  status: pass
+  status_stock: pass
   check: granularity.custom.origin
 - id: granularity.custom.title
   area: cube.dimensions
   title: "granularity custom title"
-  status: todo
+  status: pass
+  status_stock: pass
   check: granularity.custom.title
 - id: granularity.proxy_default
   area: cube.dimensions
   title: "granularity proxy default"
-  status: todo
+  status: pass
+  status_stock: pass
   check: granularity.proxy_default
 - id: segment.combined
   area: cube.segments
   title: "segment combined"
-  status: todo
+  status: pass
+  status_stock: pass
   check: segment.combined
 - id: segment.description
   area: cube.segments
   title: "segment description"
-  status: todo
+  status: pass
+  status_stock: pass
   check: segment.description
 - id: segment.filter
   area: cube.segments
   title: "segment filter"
-  status: todo
+  status: pass
+  status_stock: pass
   check: segment.filter
 - id: segment.second
   area: cube.segments
   title: "segment second"
-  status: todo
+  status: pass
+  status_stock: pass
   check: segment.second
 - id: segment.title
   area: cube.segments
   title: "segment title"
-  status: todo
+  status: pass
+  status_stock: pass
   check: segment.title
 - id: segment.with_breakout
   area: cube.segments
   title: "segment with breakout"
-  status: todo
+  status: pass
+  status_stock: pass
   check: segment.with_breakout
 - id: join.alias
   area: cube.joins
   title: "join alias"
-  status: todo
+  status: pass
+  status_stock: pass
   check: join.alias
 - id: join.fan_trap_avg
   area: cube.joins
   title: "join fan trap avg"
-  status: todo
+  status: pass
+  status_stock: pass
   check: join.fan_trap_avg
 - id: join.many_to_one
   area: cube.joins
   title: "join many to one"
-  status: todo
+  status: pass
+  status_stock: pass
   check: join.many_to_one
 - id: join.one_to_many_child_measure
   area: cube.joins
   title: "join one to many child measure"
-  status: todo
+  status: pass
+  status_stock: pass
   check: join.one_to_many_child_measure
 - id: join.one_to_many_no_fanout
   area: cube.joins
   title: "join one to many no fanout"
-  status: todo
+  status: pass
+  status_stock: pass
   check: join.one_to_many_no_fanout
 - id: join.one_to_one
   area: cube.joins
   title: "join one to one"
-  status: todo
+  status: pass
+  status_stock: pass
   check: join.one_to_one
 - id: join.sql_cube_join_field
   area: cube.joins
   title: "join sql cube join field"
-  status: todo
+  status: pass
+  status_stock: pass
   check: join.sql_cube_join_field
 - id: join.transitive
   area: cube.joins
   title: "join transitive"
-  status: todo
+  status: pass
+  status_stock: pass
   check: join.transitive
 - id: cube.calendar
   area: cube.cubes
   title: "cube calendar"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.calendar
 - id: cube.calendar_granularity_sql
   area: cube.cubes
   title: "cube calendar granularity sql"
-  status: blocked
-  reason: "Needs a calendar table with SQL granularities in the demo model. Not modelled yet."
+  status: pass
+  status_stock: pass
+  check: cube.calendar_granularity_sql
 - id: cube.data_source
   area: cube.cubes
   title: "cube data source"
-  status: blocked
-  reason: "The demo stack has one data source. A second one needs a compose change and a Cube config, which do not exist yet."
+  status: pass
+  status_stock: pass
+  check: cube.data_source
 - id: cube.description
   area: cube.cubes
   title: "cube description"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.description
 - id: cube.extends
   area: cube.cubes
   title: "cube extends"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.extends
 - id: cube.meta
   area: cube.cubes
   title: "cube meta"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.meta
 - id: cube.public_false
   area: cube.cubes
   title: "cube public false"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.public_false
 - id: cube.refresh_key
   area: cube.cubes
   title: "cube refresh key"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.refresh_key
 - id: cube.sql
   area: cube.cubes
   title: "cube sql"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.sql
 - id: cube.sql_alias
   area: cube.cubes
   title: "cube sql alias"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.sql_alias
 - id: cube.sql_table
   area: cube.cubes
   title: "cube sql table"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.sql_table
 - id: cube.title
   area: cube.cubes
   title: "cube title"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.title
 - id: context.compile_context
   area: cube.context
   title: "context compile context"
-  status: blocked
-  reason: "Needs a security context. See security.compile_context."
+  status: pass
+  status_stock: pass
+  check: security.compile_context
 - id: context.filter_group
   area: cube.context
   title: "context filter group"
-  status: blocked
-  reason: "FILTER_GROUP is not in the demo model yet."
+  status: pass
+  status_stock: pass
+  check: context.filter_group
 - id: context.filter_params
   area: cube.context
   title: "context filter params"
-  status: todo
+  status: pass
+  status_stock: pass
   check: context.filter_params
 - id: context.sql_utils_convert_tz
   area: cube.context
   title: "context sql utils convert tz"
-  status: todo
+  status: pass
+  status_stock: pass
   check: context.sql_utils_convert_tz
 - id: security.access_policy_groups
   area: cube.security
   title: "security access policy groups"
-  status: blocked
-  reason: "Group policies need groups in the security context, so they need a cube.js. Policies for all groups are checked in view.access_*."
+  status: pass
+  status_stock: pass
+  check: security.access_policy_groups
 - id: security.compile_context
   area: cube.security
   title: "security compile context"
-  status: blocked
-  reason: "Needs a cube.js with contextToAppId and a mount in dev/docker-compose.yml. The stack mounts only the model."
+  status: pass
+  status_stock: pass
+  check: security.compile_context
 - id: security.security_context_row_filter
   area: cube.security
   title: "security security context row filter"
-  status: blocked
-  reason: "Needs a cube.js with checkSqlAuth and a mount in dev/docker-compose.yml. The driver must also pass a Metabase user attribute to Cube."
+  status: pass
+  status_stock: pass
+  check: security.security_context_row_filter
 - id: security.sql_user_impersonation
   area: cube.security
   title: "security sql user impersonation"
-  status: blocked
-  reason: "Needs CUBEJS_SQL_SUPER_USER and a virtual __user filter. The compose file sets no super user."
+  status: unsupported
+  status_stock: unsupported
+  reason: "The driver does not use CUBEJS_SQL_SUPER_USER, SET user or __user. A live test on Cube v1.8.15 shows that a session of the super user accepts __user from native SQL, so a person who writes SQL reads as anybody. SET user works in one direction, so a pool cannot give the connection back. The driver connects as the person instead. See docs/security.md."
 - id: view.access_member_level
   area: cube.views
   title: "view access member level"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.access_member_level
 - id: view.access_row_level
   area: cube.views
   title: "view access row level"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.access_row_level
 - id: view.basic
   area: cube.views
   title: "view basic"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.basic
 - id: view.default_filters
   area: cube.views
   title: "view default filters"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.default_filters
 - id: view.derived_measure
   area: cube.views
   title: "view derived measure"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.derived_measure
 - id: view.description
   area: cube.views
   title: "view description"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.description
 - id: view.excludes
   area: cube.views
   title: "view excludes"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.excludes
 - id: view.extends
   area: cube.views
   title: "view extends"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.extends
 - id: view.folders
   area: cube.views
   title: "view folders"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.folders
 - id: view.folders_nested
   area: cube.views
   title: "view folders nested"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.folders_nested
 - id: view.group
   area: cube.views
   title: "view group"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.group
 - id: view.includes
   area: cube.views
   title: "view includes"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.includes
 - id: view.member_alias
   area: cube.views
   title: "view member alias"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.member_alias
 - id: view.member_description
   area: cube.views
   title: "view member description"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.member_description
 - id: view.member_format
   area: cube.views
   title: "view member format"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.member_format
 - id: view.member_meta
   area: cube.views
   title: "view member meta"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.member_meta
 - id: view.member_title
   area: cube.views
   title: "view member title"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.member_title
 - id: view.meta
   area: cube.views
   title: "view meta"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.meta
 - id: view.meta_auto_run
   area: cube.views
   title: "view meta auto run"
   status: unsupported
+  status_stock: unsupported
   reason: "meta.auto_run controls Cube Cloud workbooks. Metabase has no such behaviour."
 - id: view.meta_default_ui_filters
   area: cube.views
   title: "view meta default ui filters"
   status: unsupported
+  status_stock: unsupported
   reason: "meta.default_ui_filters controls Cube Cloud workbooks. Metabase has no such behaviour."
 - id: view.prefix
   area: cube.views
   title: "view prefix"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.prefix
 - id: view.public_false
   area: cube.views
   title: "view public false"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.public_false
 - id: view.title
   area: cube.views
   title: "view title"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.title
 - id: hierarchy.levels
   area: cube.hierarchies
   title: "hierarchy levels"
-  status: todo
+  status: pass
+  status_stock: pass
   check: hierarchy.levels
 - id: hierarchy.public_false
   area: cube.hierarchies
   title: "hierarchy public false"
-  status: todo
+  status: pass
+  status_stock: pass
   check: hierarchy.public_false
 - id: preagg.indexes
   area: cube.pre_aggregations
   title: "preagg indexes"
-  status: todo
+  status: pass
+  status_stock: pass
   check: preagg.indexes
 - id: preagg.original_sql
   area: cube.pre_aggregations
   title: "preagg original sql"
-  status: todo
+  status: partial
+  status_stock: partial
   check: preagg.original_sql
+  cap: partial
+  reason: "cube-clickhouse builds an original_sql pre-aggregation, and a query on the cube reads it. Its indexes have no effect. A rollup with use_original_sql_pre_aggregations still fails with Unknown table expression identifier, also with the dialect, so the query stops and no number is wrong."
+  cap_stock: partial
+  reason_stock: "Stock Cube has no working form of original_sql on ClickHouse: with an index it fails with Missing columns, and with no index it refuses. The query stops with this error, so no number is wrong. cube-clickhouse builds it. Its indexes then have no effect."
 - id: preagg.partitioned
   area: cube.pre_aggregations
   title: "preagg partitioned"
-  status: todo
+  status: pass
+  status_stock: pass
   check: preagg.partitioned
 - id: preagg.rollup
   area: cube.pre_aggregations
   title: "preagg rollup"
-  status: todo
+  status: pass
+  status_stock: pass
   check: preagg.rollup
 - id: preagg.rollup_join
   area: cube.pre_aggregations
   title: "preagg rollup join"
-  status: blocked
-  reason: "rollup_join needs two data sources. The demo stack has one."
+  status: pass
+  status_stock: pass
+  check: preagg.rollup_join
 - id: preagg.rollup_lambda
   area: cube.pre_aggregations
   title: "preagg rollup lambda"
-  status: blocked
-  reason: "rollup_lambda needs streaming or partitioned source data. Not modelled yet."
+  status: partial
+  status_stock: partial
+  check: preagg.rollup_lambda
+  cap: partial
+  reason: "Inside the range of the rollup, the lambda gives the truth. With a range that reads source rows on the demo data, the REST API and the SQL API of Cube can stop on ClickHouse with Stream query failed: aborted, see cube-js/cube#12285. A run gives the truth or this error. The driver shows a clear message for this. dev/cube/model/rollups.yml has the model."
 - id: sqlapi.aggregate_function
   area: cube.sql_api
   title: "sqlapi aggregate function"
-  status: todo
+  status: pass
+  status_stock: pass
   check: sqlapi.aggregate_function
 - id: sqlapi.date_trunc
   area: cube.sql_api
   title: "sqlapi date trunc"
-  status: todo
+  status: pass
+  status_stock: pass
   check: sqlapi.date_trunc
 - id: sqlapi.having
   area: cube.sql_api
   title: "sqlapi having"
-  status: todo
+  status: pass
+  status_stock: pass
   check: sqlapi.having
 - id: sqlapi.measure_function
   area: cube.sql_api
   title: "sqlapi measure function"
-  status: todo
+  status: pass
+  status_stock: pass
   check: sqlapi.measure_function
 - id: sqlapi.order_limit
   area: cube.sql_api
   title: "sqlapi order limit"
-  status: todo
+  status: pass
+  status_stock: pass
   check: sqlapi.order_limit
 - id: sqlapi.post_processing
   area: cube.sql_api
   title: "sqlapi post processing"
-  status: todo
+  status: pass
+  status_stock: pass
   check: sqlapi.post_processing
 - id: sqlapi.pushdown_window
   area: cube.sql_api
   title: "sqlapi pushdown window"
-  status: todo
+  status: pass
+  status_stock: pass
   check: sqlapi.pushdown_window
 - id: sqlapi.segment_in_where
   area: cube.sql_api
   title: "sqlapi segment in where"
-  status: todo
+  status: pass
+  status_stock: pass
   check: sqlapi.segment_in_where
 - id: sqlapi.ungrouped
   area: cube.sql_api
   title: "sqlapi ungrouped"
-  status: todo
+  status: pass
+  status_stock: pass
   check: sqlapi.ungrouped
 - id: sqlapi.union
   area: cube.sql_api
   title: "sqlapi union"
-  status: todo
+  status: pass
+  status_stock: pass
   check: sqlapi.union
 - id: sqlapi.where_between
   area: cube.sql_api
   title: "sqlapi where between"
-  status: todo
+  status: pass
+  status_stock: pass
   check: sqlapi.where_between
 - id: sqlapi.where_in
   area: cube.sql_api
   title: "sqlapi where in"
-  status: todo
+  status: pass
+  status_stock: pass
   check: sqlapi.where_in
 - id: sqlapi.where_is_null
   area: cube.sql_api
   title: "sqlapi where is null"
-  status: todo
+  status: pass
+  status_stock: pass
   check: sqlapi.where_is_null
 - id: sqlapi.where_like
   area: cube.sql_api
   title: "sqlapi where like"
-  status: todo
+  status: pass
+  status_stock: pass
   check: sqlapi.where_like
 - id: restapi.compare_date_range
   area: cube.rest_api
   title: "restapi compare date range"
-  status: blocked
+  status: unsupported
+  status_stock: unsupported
   reason: "compareDateRange exists only in the REST API. No Metabase query shape maps to it."
 - id: restapi.total_query
   area: cube.rest_api
   title: "restapi total query"
-  status: blocked
+  status: unsupported
+  status_stock: unsupported
   reason: "A total query exists only in the REST API. No Metabase query shape maps to it."
 - id: clickhouse.bool
   area: clickhouse
   title: "clickhouse bool"
-  status: todo
+  status: pass
+  status_stock: pass
   check: clickhouse.bool
 - id: clickhouse.datetime_utc
   area: clickhouse
   title: "clickhouse datetime utc"
-  status: todo
+  status: pass
+  status_stock: pass
   check: clickhouse.datetime_utc
 - id: clickhouse.decimal
   area: clickhouse
   title: "clickhouse decimal"
-  status: todo
+  status: pass
+  status_stock: pass
   check: clickhouse.decimal
 - id: clickhouse.function_in_measure
   area: clickhouse
   title: "clickhouse function in measure"
-  status: todo
+  status: pass
+  status_stock: pass
   check: clickhouse.function_in_measure
 - id: clickhouse.large_result
   area: clickhouse
   title: "clickhouse large result"
-  status: todo
+  status: pass
+  status_stock: pass
   check: clickhouse.large_result
 - id: clickhouse.low_cardinality
   area: clickhouse
   title: "clickhouse low cardinality"
-  status: todo
+  status: pass
+  status_stock: pass
   check: clickhouse.low_cardinality
 - id: clickhouse.nullable_expression
   area: clickhouse
   title: "clickhouse nullable expression"
-  status: todo
+  status: pass
+  status_stock: pass
   check: clickhouse.nullable_expression
 - id: meta.base_types
   area: metabase.sync
   title: "meta base types"
-  status: todo
+  status: pass
+  status_stock: pass
   check: meta.base_types
 - id: meta.fingerprint_distinct_count
   area: metabase.sync
   title: "meta fingerprint distinct count"
-  status: todo
+  status: pass
+  status_stock: pass
   check: meta.fingerprint_distinct_count
 - id: meta.fk_implicit_target
   area: metabase.sync
   title: "meta fk implicit target"
-  status: todo
+  status: pass
+  status_stock: pass
   check: meta.fk_implicit_target
 - id: meta.measure_is_marked
   area: metabase.sync
   title: "meta measure is marked"
-  status: todo
+  status: pass
+  status_stock: pass
   check: meta.measure_is_marked
 - id: meta.no_internal_columns
   area: metabase.sync
   title: "meta no internal columns"
-  status: todo
+  status: pass
+  status_stock: pass
   check: meta.no_internal_columns
 - id: meta.resync_keeps_metadata
   area: metabase.sync
   title: "meta resync keeps metadata"
-  status: todo
+  status: pass
+  status_stock: pass
   check: meta.resync_keeps_metadata
 - id: meta.semantic_types
   area: metabase.sync
   title: "meta semantic types"
-  status: todo
+  status: pass
+  status_stock: pass
   check: meta.semantic_types
 - id: meta.tables_match_public_members
   area: metabase.sync
   title: "meta tables match public members"
-  status: todo
+  status: pass
+  status_stock: pass
   check: meta.tables_match_public_members
 - id: mb.agg.avg_field
   area: metabase.aggregation
   title: "mb agg avg field"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.avg_field
 - id: mb.agg.count_rows
   area: metabase.aggregation
   title: "mb agg count rows"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.count_rows
 - id: mb.agg.count_where
   area: metabase.aggregation
   title: "mb agg count where"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.count_where
 - id: mb.agg.cum_count
   area: metabase.aggregation
   title: "mb agg cum count"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.cum_count
 - id: mb.agg.cum_sum
   area: metabase.aggregation
   title: "mb agg cum sum"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.cum_sum
 - id: mb.agg.custom_expression
   area: metabase.aggregation
   title: "mb agg custom expression"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.custom_expression
 - id: mb.agg.distinct
   area: metabase.aggregation
   title: "mb agg distinct"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.distinct
 - id: mb.agg.max_field
   area: metabase.aggregation
   title: "mb agg max field"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.max_field
 - id: mb.agg.median
   area: metabase.aggregation
   title: "mb agg median"
-  status: todo
-  check: mb.agg.median
+  status: unsupported
+  status_stock: unsupported
+  reason: "The Cube template for ClickHouse has no PERCENTILE_CONT: Rewrite Error: Can't detect Cube query. The driver turns off :percentile-aggregations, so Metabase rejects the query with a message. See compile.agg.median_gives_error. Use a measure with quantile() in the model."
 - id: mb.agg.min_field
   area: metabase.aggregation
   title: "mb agg min field"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.min_field
 - id: mb.agg.offset_window
   area: metabase.aggregation
   title: "mb agg offset window"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.offset_window
 - id: mb.agg.percentile
   area: metabase.aggregation
   title: "mb agg percentile"
-  status: todo
-  check: mb.agg.percentile
+  status: unsupported
+  status_stock: unsupported
+  reason: "The Cube template for ClickHouse has no PERCENTILE_CONT: Rewrite Error: Can't detect Cube query. The driver turns off :percentile-aggregations, so Metabase rejects the query with a message. Use a measure with quantile() in the model."
 - id: mb.agg.share
   area: metabase.aggregation
   title: "mb agg share"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.share
 - id: mb.agg.stddev
   area: metabase.aggregation
   title: "mb agg stddev"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.stddev
 - id: mb.agg.sum_field
   area: metabase.aggregation
   title: "mb agg sum field"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.sum_field
 - id: mb.agg.sum_where
   area: metabase.aggregation
   title: "mb agg sum where"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.sum_where
 - id: mb.agg.two_measures
   area: metabase.aggregation
   title: "mb agg two measures"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.two_measures
 - id: mb.agg.variance
   area: metabase.aggregation
   title: "mb agg variance"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.agg.variance
 - id: mb.bucket.day
   area: metabase.date_buckets
   title: "mb bucket day"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.bucket.day
 - id: mb.bucket.day-of-month
   area: metabase.date_buckets
   title: "mb bucket day-of-month"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.bucket.day-of-month
 - id: mb.bucket.day-of-week
   area: metabase.date_buckets
   title: "mb bucket day-of-week"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.bucket.day-of-week
 - id: mb.bucket.day-of-year
   area: metabase.date_buckets
   title: "mb bucket day-of-year"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.bucket.day-of-year
 - id: mb.bucket.hour
   area: metabase.date_buckets
   title: "mb bucket hour"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.bucket.hour
 - id: mb.bucket.hour-of-day
   area: metabase.date_buckets
   title: "mb bucket hour-of-day"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.bucket.hour-of-day
 - id: mb.bucket.minute
   area: metabase.date_buckets
   title: "mb bucket minute"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.bucket.minute
 - id: mb.bucket.minute-of-hour
   area: metabase.date_buckets
   title: "mb bucket minute-of-hour"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.bucket.minute-of-hour
 - id: mb.bucket.month
   area: metabase.date_buckets
   title: "mb bucket month"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.bucket.month
 - id: mb.bucket.month-of-year
   area: metabase.date_buckets
   title: "mb bucket month-of-year"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.bucket.month-of-year
 - id: mb.bucket.quarter
   area: metabase.date_buckets
   title: "mb bucket quarter"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.bucket.quarter
 - id: mb.bucket.quarter-of-year
   area: metabase.date_buckets
   title: "mb bucket quarter-of-year"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.bucket.quarter-of-year
 - id: mb.bucket.week
   area: metabase.date_buckets
   title: "mb bucket week"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.bucket.week
 - id: mb.bucket.week-of-year
   area: metabase.date_buckets
   title: "mb bucket week-of-year"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.bucket.week-of-year
 - id: mb.bucket.year
   area: metabase.date_buckets
   title: "mb bucket year"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.bucket.year
 - id: mb.breakout.bin_count
   area: metabase.breakout
   title: "mb breakout bin count"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.breakout.bin_count
 - id: mb.breakout.bin_width
   area: metabase.breakout
   title: "mb breakout bin width"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.breakout.bin_width
 - id: mb.breakout.boolean
   area: metabase.breakout
   title: "mb breakout boolean"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.breakout.boolean
 - id: mb.breakout.limit
   area: metabase.breakout
   title: "mb breakout limit"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.breakout.limit
 - id: mb.breakout.sorted_by_measure
   area: metabase.breakout
   title: "mb breakout sorted by measure"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.breakout.sorted_by_measure
 - id: mb.breakout.two
   area: metabase.breakout
   title: "mb breakout two"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.breakout.two
 - id: mb.filter.and
   area: metabase.filters
   title: "mb filter and"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.and
 - id: mb.filter.between_number
   area: metabase.filters
   title: "mb filter between number"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.between_number
 - id: mb.filter.boolean_false
   area: metabase.filters
   title: "mb filter boolean false"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.boolean_false
 - id: mb.filter.boolean_true
   area: metabase.filters
   title: "mb filter boolean true"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.boolean_true
 - id: mb.filter.contains
   area: metabase.filters
   title: "mb filter contains"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.contains
 - id: mb.filter.contains_ci
   area: metabase.filters
   title: "mb filter contains ci"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.contains_ci
 - id: mb.filter.date_after
   area: metabase.filters
   title: "mb filter date after"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.date_after
 - id: mb.filter.date_before
   area: metabase.filters
   title: "mb filter date before"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.date_before
 - id: mb.filter.date_between
   area: metabase.filters
   title: "mb filter date between"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.date_between
 - id: mb.filter.date_month
   area: metabase.filters
   title: "mb filter date month"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.date_month
 - id: mb.filter.date_on
   area: metabase.filters
   title: "mb filter date on"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.date_on
 - id: mb.filter.ends_with
   area: metabase.filters
   title: "mb filter ends with"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.ends_with
 - id: mb.filter.eq_multi
   area: metabase.filters
   title: "mb filter eq multi"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.eq_multi
 - id: mb.filter.eq_number
   area: metabase.filters
   title: "mb filter eq number"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.eq_number
 - id: mb.filter.eq_string
   area: metabase.filters
   title: "mb filter eq string"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.eq_string
 - id: mb.filter.exclude_day_of_week
   area: metabase.filters
   title: "mb filter exclude day of week"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.exclude_day_of_week
 - id: mb.filter.exclude_month_of_year
   area: metabase.filters
   title: "mb filter exclude month of year"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.exclude_month_of_year
 - id: mb.filter.gt
   area: metabase.filters
   title: "mb filter gt"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.gt
 - id: mb.filter.gte
   area: metabase.filters
   title: "mb filter gte"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.gte
 - id: mb.filter.is_empty
   area: metabase.filters
   title: "mb filter is empty"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.is_empty
 - id: mb.filter.is_null
   area: metabase.filters
   title: "mb filter is null"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.is_null
 - id: mb.filter.lt
   area: metabase.filters
   title: "mb filter lt"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.lt
 - id: mb.filter.lte
   area: metabase.filters
   title: "mb filter lte"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.lte
 - id: mb.filter.neq_number
   area: metabase.filters
   title: "mb filter neq number"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.neq_number
 - id: mb.filter.neq_string
   area: metabase.filters
   title: "mb filter neq string"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.neq_string
 - id: mb.filter.not
   area: metabase.filters
   title: "mb filter not"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.not
 - id: mb.filter.not_contains
   area: metabase.filters
   title: "mb filter not contains"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.not_contains
 - id: mb.filter.not_empty
   area: metabase.filters
   title: "mb filter not empty"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.not_empty
 - id: mb.filter.not_null
   area: metabase.filters
   title: "mb filter not null"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.not_null
 - id: mb.filter.or
   area: metabase.filters
   title: "mb filter or"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.or
 - id: mb.filter.relative_current
   area: metabase.filters
   title: "mb filter relative current"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.relative_current
 - id: mb.filter.relative_past
   area: metabase.filters
   title: "mb filter relative past"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.relative_past
 - id: mb.filter.starts_with
   area: metabase.filters
   title: "mb filter starts with"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.starts_with
 - id: mb.filter.starts_with_ci
   area: metabase.filters
   title: "mb filter starts with ci"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.starts_with_ci
 - id: mb.raw.fields_sorted
   area: metabase.raw_rows
   title: "mb raw fields sorted"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.raw.fields_sorted
 - id: mb.raw.sort_desc
   area: metabase.raw_rows
   title: "mb raw sort desc"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.raw.sort_desc
 - id: mb.expr.abs
   area: metabase.expressions
   title: "mb expr abs"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.abs
 - id: mb.expr.add
   area: metabase.expressions
   title: "mb expr add"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.add
 - id: mb.expr.case
   area: metabase.expressions
   title: "mb expr case"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.case
 - id: mb.expr.ceil
   area: metabase.expressions
   title: "mb expr ceil"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.ceil
 - id: mb.expr.coalesce
   area: metabase.expressions
   title: "mb expr coalesce"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.coalesce
 - id: mb.expr.concat
   area: metabase.expressions
   title: "mb expr concat"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.concat
 - id: mb.expr.datetime_add
   area: metabase.expressions
   title: "mb expr datetime add"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.datetime_add
 - id: mb.expr.datetime_diff
   area: metabase.expressions
   title: "mb expr datetime diff"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.datetime_diff
 - id: mb.expr.div
   area: metabase.expressions
   title: "mb expr div"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.div
 - id: mb.expr.floor
   area: metabase.expressions
   title: "mb expr floor"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.floor
 - id: mb.expr.get_month
   area: metabase.expressions
   title: "mb expr get month"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.get_month
 - id: mb.expr.get_year
   area: metabase.expressions
   title: "mb expr get year"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.get_year
 - id: mb.expr.length
   area: metabase.expressions
   title: "mb expr length"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.length
 - id: mb.expr.log
   area: metabase.expressions
   title: "mb expr log"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.log
 - id: mb.expr.lower
   area: metabase.expressions
   title: "mb expr lower"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.lower
 - id: mb.expr.mul
   area: metabase.expressions
   title: "mb expr mul"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.mul
 - id: mb.expr.power
   area: metabase.expressions
   title: "mb expr power"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.power
 - id: mb.expr.replace
   area: metabase.expressions
   title: "mb expr replace"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.replace
 - id: mb.expr.round
   area: metabase.expressions
   title: "mb expr round"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.round
 - id: mb.expr.sqrt
   area: metabase.expressions
   title: "mb expr sqrt"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.sqrt
 - id: mb.expr.substring
   area: metabase.expressions
   title: "mb expr substring"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.substring
 - id: mb.expr.upper
   area: metabase.expressions
   title: "mb expr upper"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.upper
 - id: mb.join.explicit_inner
   area: metabase.joins
   title: "mb join explicit inner"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.join.explicit_inner
 - id: mb.join.explicit_left
   area: metabase.joins
   title: "mb join explicit left"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.join.explicit_left
 - id: mb.join.implicit
   area: metabase.joins
   title: "mb join implicit"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.join.implicit
 - id: mb.join.implicit_filter
   area: metabase.joins
   title: "mb join implicit filter"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.join.implicit_filter
 - id: mb.join.measure_across_cubes
   area: metabase.joins
   title: "mb join measure across cubes"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.join.measure_across_cubes
 - id: mb.nested.filter_on_aggregation
   area: metabase.nested
   title: "mb nested filter on aggregation"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.nested.filter_on_aggregation
 - id: mb.nested.question_as_source
   area: metabase.nested
   title: "mb nested question as source"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.nested.question_as_source
 - id: mb.card.metric
   area: metabase.cards
   title: "mb card metric"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.card.metric
 - id: mb.card.metric_with_breakout
   area: metabase.cards
   title: "mb card metric with breakout"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.card.metric_with_breakout
 - id: mb.card.model
   area: metabase.cards
   title: "mb card model"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.card.model
 - id: mb.card.saved_question
   area: metabase.cards
   title: "mb card saved question"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.card.saved_question
 - id: mb.entity.measure_custom
   area: metabase.entities
   title: "mb entity measure custom"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.entity.measure_custom
 - id: mb.entity.segment_custom
   area: metabase.entities
   title: "mb entity segment custom"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.entity.segment_custom
 - id: mb.export.csv
   area: metabase.export
   title: "mb export csv"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.export.csv
 - id: mb.export.json
   area: metabase.export
   title: "mb export json"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.export.json
 - id: mb.native.field_filter
   area: metabase.native
   title: "mb native field filter"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.native.field_filter
 - id: mb.native.field_filter_date
   area: metabase.native
   title: "mb native field filter date"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.native.field_filter_date
 - id: mb.native.optional_clause
   area: metabase.native
   title: "mb native optional clause"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.native.optional_clause
 - id: mb.native.param_date
   area: metabase.native
   title: "mb native param date"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.native.param_date
 - id: mb.native.param_number
   area: metabase.native
   title: "mb native param number"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.native.param_number
 - id: mb.native.param_text
   area: metabase.native
   title: "mb native param text"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.native.param_text
 - id: mb.native.plain
   area: metabase.native
   title: "mb native plain"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.native.plain
 - id: mb.native.saved_card_param
   area: metabase.native
   title: "mb native saved card param"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.native.saved_card_param
 - id: mb.dashboard.filter_date
   area: metabase.dashboards
   title: "mb dashboard filter date"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.dashboard.filter_date
 - id: mb.dashboard.filter_number
   area: metabase.dashboards
   title: "mb dashboard filter number"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.dashboard.filter_number
 - id: mb.dashboard.filter_search
   area: metabase.dashboards
   title: "mb dashboard filter search"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.dashboard.filter_search
 - id: mb.dashboard.filter_string
   area: metabase.dashboards
   title: "mb dashboard filter string"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.dashboard.filter_string
 - id: mb.dashboard.filter_values
   area: metabase.dashboards
   title: "mb dashboard filter values"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.dashboard.filter_values
 - id: mb.dashboard.linked_filter
   area: metabase.dashboards
   title: "mb dashboard linked filter"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.dashboard.linked_filter
 - id: mb.dashboard.native_field_filter
   area: metabase.dashboards
   title: "mb dashboard native field filter"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.dashboard.native_field_filter
 - id: mb.field_values.boolean
   area: metabase.field_values
   title: "mb field values boolean"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.field_values.boolean
 - id: mb.field_values.list
   area: metabase.field_values
   title: "mb field values list"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.field_values.list
 - id: mb.field_values.search
   area: metabase.field_values
   title: "mb field values search"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.field_values.search
 - id: mb.search.by_description
   area: metabase.search
   title: "mb search by description"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.search.by_description
 - id: mb.search.measure
   area: metabase.search
   title: "mb search measure"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.search.measure
 - id: mb.search.segment
   area: metabase.search
   title: "mb search segment"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.search.segment
 - id: mb.search.table
   area: metabase.search
   title: "mb search table"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.search.table
 - id: mb.xray.candidates
   area: metabase.xrays
   title: "mb xray candidates"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.xray.candidates
 - id: mb.xray.table
   area: metabase.xrays
   title: "mb xray table"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.xray.table
 - id: mb.xray.view
   area: metabase.xrays
   title: "mb xray view"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.xray.view
 - id: mb.report_timezone
   area: metabase.settings
   title: "mb report timezone"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mb.report_timezone
 - id: mb.other.actions
   area: metabase.other
   title: "mb other actions"
   status: unsupported
+  status_stock: unsupported
   reason: "Metabase actions write data. The Cube SQL API is read only."
 - id: mb.other.drill_through_ui
   area: metabase.other
   title: "mb other drill through ui"
-  status: blocked
-  reason: "Drill-through runs in the browser. The suite has no browser check yet."
+  status: pass
+  status_stock: pass
+  check: mb.other.drill_through_ui
 - id: mb.other.model_persistence
   area: metabase.other
   title: "mb other model persistence"
   status: unsupported
+  status_stock: unsupported
   reason: "Model persistence needs CREATE TABLE. The Cube SQL API is read only."
 - id: mb.other.uploads
   area: metabase.other
   title: "mb other uploads"
   status: unsupported
+  status_stock: unsupported
   reason: "CSV uploads write tables. The Cube SQL API is read only."
 - id: mcp.agent_journey_no_cube_knowledge
   area: mcp
   title: "mcp agent journey no cube knowledge"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.agent_journey_no_cube_knowledge
 - id: mcp.alert_write
   area: mcp
   title: "mcp alert write"
-  status: blocked
-  reason: "Needs an email or Slack channel. The demo stack has neither."
+  status: pass
+  status_stock: pass
+  check: mcp.alert_write
 - id: mcp.bookmark_content
   area: mcp
   title: "mcp bookmark content"
-  status: blocked
-  reason: "A bookmark holds no Cube value that a check can compare with the truth."
+  status: pass
+  status_stock: pass
+  check: mcp.bookmark_content
 - id: mcp.browse.descriptions_in_get_fields
   area: mcp
   title: "mcp browse descriptions in get fields"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.browse.descriptions_in_get_fields
 - id: mcp.browse.get_fields_dimensions
   area: mcp
   title: "mcp browse get fields dimensions"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.browse.get_fields_dimensions
 - id: mcp.browse.get_fields_measures
   area: mcp
   title: "mcp browse get fields measures"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.browse.get_fields_measures
 - id: mcp.browse.get_fields_segments
   area: mcp
   title: "mcp browse get fields segments"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.browse.get_fields_segments
 - id: mcp.browse.list_databases
   area: mcp
   title: "mcp browse list databases"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.browse.list_databases
 - id: mcp.browse.list_tables
   area: mcp
   title: "mcp browse list tables"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.browse.list_tables
 - id: mcp.collection_write
   area: mcp
   title: "mcp collection write"
-  status: blocked
-  reason: "A collection holds no Cube value that a check can compare with the truth."
+  status: pass
+  status_stock: pass
+  check: mcp.collection_write
 - id: mcp.connect_oauth
   area: mcp
   title: "mcp connect oauth"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.connect_oauth
 - id: mcp.dashboard_write
   area: mcp
   title: "mcp dashboard write"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.dashboard_write.create_and_filter
 - id: mcp.dashboard_write.create_and_filter
   area: mcp
   title: "mcp dashboard write create and filter"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.dashboard_write.create_and_filter
 - id: mcp.document_write
   area: mcp
   title: "mcp document write"
-  status: blocked
-  reason: "A document holds no Cube value that a check can compare with the truth."
+  status: pass
+  status_stock: pass
+  check: mcp.document_write
 - id: mcp.duplicate_content
   area: mcp
   title: "mcp duplicate content"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.duplicate_content
 - id: mcp.execute_query
   area: mcp
   title: "mcp execute query"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_query.measure
 - id: mcp.execute_query.breakout
   area: mcp
   title: "mcp execute query breakout"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_query.breakout
 - id: mcp.execute_query.date_bucket
   area: mcp
   title: "mcp execute query date bucket"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_query.date_bucket
 - id: mcp.execute_query.filter
   area: mcp
   title: "mcp execute query filter"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_query.filter
 - id: mcp.execute_query.implicit_join
   area: mcp
   title: "mcp execute query implicit join"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_query.implicit_join
 - id: mcp.execute_query.measure
   area: mcp
   title: "mcp execute query measure"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_query.measure
 - id: mcp.execute_query.paging
   area: mcp
   title: "mcp execute query paging"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_query.paging
 - id: mcp.execute_query.segment
   area: mcp
   title: "mcp execute query segment"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_query.segment
 - id: mcp.execute_query.view
   area: mcp
   title: "mcp execute query view"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_query.view
 - id: mcp.execute_sql
   area: mcp
   title: "mcp execute sql"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_sql
 - id: mcp.get_content
   area: mcp
   title: "mcp get content"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.get_content.question
 - id: mcp.get_content.question
   area: mcp
   title: "mcp get content question"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.get_content.question
 - id: mcp.get_parameter_values
   area: mcp
   title: "mcp get parameter values"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.get_parameter_values.dashboard
 - id: mcp.get_parameter_values.dashboard
   area: mcp
   title: "mcp get parameter values dashboard"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.get_parameter_values.dashboard
 - id: mcp.get_parameter_values.question
   area: mcp
   title: "mcp get parameter values question"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.get_parameter_values.question
 - id: mcp.get_parameter_values.search
   area: mcp
   title: "mcp get parameter values search"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.get_parameter_values.search
 - id: mcp.glossary
   area: mcp
   title: "mcp glossary"
-  status: blocked
-  reason: "The glossary holds no Cube value that a check can compare with the truth."
+  status: pass
+  status_stock: pass
+  check: mcp.glossary
 - id: mcp.learn
   area: mcp
   title: "mcp learn"
-  status: blocked
-  reason: "Skill text holds no Cube value that a check can compare with the truth."
+  status: pass
+  status_stock: pass
+  check: mcp.learn
 - id: mcp.measure_write
   area: mcp
   title: "mcp measure write"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.measure_write
 - id: mcp.metric_write
   area: mcp
   title: "mcp metric write"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.metric_write
 - id: mcp.question_write
   area: mcp
   title: "mcp question write"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.question_write.query
 - id: mcp.question_write.native
   area: mcp
   title: "mcp question write native"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.question_write.native
 - id: mcp.question_write.query
   area: mcp
   title: "mcp question write query"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.question_write.query
 - id: mcp.question_write.query_handle
   area: mcp
   title: "mcp question write query handle"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.question_write.query_handle
 - id: mcp.render_drill_through
   area: mcp
   title: "mcp render drill through"
-  status: blocked
-  reason: "The tools/list reply for a session without MCP Apps support does not include this tool."
+  status: pass
+  status_stock: pass
+  check: mcp.render_drill_through
 - id: mcp.run_saved_question
   area: mcp
   title: "mcp run saved question"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.run_saved_question
 - id: mcp.search
   area: mcp
   title: "mcp search"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.search.table_by_description
 - id: mcp.search.measure
   area: mcp
   title: "mcp search measure"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.search.measure
 - id: mcp.search.segment
   area: mcp
   title: "mcp search segment"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.search.segment
 - id: mcp.search.table_by_description
   area: mcp
   title: "mcp search table by description"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.search.table_by_description
 - id: mcp.search.view_description
   area: mcp
   title: "mcp search view description"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.search.view_description
 - id: mcp.segment_write
   area: mcp
   title: "mcp segment write"
-  status: todo
+  status: pass
+  status_stock: pass
   check: mcp.segment_write
 - id: mcp.subscription_write
   area: mcp
   title: "mcp subscription write"
-  status: blocked
-  reason: "Needs an email or Slack channel. The demo stack has neither."
+  status: pass
+  status_stock: pass
+  check: mcp.subscription_write
 - id: mcp.visualize_query
   area: mcp
   title: "mcp visualize query"
-  status: blocked
-  reason: "The tools/list reply for a session without MCP Apps support does not include this tool."
+  status: pass
+  status_stock: pass
+  check: mcp.visualize_query
 - id: inherit.cube.members
   area: cube.inheritance
   title: "child cube inherits members"
-  status: todo
+  status: pass
+  status_stock: pass
   check: inherit.cube.members
 - id: inherit.cube.override_measure
   area: cube.inheritance
   title: "child cube overrides a measure"
-  status: todo
+  status: pass
+  status_stock: pass
   check: inherit.cube.override_measure
 - id: inherit.cube.override_dimension
   area: cube.inheritance
   title: "child cube overrides a dimension"
-  status: todo
+  status: pass
+  status_stock: pass
   check: inherit.cube.override_dimension
 - id: inherit.cube.add_measure
   area: cube.inheritance
   title: "child cube adds a measure"
-  status: todo
+  status: pass
+  status_stock: pass
   check: inherit.cube.add_measure
 - id: inherit.cube.add_dimension
   area: cube.inheritance
   title: "child cube adds a dimension"
-  status: todo
+  status: pass
+  status_stock: pass
   check: inherit.cube.add_dimension
 - id: inherit.multi_level.rows
   area: cube.inheritance
   title: "second level of extends narrows the rows"
-  status: todo
+  status: pass
+  status_stock: pass
   check: inherit.multi_level.rows
 - id: inherit.multi_level.add_measure
   area: cube.inheritance
   title: "second level of extends adds a measure"
-  status: todo
+  status: pass
+  status_stock: pass
   check: inherit.multi_level.add_measure
 - id: inherit.multi_level.override
   area: cube.inheritance
   title: "second level of extends keeps the override of the first level"
-  status: todo
+  status: pass
+  status_stock: pass
   check: inherit.multi_level.override
 - id: inherit.abstract_base
   area: cube.inheritance
   title: "abstract base with public false stays hidden"
-  status: todo
+  status: pass
+  status_stock: pass
   check: inherit.abstract_base
 - id: inherit.join
   area: cube.inheritance
   title: "child cube inherits a join"
-  status: todo
+  status: pass
+  status_stock: pass
   check: inherit.join
 - id: inherit.segment
   area: cube.inheritance
   title: "child cube inherits a segment"
-  status: todo
+  status: pass
+  status_stock: pass
   check: inherit.segment
 - id: inherit.pre_aggregation
   area: cube.inheritance
   title: "child cube inherits a pre-aggregation"
-  status: todo
+  status: pass
+  status_stock: pass
   check: inherit.pre_aggregation
 - id: inherit.view.members
   area: cube.inheritance
   title: "view extends a view and inherits members"
-  status: todo
+  status: pass
+  status_stock: pass
   check: inherit.view.members
 - id: inherit.view.adds
   area: cube.inheritance
   title: "view extends a view and adds members"
-  status: todo
+  status: pass
+  status_stock: pass
   check: inherit.view.adds
 - id: inherit.view.multi_level
   area: cube.inheritance
   title: "second level of view extends"
-  status: todo
+  status: pass
+  status_stock: pass
   check: inherit.view.multi_level
 - id: view.includes_star
   area: cube.views
   title: "view includes star"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.includes_star
 - id: view.excludes_star
   area: cube.views
   title: "view includes star with excludes"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.excludes_star
 - id: view.public_true
   area: cube.views
   title: "view with public true"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.public_true
 - id: view.join_path_transitive
   area: cube.views
   title: "view with a transitive join_path"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.join_path_transitive
 - id: view.several_paths
   area: cube.views
   title: "view reaches one cube through several paths"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.several_paths
 - id: view.same_name_two_cubes
   area: cube.views
   title: "view has a member of the same name from two cubes"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.same_name_two_cubes
 - id: view.on_extended_cube
   area: cube.views
   title: "view on an extended cube"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.on_extended_cube
 - id: view.prefix_sync
   area: cube.views
   title: "view prefix in synced fields"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.prefix_sync
 - id: view.member_alias_sync
   area: cube.views
   title: "view member alias in synced fields"
-  status: todo
+  status: pass
+  status_stock: pass
   check: view.member_alias_sync
 - id: cube.sql_sync
   area: cube.cubes
   title: "cube sql instead of sql_table in synced fields"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.sql_sync
 - id: cube.sql_alias_sync
   area: cube.cubes
   title: "cube sql_alias in generated SQL and synced fields"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.sql_alias_sync
 - id: cube.data_source_default
   area: cube.cubes
   title: "cube with data_source default"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.data_source_default
 - id: cube.polymorphic_first
   area: cube.cubes
   title: "polymorphic cube, first child"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.polymorphic_first
 - id: cube.polymorphic_second
   area: cube.cubes
   title: "polymorphic cube, second child"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.polymorphic_second
 - id: cube.polymorphic_base
   area: cube.cubes
   title: "polymorphic base stays hidden"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.polymorphic_base
 - id: cube.generated_jinja
   area: cube.cubes
   title: "generated model, YAML with Jinja"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.generated_jinja
 - id: cube.generated_jinja_second
   area: cube.cubes
   title: "generated model, second cube of the Jinja loop"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.generated_jinja_second
 - id: cube.generated_async
   area: cube.cubes
   title: "generated model, JavaScript asyncModule"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.generated_async
 - id: cube.generated_async_second
   area: cube.cubes
   title: "generated model, second cube of asyncModule"
-  status: todo
+  status: pass
+  status_stock: pass
   check: cube.generated_async_second
+- id: semantic.measure.every_member
+  area: semantic.sync
+  title: "Each public Cube measure has one Metabase Measure, and it runs"
+  status: pass
+  status_stock: pass
+  check: semantic.measure.every_member
+- id: semantic.measure.in_summarize
+  area: semantic.sync
+  title: "Measures are in the table metadata that Summarize reads, and not plain columns"
+  status: pass
+  status_stock: pass
+  check: semantic.measure.in_summarize
+- id: semantic.measure.type_number
+  area: semantic.sync
+  title: "Measure of a number measure"
+  status: pass
+  status_stock: pass
+  check: semantic.measure.type_number
+- id: semantic.measure.type_string
+  area: semantic.sync
+  title: "Measure of a string measure"
+  status: pass
+  status_stock: pass
+  check: semantic.measure.type_string
+- id: semantic.measure.type_time
+  area: semantic.sync
+  title: "Measure of a time measure"
+  status: pass
+  status_stock: pass
+  check: semantic.measure.type_time
+- id: semantic.measure.type_boolean
+  area: semantic.sync
+  title: "Measure of a boolean measure"
+  status: pass
+  status_stock: pass
+  check: semantic.measure.type_boolean
+- id: semantic.segment.every_member
+  area: semantic.sync
+  title: "Each public Cube segment has one Metabase Segment, and it filters"
+  status: pass
+  status_stock: pass
+  check: semantic.segment.every_member
+- id: semantic.display_names
+  area: semantic.sync
+  title: "Titles become display names of tables, fields and measures"
+  status: pass
+  status_stock: pass
+  check: semantic.display_names
+- id: semantic.descriptions
+  area: semantic.sync
+  title: "Descriptions reach tables, fields, measures and segments"
+  status: pass
+  status_stock: pass
+  check: semantic.descriptions
+- id: semantic.format.currency
+  area: semantic.sync
+  title: "Format currency gives the semantic type Currency"
+  status: pass
+  status_stock: pass
+  check: semantic.format.currency
+- id: semantic.format.percent
+  area: semantic.sync
+  title: "Format percent gives the semantic type Percentage"
+  status: pass
+  status_stock: pass
+  check: semantic.format.percent
+- id: semantic.format.link
+  area: semantic.sync
+  title: "Format link gives the semantic type URL"
+  status: pass
+  status_stock: pass
+  check: semantic.format.link
+- id: semantic.fk.from_joins
+  area: semantic.sync
+  title: "Cube joins become foreign keys, and an implicit join runs"
+  status: pass
+  status_stock: pass
+  check: semantic.fk.from_joins
+- id: semantic.fk.join_removed
+  area: semantic.sync
+  title: "A foreign key goes away with its join"
+  status: pass
+  status_stock: pass
+  check: semantic.fk.join_removed
+- id: semantic.drill_members
+  area: semantic.sync
+  title: "Drill members are in the description of the Measure"
+  status: pass
+  status_stock: pass
+  check: semantic.drill_members
+- id: semantic.agent_reads_notes
+  area: semantic.sync
+  title: "An agent reads hierarchies, folders, view groups and meta through MCP"
+  status: pass
+  status_stock: pass
+  check: semantic.agent_reads_notes
+- id: semantic.resync_no_duplicates
+  area: semantic.sync
+  title: "A resync adds nothing and writes nothing"
+  status: pass
+  status_stock: pass
+  check: semantic.resync_no_duplicates
+- id: semantic.model_change_updates
+  area: semantic.sync
+  title: "A changed title and description update the same Measure"
+  status: pass
+  status_stock: pass
+  check: semantic.model_change_updates
+- id: semantic.removed_archived
+  area: semantic.sync
+  title: "A removed member and a removed cube archive their objects"
+  status: pass
+  status_stock: pass
+  check: semantic.removed_archived
+- id: semantic.restored_member
+  area: semantic.sync
+  title: "A member that comes back gets its archived object back"
+  status: pass
+  status_stock: pass
+  check: semantic.restored_member
+- id: semantic.user_edit_kept
+  area: semantic.sync
+  title: "A sync keeps the edits of a person on a Measure, a field and a table"
+  status: pass
+  status_stock: pass
+  check: semantic.user_edit_kept
+- id: semantic.user_edit_reset
+  area: semantic.sync
+  title: "A person gives an edited Measure back to Cube"
+  status: pass
+  status_stock: pass
+  check: semantic.user_edit_reset
+- id: semantic.drill_members_native
+  area: semantic.sync
+  title: "Drill members as a Metabase object"
+  status: unsupported
+  status_stock: unsupported
+  reason: "Metabase has no column that lists the drill columns of a measure. Its drill-through uses all visible fields. The text in the description is the only place, see semantic.drill_members."
+- id: semantic.measure.min_on_time_column
+  area: semantic.sync
+  title: "Time of the first order as a measure of type time"
+  status: pass
+  status_stock: pass
+  check: semantic.measure.min_on_time_column
+- id: compile.agg.median_gives_error
+  area: mb.compile.agg
+  title: "agg median gives error"
+  status: pass
+  status_stock: pass
+  check: compile.agg.median_gives_error
+- id: compile.agg.offset_measure
+  area: mb.compile.agg
+  title: "agg offset measure"
+  status: pass
+  status_stock: pass
+  check: compile.agg.offset_measure
+- id: compile.bucket.day
+  area: mb.compile.bucket
+  title: "bucket day"
+  status: pass
+  status_stock: pass
+  check: compile.bucket.day
+- id: compile.bucket.hour
+  area: mb.compile.bucket
+  title: "bucket hour"
+  status: pass
+  status_stock: pass
+  check: compile.bucket.hour
+- id: compile.bucket.minute
+  area: mb.compile.bucket
+  title: "bucket minute"
+  status: pass
+  status_stock: pass
+  check: compile.bucket.minute
+- id: compile.bucket.month
+  area: mb.compile.bucket
+  title: "bucket month"
+  status: pass
+  status_stock: pass
+  check: compile.bucket.month
+- id: compile.bucket.quarter
+  area: mb.compile.bucket
+  title: "bucket quarter"
+  status: pass
+  status_stock: pass
+  check: compile.bucket.quarter
+- id: compile.bucket.year
+  area: mb.compile.bucket
+  title: "bucket year"
+  status: pass
+  status_stock: pass
+  check: compile.bucket.year
+- id: compile.ch.approx_distinct_high_cardinality
+  area: mb.compile.ch
+  title: "ch approx distinct high cardinality"
+  status: pass
+  status_stock: pass
+  check: compile.ch.approx_distinct_high_cardinality
+- id: compile.ch.approx_distinct_low_cardinality
+  area: mb.compile.ch
+  title: "ch approx distinct low cardinality"
+  status: pass
+  status_stock: pass
+  check: compile.ch.approx_distinct_low_cardinality
+- id: compile.ch.array_as_text
+  area: mb.compile.ch
+  title: "ch array as text"
+  status: pass
+  status_stock: pass
+  check: compile.ch.array_as_text
+- id: compile.ch.array_has
+  area: mb.compile.ch
+  title: "ch array has"
+  status: pass
+  status_stock: pass
+  check: compile.ch.array_has
+- id: compile.ch.array_length
+  area: mb.compile.ch
+  title: "ch array length"
+  status: pass
+  status_stock: pass
+  check: compile.ch.array_length
+- id: compile.ch.array_measure
+  area: mb.compile.ch
+  title: "ch array measure"
+  status: pass
+  status_stock: pass
+  check: compile.ch.array_measure
+- id: compile.ch.bool_group
+  area: mb.compile.ch
+  title: "ch bool group"
+  status: pass
+  status_stock: pass
+  check: compile.ch.bool_group
+- id: compile.ch.date32_week
+  area: mb.compile.ch
+  title: "ch date32 week"
+  status: pass
+  status_stock: pass
+  check: compile.ch.date32_week
+- id: compile.ch.date_month
+  area: mb.compile.ch
+  title: "ch date month"
+  status: pass
+  status_stock: pass
+  check: compile.ch.date_month
+- id: compile.ch.date_part_on_ny
+  area: mb.compile.ch
+  title: "ch date part on ny"
+  status: pass
+  status_stock: pass
+  check: compile.ch.date_part_on_ny
+- id: compile.ch.datetime64_berlin_hour
+  area: mb.compile.ch
+  title: "ch datetime64 berlin hour"
+  status: pass
+  status_stock: pass
+  check: compile.ch.datetime64_berlin_hour
+- id: compile.ch.datetime_ny_day
+  area: mb.compile.ch
+  title: "ch datetime ny day"
+  status: pass
+  status_stock: pass
+  check: compile.ch.datetime_ny_day
+- id: compile.ch.datetime_ny_raw
+  area: mb.compile.ch
+  title: "ch datetime ny raw"
+  status: pass
+  status_stock: pass
+  check: compile.ch.datetime_ny_raw
+- id: compile.ch.decimal_above_double
+  area: mb.compile.ch
+  title: "ch decimal above double"
+  status: partial
+  status_stock: partial
+  check: compile.ch.decimal_above_double
+  cap: partial
+  reason: "Known wrong number. The SQL API of Cube has the type Double for numbers, so a long decimal loses digits. Its value fits the range of a Double, so the driver cannot see this. SELECT dec_big FROM typed_events WHERE id = 3 gives 3000000000000 where the truth is 3000000000000.00000003. A dimension with SQL toString(column) keeps the digits, and the check proves this."
+- id: compile.ch.decimal_row
+  area: mb.compile.ch
+  title: "ch decimal row"
+  status: pass
+  status_stock: pass
+  check: compile.ch.decimal_row
+- id: compile.ch.decimal_sum
+  area: mb.compile.ch
+  title: "ch decimal sum"
+  status: pass
+  status_stock: pass
+  check: compile.ch.decimal_sum
+- id: compile.ch.enum_group
+  area: mb.compile.ch
+  title: "ch enum group"
+  status: pass
+  status_stock: pass
+  check: compile.ch.enum_group
+- id: compile.ch.float32
+  area: mb.compile.ch
+  title: "ch float32"
+  status: pass
+  status_stock: pass
+  check: compile.ch.float32
+- id: compile.ch.lowcardinality_distinct
+  area: mb.compile.ch
+  title: "ch lowcardinality distinct"
+  status: pass
+  status_stock: pass
+  check: compile.ch.lowcardinality_distinct
+- id: compile.ch.lowcardinality_group
+  area: mb.compile.ch
+  title: "ch lowcardinality group"
+  status: pass
+  status_stock: pass
+  check: compile.ch.lowcardinality_group
+- id: compile.ch.lowcardinality_nullable_group
+  area: mb.compile.ch
+  title: "ch lowcardinality nullable group"
+  status: pass
+  status_stock: pass
+  check: compile.ch.lowcardinality_nullable_group
+- id: compile.ch.nullable_bool_group
+  area: mb.compile.ch
+  title: "ch nullable bool group"
+  status: pass
+  status_stock: pass
+  check: compile.ch.nullable_bool_group
+- id: compile.ch.nullable_decimal_sum
+  area: mb.compile.ch
+  title: "ch nullable decimal sum"
+  status: pass
+  status_stock: pass
+  check: compile.ch.nullable_decimal_sum
+- id: compile.ch.nullable_int_avg
+  area: mb.compile.ch
+  title: "ch nullable int avg"
+  status: pass
+  status_stock: pass
+  check: compile.ch.nullable_int_avg
+- id: compile.ch.nullable_string_distinct
+  area: mb.compile.ch
+  title: "ch nullable string distinct"
+  status: pass
+  status_stock: pass
+  check: compile.ch.nullable_string_distinct
+- id: compile.ch.nullable_string_group
+  area: mb.compile.ch
+  title: "ch nullable string group"
+  status: pass
+  status_stock: pass
+  check: compile.ch.nullable_string_group
+- id: compile.ch.nullable_time_month
+  area: mb.compile.ch
+  title: "ch nullable time month"
+  status: pass
+  status_stock: pass
+  check: compile.ch.nullable_time_month
+- id: compile.ch.uint64_above_double
+  area: mb.compile.ch
+  title: "ch uint64 above double"
+  status: pass
+  status_stock: pass
+  check: compile.ch.uint64_above_double
+- id: compile.ch.uuid_filter
+  area: mb.compile.ch
+  title: "ch uuid filter"
+  status: pass
+  status_stock: pass
+  check: compile.ch.uuid_filter
+- id: compile.empty.breakout
+  area: mb.compile.empty
+  title: "empty breakout"
+  status: pass
+  status_stock: pass
+  check: compile.empty.breakout
+- id: compile.empty.count
+  area: mb.compile.empty
+  title: "empty count"
+  status: pass
+  status_stock: pass
+  check: compile.empty.count
+- id: compile.empty.count_measure
+  area: mb.compile.empty
+  title: "empty count measure"
+  status: pass
+  status_stock: pass
+  check: compile.empty.count_measure
+- id: compile.empty.distinct_measure
+  area: mb.compile.empty
+  title: "empty distinct measure"
+  status: pass
+  status_stock: pass
+  check: compile.empty.distinct_measure
+- id: compile.empty.sum_is_null
+  area: mb.compile.empty
+  title: "empty sum is null"
+  status: pass
+  status_stock: pass
+  check: compile.empty.sum_is_null
+- id: compile.expr.boolean_is_true
+  area: mb.compile.expr
+  title: "expr boolean is true"
+  status: pass
+  status_stock: pass
+  check: compile.expr.boolean_is_true
+- id: compile.expr.case_two_branches
+  area: mb.compile.expr
+  title: "expr case two branches"
+  status: pass
+  status_stock: pass
+  check: compile.expr.case_two_branches
+- id: compile.expr.count_where_breakout
+  area: mb.compile.expr
+  title: "expr count where breakout"
+  status: pass
+  status_stock: pass
+  check: compile.expr.count_where_breakout
+- id: compile.expr.datediff_day
+  area: mb.compile.expr
+  title: "expr datediff day"
+  status: pass
+  status_stock: pass
+  check: compile.expr.datediff_day
+- id: compile.expr.datediff_hour
+  area: mb.compile.expr
+  title: "expr datediff hour"
+  status: pass
+  status_stock: pass
+  check: compile.expr.datediff_hour
+- id: compile.expr.datediff_minute
+  area: mb.compile.expr
+  title: "expr datediff minute"
+  status: pass
+  status_stock: pass
+  check: compile.expr.datediff_minute
+- id: compile.expr.datediff_second
+  area: mb.compile.expr
+  title: "expr datediff second"
+  status: pass
+  status_stock: pass
+  check: compile.expr.datediff_second
+- id: compile.expr.datediff_week
+  area: mb.compile.expr
+  title: "expr datediff week"
+  status: pass
+  status_stock: pass
+  check: compile.expr.datediff_week
+- id: compile.expr.datetime_add_in_aggregated_query_gives_error
+  area: mb.compile.expr
+  title: "expr datetime add in aggregated query gives error"
+  status: pass
+  status_stock: pass
+  check: compile.expr.datetime_add_in_aggregated_query_gives_error
+- id: compile.expr.datetime_diff_month_gives_error
+  area: mb.compile.expr
+  title: "expr datetime diff month gives error"
+  status: pass
+  status_stock: pass
+  check: compile.expr.datetime_diff_month_gives_error
+- id: compile.expr.distinct_where
+  area: mb.compile.expr
+  title: "expr distinct where"
+  status: pass
+  status_stock: pass
+  check: compile.expr.distinct_where
+- id: compile.expr.exp
+  area: mb.compile.expr
+  title: "expr exp"
+  status: pass
+  status_stock: pass
+  check: compile.expr.exp
+- id: compile.expr.get_day
+  area: mb.compile.expr
+  title: "expr get day"
+  status: pass
+  status_stock: pass
+  check: compile.expr.get_day
+- id: compile.expr.get_day_of_week
+  area: mb.compile.expr
+  title: "expr get day of week"
+  status: pass
+  status_stock: pass
+  check: compile.expr.get_day_of_week
+- id: compile.expr.get_hour
+  area: mb.compile.expr
+  title: "expr get hour"
+  status: pass
+  status_stock: pass
+  check: compile.expr.get_hour
+- id: compile.expr.get_minute
+  area: mb.compile.expr
+  title: "expr get minute"
+  status: pass
+  status_stock: pass
+  check: compile.expr.get_minute
+- id: compile.expr.get_quarter
+  area: mb.compile.expr
+  title: "expr get quarter"
+  status: pass
+  status_stock: pass
+  check: compile.expr.get_quarter
+- id: compile.expr.get_second
+  area: mb.compile.expr
+  title: "expr get second"
+  status: pass
+  status_stock: pass
+  check: compile.expr.get_second
+- id: compile.expr.in_aggregation
+  area: mb.compile.expr
+  title: "expr in aggregation"
+  status: pass
+  status_stock: pass
+  check: compile.expr.in_aggregation
+- id: compile.expr.in_breakout
+  area: mb.compile.expr
+  title: "expr in breakout"
+  status: pass
+  status_stock: pass
+  check: compile.expr.in_breakout
+- id: compile.expr.in_filter
+  area: mb.compile.expr
+  title: "expr in filter"
+  status: pass
+  status_stock: pass
+  check: compile.expr.in_filter
+- id: compile.expr.in_filter_measure
+  area: mb.compile.expr
+  title: "expr in filter measure"
+  status: pass
+  status_stock: pass
+  check: compile.expr.in_filter_measure
+- id: compile.expr.integer_division
+  area: mb.compile.expr
+  title: "expr integer division"
+  status: pass
+  status_stock: pass
+  check: compile.expr.integer_division
+- id: compile.expr.log_of_expression
+  area: mb.compile.expr
+  title: "expr log of expression"
+  status: pass
+  status_stock: pass
+  check: compile.expr.log_of_expression
+- id: compile.expr.ltrim
+  area: mb.compile.expr
+  title: "expr ltrim"
+  status: pass
+  status_stock: pass
+  check: compile.expr.ltrim
+- id: compile.expr.measure_arithmetic
+  area: mb.compile.expr
+  title: "expr measure arithmetic"
+  status: pass
+  status_stock: pass
+  check: compile.expr.measure_arithmetic
+- id: compile.expr.rtrim
+  area: mb.compile.expr
+  title: "expr rtrim"
+  status: pass
+  status_stock: pass
+  check: compile.expr.rtrim
+- id: compile.expr.sum_of_dimension
+  area: mb.compile.expr
+  title: "expr sum of dimension"
+  status: pass
+  status_stock: pass
+  check: compile.expr.sum_of_dimension
+- id: compile.expr.sum_where
+  area: mb.compile.expr
+  title: "expr sum where"
+  status: pass
+  status_stock: pass
+  check: compile.expr.sum_where
+- id: compile.expr.trim
+  area: mb.compile.expr
+  title: "expr trim"
+  status: pass
+  status_stock: pass
+  check: compile.expr.trim
+- id: compile.filter.bool_expr
+  area: mb.compile.filter
+  title: "filter bool expr"
+  status: pass
+  status_stock: pass
+  check: compile.filter.bool_expr
+- id: compile.filter.bool_false
+  area: mb.compile.filter
+  title: "filter bool false"
+  status: pass
+  status_stock: pass
+  check: compile.filter.bool_false
+- id: compile.filter.bool_null
+  area: mb.compile.filter
+  title: "filter bool null"
+  status: pass
+  status_stock: pass
+  check: compile.filter.bool_null
+- id: compile.filter.bool_nullable_ne
+  area: mb.compile.filter
+  title: "filter bool nullable ne"
+  status: pass
+  status_stock: pass
+  check: compile.filter.bool_nullable_ne
+- id: compile.filter.bool_nullable_true
+  area: mb.compile.filter
+  title: "filter bool nullable true"
+  status: pass
+  status_stock: pass
+  check: compile.filter.bool_nullable_true
+- id: compile.filter.bool_true
+  area: mb.compile.filter
+  title: "filter bool true"
+  status: pass
+  status_stock: pass
+  check: compile.filter.bool_true
+- id: compile.filter.not_group
+  area: mb.compile.filter
+  title: "filter not group"
+  status: pass
+  status_stock: pass
+  check: compile.filter.not_group
+- id: compile.filter.number_between
+  area: mb.compile.filter
+  title: "filter number between"
+  status: pass
+  status_stock: pass
+  check: compile.filter.number_between
+- id: compile.filter.number_decimal_eq
+  area: mb.compile.filter
+  title: "filter number decimal eq"
+  status: pass
+  status_stock: pass
+  check: compile.filter.number_decimal_eq
+- id: compile.filter.number_gt_null
+  area: mb.compile.filter
+  title: "filter number gt null"
+  status: pass
+  status_stock: pass
+  check: compile.filter.number_gt_null
+- id: compile.filter.number_is_null
+  area: mb.compile.filter
+  title: "filter number is null"
+  status: pass
+  status_stock: pass
+  check: compile.filter.number_is_null
+- id: compile.filter.number_multi
+  area: mb.compile.filter
+  title: "filter number multi"
+  status: pass
+  status_stock: pass
+  check: compile.filter.number_multi
+- id: compile.filter.number_ne_null
+  area: mb.compile.filter
+  title: "filter number ne null"
+  status: pass
+  status_stock: pass
+  check: compile.filter.number_ne_null
+- id: compile.filter.string_contains
+  area: mb.compile.filter
+  title: "filter string contains"
+  status: pass
+  status_stock: pass
+  check: compile.filter.string_contains
+- id: compile.filter.string_ends
+  area: mb.compile.filter
+  title: "filter string ends"
+  status: pass
+  status_stock: pass
+  check: compile.filter.string_ends
+- id: compile.filter.string_ends_ci
+  area: mb.compile.filter
+  title: "filter string ends ci"
+  status: pass
+  status_stock: pass
+  check: compile.filter.string_ends_ci
+- id: compile.filter.string_is_empty
+  area: mb.compile.filter
+  title: "filter string is empty"
+  status: pass
+  status_stock: pass
+  check: compile.filter.string_is_empty
+- id: compile.filter.string_is_null
+  area: mb.compile.filter
+  title: "filter string is null"
+  status: pass
+  status_stock: pass
+  check: compile.filter.string_is_null
+- id: compile.filter.string_multi_ne
+  area: mb.compile.filter
+  title: "filter string multi ne"
+  status: pass
+  status_stock: pass
+  check: compile.filter.string_multi_ne
+- id: compile.filter.string_ne_null
+  area: mb.compile.filter
+  title: "filter string ne null"
+  status: pass
+  status_stock: pass
+  check: compile.filter.string_ne_null
+- id: compile.filter.string_not_contains
+  area: mb.compile.filter
+  title: "filter string not contains"
+  status: pass
+  status_stock: pass
+  check: compile.filter.string_not_contains
+- id: compile.filter.string_not_empty
+  area: mb.compile.filter
+  title: "filter string not empty"
+  status: pass
+  status_stock: pass
+  check: compile.filter.string_not_empty
+- id: compile.filter.string_not_null
+  area: mb.compile.filter
+  title: "filter string not null"
+  status: pass
+  status_stock: pass
+  check: compile.filter.string_not_null
+- id: compile.filter.string_starts
+  area: mb.compile.filter
+  title: "filter string starts"
+  status: pass
+  status_stock: pass
+  check: compile.filter.string_starts
+- id: compile.filter.time_between_minutes
+  area: mb.compile.filter
+  title: "filter time between minutes"
+  status: pass
+  status_stock: pass
+  check: compile.filter.time_between_minutes
+- id: compile.filter.time_day_eq
+  area: mb.compile.filter
+  title: "filter time day eq"
+  status: pass
+  status_stock: pass
+  check: compile.filter.time_day_eq
+- id: compile.filter.time_gte
+  area: mb.compile.filter
+  title: "filter time gte"
+  status: pass
+  status_stock: pass
+  check: compile.filter.time_gte
+- id: compile.filter.time_is_null
+  area: mb.compile.filter
+  title: "filter time is null"
+  status: pass
+  status_stock: pass
+  check: compile.filter.time_is_null
+- id: compile.filter.time_lte
+  area: mb.compile.filter
+  title: "filter time lte"
+  status: pass
+  status_stock: pass
+  check: compile.filter.time_lte
+- id: compile.filter.time_month_eq
+  area: mb.compile.filter
+  title: "filter time month eq"
+  status: pass
+  status_stock: pass
+  check: compile.filter.time_month_eq
+- id: compile.filter.time_ne_day
+  area: mb.compile.filter
+  title: "filter time ne day"
+  status: pass
+  status_stock: pass
+  check: compile.filter.time_ne_day
+- id: compile.filter.time_next_days
+  area: mb.compile.filter
+  title: "filter time next days"
+  status: pass
+  status_stock: pass
+  check: compile.filter.time_next_days
+- id: compile.filter.time_not_null
+  area: mb.compile.filter
+  title: "filter time not null"
+  status: pass
+  status_stock: pass
+  check: compile.filter.time_not_null
+- id: compile.filter.time_on_berlin_column
+  area: mb.compile.filter
+  title: "filter time on berlin column"
+  status: pass
+  status_stock: pass
+  check: compile.filter.time_on_berlin_column
+- id: compile.filter.time_on_date32_column
+  area: mb.compile.filter
+  title: "filter time on date32 column"
+  status: pass
+  status_stock: pass
+  check: compile.filter.time_on_date32_column
+- id: compile.filter.time_on_date_column
+  area: mb.compile.filter
+  title: "filter time on date column"
+  status: pass
+  status_stock: pass
+  check: compile.filter.time_on_date_column
+- id: compile.filter.time_on_ny_column
+  area: mb.compile.filter
+  title: "filter time on ny column"
+  status: pass
+  status_stock: pass
+  check: compile.filter.time_on_ny_column
+- id: compile.filter_measure.bool_true
+  area: mb.compile.filter_measure
+  title: "filter measure bool true"
+  status: pass
+  status_stock: pass
+  check: compile.filter_measure.bool_true
+- id: compile.filter_measure.number_ne_null
+  area: mb.compile.filter_measure
+  title: "filter measure number ne null"
+  status: pass
+  status_stock: pass
+  check: compile.filter_measure.number_ne_null
+- id: compile.filter_measure.string_ne_null
+  area: mb.compile.filter_measure
+  title: "filter measure string ne null"
+  status: pass
+  status_stock: pass
+  check: compile.filter_measure.string_ne_null
+- id: compile.filter_measure.time_day_eq
+  area: mb.compile.filter_measure
+  title: "filter measure time day eq"
+  status: pass
+  status_stock: pass
+  check: compile.filter_measure.time_day_eq
+- id: compile.filter_measure.time_is_null
+  area: mb.compile.filter_measure
+  title: "filter measure time is null"
+  status: pass
+  status_stock: pass
+  check: compile.filter_measure.time_is_null
+- id: compile.granularity.native
+  area: mb.compile.granularity
+  title: "granularity native"
+  status: pass
+  status_stock: pass
+  check: compile.granularity.native
+- id: compile.granularity.native_fiscal_year
+  area: mb.compile.granularity
+  title: "granularity native fiscal year"
+  status: pass
+  status_stock: pass
+  check: compile.granularity.native_fiscal_year
+- id: compile.granularity.native_sunday
+  area: mb.compile.granularity
+  title: "granularity native sunday"
+  status: pass
+  status_stock: pass
+  check: compile.granularity.native_sunday
+- id: compile.granularity.proxy_no_bin
+  area: mb.compile.granularity
+  title: "granularity proxy no bin"
+  status: pass
+  status_stock: pass
+  check: compile.granularity.proxy_no_bin
+- id: compile.join.explicit_two_cubes
+  area: mb.compile.join
+  title: "join explicit two cubes"
+  status: pass
+  status_stock: pass
+  check: compile.join.explicit_two_cubes
+- id: compile.join.filter_on_both_sides
+  area: mb.compile.join
+  title: "join filter on both sides"
+  status: pass
+  status_stock: pass
+  check: compile.join.filter_on_both_sides
+- id: compile.join.implicit_two_tables
+  area: mb.compile.join
+  title: "join implicit two tables"
+  status: pass
+  status_stock: pass
+  check: compile.join.implicit_two_tables
+- id: compile.join.implicit_uses_join_field
+  area: mb.compile.join
+  title: "join implicit uses join field"
+  status: pass
+  status_stock: pass
+  check: compile.join.implicit_uses_join_field
+- id: compile.join.inner_drops_rows_with_no_match
+  area: mb.compile.join
+  title: "join inner drops rows with no match"
+  status: pass
+  status_stock: pass
+  check: compile.join.inner_drops_rows_with_no_match
+- id: compile.join.inner_total
+  area: mb.compile.join
+  title: "join inner total"
+  status: pass
+  status_stock: pass
+  check: compile.join.inner_total
+- id: compile.join.left_keeps_rows_with_no_match
+  area: mb.compile.join
+  title: "join left keeps rows with no match"
+  status: pass
+  status_stock: pass
+  check: compile.join.left_keeps_rows_with_no_match
+- id: compile.join.no_fan_out
+  area: mb.compile.join
+  title: "join no fan out"
+  status: pass
+  status_stock: pass
+  check: compile.join.no_fan_out
+- id: compile.join.other_columns_give_error
+  area: mb.compile.join
+  title: "join other columns give error"
+  status: pass
+  status_stock: pass
+  check: compile.join.other_columns_give_error
+- id: compile.join.subquery_gives_error
+  area: mb.compile.join
+  title: "join subquery gives error"
+  status: pass
+  status_stock: pass
+  check: compile.join.subquery_gives_error
+- id: compile.latency.ten_million_rows
+  area: mb.compile.latency
+  title: "latency ten million rows"
+  status: pass
+  status_stock: pass
+  check: compile.latency.ten_million_rows
+- id: compile.native.error_keeps_cube_text
+  area: mb.compile.native
+  title: "native error keeps cube text"
+  status: pass
+  status_stock: pass
+  check: compile.native.error_keeps_cube_text
+- id: compile.native.explain_regular_with_parameter
+  area: mb.compile.native
+  title: "native explain regular with parameter"
+  status: pass
+  status_stock: pass
+  check: compile.native.explain_regular_with_parameter
+- id: compile.native.field_filter_empty_is_all_rows
+  area: mb.compile.native
+  title: "native field filter empty is all rows"
+  status: pass
+  status_stock: pass
+  check: compile.native.field_filter_empty_is_all_rows
+- id: compile.native.field_filter_multi
+  area: mb.compile.native
+  title: "native field filter multi"
+  status: pass
+  status_stock: pass
+  check: compile.native.field_filter_multi
+- id: compile.native.field_filter_number_range
+  area: mb.compile.native
+  title: "native field filter number range"
+  status: pass
+  status_stock: pass
+  check: compile.native.field_filter_number_range
+- id: compile.native.field_filter_relative_date
+  area: mb.compile.native
+  title: "native field filter relative date"
+  status: pass
+  status_stock: pass
+  check: compile.native.field_filter_relative_date
+- id: compile.nested.aggregate_of_grouped_rows
+  area: mb.compile.nested
+  title: "nested aggregate of grouped rows"
+  status: pass
+  status_stock: pass
+  check: compile.nested.aggregate_of_grouped_rows
+- id: compile.nested.custom_column_on_question
+  area: mb.compile.nested
+  title: "nested custom column on question"
+  status: pass
+  status_stock: pass
+  check: compile.nested.custom_column_on_question
+- id: compile.nested.model_of_a_native_query
+  area: mb.compile.nested
+  title: "nested model of a native query"
+  status: pass
+  status_stock: pass
+  check: compile.nested.model_of_a_native_query
+- id: compile.nested.model_raw_rows_then_group
+  area: mb.compile.nested
+  title: "nested model raw rows then group"
+  status: pass
+  status_stock: pass
+  check: compile.nested.model_raw_rows_then_group
+- id: compile.nested.model_with_measure_then_filter
+  area: mb.compile.nested
+  title: "nested model with measure then filter"
+  status: pass
+  status_stock: pass
+  check: compile.nested.model_with_measure_then_filter
+- id: compile.nested.more_than_the_default_row_limit
+  area: mb.compile.nested
+  title: "nested more than the default row limit"
+  status: pass
+  status_stock: pass
+  check: compile.nested.more_than_the_default_row_limit
+- id: compile.nested.raw_rows_with_filter
+  area: mb.compile.nested
+  title: "nested raw rows with filter"
+  status: pass
+  status_stock: pass
+  check: compile.nested.raw_rows_with_filter
+- id: compile.nested.week_on_question_is_clear
+  area: mb.compile.nested
+  title: "nested week on question is clear"
+  status: pass
+  status_stock: pass
+  check: compile.nested.week_on_question_is_clear
+- id: compile.order.by_measure_desc
+  area: mb.compile.order
+  title: "order by measure desc"
+  status: pass
+  status_stock: pass
+  check: compile.order.by_measure_desc
+- id: compile.order.limit
+  area: mb.compile.order
+  title: "order limit"
+  status: pass
+  status_stock: pass
+  check: compile.order.limit
+- id: compile.order.page_offset
+  area: mb.compile.order
+  title: "order page offset"
+  status: pass
+  status_stock: pass
+  check: compile.order.page_offset
+- id: compile.order.page_offset_grouped
+  area: mb.compile.order
+  title: "order page offset grouped"
+  status: pass
+  status_stock: pass
+  check: compile.order.page_offset_grouped
+- id: compile.order.two_columns
+  area: mb.compile.order
+  title: "order two columns"
+  status: pass
+  status_stock: pass
+  check: compile.order.two_columns
+- id: compile.part.day-of-month
+  area: mb.compile.part
+  title: "part day-of-month"
+  status: pass
+  status_stock: pass
+  check: compile.part.day-of-month
+- id: compile.part.day-of-week
+  area: mb.compile.part
+  title: "part day-of-week"
+  status: pass
+  status_stock: pass
+  check: compile.part.day-of-week
+- id: compile.part.day-of-year
+  area: mb.compile.part
+  title: "part day-of-year"
+  status: pass
+  status_stock: pass
+  check: compile.part.day-of-year
+- id: compile.part.filter_measure
+  area: mb.compile.part
+  title: "part filter measure"
+  status: pass
+  status_stock: pass
+  check: compile.part.filter_measure
+- id: compile.part.filter_with_breakout
+  area: mb.compile.part
+  title: "part filter with breakout"
+  status: pass
+  status_stock: pass
+  check: compile.part.filter_with_breakout
+- id: compile.part.hour-of-day
+  area: mb.compile.part
+  title: "part hour-of-day"
+  status: pass
+  status_stock: pass
+  check: compile.part.hour-of-day
+- id: compile.part.minute-of-hour
+  area: mb.compile.part
+  title: "part minute-of-hour"
+  status: pass
+  status_stock: pass
+  check: compile.part.minute-of-hour
+- id: compile.part.month-of-year
+  area: mb.compile.part
+  title: "part month-of-year"
+  status: pass
+  status_stock: pass
+  check: compile.part.month-of-year
+- id: compile.part.non_additive_avg
+  area: mb.compile.part
+  title: "part non additive avg"
+  status: pass
+  status_stock: pass
+  check: compile.part.non_additive_avg
+- id: compile.part.number_measure
+  area: mb.compile.part
+  title: "part number measure"
+  status: pass
+  status_stock: pass
+  check: compile.part.number_measure
+- id: compile.part.quarter-of-year
+  area: mb.compile.part
+  title: "part quarter-of-year"
+  status: pass
+  status_stock: pass
+  check: compile.part.quarter-of-year
+- id: compile.part.second-of-minute
+  area: mb.compile.part
+  title: "part second-of-minute"
+  status: pass
+  status_stock: pass
+  check: compile.part.second-of-minute
+- id: compile.pivot.date_and_string
+  area: mb.compile.pivot
+  title: "pivot date and string"
+  status: pass
+  status_stock: pass
+  check: compile.pivot.date_and_string
+- id: compile.pivot.two_dimensions
+  area: mb.compile.pivot
+  title: "pivot two dimensions"
+  status: pass
+  status_stock: pass
+  check: compile.pivot.two_dimensions
+- id: compile.rolling.by_week_sunday
+  area: mb.compile.rolling
+  title: "rolling by week sunday"
+  status: pass
+  status_stock: pass
+  check: compile.rolling.by_week_sunday
+- id: compile.rolling.with_status_filter
+  area: mb.compile.rolling
+  title: "rolling with status filter"
+  status: pass
+  status_stock: pass
+  check: compile.rolling.with_status_filter
+- id: compile.rollup.avg_reads_the_table
+  area: mb.compile.rollup
+  title: "rollup avg reads the table"
+  status: pass
+  status_stock: pass
+  check: compile.rollup.avg_reads_the_table
+- id: compile.rollup.count_rows
+  area: mb.compile.rollup
+  title: "rollup count rows"
+  status: pass
+  status_stock: pass
+  check: compile.rollup.count_rows
+- id: compile.rollup.date_range_aligned
+  area: mb.compile.rollup
+  title: "rollup date range aligned"
+  status: pass
+  status_stock: pass
+  check: compile.rollup.date_range_aligned
+- id: compile.rollup.date_range_not_aligned_is_right
+  area: mb.compile.rollup
+  title: "rollup date range not aligned is right"
+  status: pass
+  status_stock: pass
+  check: compile.rollup.date_range_not_aligned_is_right
+- id: compile.rollup.day_status
+  area: mb.compile.rollup
+  title: "rollup day status"
+  status: pass
+  status_stock: pass
+  check: compile.rollup.day_status
+- id: compile.rollup.filter_status_month
+  area: mb.compile.rollup
+  title: "rollup filter status month"
+  status: pass
+  status_stock: pass
+  check: compile.rollup.filter_status_month
+- id: compile.rollup.month
+  area: mb.compile.rollup
+  title: "rollup month"
+  status: pass
+  status_stock: pass
+  check: compile.rollup.month
+- id: compile.rollup.small_month_rollup_on_day_filter
+  area: mb.compile.rollup
+  title: "rollup small month rollup on day filter"
+  status: pass
+  status_stock: pass
+  check: compile.rollup.small_month_rollup_on_day_filter
+- id: compile.rollup.total
+  area: mb.compile.rollup
+  title: "rollup total"
+  status: pass
+  status_stock: pass
+  check: compile.rollup.total
+- id: compile.rollup.week_monday
+  area: mb.compile.rollup
+  title: "rollup week monday"
+  status: pass
+  status_stock: pass
+  check: compile.rollup.week_monday
+- id: compile.rollup.week_sunday
+  area: mb.compile.rollup
+  title: "rollup week sunday"
+  status: pass
+  status_stock: pass
+  check: compile.rollup.week_sunday
+- id: compile.segment.two
+  area: mb.compile.segment
+  title: "segment two"
+  status: pass
+  status_stock: pass
+  check: compile.segment.two
+- id: compile.segment.with_breakout
+  area: mb.compile.segment
+  title: "segment with breakout"
+  status: pass
+  status_stock: pass
+  check: compile.segment.with_breakout
+- id: compile.segment.with_filter_and_month
+  area: mb.compile.segment
+  title: "segment with filter and month"
+  status: pass
+  status_stock: pass
+  check: compile.segment.with_filter_and_month
+- id: compile.tz.dst_day_in_new_york_column
+  area: mb.compile.tz
+  title: "tz dst day in new york column"
+  status: pass
+  status_stock: pass
+  check: compile.tz.dst_day_in_new_york_column
+- id: compile.tz.filter_is_utc
+  area: mb.compile.tz
+  title: "tz filter is utc"
+  status: pass
+  status_stock: pass
+  check: compile.tz.filter_is_utc
+- id: compile.tz.set_time_zone_error
+  area: mb.compile.tz
+  title: "tz set time zone error"
+  status: pass
+  status_stock: pass
+  check: compile.tz.set_time_zone_error
+- id: compile.values.big_table_status
+  area: mb.compile.values
+  title: "values big table status"
+  status: pass
+  status_stock: pass
+  check: compile.values.big_table_status
+- id: compile.values.remapped_nullable
+  area: mb.compile.values
+  title: "values remapped nullable"
+  status: pass
+  status_stock: pass
+  check: compile.values.remapped_nullable
+- id: compile.values.search_lowcardinality
+  area: mb.compile.values
+  title: "values search lowcardinality"
+  status: pass
+  status_stock: pass
+  check: compile.values.search_lowcardinality
+- id: compile.week.day_of_week_monday
+  area: mb.compile.week
+  title: "week day of week monday"
+  status: pass
+  status_stock: pass
+  check: compile.week.day_of_week_monday
+- id: compile.week.day_of_week_sunday
+  area: mb.compile.week
+  title: "week day of week sunday"
+  status: pass
+  status_stock: pass
+  check: compile.week.day_of_week_sunday
+- id: compile.week.monday
+  area: mb.compile.week
+  title: "week monday"
+  status: pass
+  status_stock: pass
+  check: compile.week.monday
+- id: compile.week.monday_measure
+  area: mb.compile.week
+  title: "week monday measure"
+  status: pass
+  status_stock: pass
+  check: compile.week.monday_measure
+- id: compile.week.saturday_without_granularity
+  area: mb.compile.week
+  title: "week saturday without granularity"
+  status: pass
+  status_stock: pass
+  check: compile.week.saturday_without_granularity
+- id: compile.week.sunday_non_additive
+  area: mb.compile.week
+  title: "week sunday non additive"
+  status: pass
+  status_stock: pass
+  check: compile.week.sunday_non_additive
+- id: compile.week.sunday_with_granularity
+  area: mb.compile.week
+  title: "week sunday with granularity"
+  status: pass
+  status_stock: pass
+  check: compile.week.sunday_with_granularity
+- id: compile.week.sunday_without_granularity
+  area: mb.compile.week
+  title: "week sunday without granularity"
+  status: pass
+  status_stock: pass
+  check: compile.week.sunday_without_granularity
+- id: compile.week.sunday_without_granularity_distinct
+  area: mb.compile.week
+  title: "week sunday without granularity distinct"
+  status: pass
+  status_stock: pass
+  check: compile.week.sunday_without_granularity_distinct
+- id: compile.week.week_of_year_monday
+  area: mb.compile.week
+  title: "week week of year monday"
+  status: pass
+  status_stock: pass
+  check: compile.week.week_of_year_monday
+- id: compile.join.explicit_measure_regular
+  area: mb.compile.join
+  title: "join explicit measure regular"
+  status: pass
+  status_stock: pass
+  check: compile.join.explicit_measure_regular
+- id: compile.ch.integer_within_double
+  area: mb.compile.ch
+  title: "ch integer within double"
+  status: pass
+  status_stock: pass
+  check: compile.ch.integer_within_double
+- id: compile.xray.table_all_cards_run
+  area: mb.compile.xray
+  title: "xray table all cards run"
+  status: pass
+  status_stock: pass
+  check: compile.xray.table_all_cards_run
+- id: compile.xray.field_all_cards_run
+  area: mb.compile.xray
+  title: "xray field all cards run"
+  status: partial
+  status_stock: partial
+  check: compile.xray.field_all_cards_run
+  cap: partial
+  reason: "The check compares each card with SQL truth. One card adds up a dimension of a joined cube (sum and avg of users.lifetime_orders). Cube adds each row of the joined cube once, so it gives another number, also in a subquery, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused."
+- id: compile.xray.time_field_all_cards_run
+  area: mb.compile.xray
+  title: "xray time field all cards run"
+  status: partial
+  status_stock: partial
+  check: compile.xray.time_field_all_cards_run
+  cap: partial
+  reason: "The check compares each card with SQL truth. One card adds up a dimension of a joined cube (sum and avg of users.lifetime_orders). Cube adds each row of the joined cube once, so it gives another number, also in a subquery, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused."
+- id: compile.xray.typed_table_all_cards_run
+  area: mb.compile.xray
+  title: "xray typed table all cards run"
+  status: pass
+  status_stock: pass
+  check: compile.xray.typed_table_all_cards_run
+- id: compile.granularity.native_offset_no_rollup
+  area: mb.compile.granularity
+  title: "granularity native offset no rollup"
+  status: pass
+  status_stock: pass
+  check: compile.granularity.native_offset_no_rollup
+- id: compile.filter.quote_in_value
+  area: mb.compile.filter
+  title: "filter quote in value"
+  status: pass
+  status_stock: pass
+  check: compile.filter.quote_in_value
+- id: compile.filter.backslash_quote_in_value
+  area: mb.compile.filter
+  title: "filter backslash quote in value"
+  status: pass
+  status_stock: pass
+  check: compile.filter.backslash_quote_in_value
+- id: compile.filter.quote_in_contains
+  area: mb.compile.filter
+  title: "filter quote in contains"
+  status: pass
+  status_stock: pass
+  check: compile.filter.quote_in_contains
+- id: compile.filter.backslash_in_case
+  area: mb.compile.filter
+  title: "filter backslash in case"
+  status: pass
+  status_stock: pass
+  check: compile.filter.backslash_in_case
+- id: compile.native.cross_join
+  area: mb.compile.native
+  title: "native cross join"
+  status: pass
+  status_stock: pass
+  check: compile.native.cross_join
+- id: compile.native.join_field
+  area: mb.compile.native
+  title: "native join field"
+  status: pass
+  status_stock: pass
+  check: compile.native.join_field
+- id: mcp.agent.list_tables_without_schema
+  area: mcp
+  title: "mcp agent list tables without schema"
+  status: pass
+  status_stock: pass
+  check: mcp.agent.list_tables_without_schema
+- id: mcp.agent.find_revenue_by_city
+  area: mcp
+  title: "mcp agent find revenue by city"
+  status: pass
+  status_stock: pass
+  check: mcp.agent.find_revenue_by_city
+- id: mcp.agent.search_names_owner_of_measure
+  area: mcp
+  title: "mcp agent search names owner of measure"
+  status: pass
+  status_stock: pass
+  check: mcp.agent.search_names_owner_of_measure
+- id: mcp.agent.find_segment_owner
+  area: mcp
+  title: "mcp agent find segment owner"
+  status: pass
+  status_stock: pass
+  check: mcp.agent.find_segment_owner
+- id: mcp.agent.table_description_lists_members
+  area: mcp
+  title: "mcp agent table description lists members"
+  status: pass
+  status_stock: pass
+  check: mcp.agent.table_description_lists_members
+- id: mcp.agent.database_guidance_works
+  area: mcp
+  title: "mcp agent database guidance works"
+  status: pass
+  status_stock: pass
+  check: mcp.agent.database_guidance_works
+- id: mcp.agent.question_from_measure
+  area: mcp
+  title: "mcp agent question from measure"
+  status: pass
+  status_stock: pass
+  check: mcp.agent.question_from_measure
+- id: mcp.agent.dashboard_wired_filter
+  area: mcp
+  title: "mcp agent dashboard wired filter"
+  status: pass
+  status_stock: pass
+  check: mcp.agent.dashboard_wired_filter
+- id: mcp.agent.filter_values
+  area: mcp
+  title: "mcp agent filter values"
+  status: pass
+  status_stock: pass
+  check: mcp.agent.filter_values
+- id: mcp.agent.error_unknown_column
+  area: mcp
+  title: "mcp agent error unknown column"
+  status: pass
+  status_stock: pass
+  check: mcp.agent.error_unknown_column
+- id: mcp.agent.error_join_on
+  area: mcp
+  title: "mcp agent error join on"
+  status: pass
+  status_stock: pass
+  check: mcp.agent.error_join_on
+- id: security.row_filter.measure_with_no_dimension
+  area: cube.security
+  title: "security row filter measure with no dimension"
+  status: pass
+  status_stock: pass
+  check: security.row_filter.measure_with_no_dimension
+- id: security.row_filter.native
+  area: cube.security
+  title: "security row filter native"
+  status: pass
+  status_stock: pass
+  check: security.row_filter.native
+- id: security.row_filter.push_down
+  area: cube.security
+  title: "security row filter push down"
+  status: pass
+  status_stock: pass
+  check: security.row_filter.push_down
+- id: security.row_filter.mcp
+  area: cube.security
+  title: "security row filter mcp"
+  status: pass
+  status_stock: pass
+  check: security.row_filter.mcp
+- id: security.row_filter.saved_question
+  area: cube.security
+  title: "security row filter saved question"
+  status: pass
+  status_stock: pass
+  check: security.row_filter.saved_question
+- id: security.row_filter.filter_values
+  area: cube.security
+  title: "security row filter filter values"
+  status: pass
+  status_stock: pass
+  check: security.row_filter.filter_values
+- id: security.row_filter.no_fingerprint_of_all_rows
+  area: cube.security
+  title: "security row filter no fingerprint of all rows"
+  status: pass
+  status_stock: pass
+  check: security.row_filter.no_fingerprint_of_all_rows
+- id: security.no_switch.native_user_filter
+  area: cube.security
+  title: "security no switch native user filter"
+  status: pass
+  status_stock: pass
+  check: security.no_switch.native_user_filter
+- id: security.no_switch.native_set_user
+  area: cube.security
+  title: "security no switch native set user"
+  status: pass
+  status_stock: pass
+  check: security.no_switch.native_set_user
+- id: security.no_mixing_of_people
+  area: cube.security
+  title: "security no mixing of people"
+  status: pass
+  status_stock: pass
+  check: security.no_mixing_of_people
+- id: security.unknown_person_fails
+  area: cube.security
+  title: "security unknown person fails"
+  status: pass
+  status_stock: pass
+  check: security.unknown_person_fails
+- id: security.user_attribute
+  area: cube.security
+  title: "security user attribute"
+  status: pass
+  status_stock: pass
+  check: security.user_attribute
+- id: security.public_link_fails
+  area: cube.security
+  title: "security public link fails"
+  status: pass
+  status_stock: pass
+  check: security.public_link_fails
+- id: security.secret.not_in_api
+  area: cube.security
+  title: "security secret not in api"
+  status: pass
+  status_stock: pass
+  check: security.secret.not_in_api
+- id: security.secret.rest_requires_it
+  area: cube.security
+  title: "security secret rest requires it"
+  status: pass
+  status_stock: pass
+  check: security.secret.rest_requires_it
+- id: security.secret.not_in_logs
+  area: cube.security
+  title: "security secret not in logs"
+  status: pass
+  status_stock: pass
+  check: security.secret.not_in_logs
+- id: security.metabase_cache
+  area: cube.security
+  title: "security metabase cache"
+  status: pass
+  status_stock: pass
+  check: security.metabase_cache
+- id: mcp.execute_query.paging_measure
+  area: mcp
+  title: "mcp execute query paging measure"
+  status: pass
+  status_stock: pass
+  check: mcp.execute_query.paging_measure
+- id: dimension.opt.propagate_filters_next_to_another_sub_query
+  area: cube.dimensions
+  title: "propagate filters next to another sub query"
+  status: partial
+  status_stock: partial
+  check: dimension.opt.propagate_filters_next_to_another_sub_query
+  cap: partial
+  reason: "Cube with the Tesseract planner reads the first subquery for two sub_query dimensions with equal SQL when the query has a filter. The driver stops a query that groups by both, and raw rows show NULL in the later column. With other SQL, such as {orders.count} + 0, both work, and each is right alone, see dimension.opt.propagate_filters."
+- id: measure.multi_stage.time_shift_no_bucket_limit
+  area: cube.measures
+  title: "time shift with no time bucket"
+  status: pass
+  status_stock: pass
+  check: measure.multi_stage.time_shift_no_bucket_limit
+- id: clickhouse.datetime64_millis
+  area: cube.clickhouse
+  title: "DateTime64 milliseconds"
+  status: pass
+  status_stock: partial
+  check: clickhouse.datetime64_millis
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a time as whole seconds. A raw value has no milliseconds. Buckets of a second and above are right. A dimension with sql: toString(column) keeps the text. cube-clickhouse keeps the milliseconds."
+- id: compile.rolling.by_day_on_boundaries
+  area: mb.compile.rolling
+  title: "rolling window by day"
+  status: pass
+  status_stock: pass
+  check: compile.rolling.by_day_on_boundaries
+- id: compile.rolling.no_time_bucket_gives_error
+  area: mb.compile.rolling
+  title: "rolling window with no time bucket gives an error"
+  status: pass
+  status_stock: pass
+  check: compile.rolling.no_time_bucket_gives_error
+- id: compile.rolling.filter_inside_bucket_gives_error
+  area: mb.compile.rolling
+  title: "rolling window with a filter inside a bucket gives an error"
+  status: pass
+  status_stock: pass
+  check: compile.rolling.filter_inside_bucket_gives_error
+- id: compile.rolling.no_date_filter_gives_clear_error
+  area: mb.compile.rolling
+  title: "rolling window with no date filter gives a clear error"
+  status: pass
+  status_stock: pass
+  check: compile.rolling.no_date_filter_gives_clear_error
+- id: compile.agg.other_aggregation_of_measure
+  area: mb.compile.agg
+  title: "max of a measure column is the max of its rows"
+  status: pass
+  status_stock: pass
+  check: compile.agg.other_aggregation_of_measure
+- id: compile.agg.count_of_measure
+  area: mb.compile.agg
+  title: "count of a measure column is the count of its rows"
+  status: pass
+  status_stock: pass
+  check: compile.agg.count_of_measure
+- id: compile.agg.other_aggregation_can_give_error
+  area: mb.compile.agg
+  title: "other aggregation that Cube rejects gives a clear error"
+  status: pass
+  status_stock: pass
+  check: compile.agg.other_aggregation_can_give_error
+- id: compile.bound.strict_lower_with_upper
+  area: mb.compile.bound
+  title: "strict lower date bound with an upper bound (B1)"
+  status: pass
+  status_stock: pass
+  check: compile.bound.strict_lower_with_upper
+- id: compile.bound.grid_measures
+  area: mb.compile.bound
+  title: "each kind of date bound with each kind of measure"
+  status: pass
+  status_stock: pass
+  check: compile.bound.grid_measures
+- id: compile.bound.grid_date_types
+  area: mb.compile.bound
+  title: "each kind of date bound on DateTime, Date, Date32 and nullable columns"
+  status: pass
+  status_stock: pass
+  check: compile.bound.grid_date_types
+- id: compile.bound.grid_boundary_values
+  area: mb.compile.bound
+  title: "date bounds on the last second of a day, a month and a year"
+  status: pass
+  status_stock: pass
+  check: compile.bound.grid_boundary_values
+- id: compile.bound.grid_view_and_join
+  area: mb.compile.bound
+  title: "date bounds on a view, next to a breakout, and on a joined cube"
+  status: pass
+  status_stock: pass
+  check: compile.bound.grid_view_and_join
+- id: compile.bound.grid_model_by_name
+  area: mb.compile.bound
+  title: "date bounds on a model by column name"
+  status: pass
+  status_stock: pass
+  check: compile.bound.grid_model_by_name
+- id: compile.bound.grid_mcp
+  area: mb.compile.bound
+  title: "date bounds in MCP on a table and with source-card"
+  status: pass
+  status_stock: pass
+  check: compile.bound.grid_mcp
+- id: compile.bound.fraction_of_a_second
+  area: mb.compile.bound
+  title: "date bound with a fraction of a second"
+  status: pass
+  status_stock: pass
+  check: compile.bound.fraction_of_a_second
+- id: native.bound.strict_lower_refused
+  area: mb.native
+  title: "strict lower date bound with an upper bound in native SQL (B1)"
+  status: pass
+  status_stock: pass
+  check: native.bound.strict_lower_refused
+- id: nested.outer_date_filter.keeps_inner_rows
+  area: mb.nested
+  title: "date filter on a saved question keeps its rows (B2)"
+  status: pass
+  status_stock: pass
+  check: nested.outer_date_filter.keeps_inner_rows
+- id: nested.outer_date_filter.rolling
+  area: mb.nested
+  title: "date filter on a saved question with a rolling measure (B2)"
+  status: pass
+  status_stock: pass
+  check: nested.outer_date_filter.rolling
+- id: nested.outer_date_filter.grid
+  area: mb.nested
+  title: "outer date filters over each bucket and measure kind"
+  status: pass
+  status_stock: pass
+  check: nested.outer_date_filter.grid
+- id: nested.outer_filter.multi_stage_measure
+  area: mb.nested
+  title: "outer filter on a share or a rank"
+  status: pass
+  status_stock: pass
+  check: nested.outer_filter.multi_stage_measure
+- id: nested.outer_stage.grid_breakout_and_aggregation
+  area: mb.nested
+  title: "outer aggregation and breakout over each measure kind"
+  status: pass
+  status_stock: pass
+  check: nested.outer_stage.grid_breakout_and_aggregation
+- id: nested.outer_date_filter.native_source
+  area: mb.nested
+  title: "date filter on a native saved question (B2)"
+  status: pass
+  status_stock: pass
+  check: nested.outer_date_filter.native_source
+- id: nested.outer_date_filter.week_numbers
+  area: mb.nested
+  title: "date filter on a saved question with a week number"
+  status: pass
+  status_stock: pass
+  check: nested.outer_date_filter.week_numbers
+- id: mb.dashboard.date_filter_on_question
+  area: mb.dashboards
+  title: "dashboard date filter on a card of a model (M1)"
+  status: pass
+  status_stock: pass
+  check: mb.dashboard.date_filter_on_question
+- id: measure.rolling.through_model
+  area: cube.measures
+  title: "rolling check by column name, through a model and MCP source-card (B3)"
+  status: pass
+  status_stock: pass
+  check: measure.rolling.through_model
+- id: measure.rolling.through_model_whole_buckets
+  area: cube.measures
+  title: "rolling measure through a model with whole buckets"
+  status: pass
+  status_stock: pass
+  check: measure.rolling.through_model_whole_buckets
+- id: measure.rolling.filter_in_the_model
+  area: cube.measures
+  title: "rolling measure with a date filter inside the model"
+  status: pass
+  status_stock: pass
+  check: measure.rolling.filter_in_the_model
+- id: measure.rolling.strict_bound_on_boundary
+  area: cube.measures
+  title: "rolling measure with a strict bound on a boundary"
+  status: pass
+  status_stock: pass
+  check: measure.rolling.strict_bound_on_boundary
+- id: nested.measure_column.filter_gives_row_values
+  area: mb.nested
+  title: "filter on a measure column of a model with the primary key (B4)"
+  status: pass
+  status_stock: pass
+  check: nested.measure_column.filter_gives_row_values
+- id: nested.measure_column.breakout_gives_row_values
+  area: mb.nested
+  title: "breakout on a measure column of a model with the primary key (B4)"
+  status: pass
+  status_stock: pass
+  check: nested.measure_column.breakout_gives_row_values
+- id: compile.filter.hidden_measure_column_refused
+  area: mb.compile.filter
+  title: "filter on a hidden measure column of a table (B4)"
+  status: pass
+  status_stock: pass
+  check: compile.filter.hidden_measure_column_refused
+- id: nested.measure_column.right_shapes_stay
+  area: mb.nested
+  title: "aggregation of a measure column of a model"
+  status: pass
+  status_stock: pass
+  check: nested.measure_column.right_shapes_stay
+- id: nested.measure_column.other_aggregation
+  area: mb.nested
+  title: "another aggregation of a measure column of a model"
+  status: pass
+  status_stock: pass
+  check: nested.measure_column.other_aggregation
+- id: nested.model_of_model.measure_column
+  area: mb.nested
+  title: "measure column through a model of a model"
+  status: pass
+  status_stock: pass
+  check: nested.model_of_model.measure_column
+- id: nested.model.raw_rows_of_a_measure_are_null
+  area: mb.nested
+  title: "raw rows of a measure column of a model (m8)"
+  status: pass
+  status_stock: pass
+  check: nested.model.raw_rows_of_a_measure_are_null
+- id: view.two_paths_in_one_query_refused
+  area: cube.views
+  title: "two join paths of a view in one query (B5)"
+  status: pass
+  status_stock: pass
+  check: view.two_paths_in_one_query_refused
+- id: view.two_paths_one_column_stays
+  area: cube.views
+  title: "one join path of a view with two paths"
+  status: pass
+  status_stock: pass
+  check: view.two_paths_one_column_stays
+- id: view.two_paths_with_join_alias
+  area: cube.views
+  title: "two join paths with a join alias"
+  status: pass
+  status_stock: pass
+  check: view.two_paths_with_join_alias
+- id: measure.rolling.native_refused
+  area: cube.measures
+  title: "rolling measure in native SQL with no bucket or a filter inside a bucket (B6)"
+  status: pass
+  status_stock: pass
+  check: measure.rolling.native_refused
+- id: measure.rolling.native_whole_buckets
+  area: cube.measures
+  title: "rolling measure in native SQL with whole buckets"
+  status: pass
+  status_stock: pass
+  check: measure.rolling.native_whole_buckets
+- id: native.between_date_text_refused
+  area: mb.native
+  title: "native BETWEEN with a date text (B7)"
+  status: pass
+  status_stock: pass
+  check: native.between_date_text_refused
+- id: native.between_date_parameter
+  area: mb.native
+  title: "native BETWEEN with date parameters (B7)"
+  status: pass
+  status_stock: pass
+  check: native.between_date_parameter
+- id: docs.install.plugins_directory_writable
+  area: docs
+  title: "install steps make the plugins directory writable (B8)"
+  status: pass
+  status_stock: pass
+  check: docs.install.plugins_directory_writable
+- id: docs.known_wrong_numbers
+  area: docs
+  title: "docs and README list the known wrong numbers"
+  status: pass
+  status_stock: pass
+  check: docs.known_wrong_numbers
+- id: nested.model_date_filter
+  area: mb.nested
+  title: "date filter on a model (M1)"
+  status: pass
+  status_stock: pass
+  check: nested.model_date_filter
+- id: nested.model_date_filter_on_expression
+  area: mb.nested
+  title: "date filter with an expression of a rolling measure (M1)"
+  status: pass
+  status_stock: pass
+  check: nested.model_date_filter_on_expression
+- id: compile.week.default_with_date_filter
+  area: mb.compile.week
+  title: "week number with a date filter on each first day (M2)"
+  status: pass
+  status_stock: pass
+  check: compile.week.default_with_date_filter
+- id: mcp.query.count_in_a_date_range
+  area: mcp
+  title: "count in a date range in MCP (M3)"
+  status: pass
+  status_stock: pass
+  check: mcp.query.count_in_a_date_range
+- id: compile.week.relative_on_each_first_day
+  area: mb.compile.week
+  title: "relative filter in weeks on each first day (M4)"
+  status: pass
+  status_stock: pass
+  check: compile.week.relative_on_each_first_day
+- id: compile.error.segment_errors_are_clear
+  area: mb.compile.error
+  title: "clear errors for segments (m1)"
+  status: pass
+  status_stock: pass
+  check: compile.error.segment_errors_are_clear
+- id: docs.fan_out_rule
+  area: docs
+  title: "docs tell the rule for a fan-out (m2)"
+  status: pass
+  status_stock: pass
+  check: docs.fan_out_rule
+- id: measure.rolling.unbounded_one_bucket
+  area: cube.measures
+  title: "unbounded window for one bucket and a clear error for more (m4)"
+  status: pass
+  status_stock: pass
+  check: measure.rolling.unbounded_one_bucket
+- id: demo.lambda_cube_is_hidden
+  area: demo
+  title: "demo has no table that always fails (m5)"
+  status: pass
+  status_stock: pass
+  check: demo.lambda_cube_is_hidden
+- id: build.package_with_no_java
+  area: build
+  title: "package script with a jar stub and no Java (m9)"
+  status: pass
+  status_stock: pass
+  check: build.package_with_no_java
+- id: build.load_check_sends_the_api_secret
+  area: build
+  title: "load check sends the API secret (m10)"
+  status: pass
+  status_stock: pass
+  check: build.load_check_sends_the_api_secret
+- id: docs.query_compilation_agrees_with_code
+  area: docs
+  title: "query compilation docs agree with the code (m11)"
+  status: pass
+  status_stock: pass
+  check: docs.query_compilation_agrees_with_code
+- id: compile.bound.datetime64_whole_seconds_limit
+  area: mb.compile.bound
+  title: "strict bound on DateTime64 reads whole seconds"
+  status: pass
+  status_stock: pass
+  check: compile.bound.datetime64_whole_seconds_limit
+- id: native.count_on_no_rows_limit
+  area: mb.native
+  title: "native COUNT(*) on no rows"
+  status: partial
+  status_stock: partial
+  check: native.count_on_no_rows_limit
+  cap: partial
+  reason: "Limit of Cube: native COUNT(*) on no rows gives NULL where SQL gives 0 (m3). The driver does not change native text, and it cannot know that a NULL column is a count. MBQL gives 0."
+- id: security.dev_mode_warning_for_hidden_members
+  area: security
+  title: "native SQL reads hidden members in dev mode"
+  status: partial
+  status_stock: partial
+  check: security.dev_mode_warning_for_hidden_members
+  cap: partial
+  reason: "Limit of Cube: with CUBEJS_DEV_MODE=true the SQL API reads hidden cubes and members (m6). A Cube with dev mode off refuses this query. docs/security.md warns about it."
+- id: security.validate_echoes_the_request_limit
+  area: security
+  title: "POST /api/database/validate repeats the request"
+  status: partial
+  status_stock: partial
+  check: security.validate_echoes_the_request_limit
+  cap: partial
+  reason: "Limit of Metabase: this admin endpoint repeats the request body with the secret that the admin sent, for each driver (m7). No driver hook applies. Each read of a stored database gives the mask."
+- id: nested.model.multi_stage_measure_column
+  area: mb.nested
+  title: "multi-stage measure as a column of a model"
+  status: pass
+  status_stock: pass
+  check: nested.model.multi_stage_measure_column
+- id: nested.question.multi_stage_outer_date_filter
+  area: mb.nested
+  title: "date filter on a question with a time shift or a rolling measure"
+  status: pass
+  status_stock: pass
+  check: nested.question.multi_stage_outer_date_filter
+- id: nested.model.measure_column_bounds
+  area: mb.nested
+  title: "date bounds on a model with a measure column"
+  status: pass
+  status_stock: pass
+  check: nested.model.measure_column_bounds
+- id: nested.model.relative_and_bucket_filters
+  area: mb.nested
+  title: "relative and bucket filters on a model by column name"
+  status: pass
+  status_stock: pass
+  check: nested.model.relative_and_bucket_filters
+- id: compile.bound.relative_strict
+  area: mb.compile.bound
+  title: "strict bound with a relative date"
+  status: pass
+  status_stock: pass
+  check: compile.bound.relative_strict
+- id: compile.case.date_bounds_in_an_aggregation
+  area: mb.compile.bound
+  title: "date bounds in count-where and sum-where"
+  status: pass
+  status_stock: pass
+  check: compile.case.date_bounds_in_an_aggregation
+- id: nested.measure_column.expression
+  area: mb.nested
+  title: "expression of a measure column"
+  status: pass
+  status_stock: pass
+  check: nested.measure_column.expression
+- id: nested.model.segment_column
+  area: mb.nested
+  title: "segment column of a model"
+  status: pass
+  status_stock: pass
+  check: nested.model.segment_column
+- id: nested.question_on_question.date_filter
+  area: mb.nested
+  title: "three stages with date filters"
+  status: pass
+  status_stock: pass
+  check: nested.question_on_question.date_filter
+- id: nested.measure_column.filter_with_no_key_refused
+  area: mb.nested
+  title: "filter on a measure column of a model with no primary key"
+  status: pass
+  status_stock: pass
+  check: nested.measure_column.filter_with_no_key_refused
+- id: mcp.query.between_keeps_time
+  area: mcp
+  title: "MCP between with a time part"
+  status: pass
+  status_stock: pass
+  check: mcp.query.between_keeps_time
+- id: isolation.other_driver_mcp_between
+  area: isolation
+  title: "the wrap for MCP between does not act on another driver"
+  status: pass
+  status_stock: pass
+  check: isolation.other_driver_mcp_between
+- id: isolation.other_driver_cache
+  area: isolation
+  title: "the wrap of the cache does not act on another driver"
+  status: pass
+  status_stock: pass
+  check: isolation.other_driver_cache
+- id: isolation.other_driver_sync
+  area: isolation
+  title: "the event topic of the driver does not act on the sync of another driver"
+  status: pass
+  status_stock: pass
+  check: isolation.other_driver_sync
+- id: compile.join.total_of_dimension_refused
+  area: mb.compile.join
+  title: "a sum of a dimension of a joined cube stops, and other aggregations give the truth"
+  status: pass
+  status_stock: pass
+  check: compile.join.total_of_dimension_refused
+- id: compile.expr.measure_with_expression_breakout
+  area: mb.compile.expr
+  title: "measures with a breakout on an expression"
+  status: pass
+  status_stock: pass
+  check: compile.expr.measure_with_expression_breakout
+- id: dialect.variant
+  area: dialect
+  title: "the stack is the kind of Cube that the run says"
+  status: pass
+  status_stock: pass
+  check: dialect.variant
+- id: dialect.b1_strict_lower_bound
+  area: dialect
+  title: "a strict lower bound and an upper bound"
+  status: pass
+  status_stock: pass
+  check: dialect.b1_strict_lower_bound
+- id: dialect.interval_in_native_sql
+  area: dialect
+  title: "an interval in native SQL next to a measure"
+  status: pass
+  status_stock: partial
+  check: dialect.interval_in_native_sql
+  cap_stock: partial
+  reason_stock: "Stock Cube has no template for an interval on ClickHouse. The query stops with a clear message. cube-clickhouse has the template."
+- id: dialect.n2_legacy_planner
+  area: dialect
+  title: "a rolling measure on the legacy planner"
+  status: pass
+  status_stock: partial
+  check: dialect.n2_legacy_planner
+  cap_stock: partial
+  reason_stock: "Known wrong number. Only with CUBEJS_TESSERACT_SQL_PLANNER=false, not the default: each bucket of a rolling measure gets the same wrong number. The driver cannot see the planner. cube-clickhouse fixes this."
+- id: native.subquery_filter_refused
+  area: native
+  title: "an outer filter over a subquery in native SQL"
+  status: pass
+  status_stock: pass
+  check: native.subquery_filter_refused
+- id: native.bound.alias_in_a_subquery
+  area: native
+  title: "a strict bound on an alias of a time column in native SQL"
+  status: pass
+  status_stock: pass
+  check: native.bound.alias_in_a_subquery
+- id: native.bound.datetime64_last_second_limit
+  area: native
+  title: "native SQL with < on a DateTime64"
+  status: pass
+  status_stock: partial
+  check: native.bound.datetime64_last_second_limit
+  cap_stock: partial
+  reason_stock: "Known wrong number on stock Cube. Native x >= a AND x < b on a DateTime64 ends at the last whole second before b, so the rows of that second are out. /v1/meta does not show the type of a column, so the driver cannot stop this and leave the same text on a DateTime column. The query builder has the same limit only on a column with a rollup. cube-clickhouse gives the truth."
+- id: compile.raw.switch_dimension_keeps_one_row
+  area: mb.compile.raw
+  title: "raw rows with a switch dimension"
+  status: pass
+  status_stock: pass
+  check: compile.raw.switch_dimension_keeps_one_row

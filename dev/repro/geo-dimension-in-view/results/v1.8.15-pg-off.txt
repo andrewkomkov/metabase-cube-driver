@@ -1,0 +1,36 @@
+# geo-dimension-in-view v1.8.15 postgres tesseract=off ready=True
+## meta_view
+{"name": "user_places", "type": "view", "public": true, "measures": [{"name": "user_places.count", "type": "number", "public": true, "isVisible": true, "aggType": "count"}], "dimensions": [{"name": "user_places.id", "type": "number", "public": true, "isVisible": true, "primaryKey": false}, {"name": "user_places.location", "type": "geo", "public": true, "isVisible": true, "primaryKey": false}]}
+## meta_cube
+{"name": "users", "type": "cube", "public": true, "measures": [{"name": "users.count", "type": "number", "public": true, "isVisible": true, "aggType": "count"}], "dimensions": [{"name": "users.id", "type": "number", "public": true, "isVisible": true, "primaryKey": true}, {"name": "users.location", "type": "geo", "public": true, "isVisible": true, "primaryKey": false}]}
+## rest_cube
+$ POST /cubejs-api/v1/load {"dimensions": ["users.location"]}
+HTTP 200 [{"users.location": "10.5,20.5"}, {"users.location": "30.5,40.5"}]
+SQL: SELECT
+      "users".latitude || ',' || "users".longitude "users__location"
+    FROM
+      repro.users AS "users"  GROUP BY 1 ORDER BY 1 ASC LIMIT 10000
+PARAMS: []
+## rest_view
+$ POST /cubejs-api/v1/load {"dimensions": ["user_places.location"]}
+HTTP 500 ERROR TypeError: Cannot read properties of undefined (reading 'sql')
+SQL ERROR: {"error":"TypeError: Cannot read properties of undefined (reading 'sql')","stack":"TypeError: Cannot read properties of undefined (reading 'sql')\n    at QueryPlanner.evaluateSymbolSql (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:3726:69)\n    at QueryPlanner.traverseSymbol (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:2939:42)\n    at /cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/BaseQuery.ts:3132:31\n    at QueryPlanner.evaluateSymbolSqlWithContext (/cube/node_modules/@cubejs-backend/schema-compiler/src/adapter/B
+## rest_view_id_only
+$ POST /cubejs-api/v1/load {"dimensions": ["user_places.id"]}
+HTTP 200 [{"user_places.id": "1"}, {"user_places.id": "2"}]
+## sql_cube
+$ psql> SELECT location FROM users ORDER BY 1
+location
+10.5,20.5
+30.5,40.5
+## sql_view
+$ psql> SELECT location FROM user_places ORDER BY 1
+psql:<stdin>:1: ERROR:  Database Execution Error: TypeError: Cannot read properties of undefined (reading 'sql')
+## log
+$ docker compose logs cube | grep -E "reading 'sql'"
+TypeError: Cannot read properties of undefined (reading 'sql')
+TypeError: Cannot read properties of undefined (reading 'sql')
+TypeError: Cannot read properties of undefined (reading 'sql')
+Internal Error: Error during processing PostgreSQL message: DataFusionError: Arrow error: External error: Database Execution Error: TypeError: Cannot read properties of undefined (reading 'sql')
+Internal Error: Error during processing PostgreSQL message: DataFusionError: Arrow error: External error: Database Execution Error: TypeError: Cannot read properties of undefined (reading 'sql')
+matching lines: 5

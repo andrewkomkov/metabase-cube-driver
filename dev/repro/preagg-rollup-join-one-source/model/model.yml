@@ -1,0 +1,34 @@
+cubes:
+  - name: orders
+    sql_table: repro.orders
+    joins:
+      - { name: users, relationship: many_to_one, sql: "{CUBE.user_id} = {users.id}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: user_id, sql: user_id, type: number }
+      - { name: status, sql: status, type: string }
+    measures:
+      - { name: revenue, sql: amount, type: sum }
+    pre_aggregations:
+      - name: orders_rollup
+        measures: [revenue]
+        dimensions: [user_id, status]
+        indexes:
+          - { name: u_idx, columns: [user_id] }
+        refresh_key: { every: 1 hour }
+      - name: joined
+        type: rollup_join
+        measures: [revenue]
+        dimensions: [status, users.state]
+        rollups: [users.users_rollup, orders.orders_rollup]
+  - name: users
+    sql_table: repro.users
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: state, sql: state, type: string }
+    pre_aggregations:
+      - name: users_rollup
+        dimensions: [id, state]
+        indexes:
+          - { name: id_idx, columns: [id] }
+        refresh_key: { every: 1 hour }

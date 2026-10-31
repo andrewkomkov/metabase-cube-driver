@@ -1,0 +1,89 @@
+{
+ "steps": [
+  {
+   "id": "two_months",
+   "sql": "SELECT DATE_TRUNC('month',created_at) m, MEASURE(cumulative_count) c FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-06-01' GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "two_months_100y",
+   "sql": "SELECT DATE_TRUNC('month',created_at) m, MEASURE(cumulative_100y) c FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-06-01' GROUP BY 1 ORDER BY 1",
+   "note": "the same window with a far bound"
+  },
+  {
+   "id": "one_month",
+   "sql": "SELECT DATE_TRUNC('month',created_at) m, MEASURE(cumulative_count) c FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-05-01' GROUP BY 1 ORDER BY 1"
+  },
+  {
+   "id": "rest_two_months",
+   "rest": {
+    "measures": [
+     "orders.cumulative_count"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "month",
+      "dateRange": [
+       "2025-04-01",
+       "2025-05-31"
+      ]
+     }
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_one_month",
+   "rest": {
+    "measures": [
+     "orders.cumulative_count"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "month",
+      "dateRange": [
+       "2025-04-01",
+       "2025-04-30"
+      ]
+     }
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "truth",
+   "truth_ch": "SELECT d, (SELECT count() FROM repro.orders o WHERE o.created_at <= d) FROM (SELECT toDateTime('2025-04-30 23:59:59','UTC') d UNION ALL SELECT toDateTime('2025-05-31 23:59:59','UTC')) ORDER BY 1",
+   "truth_pg": "SELECT d, (SELECT count(*) FROM repro.orders o WHERE o.created_at <= d) FROM (VALUES (timestamp '2025-04-30 23:59:59'),(timestamp '2025-05-31 23:59:59')) v(d) ORDER BY 1"
+  },
+  {
+   "id": "ch_inequality_join",
+   "only": [
+    "ch-on",
+    "ch-off"
+   ],
+   "truth_ch": "SELECT count() FROM (SELECT 1 a) l JOIN (SELECT 2 b) r ON l.a <= r.b",
+   "truth_pg": "SELECT 1",
+   "note": "a join with only an inequality on ClickHouse"
+  },
+  {
+   "id": "ch_two_bound_join",
+   "only": [
+    "ch-on",
+    "ch-off"
+   ],
+   "truth_ch": "SELECT d, count() FROM (SELECT toDateTime('2025-04-30 23:59:59','UTC') d UNION ALL SELECT toDateTime('2025-05-31 23:59:59','UTC')) dates LEFT JOIN repro.orders o ON o.created_at <= dates.d AND o.created_at > toDateTime(0) GROUP BY 1 ORDER BY 1",
+   "truth_pg": "SELECT 1",
+   "note": "a second bound makes the join valid"
+  },
+  {
+   "id": "ch_inequality_join_named_table",
+   "only": [
+    "ch-on",
+    "ch-off"
+   ],
+   "truth_ch": "SELECT d, count() FROM (SELECT toDateTime('2025-04-30 23:59:59','UTC') d UNION ALL SELECT toDateTime('2025-05-31 23:59:59','UTC')) dates LEFT JOIN repro.orders o ON o.created_at <= dates.d GROUP BY 1 ORDER BY 1",
+   "truth_pg": "SELECT 1"
+  }
+ ]
+}

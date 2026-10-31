@@ -26,26 +26,32 @@ jobs:
       contents: read
 
   load-check:
-    needs: build
     uses: ./.github/workflows/reusable-stack.yml
     permissions:
       contents: read
     with:
       name: jar load check
       artifact-name: load-pinned
-      jar-artifact: cube.metabase-driver
       conformance: false
 
   conformance:
-    needs: build
     uses: ./.github/workflows/reusable-stack.yml
     permissions:
       contents: read
     with:
       name: conformance on the pinned pair
       artifact-name: conformance-pinned
-      jar-artifact: cube.metabase-driver
       load-check: false
+
+  conformance-stock:
+    uses: ./.github/workflows/reusable-stack.yml
+    permissions:
+      contents: read
+    with:
+      name: conformance on the pinned pair with stock Cube
+      artifact-name: conformance-pinned-stock
+      load-check: false
+      clickhouse-fixes: "off"
 
   status:
     needs: conformance

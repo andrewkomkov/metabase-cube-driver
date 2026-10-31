@@ -1,0 +1,66 @@
+[
+ {
+  "rows": [
+   [
+    "2024-02-01T00:00:00.000",
+    "1000000"
+   ],
+   [
+    "2024-08-01T00:00:00.000",
+    "10000000"
+   ],
+   [
+    "2024-11-01T00:00:00.000",
+    "11"
+   ],
+   [
+    "2025-02-01T00:00:00.000",
+    "11100"
+   ],
+   [
+    "2025-08-01T00:00:00.000",
+    "100000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      ('2025-02-01T00:00:00.000'::timestamp + INTERVAL '3 months' *\n      FLOOR(\n        EXTRACT(EPOCH FROM ((\"fn\".ts::timestamptz AT TIME ZONE 'UTC') - '2025-02-01T00:00:00.000'::timestamp)) /\n        EXTRACT(EPOCH FROM INTERVAL '3 months')\n      )) \"fn__ts_fq_recent\", sum(\"fn\".amt) \"fn__rev\"\n    FROM\n      audit.ft AS \"fn\"  GROUP BY 1 ORDER BY 1 ASC LIMIT 10000 PARAMS []",
+  "verdict": "diff",
+  "truth": null,
+  "id": "recent_origin_no_rollup"
+ },
+ {
+  "rows": [
+   [
+    "2024-02-01T00:00:00.000",
+    "1000000"
+   ],
+   [
+    "2024-11-01T00:00:00.000",
+    "10000001"
+   ],
+   [
+    "2025-02-01T00:00:00.000",
+    "1110"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "10000"
+   ],
+   [
+    "2025-08-01T00:00:00.000",
+    "100000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [
+   "dev_pre_aggregations.ff_by_month"
+  ],
+  "generated": "SELECT DATE_BIN(INTERVAL '3 MONTH', CAST(`ff__ts_month` as TIMESTAMP), CAST('2025-02-01T00:00:00.000' as TIMESTAMP)) `ff__ts_fq_recent`, sum(`ff__rev`) `ff__rev` FROM dev_pre_aggregations.ff_by_month AS `ff__by_month`  GROUP BY 1 ORDER BY 1 ASC LIMIT 10000 PARAMS []",
+  "verdict": "diff",
+  "truth": null,
+  "id": "recent_origin_rollup"
+ }
+]

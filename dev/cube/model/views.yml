@@ -15,6 +15,13 @@ views:
         prefix: true
         includes: [category, name]
 
+  - name: customer_locations
+    title: Customer locations
+    description: Where customers are. Cube cannot read a geo dimension of a view.
+    cubes:
+      - join_path: users
+        includes: [id, location, count]
+
   - name: paid_sales
     title: Paid sales
     description: Completed orders only. Default filters enforce this.
@@ -74,7 +81,7 @@ views:
     description: Orders by the fiscal calendar.
     cubes:
       - { join_path: orders, includes: [revenue, revenue_prior_fiscal] }
-      - { join_path: orders.fiscal_calendar, prefix: true, includes: [date] }
+      - { join_path: orders.fiscal_calendar, prefix: true, includes: [date, fiscal_date] }
 
   - name: hidden_sales
     public: false

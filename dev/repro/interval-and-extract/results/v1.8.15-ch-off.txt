@@ -1,0 +1,45 @@
+# interval-and-extract v1.8.15 clickhouse tesseract=off ready=True
+## interval_raw
+$ psql> SELECT id, created_at + INTERVAL '1 day' d FROM orders ORDER BY 1
+psql:<stdin>:1: ERROR:  Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_date_part template: template not found: template "expressions/interval_single_date_part" does not exist
+QUERY: SELECT id, created_at + INTERVAL '1 day' AS d FROM orders ORDER BY 1
+## interval_aggregated
+$ psql> SELECT created_at + INTERVAL '1 day' d, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_date_part template: template not found: template "expressions/interval_single_date_part" does not exist
+QUERY: SELECT created_at + INTERVAL '1 day' AS d, MEASURE(count) AS c FROM orders GROUP BY 1 ORDER BY 1
+$ psql> EXPLAIN SELECT created_at + INTERVAL '1 day' d, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_date_part template: template not found: template "expressions/interval_single_date_part" does not exist
+QUERY: SELECT created_at + INTERVAL '1 day' AS d, MEASURE(count) AS c FROM orders GROUP BY 1 ORDER BY 1
+## interval_trunc_aggregated
+$ psql> SELECT DATE_TRUNC('month', created_at + INTERVAL '1 day') d, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Internal Error: Can't generate SQL for interval: Internal Error: Error getting expressions/interval_single_date_part template: template not found: template "expressions/interval_single_date_part" does not exist
+QUERY: SELECT DATE_TRUNC('month', created_at + INTERVAL '1 day') AS d, MEASURE(count) AS c FROM orders GROUP BY 1 ORDER BY 1
+## extract_count
+$ psql> SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information
+QUERY: SELECT EXTRACT(MONTH FROM created_at) AS m, MEASURE(count) AS c FROM orders GROUP BY 1 ORDER BY 1
+## extract_sum
+$ psql> SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(revenue) r FROM orders GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information
+QUERY: SELECT EXTRACT(MONTH FROM created_at) AS m, MEASURE(revenue) AS r FROM orders GROUP BY 1 ORDER BY 1
+$ psql> EXPLAIN SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(revenue) r FROM orders GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information
+QUERY: SELECT EXTRACT(MONTH FROM created_at) AS m, MEASURE(revenue) AS r FROM orders GROUP BY 1 ORDER BY 1
+## extract_avg
+$ psql> SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(avg_amount) a FROM orders GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information
+QUERY: SELECT EXTRACT(MONTH FROM created_at) AS m, MEASURE(avg_amount) AS a FROM orders GROUP BY 1 ORDER BY 1
+## extract_count_distinct
+$ psql> SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(distinct_status) a FROM orders GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information
+QUERY: SELECT EXTRACT(MONTH FROM created_at) AS m, MEASURE(distinct_status) AS a FROM orders GROUP BY 1 ORDER BY 1
+## trunc_avg
+$ psql> SELECT DATE_TRUNC('month', created_at) m, MEASURE(avg_amount) a FROM orders GROUP BY 1 ORDER BY 1
+m | a
+2025-05-01 00:00:00.000000 | 150
+2025-06-01 00:00:00.000000 | 400
+## truth_extract_avg
+$ clickhouse> SELECT toMonth(created_at) m, avg(amount) a FROM repro.orders GROUP BY 1 ORDER BY 1
+m	a
+5	150
+6	400

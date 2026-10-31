@@ -1,0 +1,175 @@
+[
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT w, c FROM (SELECT CAST(floor(DATEDIFF('day', TIMESTAMP '2001-01-07 00:00:00', ts) / 7.0) AS BIGINT) AS w, MEASURE(n) AS c FROM wk WHERE ts >= 'replaced_placeholder' GROUP BY 1) q ORDER BY 1",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"w\" \"w\", \"q\".\"c\" \"c\" \nFROM (\n  SELECT \"wk\".\"cast_floor_dated\" \"w\", \"wk\".\"measure_wk_n_\" \"c\" \n  FROM (\n    SELECT CAST(FLOOR((CASE WHEN LOWER('day') IN ('year', 'quarter', 'month') THEN (EXTRACT(YEAR FROM AGE(DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')), DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z'))) * 12 + EXTRACT(MONTH FROM AGE(DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')), DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z')))) / CASE LOWER('day') WHEN 'year' THEN 12 WHEN 'quarter' THEN 3 WHEN 'month' THEN 1 END ELSE EXTRACT(EPOCH FROM DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')) - DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z')) / EXTRACT(EPOCH FROM '1 day'::interval) END::bigint / 7)) AS BIGINT) \"cast_floor_dated\", count(\"wk\".id) \"measure_wk_n_\" \n    FROM  audit.wk  AS \"wk\"\n    WHERE (\"wk\".ts >= $1::timestamptz)\n    GROUP BY 1\n  ) AS \"wk\"\n  ORDER BY \"wk\".\"cast_floor_dated\" ASC NULLS LAST\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "untyped"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT w, c FROM (SELECT CAST(floor(DATEDIFF('day', TIMESTAMP '2001-01-07 00:00:00', ts) / 7.0) AS BIGINT) AS w, MEASURE(n) AS c FROM wk WHERE ts >= 'replaced_placeholder' GROUP BY 1) q ORDER BY 1",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"w\" \"w\", \"q\".\"c\" \"c\" \nFROM (\n  SELECT \"wk\".\"cast_floor_dated\" \"w\", \"wk\".\"measure_wk_n_\" \"c\" \n  FROM (\n    SELECT CAST(FLOOR((CASE WHEN LOWER('day') IN ('year', 'quarter', 'month') THEN (EXTRACT(YEAR FROM AGE(DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')), DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z'))) * 12 + EXTRACT(MONTH FROM AGE(DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')), DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z')))) / CASE LOWER('day') WHEN 'year' THEN 12 WHEN 'quarter' THEN 3 WHEN 'month' THEN 1 END ELSE EXTRACT(EPOCH FROM DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')) - DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z')) / EXTRACT(EPOCH FROM '1 day'::interval) END::bigint / 7)) AS BIGINT) \"cast_floor_dated\", count(\"wk\".id) \"measure_wk_n_\" \n    FROM  audit.wk  AS \"wk\"\n    WHERE (\"wk\".ts >= $1::timestamptz)\n    GROUP BY 1\n  ) AS \"wk\"\n  ORDER BY \"wk\".\"cast_floor_dated\" ASC NULLS LAST\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "oid_timestamp"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT w, c FROM (SELECT CAST(floor(DATEDIFF('day', TIMESTAMP '2001-01-07 00:00:00', ts) / 7.0) AS BIGINT) AS w, MEASURE(n) AS c FROM wk WHERE ts >= 'replaced_placeholder' GROUP BY 1) q ORDER BY 1",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"w\" \"w\", \"q\".\"c\" \"c\" \nFROM (\n  SELECT \"wk\".\"cast_floor_dated\" \"w\", \"wk\".\"measure_wk_n_\" \"c\" \n  FROM (\n    SELECT CAST(FLOOR((CASE WHEN LOWER('day') IN ('year', 'quarter', 'month') THEN (EXTRACT(YEAR FROM AGE(DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')), DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z'))) * 12 + EXTRACT(MONTH FROM AGE(DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')), DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z')))) / CASE LOWER('day') WHEN 'year' THEN 12 WHEN 'quarter' THEN 3 WHEN 'month' THEN 1 END ELSE EXTRACT(EPOCH FROM DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')) - DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z')) / EXTRACT(EPOCH FROM '1 day'::interval) END::bigint / 7)) AS BIGINT) \"cast_floor_dated\", count(\"wk\".id) \"measure_wk_n_\" \n    FROM  audit.wk  AS \"wk\"\n    WHERE (\"wk\".ts >= $1::timestamptz)\n    GROUP BY 1\n  ) AS \"wk\"\n  ORDER BY \"wk\".\"cast_floor_dated\" ASC NULLS LAST\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "oid_varchar"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT w, c FROM (SELECT CAST(floor(DATEDIFF('day', TIMESTAMP '2001-01-07 00:00:00', ts) / 7.0) AS BIGINT) AS w, MEASURE(n) AS c FROM wk WHERE ts >= 'replaced_placeholder' GROUP BY 1) q ORDER BY 1",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"w\" \"w\", \"q\".\"c\" \"c\" \nFROM (\n  SELECT \"wk\".\"cast_floor_dated\" \"w\", \"wk\".\"measure_wk_n_\" \"c\" \n  FROM (\n    SELECT CAST(FLOOR((CASE WHEN LOWER('day') IN ('year', 'quarter', 'month') THEN (EXTRACT(YEAR FROM AGE(DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')), DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z'))) * 12 + EXTRACT(MONTH FROM AGE(DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')), DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z')))) / CASE LOWER('day') WHEN 'year' THEN 12 WHEN 'quarter' THEN 3 WHEN 'month' THEN 1 END ELSE EXTRACT(EPOCH FROM DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')) - DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z')) / EXTRACT(EPOCH FROM '1 day'::interval) END::bigint / 7)) AS BIGINT) \"cast_floor_dated\", count(\"wk\".id) \"measure_wk_n_\" \n    FROM  audit.wk  AS \"wk\"\n    WHERE (\"wk\".ts >= $1::timestamptz)\n    GROUP BY 1\n  ) AS \"wk\"\n  ORDER BY \"wk\".\"cast_floor_dated\" ASC NULLS LAST\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "one_second_before"
+ },
+ {
+  "rows": [],
+  "error": "Internal Error: Can't parse date: 'replaced_placeholder'\nQUERY: SELECT w, c FROM (SELECT CAST(floor(DATEDIFF('day', TIMESTAMP '2001-01-07 00:00:00', ts) / 7.0) AS BIGINT) AS w, MEASURE(n) AS c FROM wk WHERE ts >= 'replaced_placeholder' GROUP BY 1) q ORDER BY 1",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"w\" \"w\", \"q\".\"c\" \"c\" \nFROM (\n  SELECT \"wk\".\"cast_floor_dated\" \"w\", \"wk\".\"measure_wk_n_\" \"c\" \n  FROM (\n    SELECT CAST(FLOOR((CASE WHEN LOWER('day') IN ('year', 'quarter', 'month') THEN (EXTRACT(YEAR FROM AGE(DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')), DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z'))) * 12 + EXTRACT(MONTH FROM AGE(DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')), DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z')))) / CASE LOWER('day') WHEN 'year' THEN 12 WHEN 'quarter' THEN 3 WHEN 'month' THEN 1 END ELSE EXTRACT(EPOCH FROM DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')) - DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z')) / EXTRACT(EPOCH FROM '1 day'::interval) END::bigint / 7)) AS BIGINT) \"cast_floor_dated\", count(\"wk\".id) \"measure_wk_n_\" \n    FROM  audit.wk  AS \"wk\"\n    WHERE (\"wk\".ts >= $1::timestamptz)\n    GROUP BY 1\n  ) AS \"wk\"\n  ORDER BY \"wk\".\"cast_floor_dated\" ASC NULLS LAST\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "empty_result"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: function date_trunc(unknown, unknown) is not unique",
+  "shape": null,
+  "oids": [
+   20,
+   20
+  ],
+  "verdict": "diff",
+  "truth": null,
+  "id": "in_inner_and_diff"
+ },
+ {
+  "rows": [
+   [
+    "1252",
+    "2"
+   ],
+   [
+    "1253",
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   20,
+   20
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "cast_control"
+ },
+ {
+  "rows": [
+   [
+    "1252",
+    "2"
+   ],
+   [
+    "1253",
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   20,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"q\".\"w\" \"w\", \"q\".\"c\" \"c\" \nFROM (\n  SELECT \"wk\".\"cast_floor_dated\" \"w\", \"wk\".\"measure_wk_n_\" \"c\" \n  FROM (\n    SELECT CAST(FLOOR((CASE WHEN LOWER('day') IN ('year', 'quarter', 'month') THEN (EXTRACT(YEAR FROM AGE(DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')), DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z'))) * 12 + EXTRACT(MONTH FROM AGE(DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')), DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z')))) / CASE LOWER('day') WHEN 'year' THEN 12 WHEN 'quarter' THEN 3 WHEN 'month' THEN 1 END ELSE EXTRACT(EPOCH FROM DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')) - DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z')) / EXTRACT(EPOCH FROM '1 day'::interval) END::bigint / 7)) AS BIGINT) \"cast_floor_dated\", count(\"wk\".id) \"measure_wk_n_\" \n    FROM  audit.wk  AS \"wk\"\n    WHERE (\"wk\".ts >= $1::timestamptz)\n    GROUP BY 1\n  ) AS \"wk\"\n  ORDER BY \"wk\".\"cast_floor_dated\" ASC NULLS LAST\n) AS \"q\"\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "literal_control"
+ },
+ {
+  "rows": [
+   [
+    "1251",
+    "1"
+   ],
+   [
+    "1252",
+    "2"
+   ],
+   [
+    "1253",
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   20,
+   20
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT \"wk\".\"cast_floor_dated\" \"w\", \"wk\".\"measure_wk_n_\" \"c\" \nFROM (\n  SELECT CAST(FLOOR((CASE WHEN LOWER('day') IN ('year', 'quarter', 'month') THEN (EXTRACT(YEAR FROM AGE(DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')), DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z'))) * 12 + EXTRACT(MONTH FROM AGE(DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')), DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z')))) / CASE LOWER('day') WHEN 'year' THEN 12 WHEN 'quarter' THEN 3 WHEN 'month' THEN 1 END ELSE EXTRACT(EPOCH FROM DATE_TRUNC('day', (\"wk\".ts::timestamptz AT TIME ZONE 'UTC')) - DATE_TRUNC('day', timestamptz '2001-01-07T00:00:00.000Z')) / EXTRACT(EPOCH FROM '1 day'::interval) END::bigint / 7)) AS BIGINT) \"cast_floor_dated\", count(\"wk\".id) \"measure_wk_n_\" \n  FROM  audit.wk  AS \"wk\"\n  GROUP BY 1\n) AS \"wk\"\nORDER BY \"wk\".\"cast_floor_dated\" ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "no_param_control"
+ },
+ {
+  "rows": [
+   [
+    "1252",
+    "1"
+   ],
+   [
+    "1253",
+    "1"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   20,
+   20
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "text_param_control"
+ },
+ {
+  "rows": [
+   [
+    "2024-12-30 00:00:00.000000",
+    "1"
+   ],
+   [
+    "2025-01-06 00:00:00.000000",
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   1114,
+   20
+  ],
+  "verdict": "match",
+  "truth": null,
+  "id": "date_trunc_week_param"
+ }
+]

@@ -1,0 +1,14 @@
+# minor-m6-hidden-dev-mode v1.8.15 clickhouse tesseract=on ready=True
+## hidden_cube
+$ psql> SELECT COUNT(*) c FROM secret_audit
+c
+3
+## hidden_measure
+$ psql> SELECT MEASURE(hidden_measure) x FROM orders
+x
+700
+## rest_hidden_cube
+$ POST /cubejs-api/v1/load {"measures": ["secret_audit.count"]}
+HTTP 200 [{"secret_audit.count": "3"}]
+## meta_list
+{"name": "secret_audit", "type": "cube", "public": false, "measures": [{"name": "secret_audit.count", "type": "number", "public": false, "isVisible": false, "aggType": "count"}], "dimensions": [{"name": "secret_audit.id", "type": "number", "public": false, "isVisible": false, "primaryKey": true}]}

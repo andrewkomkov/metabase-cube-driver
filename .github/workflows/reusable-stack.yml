@@ -29,6 +29,10 @@ on:
         description: ClickHouse image tag. Empty means the pin.
         type: string
         default: ""
+      clickhouse-fixes:
+        description: on runs Cube with cube-clickhouse. off runs stock Cube.
+        type: string
+        default: "on"
       jar-artifact:
         description: Artifact with the jar. Empty means build the jar from the ref.
         type: string
@@ -59,6 +63,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     continue-on-error: ${{ inputs.report-only }}
+    env:
+      CUBE_CLICKHOUSE_FIXES: ${{ inputs.clickhouse-fixes }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -129,9 +135,9 @@ jobs:
           pins=$(python3 .github/scripts/pins.py read)
           [ "$STACK" = success ] || LOAD=stack-failed
           jq -n --argjson pins "$pins" --arg name "$NAME" --arg load "$LOAD" --arg conformance "$CONFORMANCE" \
-            --argjson required "$REQUIRED" --arg sha "$(git rev-parse HEAD)" --arg run_url "$RUN_URL" --arg date "$(date -u +%F)" \
+            --argjson required "$REQUIRED" --arg fixes "$CUBE_CLICKHOUSE_FIXES" --arg sha "$(git rev-parse HEAD)" --arg run_url "$RUN_URL" --arg date "$(date -u +%F)" \
             --arg metabase "${METABASE_VERSION:-}" --arg cube "${CUBE_VERSION:-}" --arg clickhouse "${CLICKHOUSE_VERSION:-}" \
-            '{name: $name, load: $load, conformance: $conformance, required: $required, sha: $sha, run_url: $run_url, date: $date,
+            '{name: $name, load: $load, conformance: $conformance, required: $required, clickhouse_fixes: $fixes, sha: $sha, run_url: $run_url, date: $date,
               metabase: (if $metabase == "" then $pins.metabase else $metabase end),
               cube: (if $cube == "" then $pins.cube else $cube end),
               clickhouse: (if $clickhouse == "" then $pins.clickhouse else $clickhouse end)}' \

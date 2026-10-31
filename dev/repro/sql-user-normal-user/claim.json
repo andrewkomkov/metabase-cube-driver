@@ -1,0 +1,15 @@
+{
+ "steps": [
+  {
+   "id": "set_user",
+   "script": "SET user = 'alice';\nSELECT current_user;\n"
+  },
+  {
+   "id": "where_user",
+   "sql": "SELECT MEASURE(count) c FROM orders WHERE __user = 'alice'"
+  }
+ ],
+ "configs": [
+  "ch-on"
+ ]
+}

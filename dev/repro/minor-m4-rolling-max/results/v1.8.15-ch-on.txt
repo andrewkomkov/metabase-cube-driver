@@ -1,0 +1,18 @@
+# minor-m4-rolling-max v1.8.15 clickhouse tesseract=on ready=True
+## max_of_rolling
+$ psql> SELECT MAX(revenue_trailing_30d) x FROM orders
+psql:<stdin>:1: ERROR:  Database Execution Error: Query failed: Error: Unknown expression or function identifier `orders.amount` in scope WITH cte_0 AS (SELECT max(orders.amount) AS orders__revenue_trailing_30d FROM repro.orders AS orders), cte_1 AS (SELECT * FROM cte_0 AS fk_aggregate) SELECT max(orders.amount) AS max_orders_reven: Note: the query does not have the FROM clause. Did you forget to add it?. ; query id: ed09e6e4-ccf8-49a9-a22f-50894bca8d88-900d9204-dd04-4f80-8d60-b4a47fcd0240
+## max_of_rolling_monthly
+$ psql> SELECT DATE_TRUNC('month',created_at) m, MAX(revenue_trailing_30d) x FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-05-01' GROUP BY 1
+psql:<stdin>:1: ERROR:  Internal Error: Date range is required for time series
+QUERY: SELECT DATE_TRUNC('month', created_at) AS m, MAX(revenue_trailing_30d) AS x FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-05-01' GROUP BY 1
+## sum_of_rolling
+$ psql> SELECT SUM(revenue_trailing_30d) x FROM orders
+x
+111
+## raw_rolling_column
+$ psql> SELECT id, revenue_trailing_30d FROM orders ORDER BY 1
+id | revenue_trailing_30d
+1 | 1
+2 | 10
+3 | 100

@@ -16,7 +16,8 @@ Shared logic is in reusable workflows and composite actions. All other workflows
 ## Version matrix
 
 `nightly` tests Metabase (pinned, previous stable, newest beta) by Cube (pinned, newest) on the pinned
-ClickHouse. The pinned pair is required. The other pairs report only. Equal versions count once.
+ClickHouse. Each pair runs with `cube-clickhouse` and on stock Cube. The pinned pair is required. The other pairs
+report only. Equal versions count once. `ci` also runs the pinned pair on stock Cube, as the job `conformance-stock`.
 
 ## Self-update
 

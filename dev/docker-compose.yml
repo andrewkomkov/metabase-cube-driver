@@ -11,13 +11,17 @@ services:
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
     volumes:
       - "./clickhouse/seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro"
+      - "./clickhouse/seed-extra.sql:/docker-entrypoint-initdb.d/seed-extra.sql:ro"
       - "clickhouse-data:/var/lib/clickhouse"
+    mem_limit: 3g
     ulimits: { nofile: { soft: 262144, hard: 262144 } }
-    healthcheck: { test: [CMD-SHELL, "clickhouse-client -u shop --password shop-dev-only -q 'SELECT count() FROM shop.orders' | grep -q 5000"], interval: 3s, retries: 40 }
+    # The address of the container: the server that loads the seed listens on the loopback interface only, and it stops after the seed.
+    healthcheck: { test: [CMD-SHELL, "clickhouse-client -h $(hostname -i) -u shop --password shop-dev-only -q 'SELECT count() FROM shop.orders' | grep -q 5000"], interval: 3s, retries: 60 }
     restart: unless-stopped
   cube:
     image: cubejs/cube:${CUBE_VERSION:-v1.8.15}
     depends_on: { clickhouse: { condition: service_healthy } }
+    mem_limit: 2g
     environment:
       CUBEJS_DEV_MODE: "true"
       CUBEJS_API_SECRET: cube-dev-only-secret-0123456789abcdef
@@ -27,25 +31,114 @@ services:
       CUBEJS_DB_NAME: shop
       CUBEJS_DB_USER: shop
       CUBEJS_DB_PASS: shop-dev-only
+      # A second data source. It is the same server with another database, so the demo stays small.
+      CUBEJS_DATASOURCES: default,second
+      CUBEJS_DS_SECOND_DB_TYPE: clickhouse
+      CUBEJS_DS_SECOND_DB_HOST: clickhouse
+      CUBEJS_DS_SECOND_DB_PORT: "8123"
+      CUBEJS_DS_SECOND_DB_NAME: shop_second
+      CUBEJS_DS_SECOND_DB_USER: shop
+      CUBEJS_DS_SECOND_DB_PASS: shop-dev-only
       CUBEJS_PG_SQL_PORT: "15432"
       CUBEJS_SQL_USER: cube
       CUBEJS_SQL_PASSWORD: cube-dev-only
       CUBEJS_TELEMETRY: "false"
-    volumes: ["./cube/model:/cube/conf/model:ro"]
+      # Without this, a query with a date range that does not align with a rollup reads the rollup and returns a wrong number.
+      CUBEJS_PRE_AGGREGATIONS_ALLOW_NON_STRICT_DATE_RANGE_MATCH: "false"
+      # Post-processing reads at most this many rows and then computes from a part of the data with no error. The default is 50000.
+      CUBEJS_DB_QUERY_LIMIT: "2000000"
+      # The SQL API keeps the rewrite graph of each query, up to 2 x 500 graphs for each of 100 compiled models. Each change of the
+      # model makes a new compiled model, so memory grows in dev mode: 2.6 GB in one run of the suite, 7.5 GB after a few. See docs/install.md.
+      CUBESQL_QUERY_CACHE_SIZE: "50"
+      CUBEJS_COMPILER_CACHE_SIZE: "4"
+      CUBE_CLICKHOUSE_FIXES: ${CUBE_CLICKHOUSE_FIXES:-on}
+    volumes: ["./cube/model:/cube/conf/model:ro", "./cube/cube.js:/cube/conf/cube.js:ro", "../cube-clickhouse:/cube/conf/cube-clickhouse:ro"]
     ports: ["127.0.0.1:4400:4000", "127.0.0.1:15433:15432"]
+    restart: unless-stopped
+  # A second Cube for per-user data. It has a row-level rule. See docs/security.md.
+  cube-secure:
+    image: cubejs/cube:${CUBE_VERSION:-v1.8.15}
+    depends_on: { clickhouse: { condition: service_healthy } }
+    mem_limit: 1g
+    environment:
+      # Dev mode accepts each JWT, also one with a wrong signature, so it cannot test the API secret.
+      CUBEJS_DEV_MODE: "false"
+      CUBEJS_CACHE_AND_QUEUE_DRIVER: memory
+      CUBEJS_API_SECRET: cube-secure-dev-only-secret-0123456789
+      CUBEJS_DB_TYPE: clickhouse
+      CUBEJS_DB_HOST: clickhouse
+      CUBEJS_DB_PORT: "8123"
+      CUBEJS_DB_NAME: shop
+      CUBEJS_DB_USER: shop
+      CUBEJS_DB_PASS: shop-dev-only
+      CUBEJS_PG_SQL_PORT: "15432"
+      CUBEJS_SQL_PASSWORD: cube-secure-dev-only
+      CUBEJS_TELEMETRY: "false"
+      CUBEJS_PRE_AGGREGATIONS_ALLOW_NON_STRICT_DATE_RANGE_MATCH: "false"
+      CUBEJS_DB_QUERY_LIMIT: "2000000"
+      CUBE_CLICKHOUSE_FIXES: ${CUBE_CLICKHOUSE_FIXES:-on}
+    volumes: ["./cube-secure/cube.js:/cube/conf/cube.js:ro", "./cube-secure/model:/cube/conf/model:ro", "../cube-clickhouse:/cube/conf/cube-clickhouse:ro"]
+    ports: ["127.0.0.1:4401:4000", "127.0.0.1:15434:15432"]
+    restart: unless-stopped
+  # The legacy planner, for the check of N2. It reads the same model and answers on the REST API only.
+  cube-legacy:
+    image: cubejs/cube:${CUBE_VERSION:-v1.8.15}
+    depends_on: { clickhouse: { condition: service_healthy } }
+    mem_limit: 512m
+    environment:
+      CUBEJS_DEV_MODE: "false"
+      CUBEJS_CACHE_AND_QUEUE_DRIVER: memory
+      CUBEJS_API_SECRET: cube-legacy-dev-only-secret-0123456789
+      CUBEJS_DB_TYPE: clickhouse
+      CUBEJS_DB_HOST: clickhouse
+      CUBEJS_DB_PORT: "8123"
+      CUBEJS_DB_NAME: shop
+      CUBEJS_DB_USER: shop
+      CUBEJS_DB_PASS: shop-dev-only
+      CUBEJS_DATASOURCES: default,second
+      CUBEJS_DS_SECOND_DB_TYPE: clickhouse
+      CUBEJS_DS_SECOND_DB_HOST: clickhouse
+      CUBEJS_DS_SECOND_DB_PORT: "8123"
+      CUBEJS_DS_SECOND_DB_NAME: shop_second
+      CUBEJS_DS_SECOND_DB_USER: shop
+      CUBEJS_DS_SECOND_DB_PASS: shop-dev-only
+      CUBEJS_TELEMETRY: "false"
+      CUBEJS_TESSERACT_SQL_PLANNER: "false"
+      CUBE_CLICKHOUSE_FIXES: ${CUBE_CLICKHOUSE_FIXES:-on}
+    volumes: ["./cube/model:/cube/conf/model:ro", "./cube/cube.js:/cube/conf/cube.js:ro", "../cube-clickhouse:/cube/conf/cube-clickhouse:ro"]
+    ports: ["127.0.0.1:4402:4000"]
     restart: unless-stopped
   metabase:
     image: metabase/metabase:${METABASE_VERSION:-v0.64.3}
     depends_on: [cube]
+    mem_limit: 3g
     environment:
       MB_DB_FILE: /data/metabase.db
       MB_PLUGINS_DIR: /plugins
       MB_SITE_URL: http://127.0.0.1:3300
       MB_ANON_TRACKING_ENABLED: "false"
       MB_CHECK_FOR_UPDATES: "false"
+      # Mail goes to the service mail, which keeps it and sends nothing.
+      MB_EMAIL_SMTP_HOST: mail
+      MB_EMAIL_SMTP_PORT: "1025"
+      MB_EMAIL_SMTP_SECURITY: none
+      MB_EMAIL_FROM_ADDRESS: metabase@example.com
       JAVA_OPTS: -Xmx2g
     volumes: ["metabase-data:/data", "./plugins:/plugins"]
     ports: ["127.0.0.1:3300:3000"]
+    restart: unless-stopped
+  # A local mail catcher for alerts and subscriptions. It sends no mail out.
+  mail:
+    image: axllent/mailpit:v1.32.0
+    mem_limit: 128m
+    ports: ["127.0.0.1:8025:8025"]
+    restart: unless-stopped
+  # A headless browser for checks of the Metabase UI. The runner speaks the Chrome DevTools Protocol to it.
+  browser:
+    image: chromedp/headless-shell:157.0.8103.27
+    mem_limit: 1g
+    shm_size: 256m
+    ports: ["127.0.0.1:9222:9222"]
     restart: unless-stopped
 volumes:
   metabase-data:

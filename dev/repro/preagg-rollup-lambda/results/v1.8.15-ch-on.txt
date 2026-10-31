@@ -1,0 +1,22 @@
+# preagg-rollup-lambda v1.8.15 clickhouse tesseract=on ready=True
+## rest_lambda
+$ POST /cubejs-api/v1/load {"measures": ["orders.revenue"], "dimensions": ["orders.status"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month"}], "order": {"orders.created_at": "asc"}}
+HTTP 200 [{"orders.status": "a", "orders.created_at.month": "2025-05-01T00:00:00.000", "orders.revenue": "300", "orders.created_at": "2025-05-01T00:00:00.000"}, {"orders.status": "b", "orders.created_at.month": "2025-06-01T00:00:00.000", "orders.revenue": "400", "orders.created_at": "2025-06-01T00:00:00.000"}]
+SQL: SELECT "orders__status" "orders__status", date_trunc('month', "orders__created_at_day") "orders__created_at_month", sum("orders__revenue") "orders__revenue" 
+FROM  dev_pre_aggregations.orders_batch  AS "orders__batch"
+GROUP BY 1, 2
+ORDER BY  2  ASC
+LIMIT 10000
+PARAMS: []
+## truth
+$ clickhouse> SELECT status, created_at, amount FROM repro.orders ORDER BY id
+status	created_at	amount
+a	2025-05-05 00:00:00	100
+a	2025-05-15 00:00:00	200
+b	2025-06-01 00:00:00	400
+## meta
+{"name": "orders", "type": "cube", "public": true, "measures": [{"name": "orders.revenue", "type": "number", "public": true, "isVisible": true, "aggType": "sum"}], "dimensions": [{"name": "orders.id", "type": "number", "public": true, "isVisible": true, "primaryKey": true}, {"name": "orders.status", "type": "string", "public": true, "isVisible": true, "primaryKey": false}, {"name": "orders.created_at", "type": "time", "public": true, "isVisible": true, "primaryKey": false}]}
+## log
+$ docker compose logs cube | grep -E '[Ll]ambda'
+FROM  (SELECT * FROM dev_pre_aggregations.orders_batch20250501_ean53wzp_3vgkbmxx_1lea283 UNION ALL SELECT * FROM lambda_dev_pre_aggregations_orders_batch)  AS "orders__batch"
+matching lines: 1

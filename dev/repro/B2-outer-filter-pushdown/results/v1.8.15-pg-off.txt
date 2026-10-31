@@ -1,0 +1,205 @@
+# B2-outer-filter-pushdown v1.8.15 postgres tesseract=off ready=True
+## outer_filter_alias_m
+$ psql> SELECT m, revenue FROM (SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS revenue FROM orders GROUP BY 1) s WHERE m >= '2025-05-15' ORDER BY 1
+m | revenue
+2025-05-01 00:00:00.000000 | 100
+2025-06-01 00:00:00.000000 | 1000
+$ psql> EXPLAIN SELECT m, revenue FROM (SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS revenue FROM orders GROUP BY 1) s WHERE m >= '2025-05-15' ORDER BY 1
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.revenue"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "timeDimensions": [
+    {
+      "dimension": "orders.created_at",
+      "granularity": "month"
+    }
+  ],
+  "order": [
+    [
+      "orders.created_at",
+      "asc"
+    ]
+  ],
+  "filters": [
+    {
+      "member": "orders.created_at",
+      "operator": "afterOrOnDate",
+      "values": [
+        "2025-05-15T00:00:00.000Z"
+      ]
+    }
+  ]
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.revenue"],"dimensions":[],"segments":[],"timeDimensions":[{"dimension":"orders.created_at","granularity":"month"}],"order":[["orders.created_at","asc"]],"filters":[{"member":"orders.created_at","operator":"afterOrOnDate","values":["2025-05-15T00:00:00.000Z"]}]}
+## outer_filter_alias_same
+$ psql> SELECT created_at, revenue FROM (SELECT DATE_TRUNC('month', created_at) AS created_at, MEASURE(revenue) AS revenue FROM orders GROUP BY 1) s WHERE created_at >= timestamp '2025-05-15 00:00:00' ORDER BY 1
+created_at | revenue
+2025-05-01 00:00:00.000000 | 100
+2025-06-01 00:00:00.000000 | 1000
+$ psql> EXPLAIN SELECT created_at, revenue FROM (SELECT DATE_TRUNC('month', created_at) AS created_at, MEASURE(revenue) AS revenue FROM orders GROUP BY 1) s WHERE created_at >= timestamp '2025-05-15 00:00:00' ORDER BY 1
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.revenue"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "timeDimensions": [
+    {
+      "dimension": "orders.created_at",
+      "granularity": "month"
+    }
+  ],
+  "order": [
+    [
+      "orders.created_at",
+      "asc"
+    ]
+  ],
+  "filters": [
+    {
+      "member": "orders.created_at",
+      "operator": "afterOrOnDate",
+      "values": [
+        "2025-05-15T00:00:00.000Z"
+      ]
+    }
+  ]
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.revenue"],"dimensions":[],"segments":[],"timeDimensions":[{"dimension":"orders.created_at","granularity":"month"}],"order":[["orders.created_at","asc"]],"filters":[{"member":"orders.created_at","operator":"afterOrOnDate","values":["2025-05-15T00:00:00.000Z"]}]}
+## outer_sum
+$ psql> SELECT SUM(revenue) FROM (SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS revenue FROM orders GROUP BY 1) s WHERE m >= '2025-05-15'
+SUM(s.revenue)
+1100
+$ psql> EXPLAIN SELECT SUM(revenue) FROM (SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS revenue FROM orders GROUP BY 1) s WHERE m >= '2025-05-15'
+plan_type | plan
+logical_plan | Projection: #SUM(s.revenue)
+  Aggregate: groupBy=[[]], aggr=[[SUM(#s.revenue)]]
+    CubeScan: request={
+  "measures": [
+    "orders.revenue"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "timeDimensions": [
+    {
+      "dimension": "orders.created_at",
+      "granularity": "month"
+    }
+  ],
+  "order": [],
+  "filters": [
+    {
+      "member": "orders.created_at",
+      "operator": "afterOrOnDate",
+      "values": [
+        "2025-05-15T00:00:00.000Z"
+      ]
+    }
+  ]
+}
+physical_plan | ProjectionExec: expr=[SUM(s.revenue)@0 as SUM(s.revenue)]
+  HashAggregateExec: mode=Final, gby=[], aggr=[SUM(s.revenue)]
+    HashAggregateExec: mode=Partial, gby=[], aggr=[SUM(s.revenue)]
+      CubeScanExecutionPlan, Request:
+{"measures":["orders.revenue"],"dimensions":[],"segments":[],"timeDimensions":[{"dimension":"orders.created_at","granularity":"month"}],"order":[],"filters":[{"member":"orders.created_at","operator":"afterOrOnDate","values":["2025-05-15T00:00:00.000Z"]}]}
+## direct_where_date_trunc -- the same condition with no subquery
+$ psql> SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS revenue FROM orders WHERE DATE_TRUNC('month', created_at) >= '2025-05-15' GROUP BY 1 ORDER BY 1
+m | revenue
+2025-06-01 00:00:00.000000 | 1000
+$ psql> EXPLAIN SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS revenue FROM orders WHERE DATE_TRUNC('month', created_at) >= '2025-05-15' GROUP BY 1 ORDER BY 1
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.revenue"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "timeDimensions": [
+    {
+      "dimension": "orders.created_at",
+      "granularity": "month"
+    }
+  ],
+  "order": [
+    [
+      "orders.created_at",
+      "asc"
+    ]
+  ],
+  "filters": [
+    {
+      "member": "orders.created_at",
+      "operator": "afterOrOnDate",
+      "values": [
+        "2025-06-01T00:00:00.000Z"
+      ]
+    }
+  ]
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.revenue"],"dimensions":[],"segments":[],"timeDimensions":[{"dimension":"orders.created_at","granularity":"month"}],"order":[["orders.created_at","asc"]],"filters":[{"member":"orders.created_at","operator":"afterOrOnDate","values":["2025-06-01T00:00:00.000Z"]}]}
+## inner_only
+$ psql> SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS revenue FROM orders GROUP BY 1 ORDER BY 1
+m | revenue
+2025-04-01 00:00:00.000000 | 1
+2025-05-01 00:00:00.000000 | 110
+2025-06-01 00:00:00.000000 | 1000
+## outer_rolling
+$ psql> SELECT m, r FROM (SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue_trailing_30d) AS r FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-07-01' GROUP BY 1) s WHERE m >= '2025-05-15' ORDER BY 1
+m | r
+2025-04-01 00:00:00.000000 | 
+2025-05-01 00:00:00.000000 | 100
+2025-06-01 00:00:00.000000 | 1000
+$ psql> EXPLAIN SELECT m, r FROM (SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue_trailing_30d) AS r FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-07-01' GROUP BY 1) s WHERE m >= '2025-05-15' ORDER BY 1
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.revenue_trailing_30d"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "timeDimensions": [
+    {
+      "dimension": "orders.created_at",
+      "granularity": "month",
+      "dateRange": [
+        "2025-04-01T00:00:00.000Z",
+        "2025-06-30T23:59:59.999Z"
+      ]
+    }
+  ],
+  "order": [
+    [
+      "orders.created_at",
+      "asc"
+    ]
+  ],
+  "filters": [
+    {
+      "member": "orders.created_at",
+      "operator": "afterOrOnDate",
+      "values": [
+        "2025-05-15T00:00:00.000Z"
+      ]
+    }
+  ]
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.revenue_trailing_30d"],"dimensions":[],"segments":[],"timeDimensions":[{"dimension":"orders.created_at","granularity":"month","dateRange":["2025-04-01T00:00:00.000Z","2025-06-30T23:59:59.999Z"]}],"order":[["orders.created_at","asc"]],"filters":[{"member":"orders.created_at","operator":"afterOrOnDate","values":["2025-05-15T00:00:00.000Z"]}]}
+## rolling_inner_only
+$ psql> SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue_trailing_30d) AS r FROM orders WHERE created_at >= '2025-04-01' AND created_at < '2025-07-01' GROUP BY 1 ORDER BY 1
+m | r
+2025-04-01 00:00:00.000000 | 1
+2025-05-01 00:00:00.000000 | 100
+2025-06-01 00:00:00.000000 | 1000
+## truth
+$ postgres> SELECT m, r FROM (SELECT date_trunc('month',created_at) m, sum(amount) r FROM repro.orders GROUP BY 1) s WHERE m >= '2025-05-15' ORDER BY 1
+m | r
+2025-06-01 00:00:00 | 1000

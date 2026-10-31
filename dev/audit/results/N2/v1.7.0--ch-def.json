@@ -1,0 +1,21 @@
+[
+ {
+  "rows": [
+   [
+    "2025-04-01T00:00:00.000",
+    "11"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "1100"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": " WITH \ntime_series AS (  SELECT parseDateTimeBestEffort(dates.f) date_from, parseDateTimeBestEffort(dates.t) date_to \n  FROM (\n      select '2025-04-01T00:00:00.000' f, '2025-04-30T23:59:59.999' t \n   UNION ALL\n      select '2025-05-01T00:00:00.000' f, '2025-05-31T23:59:59.999' t \n  ) AS dates),\ncte_0 AS (  SELECT toDateTime64(toStartOfDay(toTimeZone(toDateTime64(`lt`.ts, 0), 'UTC'), 'UTC'), 0, 'UTC') `lt__ts_day`, sum(`lt`.amt) `lt__r30` \n  FROM  audit.lt  AS `lt`\n  WHERE (toTimeZone(toDateTime64(`lt`.ts, 0), 'UTC') >= subDate((SELECT min(`date_from`) `value` \n  FROM time_series), INTERVAL 30 DAY) AND toTimeZone(toDateTime64(`lt`.ts, 0), 'UTC') <= (SELECT max(`date_to`) `value` \n  FROM time_series))\n  GROUP BY 1\n  ORDER BY  1  ASC),\ncte_1 AS (  SELECT `time_series`.`date_from` `lt__ts_month`, sum(`rolling_source`.`lt__r30`) `lt__r30` \n  FROM  time_series  AS `time_series`\n  LEFT JOIN  cte_0  AS `rolling_source` ON `rolling_source`.`lt__ts_day` > subDate(`time_series`.`date_to`, INTERVAL 30 DAY) AND `rolling_source`.`lt__ts_day` <= `time_series`.`date_to`\n  GROUP BY 1\n  ORDER BY  1  ASC)\nSELECT `fk_aggregate`.`lt__ts_month` `lt__ts_month`, `fk_aggregate`.`lt__r30` `lt__r30` \nFROM (SELECT * \nFROM  cte_1  AS `cte_1`) AS `fk_aggregate`\nORDER BY  1  ASC\nLIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": "1100",
+  "id": "two_months_rest"
+ }
+]

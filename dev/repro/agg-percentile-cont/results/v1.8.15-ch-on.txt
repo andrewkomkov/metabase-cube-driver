@@ -1,0 +1,20 @@
+# agg-percentile-cont v1.8.15 clickhouse tesseract=on ready=True
+## percentile_cont_raw_column
+$ psql> SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount_dim) p FROM orders
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information
+QUERY: SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount_dim) AS p FROM orders
+$ psql> EXPLAIN SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount_dim) p FROM orders
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information
+QUERY: SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount_dim) AS p FROM orders
+## percentile_cont_by_status
+$ psql> SELECT status, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount_dim) p FROM orders GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information
+QUERY: SELECT status, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount_dim) AS p FROM orders GROUP BY 1 ORDER BY 1
+## median_fn
+$ psql> SELECT MEDIAN(amount_dim) p FROM orders
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information
+QUERY: SELECT MEDIAN(amount_dim) AS p FROM orders
+## truth
+$ clickhouse> SELECT quantile(0.5)(amount) p FROM repro.orders
+p
+200

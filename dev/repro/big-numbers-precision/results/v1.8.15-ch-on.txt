@@ -1,0 +1,33 @@
+# big-numbers-precision v1.8.15 clickhouse tesseract=on ready=True
+## sql_uint64
+$ psql> SELECT big_int FROM events
+big_int
+9007199254740996
+## sql_decimal
+$ psql> SELECT big_dec FROM events
+big_dec
+3000000000000
+## sql_text_dims -- the workaround in the matrix
+$ psql> SELECT big_int_text, big_dec_text FROM events
+big_int_text | big_dec_text
+9007199254740995 | 3000000000000.00000003
+## sql_measures
+$ psql> SELECT MEASURE(sum_big_int) a, MEASURE(sum_big_dec) b FROM events
+a | b
+9007199254740996 | 3000000000000
+## rest_dims
+$ POST /cubejs-api/v1/load {"dimensions": ["events.big_int", "events.big_dec"]}
+HTTP 200 [{"events.big_int": "9007199254740996", "events.big_dec": "3000000000000"}]
+SQL: SELECT `events`.big_int `events__big_int`, `events`.big_dec `events__big_dec` 
+FROM  repro.events  AS `events`
+GROUP BY 1, 2
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: []
+## rest_measures
+$ POST /cubejs-api/v1/load {"measures": ["events.sum_big_int", "events.sum_big_dec"]}
+HTTP 200 [{"events.sum_big_int": "9007199254740996", "events.sum_big_dec": "3000000000000"}]
+## truth
+$ clickhouse> SELECT big_int, big_dec FROM repro.events
+big_int	big_dec
+9007199254740995	3000000000000.00000003

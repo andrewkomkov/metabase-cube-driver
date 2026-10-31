@@ -1,0 +1,21 @@
+[
+ {
+  "rows": [
+   [
+    "2025-04-01T00:00:00.000",
+    "1111"
+   ],
+   [
+    "2025-05-01T00:00:00.000",
+    "1111"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT q_0.`lt__ts_month`, `lt__r30` `lt__r30` FROM (SELECT `lt.ts_series`.`date_from` `lt__ts_month`, sum(`lt__r30`) `lt__r30` FROM (SELECT parseDateTimeBestEffort(arrayJoin(['2025-04-01T00:00:00.000','2025-05-01T00:00:00.000'])) as date_from, parseDateTimeBestEffort(arrayJoin(['2025-04-30T23:59:59.999','2025-05-31T23:59:59.999'])) as date_to) AS `lt.ts_series` LEFT JOIN (SELECT toDateTime64(toStartOfDay(toTimeZone(toDateTime64(`lt_r30_cumulative__lt`.ts, 0), 'UTC'), 'UTC'), 0, 'UTC') `lt__ts_month`, sum(`lt_r30_cumulative__lt`.amt) `lt__r30` FROM audit.lt AS `lt_r30_cumulative__lt`  WHERE (toTimeZone(toDateTime64(`lt_r30_cumulative__lt`.ts, 0), 'UTC') > subDate(parseDateTimeBestEffort(?), INTERVAL 30 DAY) AND toTimeZone(toDateTime64(`lt_r30_cumulative__lt`.ts, 0), 'UTC') <= parseDateTimeBestEffort(?)) GROUP BY `lt__ts_month`) AS `lt_r30_cumulative__base` ON `lt_r30_cumulative__base`.`lt__ts_month` > subDate(`lt.ts_series`.`date_to`, INTERVAL 30 DAY) AND `lt_r30_cumulative__base`.`lt__ts_month` <= `lt.ts_series`.`date_to` GROUP BY `lt__ts_month`) as q_0  ORDER BY `lt__ts_month` ASC LIMIT 10000 PARAMS [\"2025-04-01T00:00:00.000\", \"2025-05-31T23:59:59.999\"]",
+  "verdict": "diff",
+  "truth": "1100",
+  "id": "two_months_rest"
+ }
+]

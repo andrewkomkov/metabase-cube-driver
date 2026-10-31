@@ -1,0 +1,46 @@
+{
+ "steps": [
+  {
+   "id": "between_date_text",
+   "sql": "SELECT MEASURE(count) c FROM orders WHERE created_at BETWEEN '2025-03-11' AND '2025-04-13'",
+   "explain": true
+  },
+  {
+   "id": "between_timestamp",
+   "sql": "SELECT MEASURE(count) c FROM orders WHERE created_at BETWEEN timestamp '2025-03-11 00:00:00' AND timestamp '2025-04-13 00:00:00'",
+   "explain": true
+  },
+  {
+   "id": "lte_date_text",
+   "sql": "SELECT MEASURE(count) c FROM orders WHERE created_at >= '2025-03-11' AND created_at <= '2025-04-13'",
+   "explain": true
+  },
+  {
+   "id": "between_date_cast",
+   "sql": "SELECT MEASURE(count) c FROM orders WHERE created_at BETWEEN CAST('2025-03-11' AS date) AND CAST('2025-04-13' AS date)",
+   "explain": true
+  },
+  {
+   "id": "rest_date_only",
+   "rest": {
+    "measures": [
+     "orders.count"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "dateRange": [
+       "2025-03-11",
+       "2025-04-13"
+      ]
+     }
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "truth_sql_between",
+   "truth": "SELECT count(*) c FROM repro.orders WHERE created_at BETWEEN '2025-03-11' AND '2025-04-13'"
+  }
+ ]
+}

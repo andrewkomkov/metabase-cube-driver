@@ -1,0 +1,63 @@
+# B5-two-join-paths v1.8.15 postgres tesseract=on ready=True
+## rest_two_paths
+$ POST /cubejs-api/v1/load {"measures": ["two_paths.count"], "dimensions": ["two_paths.customer_region", "two_paths.destination_region"], "order": {"two_paths.customer_region": "asc", "two_paths.destination_region": "asc"}}
+HTTP 200 [{"two_paths.customer_region": "South", "two_paths.destination_region": "South", "two_paths.count": "2"}, {"two_paths.customer_region": "West", "two_paths.destination_region": "West", "two_paths.count": "1"}]
+SQL: SELECT "regions".region "two_paths__customer_region", "regions".region "two_paths__destination_region", count("orders".id) "two_paths__count" 
+FROM  repro.orders  AS "orders"
+LEFT JOIN  repro.users  AS "users" ON "orders".user_id = "users".id
+LEFT JOIN  repro.regions  AS "regions" ON "users".state = "regions".state
+LEFT JOIN  repro.shipments  AS "shipments" ON "orders".id = "shipments".order_id
+GROUP BY 1, 2
+ORDER BY  1  ASC,  2  ASC
+LIMIT 10000
+PARAMS: []
+## sql_two_paths
+$ psql> SELECT customer_region, destination_region, MEASURE(count) c FROM two_paths GROUP BY 1, 2 ORDER BY 1, 2
+customer_region | destination_region | c
+South | South | 2
+West | West | 1
+## rest_customer_only
+$ POST /cubejs-api/v1/load {"measures": ["two_paths.count"], "dimensions": ["two_paths.customer_region"], "order": {"two_paths.customer_region": "asc"}}
+HTTP 200 [{"two_paths.customer_region": "South", "two_paths.count": "2"}, {"two_paths.customer_region": "West", "two_paths.count": "1"}]
+SQL: SELECT "regions".region "two_paths__customer_region", count("orders".id) "two_paths__count" 
+FROM  repro.orders  AS "orders"
+LEFT JOIN  repro.users  AS "users" ON "orders".user_id = "users".id
+LEFT JOIN  repro.regions  AS "regions" ON "users".state = "regions".state
+GROUP BY 1
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: []
+## rest_destination_only
+$ POST /cubejs-api/v1/load {"measures": ["two_paths.count"], "dimensions": ["two_paths.destination_region"], "order": {"two_paths.destination_region": "asc"}}
+HTTP 200 [{"two_paths.destination_region": "South", "two_paths.count": "2"}, {"two_paths.destination_region": "West", "two_paths.count": "1"}]
+SQL: SELECT "regions".region "two_paths__destination_region", count("orders".id) "two_paths__count" 
+FROM  repro.orders  AS "orders"
+LEFT JOIN  repro.shipments  AS "shipments" ON "orders".id = "shipments".order_id
+LEFT JOIN  repro.regions  AS "regions" ON "shipments".state = "regions".state
+GROUP BY 1
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: []
+## rest_two_aliases -- the same data through join alias
+$ POST /cubejs-api/v1/load {"measures": ["two_aliases.count"], "dimensions": ["two_aliases.customer_region", "two_aliases.destination_region"], "order": {"two_aliases.customer_region": "asc", "two_aliases.destination_region": "asc"}}
+HTTP 200 [{"two_aliases.customer_region": "South", "two_aliases.destination_region": "South", "two_aliases.count": "1"}, {"two_aliases.customer_region": "South", "two_aliases.destination_region": "West", "two_aliases.count": "1"}, {"two_aliases.customer_region": "West", "two_aliases.destination_region": "South", "two_aliases.count": "1"}]
+SQL: SELECT "orders__billing_region".region "two_aliases__customer_region", "orders__ship_region".region "two_aliases__destination_region", count("orders".id) "two_aliases__count" 
+FROM  repro.orders  AS "orders"
+LEFT JOIN  repro.regions  AS "orders__billing_region" ON "orders".bill_state = "orders__billing_region".state
+LEFT JOIN  repro.regions  AS "orders__ship_region" ON "orders".ship_state = "orders__ship_region".state
+GROUP BY 1, 2
+ORDER BY  1  ASC,  2  ASC
+LIMIT 10000
+PARAMS: []
+## sql_two_aliases
+$ psql> SELECT customer_region, destination_region, MEASURE(count) c FROM two_aliases GROUP BY 1, 2 ORDER BY 1, 2
+customer_region | destination_region | c
+South | South | 1
+South | West | 1
+West | South | 1
+## truth
+$ postgres> SELECT r1.region AS customer_region, r2.region AS destination_region, count(*) AS c FROM repro.orders o JOIN repro.users u ON o.user_id = u.id JOIN repro.regions r1 ON u.state = r1.state JOIN repro.shipments s ON o.id = s.order_id JOIN repro.regions r2 ON s.state = r2.state GROUP BY 1, 2 ORDER BY 1, 2
+customer_region | destination_region | c
+South | South | 1
+South | West | 1
+West | South | 1

@@ -72,7 +72,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Check the compose file
-        run: docker compose -f dev/docker-compose.yml config -q
+      - name: Check the compose files
+        run: |
+          docker compose -f dev/docker-compose.yml config -q
+          docker compose -f dev/docker-compose.yml -f dev/docker-compose.conformance.yml config -q
       - name: Check that the pins can be read
         run: python3 .github/scripts/pins.py read

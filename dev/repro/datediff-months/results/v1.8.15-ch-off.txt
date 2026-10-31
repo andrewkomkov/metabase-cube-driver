@@ -1,0 +1,25 @@
+# datediff-months v1.8.15 clickhouse tesseract=off ready=True
+## datediff_month
+$ psql> SELECT id, DATEDIFF('month', created_at, shipped_at) d FROM orders ORDER BY 1
+id | d
+1 | 1
+2 | 0
+## datediff_day
+$ psql> SELECT id, DATEDIFF('day', created_at, shipped_at) d FROM orders ORDER BY 1
+id | d
+1 | 1
+2 | 30
+## age_fn
+$ psql> SELECT id, EXTRACT(MONTH FROM AGE(shipped_at, created_at)) d FROM orders ORDER BY 1
+psql:<stdin>:1: ERROR:  Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information
+QUERY: SELECT id, EXTRACT(MONTH FROM AGE(shipped_at, created_at)) AS d FROM orders ORDER BY 1
+## truth_boundaries -- boundaries
+$ clickhouse> SELECT id, dateDiff('month',created_at,shipped_at) d FROM repro.orders ORDER BY 1
+id	d
+1	1
+2	0
+## truth_whole_months
+$ clickhouse> SELECT id, age('month',created_at,shipped_at) d FROM repro.orders ORDER BY 1
+id	d
+1	0
+2	0

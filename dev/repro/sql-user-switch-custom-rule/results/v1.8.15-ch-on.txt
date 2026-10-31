@@ -1,0 +1,15 @@
+# sql-user-switch-custom-rule v1.8.15 clickhouse tesseract=on ready=True
+## switch_there_and_back
+$ psql script:
+SET user = 'alice';
+SELECT current_user;
+SET user = 'bob';
+SELECT current_user;
+SET user = 'repro';
+SELECT current_user;
+current_user
+alice
+current_user
+bob
+current_user
+repro

@@ -6,13 +6,14 @@ load on first use, so this check also validates a real connection to the demo Cu
 the Metabase setup. A test that needs a fresh setup must use a fresh Metabase.
 """
 import json
+import os
 import secrets
 import sys
 import time
 import urllib.error
 import urllib.request
 
-BASE = "http://127.0.0.1:3300"
+BASE = os.environ.get("METABASE_URL", "http://127.0.0.1:3300").rstrip("/")
 DEADLINE_SECONDS = 300
 # Addresses from the Metabase container. These are the throwaway demo values from dev/docker-compose.yml.
 CUBE_DETAILS = {
@@ -22,7 +23,7 @@ CUBE_DETAILS = {
     "user": "cube",
     "password": "cube-dev-only",
     "cube-rest-url": "http://cube:4000",
-    "cube-api-secret": "cube-dev-only-secret-0123456789abcdef",
+    "cube-api-secret-value": "cube-dev-only-secret-0123456789abcdef",
     "ssl": False,
 }
 
@@ -56,10 +57,6 @@ def wait_for_health():
 def main():
     wait_for_health()
     _, properties = call("GET", "/api/session/properties")
-    engines = properties.get("engines", {})
-    if "cube" not in engines:
-        sys.exit(f"the plugin did not register: engines are {sorted(engines)}")
-    print("registered: engine cube is in the list of engines")
 
     status, setup = call("POST", "/api/setup", {
         "token": properties["setup-token"],
@@ -73,6 +70,12 @@ def main():
     })
     if status != 200:
         sys.exit(f"setup failed with {status}: {setup}")
+
+    # Metabase 0.65 removed the engines from the session properties.
+    status, engines = call("GET", "/api/setting/engines", session=setup["id"])
+    if status != 200 or "cube" not in engines:
+        sys.exit(f"the plugin did not register: {status}: {engines}")
+    print("registered: engine cube is in the list of engines")
 
     status, result = call(
         "POST",

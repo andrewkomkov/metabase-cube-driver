@@ -29,7 +29,7 @@ runs:
     - name: Start ClickHouse and Cube
       shell: bash
       working-directory: dev
-      run: docker compose up -d --wait clickhouse cube
+      run: docker compose up -d --wait clickhouse cube cube-secure cube-legacy mail browser
     - name: Check that Cube agrees with ClickHouse
       shell: bash
       working-directory: dev

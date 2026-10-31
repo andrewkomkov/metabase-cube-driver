@@ -1,0 +1,20 @@
+# preagg-rollup-lambda v1.8.15 clickhouse tesseract=off ready=True
+## rest_lambda
+$ POST /cubejs-api/v1/load {"measures": ["orders.revenue"], "dimensions": ["orders.status"], "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month"}], "order": {"orders.created_at": "asc"}}
+HTTP 400 ERROR Error: Stream query failed: Error: aborted; query id: 1b23f628-76eb-4629-a648-077bc81d361b-29915738-a0bc-44af-97d4-ebd96ba91983
+SQL: SELECT `orders__status` `orders__status`, date_trunc('month', `orders__created_at_day`) `orders__created_at_month`, sum(`orders__revenue`) `orders__revenue` FROM dev_pre_aggregations.orders_batch AS `orders__lambda`  GROUP BY 1, 2 ORDER BY 2 ASC LIMIT 10000
+PARAMS: []
+## truth
+$ clickhouse> SELECT status, created_at, amount FROM repro.orders ORDER BY id
+status	created_at	amount
+a	2025-05-05 00:00:00	100
+a	2025-05-15 00:00:00	200
+b	2025-06-01 00:00:00	400
+## meta
+{"name": "orders", "type": "cube", "public": true, "measures": [{"name": "orders.revenue", "type": "number", "public": true, "isVisible": true, "aggType": "sum"}], "dimensions": [{"name": "orders.id", "type": "number", "public": true, "isVisible": true, "primaryKey": true}, {"name": "orders.status", "type": "string", "public": true, "isVisible": true, "primaryKey": false}, {"name": "orders.created_at", "type": "time", "public": true, "isVisible": true, "primaryKey": false}]}
+## log
+$ docker compose logs cube | grep -E '[Ll]ambda'
+    at PreAggregationPartitionRangeLoader.downloadLambdaTable (/cube/node_modules/@cubejs-backend/query-orchestrator/src/orchestrator/PreAggregationPartitionRangeLoader.ts:445:22)
+"SELECT `orders__status` `orders__status`, date_trunc('month', `orders__created_at_day`) `orders__created_at_month`, sum(`orders__revenue`) `orders__revenue` FROM dev_pre_aggregations.orders_batch AS `orders__lambda` GROUP BY 1, 2 ORDER BY 2 ASC LIMIT 10000"
+    at PreAggregationPartitionRangeLoader.downloadLambdaTable (/cube/node_modules/@cubejs-backend/query-orchestrator/src/orchestrator/PreAggregationPartitionRangeLoader.ts:445:22)
+matching lines: 3

@@ -13,7 +13,8 @@ cp -R "$root/resources/." "$stage/"
 mkdir -p "$(dirname "$out")"
 rm -f "$out"
 
-if command -v jar >/dev/null 2>&1; then
+# On a Mac with no Java, /usr/bin/jar is a stub that fails, so `command -v` is not enough.
+if jar --version >/dev/null 2>&1; then
   (cd "$stage" && jar cf "$out" .)
 elif command -v zip >/dev/null 2>&1; then
   (cd "$stage" && zip -qr "$out" .)

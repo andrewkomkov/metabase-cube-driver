@@ -1,0 +1,13 @@
+# non-strict-range-default v1.8.15 postgres tesseract=off ready=True
+## rest_one_day
+$ POST /cubejs-api/v1/load {"measures": ["orders.count"], "timeDimensions": [{"dimension": "orders.created_at", "dateRange": ["2025-05-05", "2025-05-05"]}]}
+HTTP 200 [{"orders.count": null}]
+SQL: SELECT sum(`orders__count`) `orders__count` FROM dev_pre_aggregations.orders_monthly AS `orders__monthly`  WHERE (`orders__created_at_month` >= to_timestamp(?) AND `orders__created_at_month` <= to_timestamp(?)) LIMIT 10000
+PARAMS: ["2025-05-05T00:00:00.000", "2025-05-05T23:59:59.999"]
+## sql_one_day
+$ psql> SELECT MEASURE(count) c FROM orders WHERE created_at >= '2025-05-05' AND created_at < '2025-05-06'
+c
+## truth
+$ postgres> SELECT count(*) c FROM repro.orders WHERE created_at >= '2025-05-05' AND created_at < '2025-05-06'
+c
+1

@@ -1,0 +1,172 @@
+[
+ {
+  "rows": [
+   [
+    "1",
+    "10.5,20.5"
+   ],
+   [
+    "2",
+    "-30.25,0"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT \"places\".id \"places__id\", \"places\".lat || ',' || \"places\".lon \"places__loc\" \nFROM  audit.places  AS \"places\"\nGROUP BY 1, 2\nORDER BY  1  ASC\nLIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": "1\t10.5\t20.5\n2\t-30.25\t0",
+  "id": "cube_rest_control"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "10.5,20.5"
+   ],
+   [
+    "2",
+    "-30.25,0"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701,
+   25
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"places.id\",\n    \"places.loc\"\n  ],\n  \"segments\": [],\n  \"order\": [\n    [\n      \"places.id\",\n      \"asc\"\n    ]\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"places.id\",\"places.loc\"],\"segments\":[],\"order\":[[\"places.id\",\"asc\"]],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "cube_sql_control"
+ },
+ {
+  "rows": null,
+  "error": "HTTP 500 TypeError: Cannot read properties of undefined (reading 'sql')",
+  "shape": "rest",
+  "used": null,
+  "verdict": "diff",
+  "truth": null,
+  "id": "view_list_rest"
+ },
+ {
+  "rows": null,
+  "error": "HTTP 500 TypeError: Cannot read properties of undefined (reading 'sql')",
+  "shape": "rest",
+  "used": null,
+  "verdict": "diff",
+  "truth": null,
+  "id": "view_star_rest"
+ },
+ {
+  "rows": null,
+  "error": "HTTP 500 TypeError: Cannot read properties of undefined (reading 'sql')",
+  "shape": "rest",
+  "used": null,
+  "verdict": "diff",
+  "truth": null,
+  "id": "view_alias_rest"
+ },
+ {
+  "rows": null,
+  "error": "HTTP 500 TypeError: Cannot read properties of undefined (reading 'sql')",
+  "shape": "rest",
+  "used": null,
+  "verdict": "diff",
+  "truth": null,
+  "id": "view_prefix_rest"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: TypeError: Cannot read properties of undefined (reading 'sql')",
+  "shape": "regular",
+  "oids": [],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"v_list.id\",\n    \"v_list.loc\"\n  ],\n  \"segments\": [],\n  \"order\": [\n    [\n      \"v_list.id\",\n      \"asc\"\n    ]\n  ],\n  \"ungrouped\": true\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"v_list.id\",\"v_list.loc\"],\"segments\":[],\"order\":[[\"v_list.id\",\"asc\"]],\"ungrouped\":true}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "view_list_sql"
+ },
+ {
+  "rows": null,
+  "error": "HTTP 500 TypeError: Cannot read properties of undefined (reading 'sql')",
+  "shape": "rest",
+  "used": null,
+  "verdict": "diff",
+  "truth": null,
+  "id": "view_geo_only"
+ },
+ {
+  "rows": null,
+  "error": "HTTP 500 TypeError: Cannot read properties of undefined (reading 'sql')",
+  "shape": "rest",
+  "used": null,
+  "verdict": "diff",
+  "truth": null,
+  "id": "view_geo_and_measure"
+ },
+ {
+  "rows": [
+   [
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT count(\"places\".id) \"v_list__n\" \nFROM  audit.places  AS \"places\"\nLIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "view_measure_only_control"
+ },
+ {
+  "rows": [
+   [
+    "1"
+   ],
+   [
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT \"places\".id \"v_list__id\" \nFROM  audit.places  AS \"places\"\nGROUP BY 1\nORDER BY  1  ASC\nLIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "view_id_only_control"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "10.5",
+    "20.5"
+   ],
+   [
+    "2",
+    "-30.25",
+    "0"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT \"places\".id \"v_nogeo__id\", \"places\".lat \"v_nogeo__lat\", \"places\".lon \"v_nogeo__lon\" \nFROM  audit.places  AS \"places\"\nGROUP BY 1, 2, 3\nORDER BY  1  ASC\nLIMIT 10000 PARAMS []",
+  "verdict": "match",
+  "truth": null,
+  "id": "view_lat_lon_workaround"
+ },
+ {
+  "rows": [
+   [
+    "v_list.loc",
+    "geo"
+   ]
+  ],
+  "error": null,
+  "shape": "meta",
+  "verdict": "match",
+  "truth": null,
+  "id": "meta_lists_member"
+ }
+]

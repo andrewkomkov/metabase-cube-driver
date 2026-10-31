@@ -1,0 +1,226 @@
+[
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT EXTRACT(MONTH FROM ts) AS p, MEASURE(total) AS v FROM xt GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": "1\t11\n2\t5\n3\t7\n12\t13",
+  "id": "month_sum"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT EXTRACT(MONTH FROM ts) AS p, MEASURE(n) AS v FROM xt GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "month_count"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT EXTRACT(MONTH FROM ts) AS p, MEASURE(avg_a) AS v FROM xt GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "month_avg"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT EXTRACT(YEAR FROM ts) AS p, MEASURE(total) AS v FROM xt GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "year"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT EXTRACT(DAY FROM ts) AS p, MEASURE(total) AS v FROM xt GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "day"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT EXTRACT(HOUR FROM ts) AS p, MEASURE(total) AS v FROM xt GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "hour"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT EXTRACT(DOW FROM ts) AS p, MEASURE(total) AS v FROM xt GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "dow"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT EXTRACT(DOW FROM ts) AS p, MEASURE(avg_a) AS v FROM xt GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "dow_avg_no_nested_form"
+ },
+ {
+  "rows": [
+   [
+    "0",
+    "7"
+   ],
+   [
+    "3",
+    "12"
+   ],
+   [
+    "4",
+    "5"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nProjection: #datepart(Utf8(\"dow\"),q.d) AS p, #AVG(q.v) AS a\n  Sort: #datepart(Utf8(\"dow\"),q.d) ASC NULLS LAST\n    Aggregate: groupBy=[[datepart(Utf8(\"dow\"), #q.d)]], aggr=[[AVG(#q.v)]]\n      CubeScan: request={\n  \"measures\": [\n    \"xt.avg_a\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"xt.ts\",\n      \"granularity\": \"day\"\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nProjectionExec: expr=[datepart(Utf8(\"dow\"),q.d)@0 as p, AVG(q.v)@1 as a]\n  SortExec: [datepart(Utf8(\"dow\"),q.d)@0 ASC NULLS LAST]\n    CoalescePartitionsExec\n      HashAggregateExec: mode=FinalPartitioned, gby=[datepart(Utf8(\"dow\"),q.d)@0 as datepart(Utf8(\"dow\"),q.d)], aggr=[AVG(q.v)]\n        CoalesceBatchesExec: target_batch_size=4096\n          RepartitionExec: partitioning=Hash([Column { name: \"datepart(Utf8(\\\"dow\\\"),q.d)\", index: 0 }], 8)\n            HashAggregateExec: mode=Partial, gby=[datepart(dow, d@0) as datepart(Utf8(\"dow\"),q.d)], aggr=[AVG(q.v)]\n              CubeScanExecutionPlan, Request:\n{\"measures\":[\"xt.avg_a\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"xt.ts\",\"granularity\":\"day\"}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "nested_avg_wrong_by_docs"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT EXTRACT(QUARTER FROM ts) AS p, MEASURE(total) AS v FROM xt GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "quarter"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT date_part('month', ts) AS p, MEASURE(total) AS v FROM xt GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "date_part_fn"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2"
+   ],
+   [
+    "2",
+    "3"
+   ],
+   [
+    "3",
+    "1"
+   ],
+   [
+    "4",
+    "12"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nSort: #xt.id ASC NULLS LAST\n  Projection: #xt.id, datepart(Utf8(\"month\"), #datepart(Utf8(\"month\"),xt.ts)) AS datepart(Utf8(\"month\"),xt.ts) AS p\n    CubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"xt.id\"\n  ],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"xt.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [],\n  \"ungrouped\": true\n}\nphysical_plan\nSortExec: [id@0 ASC NULLS LAST]\n  ProjectionExec: expr=[id@0 as id, datepart(month, datepart(Utf8(\"month\"),xt.ts)@1) as p]\n    CubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"xt.id\"],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"xt.ts\",\"granularity\":\"month\"}],\"order\":[],\"ungrouped\":true}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "raw_rows"
+ },
+ {
+  "rows": [
+   [
+    "12"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"xt.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"xt.ts\",\n      \"dateRange\": [\n        \"2024-01-01\",\n        \"2024-12-31\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"xt.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"xt.ts\",\"dateRange\":[\"2024-01-01\",\"2024-12-31\"]}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "in_filter"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT EXTRACT(MONTH FROM d) AS p, MEASURE(total) AS v FROM xt GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "date_column"
+ },
+ {
+  "rows": [
+   [
+    "2024",
+    "12"
+   ],
+   [
+    "2025",
+    "24"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701,
+   701
+  ],
+  "plan": "logical_plan\nProjection: #datepart(Utf8(\"year\"),q.m) AS y, #SUM(q.v) AS s\n  Sort: #datepart(Utf8(\"year\"),q.m) ASC NULLS LAST\n    Aggregate: groupBy=[[datepart(Utf8(\"year\"), #q.m)]], aggr=[[SUM(#q.v)]]\n      CubeScan: request={\n  \"measures\": [\n    \"xt.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"xt.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nProjectionExec: expr=[datepart(Utf8(\"year\"),q.m)@0 as y, SUM(q.v)@1 as s]\n  SortExec: [datepart(Utf8(\"year\"),q.m)@0 ASC NULLS LAST]\n    CoalescePartitionsExec\n      HashAggregateExec: mode=FinalPartitioned, gby=[datepart(Utf8(\"year\"),q.m)@0 as datepart(Utf8(\"year\"),q.m)], aggr=[SUM(q.v)]\n        CoalesceBatchesExec: target_batch_size=4096\n          RepartitionExec: partitioning=Hash([Column { name: \"datepart(Utf8(\\\"year\\\"),q.m)\", index: 0 }], 8)\n            HashAggregateExec: mode=Partial, gby=[datepart(year, m@0) as datepart(Utf8(\"year\"),q.m)], aggr=[SUM(q.v)]\n              CubeScanExecutionPlan, Request:\n{\"measures\":[\"xt.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"xt.ts\",\"granularity\":\"month\"}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "outer_over_scan"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT EXTRACT(MONTH FROM ts) AS p, MEASURE(total) AS v FROM xt GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "time_zone"
+ },
+ {
+  "rows": [
+   [
+    "2024-01-01 00:00:00.000000",
+    "12"
+   ],
+   [
+    "2025-01-01 00:00:00.000000",
+    "24"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"xt.total\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"xt.ts\",\n      \"granularity\": \"year\"\n    }\n  ],\n  \"order\": [\n    [\n      \"xt.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"xt.total\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"xt.ts\",\"granularity\":\"year\"}],\"order\":[[\"xt.ts\",\"asc\"]]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "trunc_control"
+ }
+]

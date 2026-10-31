@@ -1,0 +1,27 @@
+{
+ "steps": [
+  {
+   "id": "wrong_jwt",
+   "http": {
+    "method": "GET",
+    "path": "/cubejs-api/v1/meta",
+    "token": "wrong"
+   }
+  },
+  {
+   "id": "no_token",
+   "http": {
+    "method": "GET",
+    "path": "/cubejs-api/v1/meta",
+    "token": "none"
+   }
+  },
+  {
+   "id": "hidden_cube",
+   "sql": "SELECT 1"
+  }
+ ],
+ "configs": [
+  "ch-on"
+ ]
+}

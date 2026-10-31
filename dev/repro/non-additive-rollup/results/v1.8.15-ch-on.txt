@@ -1,0 +1,35 @@
+# non-additive-rollup v1.8.15 clickhouse tesseract=on ready=True
+## rest_same_dims
+$ POST /cubejs-api/v1/load {"measures": ["orders.avg_amount"], "dimensions": ["orders.status"]}
+HTTP 200 [{"orders.status": "b", "orders.avg_amount": "400"}, {"orders.status": "a", "orders.avg_amount": "150"}]
+SQL: SELECT "orders__status" "orders__status", sum("orders__avg_amount") "orders__avg_amount" 
+FROM  dev_pre_aggregations.orders_rollup_with_status  AS "orders__rollup_with_status"
+GROUP BY 1
+ORDER BY  2  DESC
+LIMIT 10000
+PARAMS: []
+## rest_avg_other_dims
+$ POST /cubejs-api/v1/load {"measures": ["orders.avg_amount"]}
+HTTP 200 [{"orders.avg_amount": "233.33333333333334"}]
+SQL: SELECT avg(`orders`.amount) `orders__avg_amount` 
+FROM  repro.orders  AS `orders`
+LIMIT 10000
+PARAMS: []
+## rest_distinct_other_dims
+$ POST /cubejs-api/v1/load {"measures": ["orders.distinct_status"]}
+HTTP 200 [{"orders.distinct_status": "2"}]
+SQL: SELECT COUNT(DISTINCT `orders`.status) `orders__distinct_status` 
+FROM  repro.orders  AS `orders`
+LIMIT 10000
+PARAMS: []
+## rest_sum_other_dims
+$ POST /cubejs-api/v1/load {"measures": ["orders.revenue"]}
+HTTP 200 [{"orders.revenue": "700"}]
+SQL: SELECT sum("orders__revenue") "orders__revenue" 
+FROM  dev_pre_aggregations.orders_rollup_with_status  AS "orders__rollup_with_status"
+LIMIT 10000
+PARAMS: []
+## truth_avg
+$ clickhouse> SELECT avg(amount) a FROM repro.orders
+a
+233.33333333333334

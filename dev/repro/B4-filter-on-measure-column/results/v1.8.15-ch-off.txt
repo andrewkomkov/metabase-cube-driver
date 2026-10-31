@@ -1,0 +1,176 @@
+# B4-filter-on-measure-column v1.8.15 clickhouse tesseract=off ready=True
+## subq_filter_grouped -- truth: 500, 2
+$ psql> SELECT SUM(amount_dim) s, COUNT(*) c FROM (SELECT id, amount_dim, MEASURE(revenue) AS revenue FROM orders GROUP BY 1, 2) q WHERE revenue > 150
+s | c
+500 | 2
+$ psql> EXPLAIN SELECT SUM(amount_dim) s, COUNT(*) c FROM (SELECT id, amount_dim, MEASURE(revenue) AS revenue FROM orders GROUP BY 1, 2) q WHERE revenue > 150
+plan_type | plan
+logical_plan | Projection: #SUM(q.amount_dim) AS s, #COUNT(UInt8(1)) AS c
+  Aggregate: groupBy=[[]], aggr=[[SUM(#q.amount_dim), COUNT(UInt8(1))]]
+    CubeScan: request={
+  "measures": [
+    "orders.revenue"
+  ],
+  "dimensions": [
+    "orders.id",
+    "orders.amount_dim"
+  ],
+  "segments": [],
+  "order": [],
+  "filters": [
+    {
+      "member": "orders.revenue",
+      "operator": "gt",
+      "values": [
+        "150"
+      ]
+    }
+  ]
+}
+physical_plan | ProjectionExec: expr=[SUM(q.amount_dim)@0 as s, COUNT(UInt8(1))@1 as c]
+  HashAggregateExec: mode=Final, gby=[], aggr=[SUM(q.amount_dim), COUNT(UInt8(1))]
+    HashAggregateExec: mode=Partial, gby=[], aggr=[SUM(q.amount_dim), COUNT(UInt8(1))]
+      CubeScanExecutionPlan, Request:
+{"measures":["orders.revenue"],"dimensions":["orders.id","orders.amount_dim"],"segments":[],"order":[],"filters":[{"member":"orders.revenue","operator":"gt","values":["150"]}]}
+## subq_filter_rows
+$ psql> SELECT id, amount_dim, revenue FROM (SELECT id, amount_dim, MEASURE(revenue) AS revenue FROM orders GROUP BY 1, 2) q WHERE revenue > 150 ORDER BY 1
+id | amount_dim | revenue
+2 | 200 | 200
+3 | 300 | 300
+## subq_breakout -- truth: 3 groups
+$ psql> SELECT revenue, COUNT(*) c FROM (SELECT id, amount_dim, MEASURE(revenue) AS revenue FROM orders GROUP BY 1, 2) q GROUP BY 1 ORDER BY 1
+revenue | c
+100 | 1
+200 | 1
+300 | 1
+$ psql> EXPLAIN SELECT revenue, COUNT(*) c FROM (SELECT id, amount_dim, MEASURE(revenue) AS revenue FROM orders GROUP BY 1, 2) q GROUP BY 1 ORDER BY 1
+plan_type | plan
+logical_plan | CubeScanWrappedSql
+physical_plan | CubeScanExecutionPlan, SQL:
+SELECT `q`.`revenue` `revenue`, `q`.`count_uint8_1__` `c` 
+FROM (
+  SELECT `q`.`revenue` `revenue`, COUNT(*) `count_uint8_1__` 
+  FROM (
+    SELECT
+          `orders`.id `id`, `orders`.amount `amount_dim`, sum(`orders`.amount) `revenue`
+        FROM
+          repro.orders AS `orders`  GROUP BY `id`, `amount_dim`
+  ) AS `q`
+  GROUP BY 1
+  ORDER BY `q`.`revenue` ASC NULLS LAST
+) AS `q`
+LIMIT 50000
+## subq_measure_no_group_filter -- the shape from the driver, truth 500, 2
+$ psql> SELECT SUM(amount_dim) s, COUNT(*) c FROM (SELECT id, status, amount_dim, created_at, MEASURE(revenue) AS revenue FROM orders) q WHERE q.revenue > 150
+psql:<stdin>:1: ERROR:  Planning Error: Initial planning error: Error during planning: Expression #orders.id could not be resolved from available columns: #measure(orders.revenue)
+QUERY: SELECT SUM(amount_dim) AS s, COUNT(*) AS c FROM (SELECT id, status, amount_dim, created_at, MEASURE(revenue) AS revenue FROM orders) q WHERE q.revenue > 150
+$ psql> EXPLAIN SELECT SUM(amount_dim) s, COUNT(*) c FROM (SELECT id, status, amount_dim, created_at, MEASURE(revenue) AS revenue FROM orders) q WHERE q.revenue > 150
+psql:<stdin>:1: ERROR:  Planning Error: Initial planning error: Error during planning: Expression #orders.id could not be resolved from available columns: #measure(orders.revenue)
+QUERY: SELECT SUM(amount_dim) AS s, COUNT(*) AS c FROM (SELECT id, status, amount_dim, created_at, MEASURE(revenue) AS revenue FROM orders) q WHERE q.revenue > 150
+## subq_measure_no_group_breakout -- truth 3 groups
+$ psql> SELECT q.revenue, COUNT(*) c FROM (SELECT id, status, amount_dim, created_at, MEASURE(revenue) AS revenue FROM orders) q GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Planning Error: Initial planning error: Error during planning: Expression #orders.id could not be resolved from available columns: #measure(orders.revenue)
+QUERY: SELECT q.revenue, COUNT(*) AS c FROM (SELECT id, status, amount_dim, created_at, MEASURE(revenue) AS revenue FROM orders) q GROUP BY 1 ORDER BY 1
+$ psql> EXPLAIN SELECT q.revenue, COUNT(*) c FROM (SELECT id, status, amount_dim, created_at, MEASURE(revenue) AS revenue FROM orders) q GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Planning Error: Initial planning error: Error during planning: Expression #orders.id could not be resolved from available columns: #measure(orders.revenue)
+QUERY: SELECT q.revenue, COUNT(*) AS c FROM (SELECT id, status, amount_dim, created_at, MEASURE(revenue) AS revenue FROM orders) q GROUP BY 1 ORDER BY 1
+## subq_ungrouped_filter
+$ psql> SELECT SUM(amount_dim) s, COUNT(*) c FROM (SELECT id, amount_dim, revenue FROM orders) q WHERE revenue > 150
+s | c
+600 | 3
+$ psql> EXPLAIN SELECT SUM(amount_dim) s, COUNT(*) c FROM (SELECT id, amount_dim, revenue FROM orders) q WHERE revenue > 150
+plan_type | plan
+logical_plan | CubeScanWrappedSql
+physical_plan | CubeScanExecutionPlan, SQL:
+SELECT `q`.`sum_q_amount_dim` `s`, `q`.`count_uint8_1__` `c` 
+FROM (
+  SELECT
+        SUM(`orders`.amount) `sum_q_amount_dim`, COUNT(*) `count_uint8_1__`
+      FROM
+        repro.orders AS `orders`  HAVING (sum(`orders`.amount) > toFloat64(?))
+) AS `q`
+LIMIT 50000
+## subq_ungrouped_breakout -- truth 3 groups
+$ psql> SELECT revenue, COUNT(*) c FROM (SELECT id, amount_dim, revenue FROM orders) q GROUP BY 1 ORDER BY 1
+revenue | c
+600 | 3
+$ psql> EXPLAIN SELECT revenue, COUNT(*) c FROM (SELECT id, amount_dim, revenue FROM orders) q GROUP BY 1 ORDER BY 1
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.revenue",
+    "orders.count"
+  ],
+  "dimensions": [],
+  "segments": [],
+  "order": [
+    [
+      "orders.revenue",
+      "asc"
+    ]
+  ]
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.revenue","orders.count"],"dimensions":[],"segments":[],"order":[["orders.revenue","asc"]]}
+## subq_ungrouped_rows -- truth 2 rows
+$ psql> SELECT id, amount_dim, revenue FROM (SELECT id, amount_dim, revenue FROM orders) q WHERE revenue > 150 ORDER BY 1
+psql:<stdin>:1: ERROR:  Database Execution Error: Measure filters aren't allowed in ungrouped query
+## where_measure_by_status -- HAVING reading gives a=2 b=1; row reading gives b=1
+$ psql> SELECT status, MEASURE(count) c FROM orders WHERE revenue > 250 GROUP BY 1 ORDER BY 1
+status | c
+a | 2
+b | 1
+$ psql> EXPLAIN SELECT status, MEASURE(count) c FROM orders WHERE revenue > 250 GROUP BY 1 ORDER BY 1
+plan_type | plan
+logical_plan | CubeScan: request={
+  "measures": [
+    "orders.count"
+  ],
+  "dimensions": [
+    "orders.status"
+  ],
+  "segments": [],
+  "order": [
+    [
+      "orders.status",
+      "asc"
+    ]
+  ],
+  "filters": [
+    {
+      "member": "orders.revenue",
+      "operator": "gt",
+      "values": [
+        "250"
+      ]
+    }
+  ]
+}
+physical_plan | CubeScanExecutionPlan, Request:
+{"measures":["orders.count"],"dimensions":["orders.status"],"segments":[],"order":[["orders.status","asc"]],"filters":[{"member":"orders.revenue","operator":"gt","values":["250"]}]}
+## having_measure_by_status
+$ psql> SELECT status, MEASURE(count) c FROM orders GROUP BY 1 HAVING MEASURE(revenue) > 250 ORDER BY 1
+status | c
+a | 2
+b | 1
+## rest_measure_filter
+$ POST /cubejs-api/v1/load {"measures": ["orders.count"], "dimensions": ["orders.status"], "filters": [{"member": "orders.revenue", "operator": "gt", "values": ["250"]}]}
+HTTP 200 [{"orders.status": "a", "orders.count": "2"}, {"orders.status": "b", "orders.count": "1"}]
+SQL: SELECT
+      `orders`.status `orders__status`, count(`orders`.id) `orders__count`
+    FROM
+      repro.orders AS `orders`  GROUP BY `orders__status` HAVING (sum(`orders`.amount) > toFloat64(?)) ORDER BY `orders__count` DESC LIMIT 10000
+PARAMS: ["250"]
+## truth_filter
+$ clickhouse> SELECT sum(amount) s, count(*) c FROM repro.orders WHERE amount > 150
+s	c
+500	2
+## truth_row_where
+$ clickhouse> SELECT status, count(*) c FROM repro.orders WHERE amount > 250 GROUP BY 1 ORDER BY 1
+status	c
+b	1
+## truth_group_having
+$ clickhouse> SELECT status, count(*) c FROM repro.orders GROUP BY 1 HAVING sum(amount) > 250 ORDER BY 1
+status	c
+a	2
+b	1

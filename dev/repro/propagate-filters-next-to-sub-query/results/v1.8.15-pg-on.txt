@@ -1,0 +1,75 @@
+# propagate-filters-next-to-sub-query v1.8.15 postgres tesseract=on ready=True
+## rest_alone
+$ POST /cubejs-api/v1/load {"dimensions": ["users.id", "users.paid_orders"], "filters": [{"member": "orders.status", "operator": "equals", "values": ["early"]}], "order": {"users.id": "asc"}}
+HTTP 200 [{"users.id": "1", "users.paid_orders": "1"}]
+SQL: SELECT "users".id "users__id", "users_paid_orders_subquery"."paid_orders" "users__paid_orders" 
+FROM  repro.orders  AS "orders"
+LEFT JOIN  repro.users  AS "users" ON "orders".user_id = "users".id
+LEFT JOIN (SELECT "users".id "users__id", count("orders".id) "paid_orders" 
+FROM  repro.orders  AS "orders"
+LEFT JOIN  repro.users  AS "users" ON "orders".user_id = "users".id
+WHERE ("orders".status = $1)
+GROUP BY 1) AS "users_paid_orders_subquery" ON (("users_paid_orders_subquery"."users__id" = "users".id))
+WHERE ("orders".status = $2)
+GROUP BY 1, 2
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: ["early", "early"]
+## rest_together
+$ POST /cubejs-api/v1/load {"dimensions": ["users.id", "users.lifetime_orders", "users.paid_orders"], "filters": [{"member": "orders.status", "operator": "equals", "values": ["early"]}], "order": {"users.id": "asc"}}
+HTTP 200 [{"users.id": "1", "users.lifetime_orders": "2", "users.paid_orders": "2"}]
+SQL: SELECT "users".id "users__id", "users_lifetime_orders_subquery"."lifetime_orders" "users__lifetime_orders", "users_lifetime_orders_subquery"."lifetime_orders" "users__paid_orders" 
+FROM  repro.orders  AS "orders"
+LEFT JOIN  repro.users  AS "users" ON "orders".user_id = "users".id
+LEFT JOIN (SELECT "users".id "users__id", count("orders".id) "lifetime_orders" 
+FROM  repro.orders  AS "orders"
+LEFT JOIN  repro.users  AS "users" ON "orders".user_id = "users".id
+GROUP BY 1) AS "users_lifetime_orders_subquery" ON (("users_lifetime_orders_subquery"."users__id" = "users".id))
+LEFT JOIN (SELECT "users".id "users__id", count("orders".id) "paid_orders" 
+FROM  repro.orders  AS "orders"
+LEFT JOIN  repro.users  AS "users" ON "orders".user_id = "users".id
+WHERE ("orders".status = $1)
+GROUP BY 1) AS "users_paid_orders_subquery" ON (("users_paid_orders_subquery"."users__id" = "users".id))
+WHERE ("orders".status = $2)
+GROUP BY 1, 2, 3
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: ["early", "early"]
+## rest_together_swapped
+$ POST /cubejs-api/v1/load {"dimensions": ["users.id", "users.paid_orders", "users.lifetime_orders"], "filters": [{"member": "orders.status", "operator": "equals", "values": ["early"]}], "order": {"users.id": "asc"}}
+HTTP 200 [{"users.id": "1", "users.paid_orders": "1", "users.lifetime_orders": "1"}]
+## rest_other_sql -- the same value with another sql
+$ POST /cubejs-api/v1/load {"dimensions": ["users.id", "users.lifetime_orders", "users.paid_orders_other_sql"], "filters": [{"member": "orders.status", "operator": "equals", "values": ["early"]}], "order": {"users.id": "asc"}}
+HTTP 200 [{"users.id": "1", "users.lifetime_orders": "2", "users.paid_orders_other_sql": "1"}]
+SQL: SELECT "users".id "users__id", "users_lifetime_orders_subquery"."lifetime_orders" "users__lifetime_orders", "users_paid_orders_other_sql_subquery"."paid_orders_other_sql" "users__paid_orders_other_sql" 
+FROM  repro.orders  AS "orders"
+LEFT JOIN  repro.users  AS "users" ON "orders".user_id = "users".id
+LEFT JOIN (SELECT "users".id "users__id", count("orders".id) "lifetime_orders" 
+FROM  repro.orders  AS "orders"
+LEFT JOIN  repro.users  AS "users" ON "orders".user_id = "users".id
+GROUP BY 1) AS "users_lifetime_orders_subquery" ON (("users_lifetime_orders_subquery"."users__id" = "users".id))
+LEFT JOIN (SELECT "users".id "users__id", count("orders".id) + 0 "paid_orders_other_sql" 
+FROM  repro.orders  AS "orders"
+LEFT JOIN  repro.users  AS "users" ON "orders".user_id = "users".id
+WHERE ("orders".status = $1)
+GROUP BY 1) AS "users_paid_orders_other_sql_subquery" ON (("users_paid_orders_other_sql_subquery"."users__id" = "users".id))
+WHERE ("orders".status = $2)
+GROUP BY 1, 2, 3
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: ["early", "early"]
+## rest_no_filter_two_measures
+$ POST /cubejs-api/v1/load {"dimensions": ["users.id", "users.lifetime_orders", "users.total_ids"], "order": {"users.id": "asc"}}
+HTTP 200 [{"users.id": "1", "users.lifetime_orders": "2", "users.total_ids": "2"}, {"users.id": "2", "users.lifetime_orders": "1", "users.total_ids": "1"}]
+## rest_no_filter_same_sql
+$ POST /cubejs-api/v1/load {"dimensions": ["users.id", "users.lifetime_orders", "users.paid_orders"], "order": {"users.id": "asc"}}
+HTTP 200 [{"users.id": "1", "users.lifetime_orders": "2", "users.paid_orders": "2"}, {"users.id": "2", "users.lifetime_orders": "1", "users.paid_orders": "1"}]
+## sql_together
+$ psql> SELECT u.id, u.lifetime_orders, u.paid_orders FROM users u CROSS JOIN orders o WHERE u.__cubeJoinField = o.__cubeJoinField AND o.status = 'early' GROUP BY 1,2,3 ORDER BY 1
+id | lifetime_orders | paid_orders
+1 | 2 | 2
+## truth
+$ postgres> SELECT user_id AS id, count(*) AS lifetime, sum(CASE WHEN status='early' THEN 1 ELSE 0 END) AS filtered FROM repro.orders GROUP BY 1 ORDER BY 1
+id | lifetime | filtered
+1 | 2 | 1
+2 | 1 | 0

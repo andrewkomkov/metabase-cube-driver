@@ -1,0 +1,71 @@
+# probe-clickhouse-subclass v1.8.15 clickhouse tesseract=on ready=True
+## b1_strict_bound -- truth 2, 1100
+$ psql> SELECT MEASURE(count) c, MEASURE(revenue) r FROM orders WHERE created_at > '2025-03-15 05:00:00' AND created_at <= '2025-03-16 05:00:00'
+c | r
+2 | 1100
+## millis_raw -- truth .007 and .500
+$ psql> SELECT id, ts FROM events ORDER BY 1
+id | ts
+1 | 2025-01-01 10:00:00.007000
+2 | 2025-01-01 10:00:00.500000
+## millis_filter -- truth 1
+$ psql> SELECT MEASURE(count) c FROM events WHERE ts >= '2025-01-01 10:00:00.007' AND ts < '2025-01-01 10:00:00.008'
+c
+1
+## rest_millis
+$ POST /cubejs-api/v1/load {"dimensions": ["events.id", "events.ts"], "order": {"events.id": "asc"}}
+HTTP 200 [{"events.id": "1", "events.ts": "2025-01-01T10:00:00.007"}, {"events.id": "2", "events.ts": "2025-01-01T10:00:00.500"}]
+SQL: SELECT `events`.id `events__id`, toTimeZone(toDateTime64(`events`.ts, 3), 'UTC') `events__ts` 
+FROM  repro.events  AS `events`
+GROUP BY 1, 2
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: []
+## interval_raw
+$ psql> SELECT id, created_at + INTERVAL '1 day' d FROM orders ORDER BY 1
+id | d
+1 | 2025-03-15 12:00:00.000000
+2 | 2025-03-16 05:00:00.000000
+3 | 2025-03-16 05:00:01.000000
+4 | 2025-03-17 05:00:00.000000
+5 | 2025-03-17 05:00:01.000000
+## interval_aggregated
+$ psql> SELECT created_at + INTERVAL '1 day' d, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1
+d | c
+2025-03-15 12:00:00.000000 | 1
+2025-03-16 05:00:00.000000 | 1
+2025-03-16 05:00:01.000000 | 1
+2025-03-17 05:00:00.000000 | 1
+2025-03-17 05:00:01.000000 | 1
+## extract_avg
+$ psql> SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(avg_amount) a FROM orders GROUP BY 1 ORDER BY 1
+m | a
+3 | 2222.2
+## percentile_cont -- truth 100
+$ psql> SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount_dim) p FROM orders
+p
+100
+## unbounded_two_months
+$ psql> SELECT DATE_TRUNC('month',created_at) m, MEASURE(cumulative_count) c FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-05-01' GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Database Execution Error: Query failed: Error: Cannot determine join keys in JOIN ON expression lessOrEquals(__table8.orders__created_at_month, __table2.date_to). ; query id: a66d189a-e9f3-427d-9fdb-82278a76fde1-1d7377c0-9629-4c06-b18b-6c6624423d88
+## truth_percentile
+$ clickhouse> SELECT quantile(0.5)(amount) p FROM repro.orders
+p
+100
+## original_sql_with_index -- truth a 11 b ... see truth_original_sql
+$ POST /cubejs-api/v1/load {"measures": ["base_orders.revenue"], "dimensions": ["base_orders.status"], "order": {"base_orders.status": "asc"}}
+HTTP 200 [{"base_orders.status": "a", "base_orders.revenue": "11111"}]
+SQL: SELECT `base_orders`.status `base_orders__status`, sum(`base_orders`.amount) `base_orders__revenue` 
+FROM  dev_pre_aggregations.base_orders_base  AS `base_orders`
+GROUP BY 1
+ORDER BY  1  ASC
+LIMIT 10000
+PARAMS: []
+## truth_original_sql
+$ clickhouse> SELECT status, sum(amount) r FROM repro.orders GROUP BY 1 ORDER BY 1
+status	r
+a	11111
+## log_quantile
+$ docker compose logs cube | grep -E 'quantile'
+  SELECT quantile(0.5)(`orders`.amount) `percentilecont_f` 
+matching lines: 1

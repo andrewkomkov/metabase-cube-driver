@@ -1,0 +1,211 @@
+[
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT id, ts + INTERVAL '1 day' AS x FROM it ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": "1\t2024-02-01 10:00:00\n2\t2024-03-01 00:00:00\n3\t2025-03-10 01:30:00\n4\t2026-01-01 23:59:59",
+  "id": "raw_plus_day"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT id, ts + INTERVAL '1 day' AS x FROM it",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "raw_plus_day_no_order"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT id, ts + INTERVAL '1 day' AS x FROM it WHERE id = 2 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "raw_plus_day_where_order"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT id, ts + INTERVAL '1 day' AS x FROM it WHERE id = 2",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "raw_plus_day_where"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT id, ts + INTERVAL '1 day' AS x FROM it ORDER BY 2",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "raw_plus_day_order_time"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT ts + INTERVAL '1 day' AS x, MEASURE(n) AS c FROM it GROUP BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "aggregated_no_order"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT id, ts + INTERVAL '1 day' AS x FROM it ORDER BY 1 LIMIT 10",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "raw_plus_day_order_limit"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT ts + INTERVAL '1 day' AS x, MEASURE(n) AS c FROM it GROUP BY 1 ORDER BY 1 LIMIT 10",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "aggregated_order_limit"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT id, ts - INTERVAL '1 day' AS x FROM it WHERE id = 2",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "raw_minus_day"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT id, ts + INTERVAL '1 month' AS x FROM it ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "raw_plus_month"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT id, ts + INTERVAL '1 day 2 hours' AS x FROM it WHERE id = 3",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "raw_two_units"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT id, d + INTERVAL '1 day' AS x FROM it WHERE id = 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "date_column"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT ts + INTERVAL '1 day' AS x, MEASURE(n) AS c FROM it GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "aggregated"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT DATE_TRUNC('month', ts) + INTERVAL '1 month' AS x, MEASURE(n) AS c FROM it GROUP BY 1 ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "bucket_plus"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT MEASURE(n) AS c FROM it WHERE ts + INTERVAL '1 day' >= TIMESTAMP '2025-12-31 00:00:00'",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "filter_column_plus"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT id, DATE_ADD(ts, INTERVAL '1 day') AS x FROM it ORDER BY 1",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "date_add_function"
+ },
+ {
+  "rows": [
+   [
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   20
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"it.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-01-01T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"it.n\"],\"dimensions\":[],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-01-01T00:00:00.000Z\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "filter_constant_control"
+ },
+ {
+  "rows": [
+   [
+    "2024-01-02 00:00:00.000000",
+    "2"
+   ],
+   [
+    "2025-01-02 00:00:00.000000",
+    "2"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   1114,
+   20
+  ],
+  "plan": "logical_plan\nSort: #x ASC NULLS LAST\n  Projection: #q.m + IntervalDayTime(\"4294967296\") AS x, #q.c\n    CubeScan: request={\n  \"measures\": [\n    \"it.n\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"it.ts\",\n      \"granularity\": \"year\"\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nSortExec: [x@0 ASC NULLS LAST]\n  ProjectionExec: expr=[m@0 + 4294967296 as x, c@1 as c]\n    CubeScanExecutionPlan, Request:\n{\"measures\":[\"it.n\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"it.ts\",\"granularity\":\"year\"}],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "outer_over_scan"
+ },
+ {
+  "rows": [],
+  "error": "Rewrite Error: Can't detect Cube query and it may be not supported yet. Please check logs for additional information\nQUERY: SELECT id, ts + INTERVAL '1 day' AS x FROM it WHERE id = 3",
+  "shape": "not-planned",
+  "oids": [],
+  "verdict": "diff",
+  "truth": null,
+  "id": "time_zone_dst"
+ },
+ {
+  "rows": [
+   [
+    "1",
+    "2024-01-31 10:00:00.000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701,
+   1114
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [],\n  \"dimensions\": [\n    \"it.id\",\n    \"it.ts\"\n  ],\n  \"segments\": [],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"it.id\",\n      \"operator\": \"equals\",\n      \"values\": [\n        \"1\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[],\"dimensions\":[\"it.id\",\"it.ts\"],\"segments\":[],\"order\":[],\"filters\":[{\"member\":\"it.id\",\"operator\":\"equals\",\"values\":[\"1\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "no_interval_control"
+ }
+]

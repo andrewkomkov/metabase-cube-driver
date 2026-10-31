@@ -1,0 +1,588 @@
+[
+ {
+  "rows": [
+   [
+    "2025-05-01 00:00:00.000000",
+    "110000"
+   ],
+   [
+    "2025-06-01 00:00:00.000000",
+    "1000000"
+   ],
+   [
+    "2025-07-01 00:00:00.000000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-05-15T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-05-15T00:00:00.000Z\"]}]}\n",
+  "verdict": "diff",
+  "truth": "2025-06-01 00:00:00\t1000000\n2025-07-01 00:00:00\t10000000",
+  "id": "ge_mid_month"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-01 00:00:00.000000",
+    "111100"
+   ],
+   [
+    "2025-06-01 00:00:00.000000",
+    "1000000"
+   ],
+   [
+    "2025-07-01 00:00:00.000000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-05-01T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-05-01T00:00:00.000Z\"]}]}\n",
+  "verdict": "match",
+  "truth": "2025-05-01 00:00:00\t111100\n2025-06-01 00:00:00\t1000000\n2025-07-01 00:00:00\t10000000",
+  "id": "ge_first_of_month"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-01 00:00:00.000000",
+    "111000"
+   ],
+   [
+    "2025-06-01 00:00:00.000000",
+    "1000000"
+   ],
+   [
+    "2025-07-01 00:00:00.000000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-05-01T00:00:01.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-05-01T00:00:01.000Z\"]}]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "ge_one_second_after"
+ },
+ {
+  "rows": [
+   [
+    "2025-04-01 00:00:00.000000",
+    "10"
+   ],
+   [
+    "2025-05-01 00:00:00.000000",
+    "111100"
+   ],
+   [
+    "2025-06-01 00:00:00.000000",
+    "1000000"
+   ],
+   [
+    "2025-07-01 00:00:00.000000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-04-30T23:59:59.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-04-30T23:59:59.000Z\"]}]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "ge_one_second_before"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-01 00:00:00.000000",
+    "111000"
+   ],
+   [
+    "2025-06-01 00:00:00.000000",
+    "1000000"
+   ],
+   [
+    "2025-07-01 00:00:00.000000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"afterDate\",\n      \"values\": [\n        \"2025-05-01T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"afterDate\",\"values\":[\"2025-05-01T00:00:00.000Z\"]}]}\n",
+  "verdict": "diff",
+  "truth": "2025-06-01 00:00:00\t1000000\n2025-07-01 00:00:00\t10000000",
+  "id": "gt_first_of_month"
+ },
+ {
+  "rows": [
+   [
+    "2025-03-01 00:00:00.000000",
+    "1"
+   ],
+   [
+    "2025-04-01 00:00:00.000000",
+    "10"
+   ],
+   [
+    "2025-05-01 00:00:00.000000",
+    "1100"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"beforeDate\",\n      \"values\": [\n        \"2025-05-15T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"beforeDate\",\"values\":[\"2025-05-15T00:00:00.000Z\"]}]}\n",
+  "verdict": "diff",
+  "truth": "2025-03-01 00:00:00\t1\n2025-04-01 00:00:00\t10\n2025-05-01 00:00:00\t111100",
+  "id": "lt_mid_month"
+ },
+ {
+  "rows": [
+   [
+    "2025-03-01 00:00:00.000000",
+    "1"
+   ],
+   [
+    "2025-04-01 00:00:00.000000",
+    "10"
+   ],
+   [
+    "2025-05-01 00:00:00.000000",
+    "100"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"beforeOrOnDate\",\n      \"values\": [\n        \"2025-05-01T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"beforeOrOnDate\",\"values\":[\"2025-05-01T00:00:00.000Z\"]}]}\n",
+  "verdict": "diff",
+  "truth": "2025-03-01 00:00:00\t1\n2025-04-01 00:00:00\t10\n2025-05-01 00:00:00\t111100",
+  "id": "le_first_of_month"
+ },
+ {
+  "rows": [
+   [
+    "2025-03-01 00:00:00.000000",
+    "1"
+   ],
+   [
+    "2025-04-01 00:00:00.000000",
+    "10"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"beforeDate\",\n      \"values\": [\n        \"2025-05-01T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"beforeDate\",\"values\":[\"2025-05-01T00:00:00.000Z\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "lt_first_of_month"
+ },
+ {
+  "rows": [],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `s`.`m` `m`, `s`.`rev` `rev` \nFROM (\n  SELECT\n        toDateTime64(toStartOfMonth(toTimeZone(toDateTime64(`sales`.ts, 0), 'UTC'), 'UTC'), 0, 'UTC') `m`, sum(`sales`.amt) `rev`\n      FROM\n        audit.sales AS `sales`  GROUP BY `m` ORDER BY `m` ASC\n) AS `s`\nWHERE (`s`.`m` = parseDateTimeBestEffort('2025-05-15T00:00:00.000Z'))\nLIMIT 50000\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "eq_mid_month"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-01 00:00:00.000000",
+    "111100"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-05-01T00:00:00.000Z\",\n        \"2025-05-31T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-05-01T00:00:00.000Z\",\"2025-05-31T23:59:59.999Z\"]}],\"order\":[[\"sales.ts\",\"asc\"]]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "eq_first_of_month"
+ },
+ {
+  "rows": [
+   [
+    "2025-04-01 00:00:00.000000",
+    "10"
+   ],
+   [
+    "2025-05-01 00:00:00.000000",
+    "111100"
+   ],
+   [
+    "2025-06-01 00:00:00.000000",
+    "1000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-04-15\",\n        \"2025-06-15\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-04-15\",\"2025-06-15\"]}],\"order\":[[\"sales.ts\",\"asc\"]]}\n",
+  "verdict": "diff",
+  "truth": "2025-05-01 00:00:00\t111100\n2025-06-01 00:00:00\t1000000",
+  "id": "between_mid_months"
+ },
+ {
+  "rows": [],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2030-01-01T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2030-01-01T00:00:00.000Z\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "empty_far_future"
+ },
+ {
+  "rows": [
+   [
+    "11110000"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nProjection: #SUM(s.rev) AS x\n  Aggregate: groupBy=[[]], aggr=[[SUM(#s.rev)]]\n    CubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-05-15T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nProjectionExec: expr=[SUM(s.rev)@0 as x]\n  HashAggregateExec: mode=Final, gby=[], aggr=[SUM(s.rev)]\n    HashAggregateExec: mode=Partial, gby=[], aggr=[SUM(s.rev)]\n      CubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-05-15T00:00:00.000Z\"]}]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "outer_sum"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-01 00:00:00.000000",
+    "110000"
+   ],
+   [
+    "2025-06-01 00:00:00.000000",
+    "1000000"
+   ],
+   [
+    "2025-07-01 00:00:00.000000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-05-15T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-05-15T00:00:00.000Z\"]}]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "typed_literal"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-01 00:00:00.000000",
+    "110000"
+   ],
+   [
+    "2025-06-01 00:00:00.000000",
+    "1000000"
+   ],
+   [
+    "2025-07-01 00:00:00.000000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-05-15T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-05-15T00:00:00.000Z\"]}]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "cte_form"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-01 00:00:00.000000",
+    "110000"
+   ],
+   [
+    "2025-06-01 00:00:00.000000",
+    "1000000"
+   ],
+   [
+    "2025-07-01 00:00:00.000000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-05-15T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-05-15T00:00:00.000Z\"]}]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "alias_as_column"
+ },
+ {
+  "rows": [
+   [
+    "2025-01-01 00:00:00.000000",
+    "11111111"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"year\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-03-01T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"year\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-03-01T00:00:00.000Z\"]}]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "year_bucket"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-12 00:00:00.000000",
+    "11000"
+   ],
+   [
+    "2025-05-26 00:00:00.000000",
+    "1100000"
+   ],
+   [
+    "2025-07-14 00:00:00.000000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"week\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-05-13T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"week\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-05-13T00:00:00.000Z\"]}]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "week_bucket"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-01 00:00:00.000000",
+    "110000"
+   ],
+   [
+    "2025-06-01 00:00:00.000000",
+    "1000000"
+   ],
+   [
+    "2025-07-01 00:00:00.000000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.d\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.d\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.d\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-05-15T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.d\",\"granularity\":\"month\"}],\"order\":[[\"sales.d\",\"asc\"]],\"filters\":[{\"member\":\"sales.d\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-05-15T00:00:00.000Z\"]}]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "date_column"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-01 00:00:00.000000",
+    "110000"
+   ],
+   [
+    "2025-06-01 00:00:00.000000",
+    "1000000"
+   ],
+   [
+    "2025-07-01 00:00:00.000000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": null,
+  "oids": [
+   1114,
+   701
+  ],
+  "verdict": "diff",
+  "truth": null,
+  "id": "bind_cast"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-01 00:00:00.000000",
+    "1110000"
+   ],
+   [
+    "2025-07-01 00:00:00.000000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-05-15T00:00:00.000Z\"\n      ]\n    }\n  ],\n  \"timezone\": \"America/New_York\"\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-05-15T00:00:00.000Z\"]}],\"timezone\":\"America/New_York\"}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "sql_time_zone"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-01 00:00:00.000000",
+    "110000"
+   ],
+   [
+    "2025-06-01 00:00:00.000000",
+    "1000000"
+   ],
+   [
+    "2025-07-01 00:00:00.000000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales_r.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales_r.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales_r.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales_r.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-05-15T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales_r.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales_r.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales_r.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales_r.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-05-15T00:00:00.000Z\"]}]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "rollup_miss_or_hit"
+ },
+ {
+  "rows": [
+   [
+    "2025-06-01 00:00:00.000000",
+    "1000000"
+   ],
+   [
+    "2025-07-01 00:00:00.000000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-06-01T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-06-01T00:00:00.000Z\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "direct_where_control"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-01 00:00:00.000000",
+    "110000"
+   ],
+   [
+    "2025-06-01 00:00:00.000000",
+    "1000000"
+   ],
+   [
+    "2025-07-01 00:00:00.000000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"sales.rev\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"sales.ts\",\n      \"granularity\": \"month\"\n    }\n  ],\n  \"order\": [\n    [\n      \"sales.ts\",\n      \"asc\"\n    ]\n  ],\n  \"filters\": [\n    {\n      \"member\": \"sales.ts\",\n      \"operator\": \"afterOrOnDate\",\n      \"values\": [\n        \"2025-05-15T00:00:00.000Z\"\n      ]\n    }\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"sales.rev\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"sales.ts\",\"granularity\":\"month\"}],\"order\":[[\"sales.ts\",\"asc\"]],\"filters\":[{\"member\":\"sales.ts\",\"operator\":\"afterOrOnDate\",\"values\":[\"2025-05-15T00:00:00.000Z\"]}]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "row_filter_control"
+ },
+ {
+  "rows": [
+   [
+    "2025-05-01T00:00:00.000",
+    "110000"
+   ],
+   [
+    "2025-06-01T00:00:00.000",
+    "1000000"
+   ],
+   [
+    "2025-07-01T00:00:00.000",
+    "10000000"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT\n      toDateTime64(toStartOfMonth(toTimeZone(toDateTime64(`sales`.ts, 0), 'UTC'), 'UTC'), 0, 'UTC') `sales__ts_month`, sum(`sales`.amt) `sales__rev`\n    FROM\n      audit.sales AS `sales`  WHERE (`sales`.ts >= parseDateTimeBestEffort(?) AND `sales`.ts <= parseDateTimeBestEffort(?)) GROUP BY `sales__ts_month` ORDER BY `sales__ts_month` ASC LIMIT 10000 PARAMS [\"2025-05-15T00:00:00.000Z\", \"2025-07-31T23:59:59.999Z\"]",
+  "verdict": "match",
+  "truth": null,
+  "id": "rest_date_range_control"
+ }
+]

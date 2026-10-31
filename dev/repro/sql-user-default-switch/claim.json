@@ -1,0 +1,19 @@
+{
+ "steps": [
+  {
+   "id": "set_user_once",
+   "script": "SET user = 'alice';\nSELECT current_user;\nSET user = 'bob';\nSELECT current_user;\n"
+  },
+  {
+   "id": "set_user_back",
+   "script": "SET user = 'alice';\nSET user = 'repro';\nSELECT current_user;\n"
+  },
+  {
+   "id": "where_user_super",
+   "sql": "SELECT __user, MEASURE(count) c FROM orders WHERE __user = 'alice' GROUP BY 1"
+  }
+ ],
+ "configs": [
+  "ch-on"
+ ]
+}

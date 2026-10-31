@@ -1,0 +1,19 @@
+# stream-mode-rollup v1.8.15 postgres tesseract=on ready=True
+## sql_rollup_month
+$ psql> SELECT DATE_TRUNC('month',created_at) m, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Internal Error: Error: Streaming queries to Cube Store aren't supported
+## sql_rollup_status
+$ psql> SELECT status, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1
+psql:<stdin>:1: ERROR:  Internal Error: Error: Streaming queries to Cube Store aren't supported
+## sql_no_rollup
+$ psql> SELECT id FROM orders ORDER BY 1
+id
+1
+2
+3
+## sql_no_rollup_group
+$ psql> SELECT id, MEASURE(count) c FROM orders GROUP BY 1 ORDER BY 1
+id | c
+1 | 1
+2 | 1
+3 | 1

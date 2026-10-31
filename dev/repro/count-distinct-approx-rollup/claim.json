@@ -1,0 +1,52 @@
+{
+ "steps": [
+  {
+   "id": "rest_exact_rollup_shape",
+   "rest": {
+    "measures": [
+     "orders.distinct_approx"
+    ],
+    "dimensions": [
+     "orders.status"
+    ],
+    "timeDimensions": [
+     {
+      "dimension": "orders.created_at",
+      "granularity": "month"
+     }
+    ],
+    "order": {
+     "orders.created_at": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_coarser",
+   "rest": {
+    "measures": [
+     "orders.distinct_approx"
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_no_rollup",
+   "rest": {
+    "measures": [
+     "plain.distinct_approx"
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "log",
+   "logs": "by_status_month|hll|HLL|xxh|uniq",
+   "tail": 3
+  },
+  {
+   "id": "truth",
+   "truth": "SELECT count(distinct status) x FROM repro.orders"
+  }
+ ]
+}

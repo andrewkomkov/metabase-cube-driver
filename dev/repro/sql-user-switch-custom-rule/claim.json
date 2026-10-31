@@ -1,0 +1,11 @@
+{
+ "steps": [
+  {
+   "id": "switch_there_and_back",
+   "script": "SET user = 'alice';\nSELECT current_user;\nSET user = 'bob';\nSELECT current_user;\nSET user = 'repro';\nSELECT current_user;\n"
+  }
+ ],
+ "configs": [
+  "ch-on"
+ ]
+}

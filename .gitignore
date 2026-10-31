@@ -1,5 +1,6 @@
 /dist/
 /dev/plugins/
+/dev/plugins-conformance/
 /.cpcache/
 /.nrepl-port
 __pycache__/

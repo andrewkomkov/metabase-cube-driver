@@ -1,0 +1,12 @@
+# sql-user-normal-user v1.8.15 clickhouse tesseract=on ready=True
+## set_user
+$ psql script:
+SET user = 'alice';
+SELECT current_user;
+psql:<stdin>:1: ERROR:  User Error: user 'repro' is not allowed to switch to 'alice'
+QUERY: SET user = 'alice'
+current_user
+repro
+## where_user
+$ psql> SELECT MEASURE(count) c FROM orders WHERE __user = 'alice'
+psql:<stdin>:1: ERROR:  Database Execution Error: You cannot change security context via __user from repro to alice, because it's not allowed.

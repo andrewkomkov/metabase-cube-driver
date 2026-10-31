@@ -1,0 +1,40 @@
+{
+ "steps": [
+  {
+   "id": "rest_join",
+   "rest": {
+    "measures": [
+     "orders.revenue"
+    ],
+    "dimensions": [
+     "users.state"
+    ],
+    "order": {
+     "users.state": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "pre_aggs_used",
+   "http": {
+    "method": "POST",
+    "path": "/cubejs-api/v1/sql",
+    "body": {
+     "query": {
+      "measures": [
+       "orders.revenue"
+      ],
+      "dimensions": [
+       "users.state"
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "truth",
+   "truth": "SELECT u.state, sum(o.amount) r FROM repro.orders o JOIN repro.users u ON o.user_id=u.id GROUP BY 1 ORDER BY 1"
+  }
+ ]
+}

@@ -1,0 +1,163 @@
+[
+ {
+  "rows": [
+   [
+    "11"
+   ]
+  ],
+  "error": null,
+  "shape": "pushdown",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `rt`.`max_rt_rev_` `x` \nFROM (\n  SELECT\n        max(amt) `max_rt_rev_`\n      FROM\n        audit.rt AS `rt` \n) AS `rt`\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "max_of_regular_sum"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: Query failed: Error: Unknown expression or function identifier `amt` in scope SELECT max(amt) AS max_rt_rev_30d_ FROM (SELECT sum(rt_rev_30d_cumulative__rt.amt) AS rt__rev_30d FROM audit.rt AS rt_rev_30d_cumulative__rt) AS q_0. ; query id: 0913e851-b317-4482-8aa9-9ecbcbbaf706-9d9586db-6ae2-400b-9157-7343e4f06679",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `rt`.`max_rt_rev_30d_` `x` \nFROM (\n  SELECT max(amt) `max_rt_rev_30d_` FROM (SELECT sum(`rt_rev_30d_cumulative__rt`.amt) `rt__rev_30d` FROM audit.rt AS `rt_rev_30d_cumulative__rt` ) AS q_0 \n) AS `rt`\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "max_of_rolling_sum"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: Query failed: Error: Unknown expression or function identifier `amt` in scope SELECT min(amt) AS min_rt_rev_30d_ FROM (SELECT sum(rt_rev_30d_cumulative__rt.amt) AS rt__rev_30d FROM audit.rt AS rt_rev_30d_cumulative__rt) AS q_0. ; query id: c7536503-dab3-4d29-97f6-325b62d4ca11-f8b67e84-6e2d-44a7-948a-cd2507287d11",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `rt`.`min_rt_rev_30d_` `x` \nFROM (\n  SELECT min(amt) `min_rt_rev_30d_` FROM (SELECT sum(`rt_rev_30d_cumulative__rt`.amt) `rt__rev_30d` FROM audit.rt AS `rt_rev_30d_cumulative__rt` ) AS q_0 \n) AS `rt`\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "min_of_rolling_sum"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: Query failed: Error: Unknown expression or function identifier `amt` in scope SELECT avg(amt) AS avg_rt_rev_30d_ FROM (SELECT sum(rt_rev_30d_cumulative__rt.amt) AS rt__rev_30d FROM audit.rt AS rt_rev_30d_cumulative__rt) AS q_0. ; query id: 2a943ab4-7b46-4ea6-b82c-3184798a3062-408b8b36-3cd8-4130-9444-92dec1fcd3b0",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `rt`.`avg_rt_rev_30d_` `x` \nFROM (\n  SELECT avg(amt) `avg_rt_rev_30d_` FROM (SELECT sum(`rt_rev_30d_cumulative__rt`.amt) `rt__rev_30d` FROM audit.rt AS `rt_rev_30d_cumulative__rt` ) AS q_0 \n) AS `rt`\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "avg_of_rolling_sum"
+ },
+ {
+  "rows": [],
+  "error": "Database Execution Error: Query failed: Error: Unknown expression or function identifier `amt` in scope SELECT q_0.datetrunc_utf8__ AS datetrunc_utf8__, max(amt) AS max_rt_rev_30d_ FROM (SELECT toDateTime64(toStartOfMonth(toTimeZone(toDateTime64(rt_rev_30d_cumulative__rt.ts, 0), 'UTC'), 'UTC'), 0, 'UTC') AS datetrunc_utf8__, sum(rt_rev_30d_cumulative__rt.amt) AS rt__rev_30d FROM audit.rt AS rt_rev_30d_cumulative__rt WHERE ((toTimeZone(toDateTime64(rt_rev_30d_cumulative__rt.ts, 0), 'UTC') > subDate(toTimeZone(toDateTime64(parseDateTimeBestEffort('2025-02-28T23:59:59.999Z'), 0), 'UTC'), toIntervalDay(30))) AND (toTimeZone(toDateTime64(rt_rev_30d_cumulative__rt.ts, 0), 'UTC') <= toTimeZone(toDateTime64(parseDateTimeBestEffort('2025-02-28T23:59:59.999Z'), 0), 'UTC'))) GROUP BY datetrunc_utf8__) AS q_0. ; query id: 61f4b9fa-1c85-49ff-9b70-1fc5afe84afe-6df5bb28-10f9-4cb2-9086-58b5a1349020",
+  "shape": "pushdown",
+  "oids": [],
+  "plan": "logical_plan\nCubeScanWrappedSql\nphysical_plan\nCubeScanExecutionPlan, SQL:\nSELECT `rt`.`datetrunc_utf8__` `m`, `rt`.`max_rt_rev_30d_` `x` \nFROM (\n  SELECT q_0.`datetrunc_utf8__` `datetrunc_utf8__`, max(amt) `max_rt_rev_30d_` FROM (SELECT toDateTime64(toStartOfMonth(toTimeZone(toDateTime64(`rt_rev_30d_cumulative__rt`.ts, 0), 'UTC'), 'UTC'), 0, 'UTC') `datetrunc_utf8__`, sum(`rt_rev_30d_cumulative__rt`.amt) `rt__rev_30d` FROM audit.rt AS `rt_rev_30d_cumulative__rt`  WHERE (toTimeZone(toDateTime64(`rt_rev_30d_cumulative__rt`.ts, 0), 'UTC') > subDate(toTimeZone(toDateTime64(parseDateTimeBestEffort(?), 0), 'UTC'), INTERVAL 30 DAY) AND toTimeZone(toDateTime64(`rt_rev_30d_cumulative__rt`.ts, 0), 'UTC') <= toTimeZone(toDateTime64(parseDateTimeBestEffort(?), 0), 'UTC')) GROUP BY `datetrunc_utf8__`) AS q_0 \n) AS `rt`\nORDER BY `rt`.`datetrunc_utf8__` ASC NULLS LAST\nLIMIT 50000\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "max_of_rolling_by_bucket"
+ },
+ {
+  "rows": [
+   [
+    "21"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"rt.rev_30d\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"rt.rev_30d\"],\"dimensions\":[],\"segments\":[],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "sum_of_rolling_sum_control"
+ },
+ {
+  "rows": [
+   [
+    "11"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"rt.top_30d\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"rt.top_30d\"],\"dimensions\":[],\"segments\":[],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "max_of_rolling_max_control"
+ },
+ {
+  "rows": [
+   [
+    "11"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"rt.top\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"order\": []\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"rt.top\"],\"dimensions\":[],\"segments\":[],\"order\":[]}\n",
+  "verdict": "match",
+  "truth": null,
+  "id": "max_of_max_control"
+ },
+ {
+  "rows": [
+   [
+    "2025-01-01 00:00:00.000000",
+    "21"
+   ],
+   [
+    "2025-02-01 00:00:00.000000",
+    "21"
+   ]
+  ],
+  "error": null,
+  "shape": "regular",
+  "oids": [
+   1114,
+   701
+  ],
+  "plan": "logical_plan\nCubeScan: request={\n  \"measures\": [\n    \"rt.rev_30d\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"rt.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-01-01T00:00:00.000Z\",\n        \"2025-02-28T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": [\n    [\n      \"rt.ts\",\n      \"asc\"\n    ]\n  ]\n}\nphysical_plan\nCubeScanExecutionPlan, Request:\n{\"measures\":[\"rt.rev_30d\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"rt.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-01-01T00:00:00.000Z\",\"2025-02-28T23:59:59.999Z\"]}],\"order\":[[\"rt.ts\",\"asc\"]]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "measure_by_bucket_control"
+ },
+ {
+  "rows": [
+   [
+    "21"
+   ]
+  ],
+  "error": null,
+  "shape": "post-processing",
+  "oids": [
+   701
+  ],
+  "plan": "logical_plan\nProjection: #MAX(q.x) AS y\n  Aggregate: groupBy=[[]], aggr=[[MAX(#q.x)]]\n    CubeScan: request={\n  \"measures\": [\n    \"rt.rev_30d\"\n  ],\n  \"dimensions\": [],\n  \"segments\": [],\n  \"timeDimensions\": [\n    {\n      \"dimension\": \"rt.ts\",\n      \"granularity\": \"month\",\n      \"dateRange\": [\n        \"2025-01-01T00:00:00.000Z\",\n        \"2025-02-28T23:59:59.999Z\"\n      ]\n    }\n  ],\n  \"order\": []\n}\nphysical_plan\nProjectionExec: expr=[MAX(q.x)@0 as y]\n  HashAggregateExec: mode=Final, gby=[], aggr=[MAX(q.x)]\n    HashAggregateExec: mode=Partial, gby=[], aggr=[MAX(q.x)]\n      CubeScanExecutionPlan, Request:\n{\"measures\":[\"rt.rev_30d\"],\"dimensions\":[],\"segments\":[],\"timeDimensions\":[{\"dimension\":\"rt.ts\",\"granularity\":\"month\",\"dateRange\":[\"2025-01-01T00:00:00.000Z\",\"2025-02-28T23:59:59.999Z\"]}],\"order\":[]}\n",
+  "verdict": "diff",
+  "truth": null,
+  "id": "max_over_subquery_control"
+ },
+ {
+  "rows": [
+   [
+    "2025-01-01T00:00:00.000",
+    "21"
+   ],
+   [
+    "2025-02-01T00:00:00.000",
+    "21"
+   ]
+  ],
+  "error": null,
+  "shape": "rest",
+  "used": [],
+  "generated": "SELECT q_0.`rt__ts_month` `rt__ts_month`, `rt__rev_30d` `rt__rev_30d` FROM (SELECT `rt.ts_series`.`date_from` `rt__ts_month`, sum(`rt__rev_30d`) `rt__rev_30d` FROM (SELECT parseDateTimeBestEffort(arrayJoin(['2025-01-01T00:00:00.000','2025-02-01T00:00:00.000'])) as date_from, parseDateTimeBestEffort(arrayJoin(['2025-01-31T23:59:59.999','2025-02-28T23:59:59.999'])) as date_to) AS `rt.ts_series` LEFT JOIN (SELECT toDateTime64(toStartOfDay(toTimeZone(toDateTime64(`rt_rev_30d_cumulative__rt`.ts, 0), 'UTC'), 'UTC'), 0, 'UTC') `rt__ts_month`, sum(`rt_rev_30d_cumulative__rt`.amt) `rt__rev_30d` FROM audit.rt AS `rt_rev_30d_cumulative__rt`  WHERE (toTimeZone(toDateTime64(`rt_rev_30d_cumulative__rt`.ts, 0), 'UTC') > subDate(parseDateTimeBestEffort(?), INTERVAL 30 DAY) AND toTimeZone(toDateTime64(`rt_rev_30d_cumulative__rt`.ts, 0), 'UTC') <= parseDateTimeBestEffort(?)) GROUP BY `rt__ts_month`) AS `rt_rev_30d_cumulative__base` ON `rt_rev_30d_cumulative__base`.`rt__ts_month` > subDate(`rt.ts_series`.`date_to`, INTERVAL 30 DAY) AND `rt_rev_30d_cumulative__base`.`rt__ts_month` <= `rt.ts_series`.`date_to` GROUP BY `rt__ts_month`) AS q_0  ORDER BY `rt__ts_month` ASC LIMIT 10000 PARAMS [\"2025-01-01T00:00:00.000\", \"2025-02-28T23:59:59.999\"]",
+  "verdict": "diff",
+  "truth": null,
+  "id": "rest_control"
+ }
+]

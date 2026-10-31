@@ -1,0 +1,68 @@
+# Pre-aggregations that need their own cubes. A rollup_join of one data source needs the Tesseract planner, which this stack uses.
+cubes:
+  - name: lambda_sales
+    title: Lambda sales
+    description: Orders with a rollup_lambda pre-aggregation. The batch has rows up to June 2025, and the source has the rest.
+    sql_table: shop.orders
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: status, sql: status, type: string, description: Order status. }
+      - { name: created_at, sql: created_at, type: time, description: Creation time. }
+    measures:
+      - { name: revenue, sql: amount, type: sum, description: Revenue through a rollup_lambda. }
+    pre_aggregations:
+      # The lambda must come first in the list, or Cube reads only the batch.
+      - name: lambda
+        type: rollup_lambda
+        union_with_source_data: true
+        rollups: [lambda_sales.batch]
+      - name: batch
+        measures: [revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        partition_granularity: month
+        build_range_start: { sql: "SELECT '2025-01-01 00:00:00'" }
+        build_range_end: { sql: "SELECT '2025-06-30 23:59:59'" }
+        refresh_key: { every: 1 hour }
+        indexes:
+          - { name: status_idx, columns: [status] }
+
+  - name: join_sales
+    title: Join sales
+    description: Orders with a rollup_join pre-aggregation on one data source.
+    sql_table: shop.orders
+    joins:
+      - { name: join_customers, relationship: many_to_one, sql: "{CUBE.user_id} = {join_customers.id}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true }
+      - { name: user_id, sql: user_id, type: number, description: Customer. }
+      - { name: status, sql: status, type: string, description: Order status. }
+    measures:
+      - { name: revenue, sql: amount, type: sum, description: Revenue through a rollup_join. }
+    pre_aggregations:
+      - name: sales_rollup
+        measures: [revenue]
+        dimensions: [user_id, status]
+        indexes:
+          - { name: user_idx, columns: [user_id] }
+        refresh_key: { every: 1 hour }
+      - name: joined
+        type: rollup_join
+        measures: [revenue]
+        dimensions: [status, join_customers.state]
+        rollups: [join_customers.customers_rollup, join_sales.sales_rollup]
+
+  - name: join_customers
+    title: Join customers
+    description: Customers for the rollup_join of join_sales.
+    sql_table: shop.users
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: state, sql: state, type: string, description: Customer state. }
+    pre_aggregations:
+      - name: customers_rollup
+        dimensions: [id, state]
+        indexes:
+          - { name: id_idx, columns: [id] }
+        refresh_key: { every: 1 hour }

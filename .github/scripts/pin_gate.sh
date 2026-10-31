@@ -4,9 +4,19 @@
 set -eu
 
 diff_file=$1
+
+# The GitHub API sometimes answers with a server error.
+retry() {
+  for delay in 10 30 60; do
+    "$@" && return 0
+    sleep "$delay"
+  done
+  "$@"
+}
+
 repo=$GITHUB_REPOSITORY
 sha=$GITHUB_SHA
-title=$(gh pr view "$PR" --repo "$repo" --json title --jq .title)
+title=$(retry gh pr view "$PR" --repo "$repo" --json title --jq .title)
 
 case "$DECISION" in
   ok)
@@ -23,7 +33,7 @@ case "$DECISION" in
     ;;
 esac
 
-gh api "repos/$repo/statuses/$sha" -f state="$state" -f context=conformance/pin-gate \
+retry gh api "repos/$repo/statuses/$sha" -f state="$state" -f context=conformance/pin-gate \
   -f target_url="$RUN_URL" -f description="$description" >/dev/null
 
 {
@@ -33,16 +43,16 @@ gh api "repos/$repo/statuses/$sha" -f state="$state" -f context=conformance/pin-
   echo
   cat "$diff_file"
 } > comment.md
-gh pr comment "$PR" --repo "$repo" --body-file comment.md
+retry gh pr comment "$PR" --repo "$repo" --body-file comment.md
 
 if [ "$DECISION" = fell ]; then
   issue_title="Pin update lowers conformance: $title"
-  number=$(gh issue list --repo "$repo" --state open --label pin-regression --search "\"$issue_title\" in:title" \
+  number=$(retry gh issue list --repo "$repo" --state open --label pin-regression --search "\"$issue_title\" in:title" \
     --json number --jq '.[0].number // empty')
   if [ -n "$number" ]; then
-    gh issue comment "$number" --repo "$repo" --body-file comment.md
+    retry gh issue comment "$number" --repo "$repo" --body-file comment.md
   else
-    gh issue create --repo "$repo" --title "$issue_title" --label pin-regression --body-file comment.md
+    retry gh issue create --repo "$repo" --title "$issue_title" --label pin-regression --body-file comment.md
   fi
   exit 1
 fi
@@ -56,9 +66,9 @@ if [ "${AUTOMERGE:-}" = false ]; then
   exit 0
 fi
 
-author=$(gh pr view "$PR" --repo "$repo" --json author --jq .author.login)
-branch=$(gh pr view "$PR" --repo "$repo" --json headRefName --jq .headRefName)
-head=$(gh pr view "$PR" --repo "$repo" --json headRefOid --jq .headRefOid)
+author=$(retry gh pr view "$PR" --repo "$repo" --json author --jq .author.login)
+branch=$(retry gh pr view "$PR" --repo "$repo" --json headRefName --jq .headRefName)
+head=$(retry gh pr view "$PR" --repo "$repo" --json headRefOid --jq .headRefOid)
 case "$branch" in
   deps/*) ;;
   *) echo "::error::$branch is not a pin update branch"; exit 1 ;;
@@ -68,7 +78,9 @@ if [ "$author" != "app/github-actions" ] || [ "$head" != "$sha" ]; then
   exit 1
 fi
 
-gh pr merge "$PR" --repo "$repo" --auto --squash --delete-branch --match-head-commit "$sha"
+# --auto waits for required checks, but GitHub rejects it on a branch without protection rules.
+gh pr merge "$PR" --repo "$repo" --auto --squash --delete-branch --match-head-commit "$sha" ||
+  retry gh pr merge "$PR" --repo "$repo" --squash --delete-branch --match-head-commit "$sha"
 # GITHUB_TOKEN merges start no push workflows, so start them here.
-gh workflow run ci.yml --repo "$repo" --ref main
-gh workflow run release-please.yml --repo "$repo" --ref main
+retry gh workflow run ci.yml --repo "$repo" --ref main
+retry gh workflow run release-please.yml --repo "$repo" --ref main

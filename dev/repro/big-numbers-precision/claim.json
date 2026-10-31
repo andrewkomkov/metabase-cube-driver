@@ -1,0 +1,44 @@
+{
+ "steps": [
+  {
+   "id": "sql_uint64",
+   "sql": "SELECT big_int FROM events"
+  },
+  {
+   "id": "sql_decimal",
+   "sql": "SELECT big_dec FROM events"
+  },
+  {
+   "id": "sql_text_dims",
+   "sql": "SELECT big_int_text, big_dec_text FROM events",
+   "note": "the workaround in the matrix"
+  },
+  {
+   "id": "sql_measures",
+   "sql": "SELECT MEASURE(sum_big_int) a, MEASURE(sum_big_dec) b FROM events"
+  },
+  {
+   "id": "rest_dims",
+   "rest": {
+    "dimensions": [
+     "events.big_int",
+     "events.big_dec"
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_measures",
+   "rest": {
+    "measures": [
+     "events.sum_big_int",
+     "events.sum_big_dec"
+    ]
+   }
+  },
+  {
+   "id": "truth",
+   "truth": "SELECT big_int, big_dec FROM repro.events"
+  }
+ ]
+}

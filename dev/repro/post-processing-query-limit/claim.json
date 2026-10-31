@@ -1,0 +1,34 @@
+{
+ "steps": [
+  {
+   "id": "count_outer",
+   "sql": "SELECT COUNT(*) c FROM (SELECT id, MEASURE(count) n FROM orders GROUP BY 1) q",
+   "explain": true,
+   "note": "limit is 10 in cube.env, truth 20"
+  },
+  {
+   "id": "direct_scan",
+   "sql": "SELECT id FROM orders"
+  },
+  {
+   "id": "direct_scan_limit100",
+   "sql": "SELECT id FROM orders LIMIT 100"
+  },
+  {
+   "id": "rest_default_limit",
+   "rest": {
+    "dimensions": [
+     "orders.id"
+    ]
+   }
+  },
+  {
+   "id": "truth",
+   "truth": "SELECT count(*) c FROM repro.orders"
+  }
+ ],
+ "configs": [
+  "ch-on",
+  "pg-on"
+ ]
+}

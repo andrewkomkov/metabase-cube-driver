@@ -1,0 +1,74 @@
+{
+ "steps": [
+  {
+   "id": "on_cube_join_field",
+   "sql": "SELECT o.id, u.vip FROM orders o LEFT JOIN users u ON o.__cubeJoinField = u.__cubeJoinField ORDER BY 1"
+  },
+  {
+   "id": "on_other_columns",
+   "sql": "SELECT o.id, u.vip FROM orders o LEFT JOIN users u ON o.other_id = u.id ORDER BY 1",
+   "explain": true,
+   "note": "SQL truth: order1->vip of user 2"
+  },
+  {
+   "id": "on_model_columns",
+   "sql": "SELECT o.id, u.vip FROM orders o LEFT JOIN users u ON o.user_id = u.id ORDER BY 1"
+  },
+  {
+   "id": "cross_other_where",
+   "sql": "SELECT o.id, u.vip FROM orders o CROSS JOIN users u WHERE o.other_id = u.id ORDER BY 1",
+   "explain": true
+  },
+  {
+   "id": "subquery_with_filter",
+   "sql": "SELECT o.id, u.vip FROM orders o CROSS JOIN (SELECT * FROM users WHERE vip = 1) u WHERE o.__cubeJoinField = u.__cubeJoinField ORDER BY 1",
+   "note": "join of a filtered subquery"
+  },
+  {
+   "id": "left_filtered_projected",
+   "sql": "SELECT o.id, u.vip FROM orders o LEFT JOIN (SELECT id, vip FROM users WHERE vip = 1) u ON o.__cubeJoinField = u.__cubeJoinField ORDER BY 1",
+   "note": "the shape from a saved question; SQL truth keeps order 2 with NULL"
+  },
+  {
+   "id": "left_filtered_star",
+   "sql": "SELECT o.id, u.vip FROM orders o LEFT JOIN (SELECT * FROM users WHERE vip = 1) u ON o.__cubeJoinField = u.__cubeJoinField ORDER BY 1"
+  },
+  {
+   "id": "subquery_plain",
+   "sql": "SELECT o.id, u.vip FROM orders o LEFT JOIN (SELECT id, vip, __cubeJoinField FROM users) u ON o.__cubeJoinField = u.__cubeJoinField ORDER BY 1"
+  },
+  {
+   "id": "from_users_left_orders",
+   "sql": "SELECT u.id, MEASURE(o.count) c FROM users u LEFT JOIN orders o ON u.__cubeJoinField = o.__cubeJoinField GROUP BY 1 ORDER BY 1",
+   "explain": true,
+   "note": "left join direction, truth user 3 has 0"
+  },
+  {
+   "id": "from_users_count_star",
+   "sql": "SELECT COUNT(*) c FROM users u LEFT JOIN orders o ON u.__cubeJoinField = o.__cubeJoinField"
+  },
+  {
+   "id": "rest_users_with_order_count",
+   "rest": {
+    "measures": [
+     "orders.count"
+    ],
+    "dimensions": [
+     "users.id"
+    ],
+    "order": {
+     "users.id": "asc"
+    }
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "truth_on_other",
+   "truth": "SELECT o.id, u.vip FROM repro.orders o LEFT JOIN repro.users u ON o.other_id = u.id ORDER BY 1"
+  },
+  {
+   "id": "truth_left",
+   "truth": "SELECT u.id, count(o.id) c FROM repro.users u LEFT JOIN repro.orders o ON o.user_id = u.id GROUP BY 1 ORDER BY 1"
+  }
+ ]
+}

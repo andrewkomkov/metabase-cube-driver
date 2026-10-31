@@ -1,0 +1,8 @@
+cubes:
+  - name: events
+    sql_table: repro.events
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: ts, sql: ts, type: time }
+    measures:
+      - { name: count, type: count }

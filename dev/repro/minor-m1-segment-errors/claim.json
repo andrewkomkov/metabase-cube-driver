@@ -1,0 +1,53 @@
+{
+ "steps": [
+  {
+   "id": "or_two_segments",
+   "sql": "SELECT MEASURE(count) c FROM orders WHERE paid = TRUE OR large = TRUE"
+  },
+  {
+   "id": "and_two_segments",
+   "sql": "SELECT MEASURE(count) c FROM orders WHERE paid = TRUE AND large = FALSE"
+  },
+  {
+   "id": "segment_of_joined_short",
+   "sql": "SELECT MEASURE(orders.revenue) r FROM orders WHERE users.vip = TRUE"
+  },
+  {
+   "id": "segment_of_joined_cross",
+   "sql": "SELECT MEASURE(o.revenue) r FROM orders o CROSS JOIN users u WHERE o.__cubeJoinField = u.__cubeJoinField AND u.vip = TRUE",
+   "explain": true
+  },
+  {
+   "id": "rest_two_segments_and",
+   "rest": {
+    "measures": [
+     "orders.count"
+    ],
+    "segments": [
+     "orders.paid",
+     "orders.large"
+    ]
+   },
+   "rest_sql": true
+  },
+  {
+   "id": "rest_joined_segment",
+   "rest": {
+    "measures": [
+     "orders.revenue"
+    ],
+    "segments": [
+     "users.vip"
+    ]
+   }
+  },
+  {
+   "id": "truth_or",
+   "truth": "SELECT count(*) c FROM repro.orders WHERE status = 'a' OR amount > 300"
+  },
+  {
+   "id": "truth_vip",
+   "truth": "SELECT sum(o.amount) r FROM repro.orders o JOIN repro.users u ON o.user_id = u.id WHERE u.vip = 1"
+  }
+ ]
+}

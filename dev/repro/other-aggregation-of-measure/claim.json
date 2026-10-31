@@ -1,0 +1,24 @@
+{
+ "steps": [
+  {
+   "id": "max_of_sum",
+   "sql": "SELECT MAX(revenue) x FROM orders"
+  },
+  {
+   "id": "sum_of_sum",
+   "sql": "SELECT SUM(revenue) x FROM orders"
+  },
+  {
+   "id": "min_of_count",
+   "sql": "SELECT MIN(count) x FROM orders"
+  },
+  {
+   "id": "avg_of_avg",
+   "sql": "SELECT AVG(avg_amount) x FROM orders"
+  },
+  {
+   "id": "count_distinct_status",
+   "sql": "SELECT COUNT(DISTINCT status) x FROM orders"
+  }
+ ]
+}

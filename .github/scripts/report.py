@@ -131,14 +131,16 @@ def write_json(path, value):
 
 
 def coverage_files(cells, out):
-    cell = next((c for c in cells if c.get("required") and c.get("conformance") != "skipped"), None)
+    # The badge shows the demo stack, which has the ClickHouse dialect. A cell of stock Cube has its own row in the compatibility table.
+    cell = next((c for c in cells if c.get("required") and c.get("clickhouse_fixes") != "off" and c.get("conformance") != "skipped"), None)
     result = cell and cell["result"]
     if not result:
         write_json(out / "badges" / "coverage.json", badge("coverage", NO_DATA, "lightgrey"))
         (out / "coverage.md").write_text("# Coverage\n\nThe last run did not produce a result.\n")
         return
     color = "brightgreen" if cell_ok(cell) else "red"
-    write_json(out / "badges" / "coverage.json", badge("coverage", result["coverage"], color))
+    message = result["coverage"].removeprefix("coverage: ")
+    write_json(out / "badges" / "coverage.json", badge("coverage", message, color))
     write_json(out / "conformance.json", result)
     lines = [
         "# Coverage",
@@ -164,6 +166,7 @@ def compat_row(cell):
         "cube": cell.get("cube"),
         "clickhouse": cell.get("clickhouse"),
         "required": bool(cell.get("required")),
+        "clickhouse_fixes": cell.get("clickhouse_fixes"),
         "load": cell.get("load"),
         "conformance": cell.get("conformance"),
         "coverage": cell["result"]["coverage"] if cell["result"] else None,
@@ -192,12 +195,12 @@ def compat_files(cells, out):
         "CI generates this table from the version matrix. Do not edit it. Only the pinned pair is required.",
         "The other pairs report only.",
         "",
-        "| Metabase | Cube | ClickHouse | Pair | Jar loads | Conformance | Coverage | Run |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| Metabase | Cube | ClickHouse | cube-clickhouse | Pair | Jar loads | Conformance | Coverage | Run |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for r in rows:
         lines.append(
-            f"| `{r['metabase']}` | `{r['cube']}` | `{r['clickhouse']}` | {'pinned' if r['required'] else 'report only'} "
+            f"| `{r['metabase']}` | `{r['cube']}` | `{r['clickhouse']}` | {r.get('clickhouse_fixes') or 'on'} | {'pinned' if r['required'] else 'report only'} "
             f"| {r['load']} | {r['conformance']} | {r['coverage'] or NO_DATA} | [run]({r['run_url']}) |"
         )
     if rows:

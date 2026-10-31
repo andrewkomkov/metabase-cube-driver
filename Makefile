@@ -2,19 +2,24 @@
 package:
 	sh scripts/package.sh
 
-.PHONY: up down load-check conformance tools lint docs
+.PHONY: up down load-check conformance conformance-down tools lint docs
 up: package
-	cd dev && docker compose up -d --wait clickhouse cube
+	cd dev && docker compose up -d --wait clickhouse cube cube-secure mail
 	cd dev && docker compose up -d metabase
 
 down:
-	cd dev && docker compose down -v
+	cd dev && docker compose -f docker-compose.yml -f docker-compose.conformance.yml down -v
 
 load-check:
 	python3 .github/scripts/load_check.py
 
+# Runs on stock Cube and with cube-clickhouse. VARIANT=off or VARIANT=on runs only one.
 conformance:
-	python3 conformance/run.py
+	VARIANT="$(VARIANT)" sh conformance/run_isolated.sh $(ARGS)
+
+conformance-down:
+	cd dev && docker compose -f docker-compose.yml -f docker-compose.conformance.yml rm -sfv metabase-conformance
+	docker volume rm -f metabase-cube-driver_metabase-conformance-data
 
 tools:
 	python3 -m pip install -r .github/tools/requirements.txt
@@ -28,6 +33,7 @@ lint:
 	yamllint --strict .
 	gitleaks git --redact --no-banner .
 	docker compose -f dev/docker-compose.yml config -q
+	docker compose -f dev/docker-compose.yml -f dev/docker-compose.conformance.yml config -q
 
 docs:
 	python3 -m pip install -r docs/requirements.txt
