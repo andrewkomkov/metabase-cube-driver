@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1279/1316 pass on Cube with the ClickHouse dialect** (1279 pass, 24 partial, 1 blocked, 12 unsupported, 0 fail of 1316)
+**coverage: 1284/1323 pass on Cube with the ClickHouse dialect** (1284 pass, 22 partial, 1 blocked, 12 unsupported, 4 fail of 1323)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `59653518ba60`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41248319030), 2026-10-31.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `a799683910c1`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41250574933), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -638,8 +638,8 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `59653
 | `compile.join.explicit_measure_regular` | pass |  |
 | `compile.ch.integer_within_double` | pass |  |
 | `compile.xray.table_all_cards_run` | pass |  |
-| `compile.xray.field_all_cards_run` | partial | The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) can stop. Stock Cube adds each row of the joined cube once. So it gives another number, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. The check accepts this message or a number equal to the truth. |
-| `compile.xray.time_field_all_cards_run` | partial | The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) can stop. Stock Cube adds each row of the joined cube once. So it gives another number, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. The check accepts this message or a number equal to the truth. |
+| `compile.xray.field_all_cards_run` | fail | 1 of 15 cards failed: [('Status by User → Signup Cohort', 'no truth for the column users.signup_cohort of the card')] |
+| `compile.xray.time_field_all_cards_run` | fail | 1 of 15 cards failed: [('Count of User → Signup Cohort by Created at', 'no truth for the column users.signup_cohort of the card')] |
 | `compile.xray.typed_table_all_cards_run` | pass |  |
 | `compile.granularity.native_offset_no_rollup` | pass |  |
 | `compile.filter.quote_in_value` | pass |  |
@@ -747,6 +747,13 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `59653
 | `compile.raw.switch_dimension_keeps_one_row` | pass |  |
 | `measure.rolling.window_shorter_than_bucket` | pass |  |
 | `grid.compact.dataset` | pass |  |
+| `fuzz.cases` | pass |  |
+| `fuzz.sample` | pass |  |
+| `clickhouse.aggregate_on_no_rows` | pass |  |
+| `filter.case_dimension_on_raw_rows` | pass |  |
+| `filter.fraction_beyond_the_scale_of_a_decimal` | pass |  |
+| `filter.aggregation_on_a_join_of_a_view_refused` | pass |  |
+| `measure.time_type_in_a_report_zone_refused` | pass |  |
 | `grid.compact.mcp` | pass |  |
 | `grid.compact.report_zone` | pass |  |
 | `grid.compact.mcp_report_zone` | pass |  |
@@ -1290,12 +1297,12 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `59653
 | `zone.kol.rollup.stored_day` | pass |  |
 | `zone.kol.rollup.text_day` | pass |  |
 | `zone.ny.stored_day_other_zone` | pass |  |
-| `zone.ny.time_measure` | pass |  |
+| `zone.ny.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-31T23:45:29.195771466Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr |
 | `zone.ny.native` | pass |  |
 | `zone.ny.mcp` | pass |  |
 | `zone.ny.catalog` | pass |  |
 | `zone.kol.stored_day_other_zone` | pass |  |
-| `zone.kol.time_measure` | pass |  |
+| `zone.kol.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-31T23:45:41.20133168Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wro |
 | `zone.kol.native` | pass |  |
 | `zone.kol.mcp` | pass |  |
 | `zone.kol.catalog` | pass |  |

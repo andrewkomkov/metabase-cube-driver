@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 1279,
-    "partial": 24,
+    "pass": 1284,
+    "partial": 22,
     "blocked": 1,
     "unsupported": 12,
-    "fail": 0,
-    "total": 1316
+    "fail": 4,
+    "total": 1323
   },
-  "coverage": "coverage: 1279/1316 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1284/1323 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -3162,13 +3162,13 @@
     },
     {
       "id": "compile.xray.field_all_cards_run",
-      "status": "partial",
-      "reason": "The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) can stop. Stock Cube adds each row of the joined cube once. So it gives another number, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. The check accepts this message or a number equal to the truth."
+      "status": "fail",
+      "reason": "1 of 15 cards failed: [('Status by User \u2192 Signup Cohort', 'no truth for the column users.signup_cohort of the card')]"
     },
     {
       "id": "compile.xray.time_field_all_cards_run",
-      "status": "partial",
-      "reason": "The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) can stop. Stock Cube adds each row of the joined cube once. So it gives another number, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. The check accepts this message or a number equal to the truth."
+      "status": "fail",
+      "reason": "1 of 15 cards failed: [('Count of User \u2192 Signup Cohort by Created at', 'no truth for the column users.signup_cohort of the card')]"
     },
     {
       "id": "compile.xray.typed_table_all_cards_run",
@@ -3702,6 +3702,41 @@
     },
     {
       "id": "grid.compact.dataset",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "fuzz.cases",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "fuzz.sample",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "clickhouse.aggregate_on_no_rows",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter.case_dimension_on_raw_rows",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter.fraction_beyond_the_scale_of_a_decimal",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter.aggregation_on_a_join_of_a_view_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.time_type_in_a_report_zone_refused",
       "status": "pass",
       "reason": ""
     },
@@ -6422,8 +6457,8 @@
     },
     {
       "id": "zone.ny.time_measure",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-31T23:45:29.195771466Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr"
     },
     {
       "id": "zone.ny.native",
@@ -6447,8 +6482,8 @@
     },
     {
       "id": "zone.kol.time_measure",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-31T23:45:41.20133168Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wro"
     },
     {
       "id": "zone.kol.native",
