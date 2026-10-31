@@ -1,6 +1,6 @@
 {
   "first_tag": "v1.8.15",
-  "platforms": ["amd64"],
+  "platforms": ["amd64", "arm64"],
   "patch_branch": "mcd/patch-queue",
   "patches": [
     {"id": "B1", "finding": "B1", "branch": "fix/clickhouse-date-range-millis", "pr": "https://github.com/cube-js/cube/pull/12532"},
