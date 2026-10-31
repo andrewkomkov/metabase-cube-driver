@@ -4849,3 +4849,21 @@ These entries in `conformance/features.yaml` have a non-pass status and make no 
 | `compile.xray.*`, 4 entries | The checks do not compare each card. |
 
 Review entries M4, m7, m8, m9, m10 and B8 name the driver, Metabase or the docs of this repository as the layer. `raw_rolling_column` in `minor-m4-rolling-max` shows the value per row that m8 reports.
+
+## Upstream status
+
+These are the links for the fixes that [cube-audit.md](cube-audit.md) supports. The state is from 2026-10-31.
+
+| Defect | Link | State |
+| --- | --- | --- |
+| B1 | [#12532](https://github.com/cube-js/cube/pull/12532) | Open |
+| datetime64 | [#12533](https://github.com/cube-js/cube/pull/12533) | Open. A filter on milliseconds also needs #12532. |
+| interval | [#12534](https://github.com/cube-js/cube/pull/12534) | Open |
+| M1, M2 | [#12535](https://github.com/cube-js/cube/pull/12535) | Open |
+| N1 | [#12536](https://github.com/cube-js/cube/pull/12536) | Open |
+| geo | [#12537](https://github.com/cube-js/cube/pull/12537) | Open |
+| B2 | [Issue #12538](https://github.com/cube-js/cube/issues/12538) | Open. It changes Power BI results, so it asks the maintainers which behaviour they want. |
+| propagate | [#12502](https://github.com/cube-js/cube/pull/12502) | Open, by a maintainer. The audit cases pass on it, so there is no second pull request. |
+| gran, m5, N2, big | None | Ready, not sent. The limit is 6 open pull requests. |
+| extract, m4 | None | Not sent. The audit says `intended` and `misuse`. |
+| B4, unbounded, m3 | None | No patch. |
