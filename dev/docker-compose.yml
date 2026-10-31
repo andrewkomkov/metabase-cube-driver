@@ -3,7 +3,7 @@
 name: metabase-cube-driver
 services:
   clickhouse:
-    image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-26.8.36-alpine}
+    image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-26.10.3-alpine}
     environment:
       CLICKHOUSE_DB: shop
       CLICKHOUSE_USER: shop

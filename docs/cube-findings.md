@@ -4,7 +4,7 @@ Each claim in this repository that says Cube has a defect or a limit, checked wi
 
 ## How this was checked
 
-- **Versions:** Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, Postgres `17-alpine`. On 2026-10-30, `v1.8.15` is the newest tag by version number, so the pinned run and the newest run are the same. GitHub marks `v1.6.76` as the latest release, but that is a backport. `master` has 20 more commits. I read their titles and the text of the two that touch joins, #12483 and #12476. Neither names a case here. I did not run `master`.
+- **Versions:** Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, Postgres `17-alpine`. On 2026-10-30, `v1.8.15` is the newest tag by version number, so the pinned run and the newest run are the same. GitHub marks `v1.6.76` as the latest release, but that is a backport. `master` has 20 more commits. I read their titles and the text of the two that touch joins, #12483 and #12476. Neither names a case here. I did not run `master`.
 - **Configs:** `ch` is ClickHouse and `pg` is Postgres. `on` and `off` are `CUBEJS_TESSERACT_SQL_PLANNER`. The default in v1.8.15 is on, and the demo uses that. The output shows configs that give the same result in one group. A security or read-only entry ran only where the database does not matter, and `claim.json` lists its configs.
 - **Stack:** the compose project `mcd-repro` on `nettop.local`, in `~/mcd-repro`, with ports 4500 and 4501 on the loopback interface. I copied the files with `rsync`, so the checkout `~/metabase-cube-driver` did not change. I removed the project, its volumes and the directory after the runs.
 - **Source:** a read-only clone of `cube-js/cube` at `v1.8.15`. Links go to this tag.
@@ -286,7 +286,7 @@ c	r
 name: cube-repro
 services:
   db:
-    image: clickhouse/clickhouse-server:26.8.36-alpine
+    image: clickhouse/clickhouse-server:26.10.3-alpine
     environment: { CLICKHOUSE_DB: repro, CLICKHOUSE_USER: repro, CLICKHOUSE_PASSWORD: repro, CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1" }
     healthcheck: { test: [CMD-SHELL, "clickhouse-client -u repro --password repro -q 'SELECT 1'"], interval: 2s, retries: 40 }
   cube:
@@ -1737,7 +1737,7 @@ ClickHouse requires an index on each pre-aggregation. For `original_sql`, Cube w
 name: cube-repro
 services:
   db:
-    image: clickhouse/clickhouse-server:26.8.36-alpine
+    image: clickhouse/clickhouse-server:26.10.3-alpine
     environment: { CLICKHOUSE_DB: repro, CLICKHOUSE_USER: repro, CLICKHOUSE_PASSWORD: repro, CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1" }
     healthcheck: { test: [CMD-SHELL, "clickhouse-client -u repro --password repro -q 'SELECT 1'"], interval: 2s, retries: 40 }
   cube:
@@ -2050,7 +2050,7 @@ The window is a join with only `<=`, and ClickHouse does not take it.
 name: cube-repro
 services:
   db:
-    image: clickhouse/clickhouse-server:26.8.36-alpine
+    image: clickhouse/clickhouse-server:26.10.3-alpine
     environment: { CLICKHOUSE_DB: repro, CLICKHOUSE_USER: repro, CLICKHOUSE_PASSWORD: repro, CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1" }
     healthcheck: { test: [CMD-SHELL, "clickhouse-client -u repro --password repro -q 'SELECT 1'"], interval: 2s, retries: 40 }
   cube:
@@ -3902,7 +3902,7 @@ d | c
 name: cube-repro
 services:
   db:
-    image: clickhouse/clickhouse-server:26.8.36-alpine
+    image: clickhouse/clickhouse-server:26.10.3-alpine
     environment: { CLICKHOUSE_DB: repro, CLICKHOUSE_USER: repro, CLICKHOUSE_PASSWORD: repro, CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1" }
     healthcheck: { test: [CMD-SHELL, "clickhouse-client -u repro --password repro -q 'SELECT 1'"], interval: 2s, retries: 40 }
   cube:
@@ -4073,7 +4073,7 @@ The ClickHouse dialect has no `expressions/extract` template, so a query with `E
 name: cube-repro
 services:
   db:
-    image: clickhouse/clickhouse-server:26.8.36-alpine
+    image: clickhouse/clickhouse-server:26.10.3-alpine
     environment: { CLICKHOUSE_DB: repro, CLICKHOUSE_USER: repro, CLICKHOUSE_PASSWORD: repro, CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1" }
     healthcheck: { test: [CMD-SHELL, "clickhouse-client -u repro --password repro -q 'SELECT 1'"], interval: 2s, retries: 40 }
   cube:
@@ -4748,7 +4748,7 @@ m | c
 name: cube-repro
 services:
   db:
-    image: clickhouse/clickhouse-server:26.8.36-alpine
+    image: clickhouse/clickhouse-server:26.10.3-alpine
     environment: { CLICKHOUSE_DB: repro, CLICKHOUSE_USER: repro, CLICKHOUSE_PASSWORD: repro, CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1" }
     healthcheck: { test: [CMD-SHELL, "clickhouse-client -u repro --password repro -q 'SELECT 1'"], interval: 2s, retries: 40 }
   cube:
