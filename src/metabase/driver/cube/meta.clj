@@ -532,17 +532,27 @@
 
 (defn switch-dimension-names
   "The short names of the `switch` dimensions of a cube or view. Cube gives each row once for each value of such a dimension. /v1/meta
-  shows it as a string with no SQL, and an alias of a view has an `aliasMember`."
+  shows it as a string with no SQL and no case, and an alias of a view has an `aliasMember`."
   [cube-meta cube-name]
   (let [dimension-named (into {} (comp (mapcat :dimensions) (map (juxt :name identity))) (:cubes cube-meta))
         switch?         (fn switch? [dimension]
                           (if-let [source (dimension-named (:aliasMember dimension))]
                             (switch? source)
-                            (and (= "string" (:type dimension)) (nil? (:sql dimension)))))]
+                            (and (= "string" (:type dimension)) (nil? (:sql dimension)) (nil? (:case dimension)))))]
     (into #{}
           (comp (filter switch?)
                 (map #(str/lower-case (short-name (:name %)))))
           (:dimensions (first (filter #(= cube-name (:name %)) (:cubes cube-meta)))))))
+
+(defn joined-member-of-view?
+  "True if this dimension of a view comes from another cube than the first dimension of the view. In an aggregation, Cube adds each row of
+  that cube once, as it does for a dimension of a joined cube."
+  [cube-meta view-name member-name]
+  (let [dimensions (:dimensions (first (filter #(= view-name (:name %)) (:cubes cube-meta))))
+        cube-of    #(some-> (:aliasMember %) (str/split #"\.") first)
+        root       (cube-of (first dimensions))
+        dimension  (first (filter #(= (str/lower-case member-name) (str/lower-case (short-name (:name %)))) dimensions))]
+    (boolean (and root (cube-of dimension) (not= root (cube-of dimension))))))
 
 (defn same-sql-groups
   "Sets of short names of dimensions that read another member with equal SQL, as a `sub_query` dimension does. /v1/meta has no
