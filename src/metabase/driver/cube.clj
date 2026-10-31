@@ -89,7 +89,9 @@
       (parent driver db-or-id-or-spec options f))))
 
 ;; The Metabase result cache has one entry per query, with no person in the key. A live test showed the rows of one person
-;; to another person. A driver has no hook for this, so this wraps the middleware. Metabase rebuilds the query processor
+;; to another person. A driver has no hook for this: the cache middleware runs before the driver, and the key comes from the
+;; query. So this wraps the middleware. It skips the cache only for a Cube database with per-person data, and each other
+;; database goes through the middleware as before, see isolation.other_driver_cache. Metabase rebuilds the query processor
 ;; when this var changes. If a new Metabase has no such var, the driver does not load, which is the safe result.
 (defn- per-person-query?
   []
@@ -110,24 +112,50 @@
   (do (alter-var-root #'qp.middleware.cache/maybe-return-cached-results skip-cache-for-per-person-data)
       true))
 
-;; The MCP tool `execute_query` reads each bound of `between` as a whole day, also a bound with a time. The driver sees only the
-;; whole days, so it cannot stop this, and the number is wrong for each driver. So this keeps the time. A Metabase version with
-;; no such var keeps its own behaviour, see mcp.query.between_keeps_time.
-(defn- keep-time-of-bound
-  [wrap-iso-date]
-  (fn [value]
-    (let [wrapped (wrap-iso-date value)]
-      (if (and (vector? wrapped)
-               (string? value)
-               (re-find #"\d[T ]\d{2}:\d{2}" value))
-        (assoc wrapped 3 "default")
-        wrapped))))
+;; On Metabase 0.64 the MCP tool `execute_query` reads each bound of `between` as a whole day, also a bound with a time. The
+;; private function `wrap-iso-date` does this in the repair step, before the query processor. The query reaches the driver with
+;; whole days, so the driver has no other place for this. This wrap acts only when the metadata provider of the query is on a
+;; Cube database: it writes a bound with a time as a literal with no bucket, and `wrap-iso-date` then leaves it as it is. Each
+;; other database gets the same arguments as before. A Metabase with no `wrap-iso-date` keeps its own behaviour, and this wrap
+;; does not change its vars. See mcp.query.between_keeps_time and isolation.other_driver_mcp_between.
+(defn- cube-metadata-provider?
+  [metadata-provider]
+  (try
+    (= :cube (:engine (driver-api/database metadata-provider)))
+    (catch Exception _ false)))
+
+(defn- bound-keeping-time
+  [bound]
+  (if (and (string? bound)
+           (re-matches #"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+\-]\d{2}:?\d{2})?" (str/trim bound)))
+    ["absolute-datetime" {} (str/trim bound) "default"]
+    bound))
+
+(defn- keep-time-of-between-bounds
+  [parsed-query]
+  (walk/postwalk
+   (fn [form]
+     (if (and (vector? form) (= "between" (first form)) (<= 4 (count form) 5))
+       (-> form
+           (update (- (count form) 2) bound-keeping-time)
+           (update (- (count form) 1) bound-keeping-time))
+       form))
+   parsed-query))
+
+(defn- keep-time-on-cube
+  [repair]
+  (fn [metadata-provider parsed-query & more]
+    (apply repair
+           metadata-provider
+           (cond-> parsed-query
+             (cube-metadata-provider? metadata-provider) keep-time-of-between-bounds)
+           more)))
 
 (defonce between-wrapped
-  (when-let [wrap-iso-date (try
-                             (requiring-resolve 'metabase.agent-lib.representations.repair/wrap-iso-date)
-                             (catch Exception _ nil))]
-    (alter-var-root wrap-iso-date keep-time-of-bound)
+  (when (try
+          (requiring-resolve 'metabase.agent-lib.representations.repair/wrap-iso-date)
+          (catch Exception _ nil))
+    (alter-var-root (requiring-resolve 'metabase.agent-lib.representations.repair/repair) keep-time-on-cube)
     true))
 
 (defmethod sql-jdbc.execute/set-timezone-sql :cube [_] "SET TIME ZONE %s")
