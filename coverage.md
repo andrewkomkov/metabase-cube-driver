@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 731/760 pass on Cube with the ClickHouse dialect** (731 pass, 12 partial, 2 blocked, 12 unsupported, 3 fail of 760)
+**coverage: 733/761 pass on Cube with the ClickHouse dialect** (733 pass, 14 partial, 2 blocked, 12 unsupported, 0 fail of 761)
 
-Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `a42f96658e74`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41165220419), 2026-10-31.
+Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `c280938fb6b4`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41165905360), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -638,9 +638,9 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `a42f966
 | `compile.join.explicit_measure_regular` | pass |  |
 | `compile.ch.integer_within_double` | pass |  |
 | `compile.xray.table_all_cards_run` | pass |  |
-| `compile.xray.field_all_cards_run` | fail | 1 of 13 cards failed: [('User → Lifetime Orders by Status', "card: got ['cancelled', 5000.0, 25.12562814070352], truth ['cancelled', 25130.0, 25.13]")] |
-| `compile.xray.time_field_all_cards_run` | fail | 1 of 15 cards failed: [('User → Lifetime Orders by Created at', "card: got ['2025-01-01T00:00:00', 5000.0, 25.12562814070352], truth ['2025-01-01T00:00:00', 10890.0, 25.150115473441108]")] |
-| `compile.xray.typed_table_all_cards_run` | fail | 1 of 15 cards failed: [('Events by Dec Big', 'card: got 9 rows, truth has 8. got=[[0.0, 124.0], [125000000000000.0, 125.0], [250000000000000.0, 125.0], [375000000000000.0, 125.0]] truth=[[0.0, 125.0], [125000000000000.0, 125.0], [250000000000000.0, 124.0], [375000000000000.0, 126.0]]')] |
+| `compile.xray.field_all_cards_run` | partial | The check compares each card with SQL truth. One card adds up a dimension of a joined cube (sum and avg of users.lifetime_orders). Cube adds each row of the joined cube once, so it gives another number, also in a subquery, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. |
+| `compile.xray.time_field_all_cards_run` | partial | The check compares each card with SQL truth. One card adds up a dimension of a joined cube (sum and avg of users.lifetime_orders). Cube adds each row of the joined cube once, so it gives another number, also in a subquery, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. |
+| `compile.xray.typed_table_all_cards_run` | pass |  |
 | `compile.granularity.native_offset_no_rollup` | pass |  |
 | `compile.filter.quote_in_value` | pass |  |
 | `compile.filter.backslash_quote_in_value` | pass |  |
@@ -735,6 +735,7 @@ Metabase `v0.64.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `a42f966
 | `isolation.other_driver_mcp_between` | pass |  |
 | `isolation.other_driver_cache` | pass |  |
 | `isolation.other_driver_sync` | pass |  |
+| `compile.join.total_of_dimension_refused` | pass |  |
 | `compile.expr.measure_with_expression_breakout` | pass |  |
 | `dialect.variant` | pass |  |
 | `dialect.b1_strict_lower_bound` | pass |  |
