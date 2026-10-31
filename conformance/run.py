@@ -181,6 +181,17 @@ def _same(a, b, tol):
     return a == b
 
 
+def ch_write(sql):
+    """Change the demo ClickHouse. A check that needs a change of data uses this, for a table of its own."""
+    cmd = [
+        "docker", "compose", "-f", os.path.join(REPO, "dev", "docker-compose.yml"), "exec", "-T", "clickhouse",
+        "clickhouse-client", "--user", "shop", "--password", "shop-dev-only", "--database", "shop", "--query", sql,
+    ]
+    p = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    if p.returncode != 0:
+        raise Fail("SQL failed: %s: %s" % (sql, p.stderr.strip()[:300]))
+
+
 def assert_rows(got, want, ordered=False, tol=0.0, label="rows"):
     got = [[norm(x) for x in r] for r in got]
     want = [[norm(x) for x in r] for r in want]
@@ -1148,7 +1159,7 @@ def _(ctx):
     query = lambda: ctx.mb.mbql("refresh_marks", agg=["m:refresh_marks.count"])["rows"]
     assert_rows(query(), ch("SELECT count() FROM refresh_marks"), label="before")
     next_id = ch("SELECT count() + 1 FROM refresh_marks")[0][0]
-    ch("INSERT INTO refresh_marks VALUES (%d)" % next_id)
+    ch_write("INSERT INTO refresh_marks VALUES (%d)" % next_id)
     truth = ch("SELECT count() FROM refresh_marks")
     deadline = time.time() + 90
     while True:
@@ -5589,18 +5600,13 @@ def _(ctx):
 
 @check("preagg.original_sql")
 def _(ctx):
-    """m5. The dialect builds an original_sql pre-aggregation. Stock Cube stops it on ClickHouse with its own error, and the driver shows that error."""
-    ensure_table(ctx, "lambda_orders")
-    query = ctx.mb.inner("lambda_orders", agg=["m:lambda_orders.revenue"], by=["d:lambda_orders.status"])
-    truth = "SELECT status, sum(amount) FROM orders GROUP BY status"
+    """m5. The dialect builds an original_sql pre-aggregation. Stock Cube stops it on ClickHouse with its own error. This cube is hidden, because each query on it fails on stock Cube, and the demo Cube in dev mode reads a hidden cube."""
+    sql = "SELECT status, MEASURE(revenue) FROM lambda_orders GROUP BY 1"
     if DIALECT:
-        expect_rows(ctx, query, truth, "original_sql")
-        used_rollup({"measures": ["lambda_orders.revenue"], "dimensions": ["lambda_orders.status"]}, "daily")(ctx, None)
-        return
-    res = ctx.mb.api("POST", "/api/dataset", {"database": ctx.mb.need_db(), "type": "query", "query": query}, ok=(200, 202, 400, 500))
-    text = str(res.get("error") or res.get("message") or "")
-    if "Missing columns" not in text:
-        raise Fail("stock Cube now reads this. Give this entry its full status: %s" % (text[:200] or res.get("data", {}).get("rows")))
+        expect_native_rows(ctx, sql, "SELECT status, sum(amount) FROM orders GROUP BY status")
+        used_rollup({"measures": ["lambda_orders.revenue"], "dimensions": ["lambda_orders.status"]}, "base")(ctx, None)
+    else:
+        expect_native_refusal(ctx, sql, "Missing columns")
 
 
 # ----------------------------------------------------------------- delivery by mail
@@ -5626,7 +5632,8 @@ def wait_for_mail(address, known, needle=None, seconds=120):
     deadline = time.time() + seconds
     while True:
         for m in mail_messages():
-            if m["ID"] not in known and any(t.get("Address") == address for t in m.get("To") or []):
+            # Metabase sends to many people with Bcc.
+            if m["ID"] not in known and any(t.get("Address") == address for t in (m.get("To") or []) + (m.get("Bcc") or [])):
                 text = mail_text(m["ID"])
                 if needle is None or needle in text:
                     return text
@@ -5714,7 +5721,7 @@ def _(ctx):
 def _(ctx):
     """An agent writes a document with a card of a question. The card in the document gives the value of Cube."""
     card = ctx.mb.mbql_card("mcp document", ORD, agg=["m:orders.count"], by=[STA])
-    body = "# Orders\n\nOrders by status.\n\n[](card:%d)\n" % card["id"]
+    body = "# Orders\n\nOrders by status.\n\n{%% card id=%d %%}\n" % card["id"]
     made = ctx.mcp.call("document_write", method="create", name="conformance mcp document", content_markdown=body, collection_id=ctx.mb.collection())
     doc_id = deep_find(made, "id")
     doc = ctx.mb.api("GET", "/api/document/%d" % doc_id)
@@ -5733,7 +5740,7 @@ def _(ctx):
     definition = "Sum of order amounts: the measure revenue of the table orders."
     made = ctx.mb.api("POST", "/api/glossary", {"term": term, "definition": definition})
     try:
-        res = ctx.mcp.call("glossary", term=term.upper())
+        res = ctx.mcp.rpc("tools/call", {"name": "glossary", "arguments": {"term": term.upper()}})
         if definition not in json.dumps(res):
             raise Fail("the glossary has no definition: %s" % str(res)[:300])
         mcp_rows(ctx, ORD, REV, agg=["m:orders.revenue"])
@@ -5763,8 +5770,10 @@ def _(ctx):
 
 def embed_query_rows(ctx, handle):
     """The query behind a handle of an MCP App, by the same route as its iframe, and the rows of that query."""
-    res = ctx.mb.api("GET", "/api/embed-mcp/queries/%s" % handle)
-    query = res.get("query") or res
+    status, text, _h = http("GET", MB + "/api/embed-mcp/queries/%s" % handle, headers=ctx.mcp.with_ui().headers)
+    if status != 200:
+        raise Fail("the query of the handle: HTTP %s %s" % (status, text[:300]))
+    query = json.loads(base64.b64decode(json.loads(text)["query"]))
     return ctx.mb.api("POST", "/api/dataset", query)["data"]["rows"]
 
 
@@ -5907,14 +5916,22 @@ def _(ctx):
             const r = cells[i + 1].getBoundingClientRect();
             return {x: r.x + r.width / 2, y: r.y + r.height / 2, text: cells[i + 1].innerText};
         })()""", "the row of shipped")
-        browser.click_at(cell["x"], cell["y"])
-        browser.wait("""(() => {
+        # The grid can draw again after the first cells, and a click then goes nowhere, so this clicks until the menu is there.
+        click_drill = """(() => {
             const items = [...document.querySelectorAll('button, [role="button"], a')];
             const item = items.find(b => /^(See|View) (these|this)/i.test(b.innerText.trim()));
             if (!item) return false;
             item.click();
             return true;
-        })()""", "the drill-through in the menu")
+        })()"""
+        for _try in range(10):
+            time.sleep(2)
+            browser.click_at(cell["x"], cell["y"])
+            time.sleep(1)
+            if browser.js(click_drill):
+                break
+        else:
+            raise Fail("no drill-through in the menu. Page: %s" % str(browser.js("document.body.innerText"))[:400])
         truth = ch("SELECT count() FROM orders WHERE status = 'shipped'")[0][0]
         shown = browser.wait("""(() => {
             const t = document.body.innerText.match(/Showing (first )?([\\d,]+) rows?/);

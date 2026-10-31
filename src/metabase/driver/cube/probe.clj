@@ -74,15 +74,15 @@
 (def ^:private shifted-time-pattern
   #"(?i)\baddDate\s*\(|\bsubDate\s*\(|\bdate_add\s*\(|\bdate_sub\s*\(|\binterval\b")
 
-(defn- where-text
-  "The conditions of the innermost SELECT of a text from Cube."
+(defn- source-text
+  "The FROM and WHERE of the first SELECT of a text from Cube, where a shift moves the time."
   [text]
-  (second (re-find #"(?is)\bWHERE\b(.*?)(?:\bGROUP BY\b|\bORDER BY\b|\bLIMIT\b|\)\s*,|$)" text)))
+  (second (re-find #"(?is)\bFROM\b(.*?)\bGROUP BY\b" text)))
 
 (defn- shifted-on?
-  "True if Cube moves the time column for this measure. A calendar shift reads another column, so it has no interval. Then the
-  conditions differ from the conditions of the measure that it shifts."
-  [details {measure-name :name, base :aliasMember} time-dimension]
+  "True if Cube moves the time for this measure. A calendar shift joins on another column of the calendar, with no interval. Then
+  the source differs from the source of the measure that it reads."
+  [details measure-name base time-dimension]
   (let [query (fn [member]
                 {:measures       [member]
                  :timeDimensions [{:dimension time-dimension, :granularity "day", :dateRange ["2025-01-01" "2025-01-31"]}]
@@ -90,7 +90,7 @@
         text  (:text (sql-of details (query measure-name)))]
     (or (boolean (re-find shifted-time-pattern text))
         (and (some? base)
-             (not= (where-text text) (where-text (:text (sql-of details (query base)))))))))
+             (not= (source-text text) (source-text (:text (sql-of details (query base)))))))))
 
 (defn- member-of
   [cube-meta full-name]
@@ -105,6 +105,29 @@
   [cube-meta full-name]
   (boolean (some-> (:measure (member-of cube-meta full-name)) shift-candidate?)))
 
+(defn- root-member
+  "The member that an alias of a view stands for. A measure stops at the last one that reads another member, so the alias of a time
+  shift is the shift and not the measure that it reads."
+  [cube-meta full-name kind]
+  (let [member (kind (member-of cube-meta full-name))
+        source (:aliasMember member)
+        next-member (when source (kind (member-of cube-meta source)))]
+    (if (and next-member (or (= kind :dimension) (shift-candidate? next-member)))
+      (recur cube-meta source kind)
+      full-name)))
+
+(defn- time-dimensions-to-try
+  "The time dimensions of this cube and of the cubes that it joins, as a calendar is, by the name in the cube that owns them."
+  [cube-meta cube]
+  (let [joined (keep #(cube-named cube-meta (:name %)) (:joins cube))]
+    (into []
+          (comp (mapcat :dimensions)
+                (filter #(= "time" (:type %)))
+                (map #(root-member cube-meta (:name %) :dimension))
+                (distinct)
+                (take 10))
+          (cons cube joined))))
+
 (defn time-shift?
   "True if this measure of this cube has a time shift. With no answer this is false."
   [details cube-meta cube-name measure-name]
@@ -114,9 +137,14 @@
      (when (and measure (shift-candidate? measure))
        (cached details [:time-shift measure-name]
                (fn []
-                 (try
-                   (boolean (some #(shifted-on? details measure (:name %)) (take 5 (real-time-dimensions cube))))
-                   (catch Exception _ false))))))))
+                 (let [root (root-member cube-meta measure-name :measure)
+                       base (:aliasMember (:measure (member-of cube-meta root)))]
+                   (boolean
+                    (some (fn [time-dimension]
+                            (try
+                              (shifted-on? details root base time-dimension)
+                              (catch Exception _ false)))
+                          (time-dimensions-to-try cube-meta cube))))))))))
 
 ;;; Custom granularities. Cube Store rounds toward zero, so a time before the origin of a granularity in months gets the wrong
 ;;; bin. No released Cube has a fix. See docs/cube-audit.md#gran.
