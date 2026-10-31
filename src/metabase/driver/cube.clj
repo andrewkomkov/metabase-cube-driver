@@ -511,17 +511,19 @@
   "A comparison of `field` with a time, in the form for a report time zone, or nil if this comparison is not one."
   [driver [op opts field value :as clause]]
   (when (and (report-zone?)
-             (not (contains? *rollup-ranges* clause))
              (not= :shift *keep-date-ranges*)
              (vector? field)
              (= :field (first field))
              (contains? #{nil :default} (:temporal-unit (second field)))
              (not (post-processed-column?)))
     (when-let [t (zone-bound-time value)]
-      (let [compiled (postgres-clause driver [op opts field (at-time (utc-time t))])]
-        (if (or *inside-not* *inside-case*)
-          compiled
-          (not-merged driver field compiled))))))
+      (if (contains? *rollup-ranges* clause)
+        ;; The time of the session, also for a relative bound: Cube reads the two bounds of a date range in that zone.
+        (postgres-clause driver [op opts field (at-time t)])
+        (let [compiled (postgres-clause driver [op opts field (at-time (utc-time t))])]
+          (if (or *inside-not* *inside-case*)
+            compiled
+            (not-merged driver field compiled)))))))
 
 (defn- check-no-strict-bound-with-shift!
   "A time shift needs a date range, and a date range on stock Cube has no form for `x > t` that is right for a DateTime64."
@@ -571,13 +573,18 @@
 (defmethod sql.qp/->honeysql [:cube :between]
   [driver [_ opts field low high :as clause]]
   (check-no-fraction! field (plain-bound-time field low) (plain-bound-time field high))
-  (if (and (not (contains? *rollup-ranges* clause))
-           (zone-bound-time low)
-           (zone-bound-time high)
-           (zone-bound driver [:>= opts field low]))
+  (cond
+    (contains? *rollup-ranges* clause)
+    (postgres-clause driver [:between opts field (at-time (zone-bound-time low)) (at-time (zone-bound-time high))])
+
+    (and (zone-bound-time low)
+         (zone-bound-time high)
+         (zone-bound driver [:>= opts field low]))
     [:and
      (sql.qp/->honeysql driver [:>= opts field low])
      (sql.qp/->honeysql driver [:<= opts field high])]
+
+    :else
     (postgres-clause driver clause)))
 
 ;; With a breakout on the same column, Cube reads `x = t` as the bucket that starts at `t`, and it returns the whole bucket. Two
