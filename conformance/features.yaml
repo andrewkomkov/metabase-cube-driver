@@ -4611,6 +4611,48 @@
   status: pass
   status_stock: pass
   check: grid.compact.dataset
+- id: fuzz.cases
+  area: grid
+  title: "the permanent cases of the random query generator"
+  status: pass
+  status_stock: pass
+  check: fuzz.cases
+- id: fuzz.sample
+  area: grid
+  title: "a fixed seed of the random query generator"
+  status: pass
+  status_stock: pass
+  check: fuzz.sample
+- id: clickhouse.aggregate_on_no_rows
+  area: clickhouse
+  title: "sum, min and max of no rows are NULL"
+  status: pass
+  status_stock: pass
+  check: clickhouse.aggregate_on_no_rows
+- id: filter.case_dimension_on_raw_rows
+  area: cube.dimensions
+  title: "a raw row shows a case dimension"
+  status: pass
+  status_stock: pass
+  check: filter.case_dimension_on_raw_rows
+- id: filter.fraction_beyond_the_scale_of_a_decimal
+  area: mb.compile.filter
+  title: "a number with more digits than a Decimal column"
+  status: pass
+  status_stock: pass
+  check: filter.fraction_beyond_the_scale_of_a_decimal
+- id: filter.aggregation_on_a_join_of_a_view_refused
+  area: cube.views
+  title: "an aggregation on a joined column of a view stops"
+  status: pass
+  status_stock: pass
+  check: filter.aggregation_on_a_join_of_a_view_refused
+- id: measure.time_type_in_a_report_zone_refused
+  area: cube.measures
+  title: "a measure of type time stops under a report time zone"
+  status: pass
+  status_stock: pass
+  check: measure.time_type_in_a_report_zone_refused
 - id: grid.compact.mcp
   area: grid
   title: "a compact form of the review grid through MCP"

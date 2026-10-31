@@ -5788,6 +5788,76 @@ def _(ctx):
         ctx.mb.api("PUT", "/api/setting/start-of-week", {"value": prev if isinstance(prev, str) and prev else None})
 
 
+# ----------------------------------------------------------------- findings of the random query generator, see dev/fuzz/README.md
+
+Q("clickhouse.aggregate_on_no_rows", ORD, "SELECT NULL, NULL, NULL",
+  agg=["m:orders.min_amount", "m:orders.max_amount", "m:orders.first_order_at"], where=[["=", "d:orders.status", "no such status"]])
+Q("filter.case_dimension_on_raw_rows", ORD, "SELECT id, if(quantity >= 3, 'large', 'small') FROM orders WHERE id <= 3",
+  fields=["d:orders.id", "d:orders.size"], where=[["<=", "d:orders.id", 3]])
+Q("filter.fraction_beyond_the_scale_of_a_decimal", "typed_events", "SELECT count() FROM typed_events WHERE toFloat64(dec_amount) < 12.50001",
+  agg=["m:typed_events.count"], where=[["<", "d:typed_events.dec_amount", 12.50001]])
+
+
+@check("filter.aggregation_on_a_join_of_a_view_refused")
+def _(ctx):
+    """An aggregation with a column that comes from another cube of the view gives each row of that cube once."""
+    try:
+        ctx.mb.mbql("sales", agg=[["share", ["not-null", "d:sales.users_is_vip"]]])
+    except Fail as e:
+        if "add up the dimension" in str(e):
+            return
+        raise
+    raise Fail("the query gave a number")
+
+
+@check("measure.time_type_in_a_report_zone_refused")
+def _(ctx):
+    """Cube gives a measure of type time in UTC under a report time zone, and a time dimension in the zone."""
+    def body():
+        try:
+            ctx.mb.mbql(ORD, agg=["m:orders.last_order_at"])
+        except Fail as e:
+            if "measure of type time" in str(e):
+                return
+            raise
+        raise Fail("the query gave a number")
+    with_report_timezone(ctx, "America/New_York", body)
+
+
+# ----------------------------------------------------------------- the random query generator, see dev/fuzz/README.md
+
+
+def fuzz_runner(ctx):
+    rctx = compact_context(ctx)
+    sys.path.insert(0, os.path.join(REPO, "dev", "fuzz"))
+    import fuzz  # noqa: PLC0415
+
+    return fuzz, fuzz.Runner(ctx.review_mb, rctx)
+
+
+@check("fuzz.cases")
+def _(ctx):
+    """The smallest form of each failure that the generator found. Each one gives the truth or a clear refusal."""
+    fuzz, runner = fuzz_runner(ctx)
+    result = fuzz.replay(runner, log=lambda _text: None)
+    print("         %d cases" % result["cases"])
+    if result["failed"]:
+        raise Fail("%d of %d cases fail: %s" % (len(result["failed"]), result["cases"], json.dumps(result["failed"][:4])[:600]))
+
+
+@check("fuzz.sample")
+def _(ctx):
+    """A fixed seed of the generator. The share of refusals stays low, because a driver that refuses all queries passes."""
+    fuzz, runner = fuzz_runner(ctx)
+    report = fuzz.run_seed(runner, "conformance", 200, reduce=False, save=False, workers=2, log=lambda _text: None)
+    print("         %s, refusal rate %.1f%%" % (json.dumps(report["counts"], sort_keys=True), 100 * report["refusal_rate"]))
+    if report["failures"]:
+        first = [{k: f.get(k) for k in ("index", "verdict", "diff", "error")} for f in report["failures"][:4]]
+        raise Fail("%d of %d queries fail: %s" % (len(report["failures"]), report["count"], json.dumps(first)[:600]))
+    if report["refusal_rate"] > 0.25:
+        raise Fail("the refusal rate is %.1f%%, above the limit of 25%%" % (100 * report["refusal_rate"]))
+
+
 @check("demo.lambda_cube_is_hidden")
 def _(ctx):
     """Finding m5: the demo has no table that fails on each query."""
