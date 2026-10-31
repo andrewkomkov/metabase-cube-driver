@@ -47,9 +47,3 @@ cubes:
         description: Count with a number format.
         format: number
         meta: { owner: finance }
-      - name: m_rank
-        type: rank
-        title: Rank by revenue
-        description: Rank of the group by revenue.
-        order_by:
-          - { sql: "{m_revenue}", direction: desc }
