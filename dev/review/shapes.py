@@ -9,20 +9,21 @@ PAID = "o.status IN ('completed','shipped')"
 
 MEASURES = {
     "count": "count()",
-    "revenue": "sum(o.amount)",
+    "revenue": "sumOrNull(o.amount)",
     "avg_order_value": "avgOrNull(toFloat64(o.amount))",
-    "min_amount": "min(o.amount)",
-    "max_amount": "max(o.amount)",
+    "min_amount": "minOrNull(o.amount)",
+    "max_amount": "maxOrNull(o.amount)",
     "unique_customers": "uniqExact(o.user_id)",
     "approx_customers": "uniq(o.user_id)",
     "paid_revenue": "sumOrNull(if(%s, o.amount, NULL))" % PAID,
     "paid_share": "toFloat64(sumOrNull(if(%s, o.amount, NULL))) / nullIf(toFloat64(sumOrNull(o.amount)), 0)" % PAID,
-    "first_order_at": "min(o.created_at)",
-    "last_order_at": "max(o.created_at)",
+    "first_order_at": "minOrNull(o.created_at)",
+    "last_order_at": "maxOrNull(o.created_at)",
     "has_orders": "if(count() > 0, 'true', 'false')",
     "statuses": "arrayStringConcat(arraySort(groupUniqArray(o.status)), ',')",
 }
 
+# SQL and Metabase on Postgres give NULL for an aggregate of no rows, and plain sum on ClickHouse gives 0.
 BUCKETS = {
     "none": (None, None),
     "hour": ("hour", "toStartOfHour(o.created_at)"),
