@@ -1,0 +1,84 @@
+== out/dataset-dialect.jsonl 1757 {'pass': 1610, 'wrong': 112, 'error': 10, 'refused_as_expected': 19, 'no_refusal': 4, 'info': 2}
+  30   B1 equality on a time at the start of a bucket
+  14   B2 case of a text filter
+  4    B3 native rolling window with a function in the filter
+  3    M1 month to date by a quarter
+  62   M2 week of year differs from Metabase on Postgres
+  1    known: native COUNT(*) on no rows
+  1    known: native sum of a joined dimension
+  1    known: raw select of a switch
+  1    refused or error: Cube needs a date range for this query. A rolling window measure by a time bucket needs a 
+         native/star error Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the same time column. Add a date filter. Cube said: Error executing query: ERROR: Database Execution Erro
+  4    refused or error: Cube pushes a filter of an outer query below the aggregation of its subquery, so the rows 
+         native/subquery_outer_filter error Cube pushes a filter of an outer query below the aggregation of its subquery, so the rows of the subquery change and the number would be wrong. Add LIMIT 2147483647 to the subquery.
+         native/cte_outer_filter_time error Cube pushes a filter of an outer query below the aggregation of its subquery, so the rows of the subquery change and the number would be wrong. Add LIMIT 2147483647 to the subquery.
+         follow/subquery_native/comment_limit error Cube pushes a filter of an outer query below the aggregation of its subquery, so the rows of the subquery change and the number would be wrong. Add LIMIT 2147483647 to the subquery.
+         follow/subquery_native/two_level error Cube pushes a filter of an outer query below the aggregation of its subquery, so the rows of the subquery change and the number would be wrong. Add LIMIT 2147483647 to the subquery.
+  2    refused or error: Cube reads the end of BETWEEN on created_at as the end of that day when it has no time, bu
+         native/between_date_end error Cube reads the end of BETWEEN on created_at as the end of that day when it has no time, but SQL reads it as midnight, so the number would differ from SQL. Write the time: BETWEEN TIMESTAMP '2025-01-01 00:00:00'
+         native/between_cast_end error Cube reads the end of BETWEEN on created_at as the end of that day when it has no time, but SQL reads it as midnight, so the number would differ from SQL. Write the time: BETWEEN TIMESTAMP '2025-01-01 00:00:00'
+  1    refused or error: ERROR: Database Execution Error: Query failed: Error: week_from_sunday doesn
+         core/min_amount/week/not_group error ERROR: Database Execution Error: Query failed: Error: week_from_sunday doesn't look like datepart name in dateTrunc: In scope SELECT DATE_TRUNC('week_from_sunday', toTimeZone(toDateTime64(ord.created_at, 3), 'U
+  1    refused or error: The columns lifetime_orders and lifetime_paid_orders of users have equal SQL. With a filte
+         native/sub_query_equal error The columns lifetime_orders and lifetime_paid_orders of users have equal SQL. With a filter in the query, Cube reads the first subquery for both columns, so one number would be wrong. Use one of these columns i
+  1    refused or error: The granularity fiscal_quarter of orders.created_at starts inside the data, and a rollup s
+         edge/custom_fiscal_quarter error The granularity fiscal_quarter of orders.created_at starts inside the data, and a rollup serves this measure. Cube Store puts a time before the origin in the wrong bin, so the number would be wrong. Give the gr
+== out/dataset-stock.jsonl 1757 {'pass': 1601, 'wrong': 114, 'error': 17, 'refused_as_expected': 19, 'no_refusal': 4, 'info': 2}
+  30   B1 equality on a time at the start of a bucket
+  14   B2 case of a text filter
+  4    B3 native rolling window with a function in the filter
+  3    M1 month to date by a quarter
+  62   M2 week of year differs from Metabase on Postgres
+  1    known: native COUNT(*) on no rows
+  1    known: native sum of a joined dimension
+  1    known: raw select of a switch
+  1    known: stock NOT (x > t) on a DateTime64
+  1    known: stock raw DateTime64
+  1    refused or error: Cube drops the fraction of a second in a filter on a time, so the number would be wrong. U
+         edge/berlin_fraction error Cube drops the fraction of a second in a filter on a time, so the number would be wrong. Use whole seconds, or install the ClickHouse dialect, see cube-clickhouse/README.md.
+  1    refused or error: Cube needs a date range for this query. A rolling window measure by a time bucket needs a 
+         native/star error Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the same time column. Add a date filter. Cube said: Error executing query: ERROR: Database Execution Erro
+  4    refused or error: Cube pushes a filter of an outer query below the aggregation of its subquery, so the rows 
+         native/subquery_outer_filter error Cube pushes a filter of an outer query below the aggregation of its subquery, so the rows of the subquery change and the number would be wrong. Add LIMIT 2147483647 to the subquery.
+         native/cte_outer_filter_time error Cube pushes a filter of an outer query below the aggregation of its subquery, so the rows of the subquery change and the number would be wrong. Add LIMIT 2147483647 to the subquery.
+         follow/subquery_native/comment_limit error Cube pushes a filter of an outer query below the aggregation of its subquery, so the rows of the subquery change and the number would be wrong. Add LIMIT 2147483647 to the subquery.
+         follow/subquery_native/two_level error Cube pushes a filter of an outer query below the aggregation of its subquery, so the rows of the subquery change and the number would be wrong. Add LIMIT 2147483647 to the subquery.
+  6    refused or error: Cube reads > on created_at as >= when the same filter has an upper bound, so the number wo
+         native/strict_both error Cube reads > on created_at as >= when the same filter has an upper bound, so the number would include the bound. Write >= with the next second, for example created_at >= TIMESTAMP '2025-01-01 00:00:01', or inst
+         native/strict_both_cast error Cube reads > on created_at as >= when the same filter has an upper bound, so the number would include the bound. Write >= with the next second, for example created_at >= TIMESTAMP '2025-01-01 00:00:01', or inst
+         native/strict_both_reversed error Cube reads > on created_at as >= when the same filter has an upper bound, so the number would include the bound. Write >= with the next second, for example created_at >= TIMESTAMP '2025-01-01 00:00:01', or inst
+         follow/bound_native/function_literal error Cube reads > on created_at as >= when the same filter has an upper bound, so the number would include the bound. Write >= with the next second, for example created_at >= TIMESTAMP '2025-01-01 00:00:01', or inst
+         follow/bound_native/comment_split error Cube reads > on created_at as >= when the same filter has an upper bound, so the number would include the bound. Write >= with the next second, for example created_at >= TIMESTAMP '2025-01-01 00:00:01', or inst
+         follow/bound_native/quoted error Cube reads > on created_at as >= when the same filter has an upper bound, so the number would include the bound. Write >= with the next second, for example created_at >= TIMESTAMP '2025-01-01 00:00:01', or inst
+  2    refused or error: Cube reads the end of BETWEEN on created_at as the end of that day when it has no time, bu
+         native/between_date_end error Cube reads the end of BETWEEN on created_at as the end of that day when it has no time, but SQL reads it as midnight, so the number would differ from SQL. Write the time: BETWEEN TIMESTAMP '2025-01-01 00:00:00'
+         native/between_cast_end error Cube reads the end of BETWEEN on created_at as the end of that day when it has no time, but SQL reads it as midnight, so the number would differ from SQL. Write the time: BETWEEN TIMESTAMP '2025-01-01 00:00:00'
+  1    refused or error: ERROR: Database Execution Error: Query failed: Error: week_from_sunday doesn
+         core/min_amount/week/not_group error ERROR: Database Execution Error: Query failed: Error: week_from_sunday doesn't look like datepart name in dateTrunc: In scope SELECT DATE_TRUNC('week_from_sunday', toTimeZone(toDateTime64(ord.created_at, 0), 'U
+  1    refused or error: The columns lifetime_orders and lifetime_paid_orders of users have equal SQL. With a filte
+         native/sub_query_equal error The columns lifetime_orders and lifetime_paid_orders of users have equal SQL. With a filter in the query, Cube reads the first subquery for both columns, so one number would be wrong. Use one of these columns i
+  1    refused or error: The granularity fiscal_quarter of orders.created_at starts inside the data, and a rollup s
+         edge/custom_fiscal_quarter error The granularity fiscal_quarter of orders.created_at starts inside the data, and a rollup serves this measure. Cube Store puts a time before the origin in the wrong bin, so the number would be wrong. Give the gr
+== out/mcp-dialect.jsonl 426 {'pass': 378, 'wrong': 36, 'refused_as_expected': 4, 'error': 3, 'no_refusal': 3, 'info': 1, 'skip': 1}
+  8    B1 equality on a time at the start of a bucket
+  5    B2 case of a text filter
+  3    B3 native rolling window with a function in the filter
+  1    M1 month to date by a quarter
+  20   M2 week of year differs from Metabase on Postgres
+  1    known: native COUNT(*) on no rows
+  1    known: native sum of a joined dimension
+  3    refused or error: Query failed: 
+         edge/custom_fiscal_quarter error Query failed: "The granularity fiscal_quarter of orders.created_at starts inside the data, and a rollup serves this measure. Cube Store puts a time before the origin in the wrong bin, so the number would be wro
+         native/star error Query failed: "Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the same time column. Add a date filter. Cube said: Error executing query: ERROR: Database
+         follow/subquery_native/comment_limit error Query failed: "Cube pushes a filter of an outer query below the aggregation of its subquery, so the rows of the subquery change and the number would be wrong. Add LIMIT 2147483647 to the subquery."
+== out/mcp-stock.jsonl 191 {'pass': 162, 'wrong': 21, 'error': 3, 'refused_as_expected': 1, 'no_refusal': 2, 'info': 1, 'skip': 1}
+  4    B1 equality on a time at the start of a bucket
+  4    B2 case of a text filter
+  2    B3 native rolling window with a function in the filter
+  11   M2 week of year differs from Metabase on Postgres
+  1    known: native sum of a joined dimension
+  1    known: stock NOT (x > t) on a DateTime64
+  3    refused or error: Query failed: 
+         edge/berlin_fraction error Query failed: "Cube drops the fraction of a second in a filter on a time, so the number would be wrong. Use whole seconds, or install the ClickHouse dialect, see cube-clickhouse/README.md."
+         edge/custom_fiscal_quarter error Query failed: "The granularity fiscal_quarter of orders.created_at starts inside the data, and a rollup serves this measure. Cube Store puts a time before the origin in the wrong bin, so the number would be wro
+         native/star error Query failed: "Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the same time column. Add a date filter. Cube said: Error executing query: ERROR: Database

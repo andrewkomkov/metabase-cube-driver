@@ -1,0 +1,38 @@
+# A probe for the entries of "Known wrong numbers" that the demo model cannot reach. The review copies this file to dev/cube/model in its own clone.
+cubes:
+  - name: review_ts64_rollup
+    title: Review ts64 rollup
+    description: A DateTime64 column with a rollup, for a query builder filter on stock Cube.
+    sql_table: shop.typed_events
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: lc, sql: lc, type: string }
+      - { name: ts64, sql: ts64_berlin, type: time }
+    measures:
+      - { name: count, type: count }
+    pre_aggregations:
+      - name: hourly
+        measures: [count]
+        dimensions: [lc]
+        time_dimension: ts64
+        granularity: hour
+        refresh_key: { every: 1 hour }
+
+  - name: review_ts64
+    title: Review ts64
+    description: A DateTime64 column with a time shift and a switch dimension, with no rollup and no rolling window.
+    sql_table: shop.typed_events
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: lc, sql: lc, type: string }
+      - { name: ts64, sql: ts64_berlin, type: time }
+      - { name: cur, type: switch, values: [USD, EUR] }
+    measures:
+      - { name: count, type: count }
+      - { name: sum_dec, sql: dec_amount, type: sum }
+      - name: count_prior_day
+        multi_stage: true
+        sql: "{count}"
+        type: number
+        time_shift:
+          - { time_dimension: ts64, interval: 1 day, type: prior }

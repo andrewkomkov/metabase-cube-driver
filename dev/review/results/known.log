@@ -1,0 +1,53 @@
+===== Cube
+1 raw long decimal [[1.0, 1000000000000.0]] truth [['1000000000000.00000001']]
+1 native long decimal [[1000000000000.0]]
+1 text form [['1000000000000.00000001']]
+1 sum of a long decimal [[6000000000000.0]] truth [['6000000000000.00000006']]
+2 orders [[None]]
+2 no rollup [[0]]
+2 measure [[0]]
+2 query builder [[0]]
+3 native raw [[1.0, 'USD'], [1.0, 'EUR']]
+3 native star (4, [[None, None, 1.0, 1.0, 'beta', '2025-03-02T01:00:00.001Z', 'USD', None, None], [None, None, 1.0, 1.0, 'beta', '2025-03-02T01:00:00.001Z', 'EUR', None, None]])
+3 count over a subquery [[10]] truth 10
+3 sum of a dimension over the rows [[55.0]] truth 55
+3 query builder [[1.0, None]]
+3 orders star ERROR: Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the same time column. Add a date filte
+5 truth half open [['1']] rows of the second before b [['0']]
+5 row at 2025-03-02 07:00:00.031 upper bound 2025-03-02 07:00:01
+5 native x>=a AND x<b [[31]] truth [['31']]
+5 builder, no rollup [[31]] truth [['31']]
+5 builder, rollup [[31]] truth [['31']]
+5 builder, rollup, by day [['2025-03-01T00:00:00Z', 31]] truth [['31']]
+6 builder NOT x>t [[30]] truth [['30']]
+6 native NOT x>t [[30]] truth [['30']]
+6 shift x>t [['2025-03-05T00:00:00Z', 20.0]] truth [['2025-03-05 00:00:00', '20']]
+7 raw [[7.0, '2025-03-01T07:00:00.007Z']] truth [['2025-03-01 07:00:00.007']]
+===== Cube stock
+1 raw long decimal [[1.0, 1000000000000.0]] truth [['1000000000000.00000001']]
+1 native long decimal [[1000000000000.0]]
+1 text form [['1000000000000.00000001']]
+1 sum of a long decimal [[6000000000000.0]] truth [['6000000000000.00000006']]
+2 orders [[None]]
+2 no rollup [[0]]
+2 measure [[0]]
+2 query builder [[0]]
+3 native raw [[1.0, 'USD'], [1.0, 'EUR']]
+3 native star (4, [[1, 0.125, None, 1.0, 'beta', '2025-03-01T01:00:00Z', 'USD', None, None], [1, 0.125, None, 1.0, 'beta', '2025-03-01T01:00:00Z', 'EUR', None, None]])
+3 count over a subquery [[10]] truth 10
+3 sum of a dimension over the rows [[55.0]] truth 55
+3 query builder [[1.0, None]]
+3 orders star ERROR: Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the same time column. Add a date filte
+5 truth half open [['1']] rows of the second before b [['0']]
+5 row at 2025-03-02 07:00:00.031 upper bound 2025-03-02 07:00:01
+5 native x>=a AND x<b [[30]] truth [['31']]
+5 builder, no rollup [[31]] truth [['31']]
+5 builder, rollup [[30]] truth [['31']]
+5 builder, rollup, by day [['2025-03-01T00:00:00Z', 30]] truth [['31']]
+6 builder NOT x>t [[31]] truth [['30']]
+6 native NOT x>t [[31]] truth [['30']]
+6 shift x>t [['2025-03-05T00:00:00Z', 19.0]] truth [['2025-03-05 00:00:00', '20']]
+7 raw [[7.0, '2025-03-01T07:00:00Z']] truth [['2025-03-01 07:00:00.007']]
+8 legacy 200 [('2025-02-01T00:00:00.000', '27274'), ('2025-03-01T00:00:00.000', '26428')] None
+8 truth [['2025-02-01 00:00:00', '27274'], ['2025-03-01 00:00:00', '26428']]
+8 sql SELECT q_0.`ord__created_at_month` `ord__created_at_month`, `ord__revenue_trailing_30d` `ord__revenue_trailing_30d` FROM (SELECT `orders.created_at_series`.`date_from` `ord__created_at_month`, sum(`ord__revenue_trailing_30d`) `ord__revenue_trailing_30d` FROM (SELECT parseDateTimeBestEffort(dates.1) as date_from, parseDateTimeBestEffort(dates.2) as date_to FROM (SELECT arrayJoin(arrayZip(['2025-02-01T00:00:00.000','2025-03-01T00:00:00.000'], ['2025-02-28T23:59:59.999','2025-03-31T23:59:59.999'])) as dates)) AS `orders.created_at_series` LEFT JOIN (SELECT toDateTime64(toStartOfDay(toTimeZone(toDateTime64(`orders_revenue_trailing_30d_cumulative__ord`.created_at, 3), 'UTC'), 'UTC'), 0, 'UTC') `ord__created_at_month`, sum(`orders_revenue_trailing_30d_cumulative__ord`.amount) `ord__revenue_trailing_30d` FROM shop.orders AS `orders_revenue_trailing_30d_cumulative__ord`  WHERE (toTimeZone(toDate

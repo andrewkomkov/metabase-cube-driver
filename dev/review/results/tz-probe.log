@@ -1,0 +1,70 @@
+===== America/New_York
+cube >= time | GOT [[2684]] | ERR 
+   SQL SELECT COALESCE(MEASURE("orders"."count"), 0) AS "sum" FROM "orders" WHERE "orders"."created_at" >= TIMESTAMP '2025-06-15 11:00:00'
+   TRUTH [['2682']]
+stock >= time | GOT [[2684]] | ERR 
+   SQL SELECT COALESCE(MEASURE("orders"."count"), 0) AS "sum" FROM "orders" WHERE "orders"."created_at" >= TIMESTAMP '2025-06-15 11:00:00'
+postgres timestamptz >= [[2682]] SELECT COUNT(*) AS "count" FROM "public"."orders" WHERE "public"."orders"."created_tz" >= timestamp with time zone '2025-06-15 11:00:00.000 -04:00'
+postgres timestamptz < [[2318]] SELECT COUNT(*) AS "count" FROM "public"."orders" WHERE "public"."orders"."created_tz" < timestamp with time zone '2025-06-15 11:00:00.000 -04:00'
+truth utc form [['2684', '2316']] truth in zone [['2682', '2318']]
+cube time at Z | GOT [[2684]] | ERR 
+   SQL SELECT COALESCE(MEASURE("orders"."count"), 0) AS "sum" FROM "orders" WHERE "orders"."created_at" >= TIMESTAMP '2025-06-15 11:00:00'
+   TRUTH [['2684']]
+cube mtd by month | GOT [['2025-03-01T00:00:00-05:00', 27166.0], ['2025-04-01T00:00:00-04:00', 54366.0]] | ERR 
+   SQL SELECT DATE_TRUNC('month', "orders"."created_at") AS "created_at", MEASURE("orders"."revenue_mtd") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-03-01 00:00:00' ) AND ( "orders"."created_at" < TIMESTAMP '2025-05-01 00:00:00' ) GROUP BY DATE_TRUNC('month', "orders"."created_at") ORDER BY DATE_TRUNC('month', "orders"."created_at") ASC
+   TRUTH [['2025-03-01', '27079'], ['2025-04-01', '27374']]
+stock mtd by month | GOT [['2025-03-01T00:00:00-05:00', 27166.0], ['2025-04-01T00:00:00-04:00', 54366.0]] | ERR 
+   SQL SELECT DATE_TRUNC('month', "orders"."created_at") AS "created_at", MEASURE("orders"."revenue_mtd") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-03-01 00:00:00' ) AND ( "orders"."created_at" < TIMESTAMP '2025-05-01 00:00:00' ) GROUP BY DATE_TRUNC('month', "orders"."created_at") ORDER BY DATE_TRUNC('month', "orders"."created_at") ASC
+cube ytd by month | GOT [['2025-03-01T00:00:00-05:00', 80067.0], ['2025-04-01T00:00:00-04:00', 107354.0]] | ERR 
+   SQL SELECT DATE_TRUNC('month', "orders"."created_at") AS "created_at", MEASURE("orders"."revenue_ytd") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-03-01 00:00:00' ) AND ( "orders"."created_at" < TIMESTAMP '2025-05-01 00:00:00' ) GROUP BY DATE_TRUNC('month', "orders"."created_at") ORDER BY DATE_TRUNC('month', "orders"."created_at") ASC
+   TRUTH [['march', '80067', 'april', '107441']]
+cube trailing 30d by month | GOT [['2025-03-01T00:00:00-05:00', 26383.0], ['2025-04-01T00:00:00-04:00', 27287.0]] | ERR 
+   SQL SELECT DATE_TRUNC('month', "orders"."created_at") AS "created_at", MEASURE("orders"."revenue_trailing_30d") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-03-01 00:00:00' ) AND ( "orders"."created_at" < TIMESTAMP '2025-05-01 00:00:00' ) GROUP BY DATE_TRUNC('month', "orders"."created_at") ORDER BY DATE_TRUNC('month', "orders"."created
+   TRUTH [['26383']]
+cube mtd by day | GOT [['2025-03-01T00:00:00-05:00', 783.0], ['2025-03-02T00:00:00-05:00', 1187.0]] | ERR 
+   SQL SELECT DATE_TRUNC('day', "orders"."created_at") AS "created_at", MEASURE("orders"."revenue_mtd") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-03-01 00:00:00' ) AND ( "orders"."created_at" < TIMESTAMP '2025-03-03 00:00:00' ) GROUP BY DATE_TRUNC('day', "orders"."created_at") ORDER BY DATE_TRUNC('day', "orders"."created_at") ASC
+   TRUTH [['696', '1342']]
+REST dialect mtd ['27166', '54366'] None
+REST stock mtd ['27166', '54366'] None
+REST sql WITH time_series AS ( SELECT parseDateTimeBestEffort(dates.f) date_from, parseDateTimeBestEffort(dates.t) date_to FROM ( select '2025-03-01T00:00:00.000' f, '2025-03-31T23:59:59.999' t UNION ALL select '2025-04-01T00:00:00.000' f, '2025-04-30T23:59:59.999' t ) AS dates), cte_0 AS ( SELECT toDateTime64(toStartOfMonth(toTimeZone(toDateTime64(`ord`.created_at, 3), 'America/New_York'), 'America/New_York'), 0, 'America/New_York') `ord__created_at_month`, sum(`ord`.amount) `ord__revenue_mtd` FROM shop.orders AS `ord` WHERE (toTimeZone(toDateTime64(`ord`.created_at, 3), 'America/New_York') >= parseDateTime64BestEffort(?, 3, 'UTC') AND toTimeZone(toDateTime64(`ord`.created_at, 3), 'America/New_York') <= parseDateTime64BestEffort(?, 3, 'UTC')) GROUP BY 1 ORDER BY 1 ASC), cte_1 AS ( SELECT `time_series`.`date_from` `ord__created_at_month`, sum(`rolling_source`.`ord__revenue_mtd`) `ord__revenue_mtd` FROM time_series AS `time_series` LEFT JOIN cte_0 AS `rolling_source` ON `rolling_source`.`ord__created_at_month` >= toDateTime64(toStartOfMonth(`time_series`.`date_from`, 'America/New_York'), 0, 'A
+cube hour of day | GOT [[1, 1], [2, 1], [4, 1], [6, 1]] | ERR 
+   SQL SELECT DATEDIFF( 'hour', DATE_TRUNC('day', "orders"."created_at"), "orders"."created_at" ) AS "created_at", MEASURE("orders"."count") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-03-09 00:00:00' ) AND ( "orders"."created_at" < TIMESTAMP '2025-03-10 00:00:00' ) GROUP BY DATEDIFF( 'hour', DATE_TRUNC('day', "orders"."created_at"), "or
+   TRUTH [[1, '1'], [3, '1'], [5, '1'], [7, '1']]
+cube date by month | GOT [['2025-02-01T00:00:00-05:00', 23], ['2025-03-01T00:00:00-05:00', 744], ['2025-04-01T00:00:00-04:00', 233]] | ERR 
+   SQL SELECT DATE_TRUNC('month', "typed_events"."day") AS "day", MEASURE("typed_events"."count") AS "sum" FROM "typed_events" GROUP BY DATE_TRUNC('month', "typed_events"."day") ORDER BY DATE_TRUNC('month', "typed_events"."day") ASC
+   TRUTH [['2025-03-01', '743'], ['2025-04-01', '257']]
+===== Asia/Kathmandu
+cube >= time | GOT [[2684]] | ERR 
+   SQL SELECT COALESCE(MEASURE("orders"."count"), 0) AS "sum" FROM "orders" WHERE "orders"."created_at" >= TIMESTAMP '2025-06-15 11:00:00'
+   TRUTH [['2687']]
+stock >= time | GOT [[2684]] | ERR 
+   SQL SELECT COALESCE(MEASURE("orders"."count"), 0) AS "sum" FROM "orders" WHERE "orders"."created_at" >= TIMESTAMP '2025-06-15 11:00:00'
+postgres timestamptz >= [[2687]] SELECT COUNT(*) AS "count" FROM "public"."orders" WHERE "public"."orders"."created_tz" >= timestamp with time zone '2025-06-15 11:00:00.000 +05:45'
+postgres timestamptz < [[2313]] SELECT COUNT(*) AS "count" FROM "public"."orders" WHERE "public"."orders"."created_tz" < timestamp with time zone '2025-06-15 11:00:00.000 +05:45'
+truth utc form [['2684', '2316']] truth in zone [['2687', '2313']]
+cube time at Z | GOT [[2684]] | ERR 
+   SQL SELECT COALESCE(MEASURE("orders"."count"), 0) AS "sum" FROM "orders" WHERE "orders"."created_at" >= TIMESTAMP '2025-06-15 11:00:00'
+   TRUTH [['2684']]
+cube mtd by month | GOT [['2025-03-01T00:00:00+05:45', 54323.0], ['2025-04-01T00:00:00+05:45', 27574.0]] | ERR 
+   SQL SELECT DATE_TRUNC('month', "orders"."created_at") AS "created_at", MEASURE("orders"."revenue_mtd") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-03-01 00:00:00' ) AND ( "orders"."created_at" < TIMESTAMP '2025-05-01 00:00:00' ) GROUP BY DATE_TRUNC('month', "orders"."created_at") ORDER BY DATE_TRUNC('month', "orders"."created_at") ASC
+   TRUTH [['2025-03-01', '26953'], ['2025-04-01', '27444']]
+stock mtd by month | GOT [['2025-03-01T00:00:00+05:45', 54323.0], ['2025-04-01T00:00:00+05:45', 27574.0]] | ERR 
+   SQL SELECT DATE_TRUNC('month', "orders"."created_at") AS "created_at", MEASURE("orders"."revenue_mtd") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-03-01 00:00:00' ) AND ( "orders"."created_at" < TIMESTAMP '2025-05-01 00:00:00' ) GROUP BY DATE_TRUNC('month', "orders"."created_at") ORDER BY DATE_TRUNC('month', "orders"."created_at") ASC
+cube ytd by month | GOT [['2025-03-01T00:00:00+05:45', 107379.0], ['2025-04-01T00:00:00+05:45', 107509.0]] | ERR 
+   SQL SELECT DATE_TRUNC('month', "orders"."created_at") AS "created_at", MEASURE("orders"."revenue_ytd") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-03-01 00:00:00' ) AND ( "orders"."created_at" < TIMESTAMP '2025-05-01 00:00:00' ) GROUP BY DATE_TRUNC('month', "orders"."created_at") ORDER BY DATE_TRUNC('month', "orders"."created_at") ASC
+   TRUTH [['march', '79935', 'april', '107379']]
+cube trailing 30d by month | GOT [['2025-03-01T00:00:00+05:45', 26411.0], ['2025-04-01T00:00:00+05:45', 26831.0]] | ERR 
+   SQL SELECT DATE_TRUNC('month', "orders"."created_at") AS "created_at", MEASURE("orders"."revenue_trailing_30d") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-03-01 00:00:00' ) AND ( "orders"."created_at" < TIMESTAMP '2025-05-01 00:00:00' ) GROUP BY DATE_TRUNC('month', "orders"."created_at") ORDER BY DATE_TRUNC('month', "orders"."created
+   TRUTH [['26317']]
+cube mtd by day | GOT [['2025-03-01T00:00:00+05:45', 1211.0], ['2025-03-02T00:00:00+05:45', 1274.0]] | ERR 
+   SQL SELECT DATE_TRUNC('day', "orders"."created_at") AS "created_at", MEASURE("orders"."revenue_mtd") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-03-01 00:00:00' ) AND ( "orders"."created_at" < TIMESTAMP '2025-03-03 00:00:00' ) GROUP BY DATE_TRUNC('day', "orders"."created_at") ORDER BY DATE_TRUNC('day', "orders"."created_at") ASC
+   TRUTH [['636', '1285']]
+REST dialect mtd ['54323', '27574'] None
+REST stock mtd ['54323', '27574'] None
+REST sql WITH time_series AS ( SELECT parseDateTimeBestEffort(dates.f) date_from, parseDateTimeBestEffort(dates.t) date_to FROM ( select '2025-03-01T00:00:00.000' f, '2025-03-31T23:59:59.999' t UNION ALL select '2025-04-01T00:00:00.000' f, '2025-04-30T23:59:59.999' t ) AS dates), cte_0 AS ( SELECT toDateTime64(toStartOfMonth(toTimeZone(toDateTime64(`ord`.created_at, 3), 'Asia/Kathmandu'), 'Asia/Kathmandu'), 0, 'Asia/Kathmandu') `ord__created_at_month`, sum(`ord`.amount) `ord__revenue_mtd` FROM shop.orders AS `ord` WHERE (toTimeZone(toDateTime64(`ord`.created_at, 3), 'Asia/Kathmandu') >= parseDateTime64BestEffort(?, 3, 'UTC') AND toTimeZone(toDateTime64(`ord`.created_at, 3), 'Asia/Kathmandu') <= parseDateTime64BestEffort(?, 3, 'UTC')) GROUP BY 1 ORDER BY 1 ASC), cte_1 AS ( SELECT `time_series`.`date_from` `ord__created_at_month`, sum(`rolling_source`.`ord__revenue_mtd`) `ord__revenue_mtd` FROM time_series AS `time_series` LEFT JOIN cte_0 AS `rolling_source` ON `rolling_source`.`ord__created_at_month` >= toDateTime64(toStartOfMonth(`time_series`.`date_from`, 'Asia/Kathmandu'), 0, 'Asia/Kathmand
+cube hour of day | GOT [[1, 1], [2, 1], [3, 1], [4, 1]] | ERR 
+   SQL SELECT DATEDIFF( 'hour', DATE_TRUNC('day', "orders"."created_at"), "orders"."created_at" ) AS "created_at", MEASURE("orders"."count") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-03-09 00:00:00' ) AND ( "orders"."created_at" < TIMESTAMP '2025-03-10 00:00:00' ) GROUP BY DATEDIFF( 'hour', DATE_TRUNC('day', "orders"."created_at"), "or
+   TRUTH [[0, '1'], [1, '1'], [2, '1'], [3, '1']]
+cube date by month | GOT [['2025-03-01T00:00:00+05:45', 743], ['2025-04-01T00:00:00+05:45', 257]] | ERR 
+   SQL SELECT DATE_TRUNC('month', "typed_events"."day") AS "day", MEASURE("typed_events"."count") AS "sum" FROM "typed_events" GROUP BY DATE_TRUNC('month', "typed_events"."day") ORDER BY DATE_TRUNC('month', "typed_events"."day") ASC
+   TRUTH [['2025-03-01', '743'], ['2025-04-01', '257']]

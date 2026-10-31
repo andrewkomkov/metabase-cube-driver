@@ -1,0 +1,80 @@
+# Override for the last review. It runs the demo stack as compose project mcd-review, next to the stack on nettop, on other
+# loopback ports. It adds stock Cube, a Metabase with no plugin, and Cube on the ClickHouse of PR 3. See docs/review/0.1.0-final.md.
+services:
+  clickhouse:
+    ports: ["127.0.0.1:18123:8123"]
+  cube:
+    ports: !override ["127.0.0.1:14400:4000", "127.0.0.1:25433:15432"]
+  cube-secure:
+    ports: !override ["127.0.0.1:14401:4000", "127.0.0.1:25434:15432"]
+  cube-legacy:
+    ports: !override ["127.0.0.1:14402:4000"]
+  mail:
+    ports: !override ["127.0.0.1:18025:8025"]
+  browser:
+    ports: !override ["127.0.0.1:19222:9222"]
+  metabase:
+    environment:
+      MB_SITE_URL: http://127.0.0.1:13300
+    ports: !override ["127.0.0.1:13300:3000"]
+  cube-stock:
+    extends: { file: docker-compose.yml, service: cube }
+    environment:
+      CUBE_CLICKHOUSE_FIXES: "off"
+    ports: !override ["127.0.0.1:14403:4000", "127.0.0.1:25435:15432"]
+  # The same Metabase with no plugin, for the compare of Sample Database.
+  metabase-plain:
+    profiles: [plain]
+    image: metabase/metabase:${METABASE_VERSION:-v0.65.2.3}
+    mem_limit: 2g
+    environment:
+      MB_DB_FILE: /data/metabase.db
+      MB_SITE_URL: http://127.0.0.1:13301
+      MB_ANON_TRACKING_ENABLED: "false"
+      MB_CHECK_FOR_UPDATES: "false"
+      JAVA_OPTS: -Xmx1g
+    volumes: ["metabase-plain-data:/data"]
+    ports: ["127.0.0.1:13301:3000"]
+  # Another database for the compare with and without the plugin. The driver has :postgres as its parent.
+  postgres:
+    profiles: [plain]
+    image: postgres:16-alpine
+    mem_limit: 512m
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop-dev-only
+      POSTGRES_DB: shop
+    ports: ["127.0.0.1:15439:5432"]
+  # A Metabase for the install by the literal docs. REVIEW_PLUGINS is the plugins directory on the host.
+  metabase-install:
+    profiles: [install]
+    image: metabase/metabase:${METABASE_VERSION:-v0.65.2.3}
+    mem_limit: 2g
+    environment:
+      MB_PLUGINS_DIR: /plugins
+      MB_DB_FILE: /tmp/metabase.db
+      MB_ANON_TRACKING_ENABLED: "false"
+      JAVA_OPTS: -Xmx1g
+    volumes: ["${REVIEW_PLUGINS:-/nonexistent}:/plugins"]
+    ports: ["127.0.0.1:13302:3000"]
+  # The ClickHouse of PR 3, with its own Cube, for measure.rolling.unbounded_one_bucket.
+  clickhouse-pr3:
+    profiles: [pr3]
+    extends: { file: docker-compose.yml, service: clickhouse }
+    image: clickhouse/clickhouse-server:26.10.3-alpine
+    volumes: !override
+      - "./clickhouse/seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro"
+      - "./clickhouse/seed-extra.sql:/docker-entrypoint-initdb.d/seed-extra.sql:ro"
+      - "clickhouse-pr3-data:/var/lib/clickhouse"
+    ports: ["127.0.0.1:18124:8123"]
+  cube-pr3:
+    profiles: [pr3]
+    extends: { file: docker-compose.yml, service: cube }
+    depends_on: !override { clickhouse-pr3: { condition: service_healthy } }
+    environment:
+      CUBEJS_DB_HOST: clickhouse-pr3
+      CUBEJS_DS_SECOND_DB_HOST: clickhouse-pr3
+    ports: !override ["127.0.0.1:14404:4000", "127.0.0.1:25436:15432"]
+volumes:
+  metabase-plain-data:
+  clickhouse-pr3-data:

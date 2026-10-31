@@ -1,0 +1,111 @@
+### B1 equal time at the start of a month, by month
+sql: SELECT DATE_TRUNC('month', "orders"."created_at") AS "created_at", MEASURE("orders"."count") AS "sum" FROM "orders" WHERE "orders"."created_at" = TIMESTAMP '2025-03-01 00:00:00' GROUP BY DATE_TRUNC('month', "orders"."created_at") ORDER BY DATE_TRUNC('month', "orders"."created_at") ASC
+Cube: [["2025-03-01T00:00:00Z", 434]] 
+Cube stock: [["2025-03-01T00:00:00Z", 434]] 
+truth: []
+### B1 the same row, by year
+sql: SELECT DATE_TRUNC('year', "orders"."created_at") AS "created_at", MEASURE("orders"."count") AS "sum" FROM "orders" WHERE "orders"."created_at" = TIMESTAMP '2025-01-01 00:00:00' GROUP BY DATE_TRUNC('year', "orders"."created_at") ORDER BY DATE_TRUNC('year', "orders"."created_at") ASC
+Cube: [["2025-01-01T00:00:00Z", 5000]] 
+Cube stock: [["2025-01-01T00:00:00Z", 5000]] 
+truth: []
+### B1 a rollup of days, by hour
+sql: SELECT DATE_TRUNC('hour', "big_orders"."created_at") AS "created_at", MEASURE("big_orders"."count") AS "sum" FROM "big_orders" WHERE "big_orders"."created_at" = TIMESTAMP '2024-03-15 02:00:00' GROUP BY DATE_TRUNC('hour', "big_orders"."created_at") ORDER BY DATE_TRUNC('hour', "big_orders"."created_at") ASC
+Cube: [["2024-03-15T02:00:00Z", 600]] 
+Cube stock: [["2024-03-15T02:00:00Z", 600]] 
+truth: [["2024-03-15 02:00:00", "1"]]
+### B1 a cube with no rollup, by quarter
+sql: SELECT DATE_TRUNC('quarter', "typed_events"."ts_utc") AS "ts_utc", MEASURE("typed_events"."count") AS "sum" FROM "typed_events" WHERE "typed_events"."ts_utc" = TIMESTAMP '2025-04-01 00:00:00' GROUP BY DATE_TRUNC('quarter', "typed_events"."ts_utc") ORDER BY DATE_TRUNC('quarter', "typed_events"."ts_utc") ASC
+Cube: [["2025-04-01T00:00:00Z", 257]] 
+Cube stock: [["2025-04-01T00:00:00Z", 257]] 
+truth: [["2025-04-01", "1"]]
+### B1 the two bound form gives the truth
+sql: SELECT DATE_TRUNC('month', "orders"."created_at") AS "created_at", MEASURE("orders"."count") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-03-01 00:00:00' ) AND ( "orders"."created_at" <= TIMESTAMP '2025-03-01 00:00:00' ) GROUP BY DATE_TRUNC('month', "orders"."created_at") ORDER BY DATE_TRUNC('month', "orders"."created_at") ASC
+Cube: [] 
+Cube stock: [] 
+truth: []
+### B2 contains, case sensitive by default
+sql: SELECT COALESCE(MEASURE("orders"."count"), 0) AS "sum" FROM "orders" WHERE "orders"."status" LIKE '%COMP%'
+Cube: [[2000]] 
+Cube stock: [[2000]] 
+truth: [["0"]]
+### B2 does-not-contain
+sql: SELECT COALESCE(MEASURE("orders"."count"), 0) AS "sum" FROM "orders" WHERE NOT ("orders"."status" LIKE '%COMP%') OR ("orders"."status" IS NULL)
+Cube: [[3000]] 
+Cube stock: [[3000]] 
+truth: [["5000"]]
+### B2 native LIKE
+sql: SELECT MEASURE(count) FROM orders WHERE status LIKE '%COMP%'
+Cube: [[2000]] 
+Cube stock: [[2000]] 
+truth: [["0"]]
+### B3 native rolling, a function in the filter
+sql: SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_mtd) FROM orders WHERE DATE_TRUNC('day', created_at) >= '2025-03-15' AND created_at < '2025-05-01' GROUP BY 1
+Cube: [["2025-03-01T00:00:00Z", 27121.0], ["2025-04-01T00:00:00Z", 27332.0]] 
+Cube stock: [["2025-03-01T00:00:00Z", 27121.0], ["2025-04-01T00:00:00Z", 27332.0]] 
+truth: [["2025-03-01", "15779"], ["2025-04-01", "27332"]]
+### B3 native rolling, interval arithmetic
+sql: SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_mtd) FROM orders WHERE created_at >= TIMESTAMP '2025-03-01 00:00:00' + INTERVAL '14 day' AND created_at < '2025-05-01' GROUP BY 1
+Cube: [["2025-03-01T00:00:00Z", 27121.0], ["2025-04-01T00:00:00Z", 27332.0]] 
+Cube stock: [["2025-03-01T00:00:00Z", 27121.0], ["2025-04-01T00:00:00Z", 27332.0]] 
+truth: [["2025-03-01", "15779"], ["2025-04-01", "27332"]]
+### M1 month to date by a quarter
+sql: SELECT DATE_TRUNC('quarter', "orders"."created_at") AS "created_at", MEASURE("orders"."revenue_mtd") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-01-01 00:00:00' ) AND ( "orders"."created_at" < TIMESTAMP '2025-07-01 00:00:00' ) GROUP BY DATE_TRUNC('quarter', "orders"."created_at") ORDER BY DATE_TRUNC('quarter', "orders"."created_at") ASC
+Cube: [["2025-01-01T00:00:00Z", 80177.0], ["2025-04-01T00:00:00Z", 81673.0]] 
+Cube stock: [["2025-01-01T00:00:00Z", 80177.0], ["2025-04-01T00:00:00Z", 81673.0]] 
+truth: [["2025-01-01", "27121"], ["2025-04-01", "27262"]]
+### M2 week of year, Metabase meaning
+sql: SELECT FLOOR( ( DATEDIFF( 'day', DATE_TRUNC('year', "orders"."created_at"), "orders"."created_at" ) + ( ( ( ( ( ( DATEDIFF( 'day', DATE_TRUNC('week', "orders"."created_at"), "orders"."created_at" ) + 1 ) % 7 ) - DATEDIFF( 'day', DATE_TRUNC('year', "orders"."created_at"), "orders"."created_at" ) ) % 7 ) + 7 ) % 7 ) ) / 7.0 ) + 1 AS "created_at", MEASURE("orders"."count") AS "sum" FROM "orders" WHERE ( "orders"."create
+Cube: [[2.0, 98]] 
+Cube stock: [[2.0, 98]] 
+truth: [[1, "98"]]
+### m1 week and NOT of OR
+sql: SELECT DATE_TRUNC('week_from_sunday', "orders"."created_at") AS "created_at", MEASURE("orders"."min_amount") AS "min" FROM "orders" WHERE NOT ("orders"."status" = 'completed') AND NOT ("orders"."quantity_dim" >= 4) GROUP BY DATE_TRUNC('week_from_sunday', "orders"."created_at") ORDER BY DATE_TRUNC('week_from_sunday', "orders"."created_at") ASC
+Cube: null ERROR: Database Execution Error: Query failed: Error: week_from_sunday doesn't look like datepart name in dateTrunc: In scope SELECT DATE_TRUNC('week_from_sunday', toTimeZone(toDateTime64(ord.created_
+Cube stock: null ERROR: Database Execution Error: Query failed: Error: week_from_sunday doesn't look like datepart name in dateTrunc: In scope SELECT DATE_TRUNC('week_from_sunday', toTimeZone(toDateTime64(ord.created_
+truth: [["2024-12-29", "15"], ["2025-01-05", "15"], ["2025-01-12", "23"], ["2025-01-19", "13"]]
+===== report time zone America/New_York
+### B4a one time bound, America/New_York
+sql: SELECT COALESCE(MEASURE("orders"."count"), 0) AS "sum" FROM "orders" WHERE "orders"."created_at" >= TIMESTAMP '2025-06-15 11:00:00'
+Cube: [[2684]] 
+Cube stock: [[2684]] 
+truth: [["2682"]]
+### B4b month to date, America/New_York
+sql: SELECT DATE_TRUNC('month', "orders"."created_at") AS "created_at", MEASURE("orders"."revenue_mtd") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-03-01 00:00:00' ) AND ( "orders"."created_at" < TIMESTAMP '2025-05-01 00:00:00' ) GROUP BY DATE_TRUNC('month', "orders"."created_at") ORDER BY DATE_TRUNC('month', "orders"."created_at") ASC
+Cube: [["2025-03-01T00:00:00-05:00", 27166.0], ["2025-04-01T00:00:00-04:00", 54366.0]] 
+Cube stock: [["2025-03-01T00:00:00-05:00", 27166.0], ["2025-04-01T00:00:00-04:00", 54366.0]] 
+truth: [["2025-03-01", "27079"], ["2025-04-01", "27374"]]
+### B4c hour of day, America/New_York
+sql: SELECT DATEDIFF( 'hour', DATE_TRUNC('day', "orders"."created_at"), "orders"."created_at" ) AS "created_at", MEASURE("orders"."count") AS "sum" FROM "orders" GROUP BY DATEDIFF( 'hour', DATE_TRUNC('day', "orders"."created_at"), "orders"."created_at" ) ORDER BY DATEDIFF( 'hour', DATE_TRUNC('day', "orders"."created_at"), "orders"."created_at" ) ASC
+Cube: [[0, 217], [1, 219], [2, 218], [3, 218]] 
+Cube stock: [[0, 217], [1, 219], [2, 218], [3, 218]] 
+truth: [[0, "217"], [1, "220"], [2, "217"], [3, "219"]]
+### M3 Date column by month, America/New_York
+sql: SELECT DATE_TRUNC('month', "typed_events"."day") AS "day", MEASURE("typed_events"."count") AS "sum" FROM "typed_events" GROUP BY DATE_TRUNC('month', "typed_events"."day") ORDER BY DATE_TRUNC('month', "typed_events"."day") ASC
+Cube: [["2025-02-01T00:00:00-05:00", 23], ["2025-03-01T00:00:00-05:00", 744], ["2025-04-01T00:00:00-04:00", 233]] 
+Cube stock: [["2025-02-01T00:00:00-05:00", 23], ["2025-03-01T00:00:00-05:00", 744], ["2025-04-01T00:00:00-04:00", 233]] 
+truth: [["2025-03-01", "743"], ["2025-04-01", "257"]]
+===== report time zone Asia/Kathmandu
+### B4a one time bound, Asia/Kathmandu
+sql: SELECT COALESCE(MEASURE("orders"."count"), 0) AS "sum" FROM "orders" WHERE "orders"."created_at" >= TIMESTAMP '2025-06-15 11:00:00'
+Cube: [[2684]] 
+Cube stock: [[2684]] 
+truth: [["2687"]]
+### B4b month to date, Asia/Kathmandu
+sql: SELECT DATE_TRUNC('month', "orders"."created_at") AS "created_at", MEASURE("orders"."revenue_mtd") AS "sum" FROM "orders" WHERE ( "orders"."created_at" >= TIMESTAMP '2025-03-01 00:00:00' ) AND ( "orders"."created_at" < TIMESTAMP '2025-05-01 00:00:00' ) GROUP BY DATE_TRUNC('month', "orders"."created_at") ORDER BY DATE_TRUNC('month', "orders"."created_at") ASC
+Cube: [["2025-03-01T00:00:00+05:45", 54323.0], ["2025-04-01T00:00:00+05:45", 27574.0]] 
+Cube stock: [["2025-03-01T00:00:00+05:45", 54323.0], ["2025-04-01T00:00:00+05:45", 27574.0]] 
+truth: [["2025-03-01", "26953"], ["2025-04-01", "27444"]]
+### B4c hour of day, Asia/Kathmandu
+sql: SELECT DATEDIFF( 'hour', DATE_TRUNC('day', "orders"."created_at"), "orders"."created_at" ) AS "created_at", MEASURE("orders"."count") AS "sum" FROM "orders" GROUP BY DATEDIFF( 'hour', DATE_TRUNC('day', "orders"."created_at"), "orders"."created_at" ) ORDER BY DATEDIFF( 'hour', DATE_TRUNC('day', "orders"."created_at"), "orders"."created_at" ) ASC
+Cube: [[1, 217], [2, 217], [3, 217], [4, 217]] 
+Cube stock: [[1, 217], [2, 217], [3, 217], [4, 217]] 
+truth: [[0, "217"], [1, "217"], [2, "217"], [3, "217"]]
+### M3 Date column by month, Asia/Kathmandu
+sql: SELECT DATE_TRUNC('month', "typed_events"."day") AS "day", MEASURE("typed_events"."count") AS "sum" FROM "typed_events" GROUP BY DATE_TRUNC('month', "typed_events"."day") ORDER BY DATE_TRUNC('month', "typed_events"."day") ASC
+Cube: [["2025-03-01T00:00:00+05:45", 743], ["2025-04-01T00:00:00+05:45", 257]] 
+Cube stock: [["2025-03-01T00:00:00+05:45", 743], ["2025-04-01T00:00:00+05:45", 257]] 
+truth: [["2025-03-01", "743"], ["2025-04-01", "257"]]
+mcp page 1 on Cube 2000 True True
+mcp page 2 on Cube, no row_limit 100 True True
+mcp page 1 on Sample Database, no plugin 2000 True True
+mcp page 2 on Sample Database, no plugin, no row_limit 100 True True

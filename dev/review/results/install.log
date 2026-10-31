@@ -1,0 +1,35 @@
+== the URL of the docs today
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     9    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+curl: (22) The requested URL returned error: 404
+curl exit code 22
+== case 1: the docs
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100 48775  100 48775    0     0  6409k      0 --:--:-- --:--:-- --:--:-- 6804k
+ Container mcd-review-metabase-install-1 Started 
+healthy
+2026-10-31 07:42:06,870 INFO driver.impl :: Registered driver :cube (parents: [:postgres]) 🚚 
+has-user-setup False cube in engines False
+connect with the values of README, no API secret: HTTP 200 
+sync: tables 46 measures of orders 41 seconds after the sync status 6
+revenue [[319790.0]] truth [['319790']]
+ Container mcd-review-metabase-install-1 Removed 
+== case 3: the same jar with the manifest of PR 1, version 0.1.0
+ Container mcd-review-metabase-install-1 Started 
+healthy
+2026-10-31 07:43:19,597 INFO driver.impl :: Registered driver :cube (parents: [:postgres]) 🚚 
+ Container mcd-review-metabase-install-1 Removed 
+== case 2: no chmod 777
+ Container mcd-review-metabase-install-1 Started 
+healthy
+2026-10-31 07:44:16,833 WARN plugins.impl :: Metabase cannot use the plugins directory /plugins 
+ Please make sure the directory exists and that Metabase has permission to write to it. You can change the directory Metabase uses for modules by setting the environment variable MB_PLUGINS_DIR. Falling back to a tempora
+2026-10-31 07:44:16,834 INFO plugins.impl :: Loading plugins in /tmp... 
+2026-10-31 07:44:18,147 INFO plugins.impl :: Loading bundled plugin manifest at jar:file:///app/metabase.jar!/metabase/mongo/metabase-plugin.yaml 
+2026-10-31 07:44:18,161 DEBUG plugins.lazy-loaded-driver :: Registering lazy loading driver :mongo... 
+2026-10-31 07:44:18,162 INFO plugins.impl :: Loading bundled plugin manifest at jar:file:///app/metabase.jar!/metabase/bigquery-cloud-sdk/metabase-plugin.yaml 
+2026-10-31 07:44:18,167 DEBUG plugins.lazy-loaded-driver :: Registering lazy loading driver :bigquery-cloud-sdk... 
+2026-10-31 07:44:18,168 INFO plugins.impl :: Loading bundled plugin manifest at jar:file:///app/metabase.jar!/metabase/clickhouse/metabase-plugin.yaml 
+ Container mcd-review-metabase-install-1 Removed 

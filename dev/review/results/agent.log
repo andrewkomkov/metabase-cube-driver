@@ -1,0 +1,21 @@
+search: [('sales', 95), ('extended_sales', 64), ('deep_extended_sales', 62), ('sales', 49), ('extended_sales', 18), ('deep_extended_sales', 16)]
+table: 49 Curated view of orders with customer and product attributes. Start here for sales analysis.
+
+Folders: Money: revenue, avg_order_value.
+
+View groups: Revenue views (revenue_views).
+
+Meta: {"ai_hint":"P
+keys: ['db_id', 'description', 'display_name', 'fields', 'id', 'measures', 'metrics', 'name', 'related_tables', 'schema', 'segments']
+fields: ['created_at', 'id', 'products_category', 'products_name', 'status', 'users_city', 'users_is_vip', 'users_state']
+measures: ['AOV', 'Customer count', 'Order count', 'Paid Share', 'Revenue']
+segments: []
+Monthly revenue by category rows 36 [['2025-01-01T00:00:00Z', 'Gadget', 8662.0], ['2025-01-01T00:00:00Z', 'Gizmo', 9128.0]]
+Revenue by city rows 4 [['Austin', 80678.0, 1231], ['Boston', 80706.0, 1256]]
+Revenue and AOV rows 1 [[319790.0, 63.958]]
+dashboard 2
+read back: {"results": [{"id": 2, "name": "Revenue review", "description": "How does monthly revenue by product category develop, and which customer cities bring the most? I want to filter by city, order status and date.", "tabs": [], "parameters": [{"id": "city", "name": "City", "type": "string/=", "dashcard_ids": [37, 38, 39]}, {"id": "status", "name": "Status", "type": "string/=", "dashcard_ids": [37, 38, 39]}, {"id": "date", "name": "Date", "type": "date/all-options", "dashcard_ids": [37, 38, 39]}], "dashcards": [{"size_x": 12, "card": {"id": 85, "name": "Monthly revenue by category"}, "col": 0, "id": 37, "kind": "card", "size_y": 6, "row": 0}, {"size_x": 12, "card": {"id": 86, "name": "Revenue by city"}, "col": 12, "id": 38, "kind": "card", "size_y": 6, "row": 0}, {"size_x": 12, "card": {"id": 87, "name": "Revenue and AOV"}, "col": 0, "id": 39, "kind": "card", "size_y": 9, "row": 6}], "layout": {"tabs": [], "dashcards": [{"size_x": 12, "inline_parameters": [], "col": 0, "id": 37, "parameter_mappings": [{"parameter_id": "city", "card_id": 85, "target": ["dimension", ["field", 355, null], {"stage-number": 0}]}, {"parameter_id": "status", "card_id": 85, "target": ["dimension", ["field", 353, null], {"stage-number": 0}]}, {"parameter_id": "date", "card_id": 85, "target": ["dimension", ["field", 354, null], {"stage-number": 0}]}], "card_id": 85, "visualization_settings": {}, "size_y": 6, "row": 0}, {"size_x": 12, "inline_parameters": [], "col": 12, "id": 38, "parameter_mappings": [{"parameter_id": "city", "card_id": 86, "target": ["dimension", ["field", 355, null], {"stage-number": 0}]}, {"parameter_id": "status", "card_id": 86, "target": ["dimension", ["field", 353, null], {"stage-number": 0}]}, {"parameter_id": "date", "card_id": 86, "target": ["dimension", ["field", 354, null],
+values city ['Austin', 'Boston', 'Chicago', 'Seattle'] OK
+values status ['cancelled', 'completed', 'processing', 'shipped'] OK
+dashboard cells: 45 of 45 equal ClickHouse
+tools: [{'tool': 'search', 'ok': True, 'error': ''}, {'tool': 'browse_data', 'ok': True, 'error': ''}, {'tool': 'browse_data', 'ok': True, 'error': ''}, {'tool': 'browse_data', 'ok': True, 'error': ''}, {'tool': 'execute_query', 'ok': True, 'error': ''}, {'tool': 'question_write', 'ok': True, 'error': ''}, {'tool': 'execute_query', 'ok': True, 'error': ''}, {'tool': 'question_write', 'ok': True, 'error': ''}, {'tool': 'execute_query', 'ok': True, 'error': ''}, {'tool': 'question_write', 'ok': True, 'error': ''}, {'tool': 'dashboard_write', 'ok': True, 'error': ''}, {'tool': 'get_content', 'ok': True, 'error': ''}, {'tool': 'get_parameter_values', 'ok': True, 'error': ''}, {'tool': 'get_parameter_values', 'ok': True, 'error': ''}]

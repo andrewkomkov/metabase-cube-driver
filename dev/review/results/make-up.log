@@ -1,0 +1,90 @@
+sh scripts/package.sh
+built /home/andrewkomkov/mcd-review/repo/dev/plugins/cube.metabase-driver.jar
+cd dev && docker compose up -d --wait clickhouse cube cube-secure mail
+ Network mcd-review_default Creating 
+ Network mcd-review_default Created 
+ Volume mcd-review_clickhouse-data Creating 
+ Volume mcd-review_clickhouse-data Created 
+ Container mcd-review-mail-1 Creating 
+ Container mcd-review-clickhouse-1 Creating 
+ Container mcd-review-clickhouse-1 Created 
+ Container mcd-review-cube-1 Creating 
+ Container mcd-review-cube-secure-1 Creating 
+ Container mcd-review-mail-1 Created 
+ Container mcd-review-cube-1 Created 
+ Container mcd-review-cube-secure-1 Created 
+ Container mcd-review-clickhouse-1 Starting 
+ Container mcd-review-mail-1 Starting 
+ Container mcd-review-clickhouse-1 Started 
+ Container mcd-review-clickhouse-1 Waiting 
+ Container mcd-review-clickhouse-1 Waiting 
+ Container mcd-review-mail-1 Started 
+ Container mcd-review-clickhouse-1 Healthy 
+ Container mcd-review-cube-1 Starting 
+ Container mcd-review-clickhouse-1 Healthy 
+ Container mcd-review-cube-secure-1 Starting 
+ Container mcd-review-cube-secure-1 Started 
+ Container mcd-review-cube-1 Started 
+ Container mcd-review-mail-1 Waiting 
+ Container mcd-review-clickhouse-1 Waiting 
+ Container mcd-review-cube-1 Waiting 
+ Container mcd-review-cube-secure-1 Waiting 
+ Container mcd-review-cube-secure-1 Healthy 
+ Container mcd-review-clickhouse-1 Healthy 
+ Container mcd-review-mail-1 Healthy 
+ Container mcd-review-cube-1 Healthy 
+cd dev && docker compose up -d metabase
+ Volume mcd-review_metabase-data Creating 
+ Volume mcd-review_metabase-data Created 
+ Container mcd-review-cube-1 Running 
+ Container mcd-review-clickhouse-1 Running 
+ Container mcd-review-metabase-1 Creating 
+ Container mcd-review-metabase-1 Created 
+ Container mcd-review-clickhouse-1 Waiting 
+ Container mcd-review-clickhouse-1 Healthy 
+ Container mcd-review-metabase-1 Starting 
+ Container mcd-review-metabase-1 Started 
+ Volume mcd-review_metabase-plain-data Creating 
+ Volume mcd-review_metabase-plain-data Created 
+ Container mcd-review-clickhouse-1 Running 
+ Container mcd-review-cube-stock-1 Creating 
+ Container mcd-review-metabase-plain-1 Creating 
+ Container mcd-review-cube-legacy-1 Creating 
+ Container mcd-review-postgres-1 Creating 
+ Container mcd-review-cube-stock-1 Created 
+ Container mcd-review-cube-legacy-1 Created 
+ Container mcd-review-metabase-plain-1 Created 
+ Container mcd-review-postgres-1 Created 
+ Container mcd-review-metabase-plain-1 Starting 
+ Container mcd-review-clickhouse-1 Waiting 
+ Container mcd-review-postgres-1 Starting 
+ Container mcd-review-clickhouse-1 Waiting 
+ Container mcd-review-metabase-plain-1 Started 
+ Container mcd-review-postgres-1 Started 
+ Container mcd-review-clickhouse-1 Healthy 
+ Container mcd-review-cube-legacy-1 Starting 
+ Container mcd-review-clickhouse-1 Healthy 
+ Container mcd-review-cube-stock-1 Starting 
+ Container mcd-review-cube-stock-1 Started 
+ Container mcd-review-cube-legacy-1 Started 
+2026-10-31 07:20:27,639 INFO driver.impl :: [34mRegistered driver :cube[0m (parents: [:postgres]) 🚚 
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+COPY 200
+COPY 30
+COPY 5000
+ Container mcd-review-clickhouse-1 Running 
+ Container mcd-review-cube-legacy-1 Recreate 
+ Container mcd-review-cube-legacy-1 Recreated 
+ Container mcd-review-clickhouse-1 Waiting 
+ Container mcd-review-clickhouse-1 Healthy 
+ Container mcd-review-cube-legacy-1 Starting 
+ Container mcd-review-cube-legacy-1 Started 
+ Container mcd-review-clickhouse-1 Running 
+ Container mcd-review-cube-legacy-1 Recreate 
+ Container mcd-review-cube-legacy-1 Recreated 
+ Container mcd-review-clickhouse-1 Waiting 
+ Container mcd-review-clickhouse-1 Healthy 
+ Container mcd-review-cube-legacy-1 Starting 
+ Container mcd-review-cube-legacy-1 Started 

@@ -1,0 +1,43 @@
+100 1757 {'pass': 94, 'wrong': 6} 12 s
+200 1757 {'pass': 189, 'wrong': 11} 24 s
+300 1757 {'pass': 276, 'wrong': 24} 35 s
+400 1757 {'pass': 368, 'wrong': 32} 46 s
+500 1757 {'pass': 464, 'wrong': 36} 57 s
+600 1757 {'pass': 560, 'wrong': 40} 68 s
+700 1757 {'pass': 655, 'wrong': 45} 78 s
+800 1757 {'pass': 754, 'wrong': 46} 88 s
+900 1757 {'pass': 852, 'wrong': 47, 'error': 1} 98 s
+1000 1757 {'pass': 951, 'wrong': 48, 'error': 1} 109 s
+1100 1757 {'pass': 1051, 'wrong': 48, 'error': 1} 120 s
+1200 1757 {'pass': 1127, 'wrong': 72, 'error': 1} 133 s
+1300 1757 {'pass': 1224, 'wrong': 75, 'error': 1} 146 s
+1400 1757 {'pass': 1324, 'wrong': 75, 'error': 1} 156 s
+1500 1757 {'pass': 1422, 'wrong': 75, 'error': 1, 'refused_as_expected': 2} 167 s
+1600 1757 {'pass': 1522, 'wrong': 75, 'error': 1, 'refused_as_expected': 2} 177 s
+1700 1757 {'pass': 1588, 'wrong': 90, 'error': 8, 'refused_as_expected': 11, 'no_refusal': 1, 'info': 2} 184 s
+done Cube dataset 1757 {'pass': 1610, 'wrong': 112, 'error': 10, 'refused_as_expected': 19, 'no_refusal': 4, 'info': 2} 188 s
+100 1757 {'pass': 94, 'wrong': 6} 11 s
+200 1757 {'pass': 189, 'wrong': 11} 22 s
+300 1757 {'pass': 276, 'wrong': 24} 34 s
+400 1757 {'pass': 368, 'wrong': 32} 44 s
+500 1757 {'pass': 464, 'wrong': 36} 55 s
+600 1757 {'pass': 560, 'wrong': 40} 66 s
+700 1757 {'pass': 655, 'wrong': 45} 76 s
+800 1757 {'pass': 754, 'wrong': 46} 87 s
+900 1757 {'pass': 852, 'wrong': 47, 'error': 1} 96 s
+1000 1757 {'pass': 951, 'wrong': 48, 'error': 1} 107 s
+1100 1757 {'pass': 1051, 'wrong': 48, 'error': 1} 118 s
+1200 1757 {'pass': 1127, 'wrong': 72, 'error': 1} 130 s
+1300 1757 {'pass': 1224, 'wrong': 75, 'error': 1} 142 s
+1400 1757 {'pass': 1324, 'wrong': 75, 'error': 1} 153 s
+1500 1757 {'pass': 1422, 'wrong': 75, 'error': 1, 'refused_as_expected': 2} 163 s
+1600 1757 {'pass': 1522, 'wrong': 75, 'error': 1, 'refused_as_expected': 2} 172 s
+1700 1757 {'pass': 1582, 'wrong': 92, 'error': 12, 'refused_as_expected': 11, 'no_refusal': 1, 'info': 2} 179 s
+done Cube stock dataset 1757 {'pass': 1601, 'wrong': 114, 'error': 17, 'refused_as_expected': 19, 'no_refusal': 4, 'info': 2} 183 s
+100 426 {'pass': 87, 'wrong': 13} 13 s
+200 426 {'pass': 184, 'wrong': 16} 25 s
+300 426 {'pass': 277, 'wrong': 23} 39 s
+400 426 {'pass': 369, 'wrong': 26, 'refused_as_expected': 2, 'error': 2, 'no_refusal': 1} 50 s
+done Cube mcp 426 {'pass': 378, 'wrong': 36, 'refused_as_expected': 4, 'error': 3, 'no_refusal': 3, 'info': 1, 'skip': 1} 52 s
+100 191 {'pass': 91, 'wrong': 9} 13 s
+done Cube stock mcp 191 {'pass': 162, 'wrong': 21, 'error': 3, 'refused_as_expected': 1, 'no_refusal': 2, 'info': 1, 'skip': 1} 24 s

@@ -1,0 +1,5 @@
+legacy, stock 200 [('2025-02-01T00:00:00.000', '53702'), ('2025-03-01T00:00:00.000', '53702')] None
+truth [['2025-02-01 00:00:00', '27274'], ['2025-03-01 00:00:00', '26428']]
+legacy sql head SELECT q_0.`ord__created_at_month` `ord__created_at_month`, `ord__revenue_trailing_30d` `ord__revenue_trailing_30d` FROM (SELECT `orders.created_at_series`.`date_from` `ord__created_at_month`, sum(`or
+tesseract sql head WITH time_series AS ( SELECT parseDateTimeBestEffort(dates.f) date_from, parseDateTimeBestEffort(dates.t) date_to FROM (
+meta [{'name': 'orders.display_currency', 'title': 'Orders Display Currency', 'type': 'string', 'shortTitle': 'Display Currency', 'suggestFilterValues': True, 'isVisible': True, 'public': True, 'primaryKey': False}]

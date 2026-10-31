@@ -1,0 +1,27 @@
+native Sample Database [[5755]] [[5755]] equal
+native PG [[915]] [[915]] equal
+metadata Sample Database fields 71 71 diff []
+measures on Sample Database with the plugin 0
+metadata PG fields 20 20 diff []
+measures on PG with the plugin 0
+mcp between with 2025-03-01T01:00:00 2025-03-01T23:00:00 [[14]] 
+mcp between with 2025-03-01 2025-03-02 [[28]] 
+mcp between with 2025-03-01 01:00:00 2025-03-01 23:00:00 [[14]] 
+mcp between plain 2025-03-01T01:00:00 2025-03-01T23:00:00 [[14]] 
+mcp between plain 2025-03-01 2025-03-02 [[28]] 
+mcp between plain 2025-03-01 01:00:00 2025-03-01 23:00:00 [[14]] 
+truth of the time form [['14', '28']]
+cache with [(None, 5000), (None, 5000)]
+cache plain [(None, 5000), (None, 5000)]
+report tz America/New_York equal [['2025-01-01T00:00:00-05:00', 13], ['2025-01-02T00:00:00-05:00', 14], ['2025-01-03T00:00:00-05:00', 14]]
+report tz Asia/Kathmandu equal [['2025-01-01T00:00:00+05:45', 13], ['2025-01-02T00:00:00+05:45', 14], ['2025-01-03T00:00:00+05:45', 14]]
+{
+"rows_equal": 82,
+"sql_equal": 82,
+"rows_diff": [],
+"sql_diff": []
+}
+cache of a saved question with [(False, 5000), (False, 5000), (False, 5000)]
+cache of a saved question plain [(False, 5000), (False, 5000), (False, 5000)]
+database Sample Database description same True features same True tables same True
+database PG description same True features same True tables same True

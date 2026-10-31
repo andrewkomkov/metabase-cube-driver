@@ -1,0 +1,86 @@
+measures ['avg amount', 'buyers', 'count', 'revenue'] tables ['analyst_sales', 'orders', 'sales', 'users']
+ok   dataset by status, Austin | [['cancelled', 17615.0]]
+ok   native by status, Austin | [['completed', 30173.0]]
+ok   stage over the query, Austin | [[4]]
+ok   saved question, Austin | [['cancelled', 17615.0]]
+ok   csv export, Austin | Status,Revenue
+cancelled,17615.0
+completed,30173.0
+processing,16407.0
+shipped,16483.0
+
+ok   pivot with a total, Austin | [['shipped', 0, 16483.0], [None, 1, 80678.0]]
+ok   mcp execute_query, Austin | [['cancelled', 17615.0]]
+ok   mcp execute_sql, Austin | [['completed', 30173.0]]
+ok   mcp run_saved_question, Austin | [['cancelled', 17615.0]]
+ok   search of a city field, Austin | {'Austin'}
+ok   stored values of a city field, Austin
+ok   native, not around the rule: SELECT status, MEASURE(revenue) FROM orders WHERE __user = ', Austin | This connection gives data per person, so a query cannot read as another person. Cube said: Error executing query: ERROR: Database Execution Error: You cannot change security context via __user from a
+ok   native, not around the rule: SET user = 'admin@example.com', Austin | This connection gives data per person, so a query cannot read as another person. Cube said: Error executing query: ERROR: User Error: user 'alice@example.com' is not allowed to switch to 'admin@exampl
+ok   native, not around the rule: SELECT MEASURE(revenue) FROM orders WHERE city = 'Seattle' O, Austin | This table has no column with that name. Call browse_data with action get_fields to read the columns of the table. A column of another cube is not on this table: use a view that has it, or write FROM 
+ok   native, not around the rule: SELECT o.status, MEASURE(o.revenue), u.city FROM orders o CR, Austin | [["shipped", 16483.0, "Austin"], ["completed", 30173.0, "Austin"], ["processing", 16407.0, "Austin"], ["cancelled", 17615.0, "Austin"]]
+ok   native, not around the rule: SELECT city FROM users GROUP BY 1, Austin | [["Austin"]]
+ok   native, not around the rule: SELECT * FROM (SELECT city, MEASURE(count) c FROM users GROU, Austin | [["Austin", 50]]
+ok   native, not around the rule: SELECT * FROM information_schema.tables, Austin | [["cube", "information_schema", "tables", "VIEW", "", "", "", "", "", "NO", "NO", ""], ["cube", "information_schema", "columns", "VIEW", "", "", "", "", "", "NO", "NO", ""], ["cube", "information_sche
+ok   native, not around the rule: SELECT usename FROM pg_catalog.pg_user, Austin | [["alice@example.com"]]
+ok   dataset by status, Boston | [['cancelled', 17590.0]]
+ok   native by status, Boston | [['completed', 30236.0]]
+ok   stage over the query, Boston | [[4]]
+ok   saved question, Boston | [['cancelled', 17590.0]]
+ok   csv export, Boston | Status,Revenue
+cancelled,17590.0
+completed,30236.0
+processing,16438.0
+shipped,16442.0
+
+ok   pivot with a total, Boston | [['shipped', 0, 16442.0], [None, 1, 80706.0]]
+ok   mcp execute_query, Boston | [['cancelled', 17590.0]]
+ok   mcp execute_sql, Boston | [['completed', 30236.0]]
+ok   mcp run_saved_question, Boston | [['cancelled', 17590.0]]
+ok   search of a city field, Boston
+ok   stored values of a city field, Boston
+ok   native, not around the rule: SELECT status, MEASURE(revenue) FROM orders WHERE __user = ', Boston | This connection gives data per person, so a query cannot read as another person. Cube said: Error executing query: ERROR: Database Execution Error: You cannot change security context via __user from b
+ok   native, not around the rule: SET user = 'admin@example.com', Boston | This connection gives data per person, so a query cannot read as another person. Cube said: Error executing query: ERROR: User Error: user 'bob@example.com' is not allowed to switch to 'admin@example.
+ok   native, not around the rule: SELECT MEASURE(revenue) FROM orders WHERE city = 'Seattle' O, Boston | This table has no column with that name. Call browse_data with action get_fields to read the columns of the table. A column of another cube is not on this table: use a view that has it, or write FROM 
+ok   native, not around the rule: SELECT o.status, MEASURE(o.revenue), u.city FROM orders o CR, Boston | [["shipped", 16442.0, "Boston"], ["cancelled", 17590.0, "Boston"], ["completed", 30236.0, "Boston"], ["processing", 16438.0, "Boston"]]
+ok   native, not around the rule: SELECT city FROM users GROUP BY 1, Boston | [["Boston"]]
+ok   native, not around the rule: SELECT * FROM (SELECT city, MEASURE(count) c FROM users GROU, Boston | [["Boston", 50]]
+ok   native, not around the rule: SELECT * FROM information_schema.tables, Boston | [["cube", "information_schema", "tables", "VIEW", "", "", "", "", "", "NO", "NO", ""], ["cube", "information_schema", "columns", "VIEW", "", "", "", "", "", "NO", "NO", ""], ["cube", "information_sche
+ok   native, not around the rule: SELECT usename FROM pg_catalog.pg_user, Boston | [["bob@example.com"]]
+ok   cache with a TTL: two people get their own rows | ([['cancelled', 17615.0]], [['cancelled', 17590.0]])
+ok   cache with a TTL on a saved question | ([['cancelled', 17615.0]], [['cancelled', 17590.0]])
+ok   60 parallel queries of two people do not mix
+ok   a person that Cube does not know gets an error | Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube
+ok   a public link shows no rows | {"status":"failed","error":"An error occurred while running the query.","error_type":"missing-required-permissions"}
+ok   hidden cube on a Cube with dev mode off | ERROR: Planning Error: Initial planning error: Error during planning: Table or CTE with name 'secret_audit' not found
+QU
+ok   no query access: query builder refused | You do not have permissions to run this query.
+ok   no query access: native refused | You do not have permissions to run this query.
+ok   no query access: mcp execute_query refused | "No table found with id 31."
+Call "browse_data" with action "list_tables" to list available tables with their numeric ids, then use one as "
+ok   no query access: mcp execute_sql refused | Database 2 not found — it may not exist, or you may not have access to it.
+ok   query builder access: query builder runs | [[5000]]
+ok   query builder access: native refused | You do not have permissions to run this query.
+ok   query builder access: mcp execute_sql refused | You do not have permission to run native queries against this database.
+ok   no secret in /api/database/5, admin
+ok   no secret in /api/database/2, admin
+ok   no secret in /api/database, admin
+ok   no secret in /api/database/5/metadata, admin
+ok   no secret in /api/session/properties, admin
+ok   no secret in /api/setting, admin
+ok   no secret in /api/database/5, alice
+ok   no secret in /api/database/2, alice
+ok   no secret in /api/database, alice
+ok   no secret in /api/database/5/metadata, alice
+ok   no secret in /api/session/properties, alice
+ok   no secret in /api/setting, alice
+ok   no secret in mcp browse_data list_databases
+ok   no secret in mcp browse_data get_fields
+validate 400 {"errors":{"details":{"engine":"value must be a valid database engine.","details":"Value must be a map."}},"specific-errors":{"details":{"engine":["missing required key, received: nil"],"details":["missing required key, 
+validate 400 {"errors":{"details":{"engine":"value must be a valid database engine.","details":"Value must be a map."}},"specific-errors":{"details":{"engine":["missing required key, received: nil"],"details":["missing required key, 
+validate 400 {"errors":{"details":{"engine":"value must be a valid database engine.","details":"Value must be a map."}},"specific-errors":{"details":{"engine":["missing required key, received: nil"],"details":["missing required key, 
+ok   no secret in the log of metabase | ([], 0)
+ok   no secret in the log of cube | ([], 0)
+ok   no secret in the log of cube-stock | ([], 0)
+ok   no secret in the log of cube-secure | ([], 0)
+findings: []
