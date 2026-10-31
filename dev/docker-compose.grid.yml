@@ -1,0 +1,20 @@
+# Adds stock Cube and a Postgres copy of the demo data for `make grid`, next to Cube with the dialect. See dev/review/README.md.
+# The ports bind to the loopback interface only. The grid reads ClickHouse at the address of its container, so ClickHouse has no port here.
+services:
+  cube-stock:
+    extends: { file: docker-compose.yml, service: cube }
+    environment:
+      CUBE_CLICKHOUSE_FIXES: "off"
+    ports: !override
+      - "127.0.0.1:4403:4000"
+      - "127.0.0.1:15435:15432"
+  # The second opinion on what a unit means in Metabase. It has a copy of the demo data.
+  postgres:
+    image: postgres:16-alpine
+    mem_limit: 512m
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop-dev-only
+      POSTGRES_DB: shop
+    healthcheck: { test: [CMD-SHELL, "pg_isready -U shop -d shop"], interval: 3s, retries: 40 }
+    restart: "no"
