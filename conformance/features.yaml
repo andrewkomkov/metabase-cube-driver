@@ -212,8 +212,8 @@
 - id: measure.rolling.unbounded
   area: cube.measures
   title: "measure rolling unbounded"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: measure.rolling.unbounded
 - id: measure.type.avg
   area: cube.measures
@@ -4434,8 +4434,8 @@
 - id: native.count_on_no_rows
   area: mb.native
   title: "native COUNT(*) on no rows"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: native.count_on_no_rows
 - id: security.dev_mode_warning_for_hidden_members
   area: security
@@ -4604,36 +4604,36 @@
 - id: measure.rolling.window_shorter_than_bucket
   area: cube.measures
   title: "a rolling window that is shorter than the bucket stops (M1)"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: measure.rolling.window_shorter_than_bucket
 - id: grid.compact.dataset
   area: grid
   title: "a compact form of the review grid through /api/dataset"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: grid.compact.dataset
 - id: grid.compact.mcp
   area: grid
   title: "a compact form of the review grid through MCP"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: grid.compact.mcp
 - id: grid.compact.report_zone
   area: grid
   title: "the review grid under a report time zone"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: grid.compact.report_zone
 - id: grid.compact.mcp_report_zone
   area: grid
   title: "the review grid under a report time zone through MCP"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: grid.compact.mcp_report_zone
 - id: grid.compact.start_of_week
   area: grid
   title: "week units for each first day of the week"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: grid.compact.start_of_week

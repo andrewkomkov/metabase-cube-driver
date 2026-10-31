@@ -4571,7 +4571,8 @@ def _(ctx):
     admin.api("PUT", "/api/cache", {"model": "root", "model_id": 0, "strategy": {"type": "ttl", "multiplier": 100000, "min_duration_ms": 0}})
     try:
         # The control: the same question on the Cube with no per-person data comes from the cache, so the cache is on.
-        for _i in range(20):
+        # Metabase writes the average time of a query in a batch. With no average, the time to live is 0, so the first hit can take a while.
+        for _i in range(90):
             res = ctx.mb.api("POST", "/api/card/%d/query" % plain["id"], {"parameters": []})
             if res.get("cached"):
                 break
@@ -4932,7 +4933,8 @@ def _(ctx):
     truth = ctx.mb.dataset({"database": db["id"], "type": "query", "query": {"source-table": table, "aggregation": [["count"]]}})["data"]["rows"]
     ctx.mb.api("PUT", "/api/cache", {"model": "root", "model_id": 0, "strategy": {"type": "ttl", "multiplier": 100000, "min_duration_ms": 0}})
     try:
-        for _i in range(20):
+        # Metabase writes the average time of a query in a batch. With no average, the time to live is 0, so the first hit can take a while.
+        for _i in range(90):
             res = ctx.mb.api("POST", "/api/card/%d/query" % card["id"], {"parameters": []})
             if res.get("cached"):
                 break
