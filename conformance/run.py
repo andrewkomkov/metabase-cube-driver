@@ -46,6 +46,15 @@ CUBE_DB_DETAILS = {
 
 DATE_RANGE = ["2025-01-01", "2025-03-31"]
 
+# off is stock Cube, on is Cube with cube-clickhouse. See cube-clickhouse/README.md.
+DIALECT = os.environ.get("CUBE_CLICKHOUSE_FIXES", "on") != "off"
+VARIANT_NAME = "Cube with the ClickHouse dialect" if DIALECT else "stock Cube"
+METABASE_INTERNAL = os.environ.get("METABASE_INTERNAL_URL", "http://metabase:3000").rstrip("/")
+MAIL_URL = os.environ.get("MAIL_URL", "http://127.0.0.1:8025").rstrip("/")
+BROWSER_URL = os.environ.get("BROWSER_URL", "http://127.0.0.1:9222").rstrip("/")
+CUBE_LEGACY = os.environ.get("CUBE_LEGACY_REST_URL", "http://127.0.0.1:4402").rstrip("/")
+CUBE_LEGACY_SECRET = "cube-legacy-dev-only-secret-0123456789"
+
 
 class Fail(Exception):
     """A check found a wrong or missing value."""
@@ -70,18 +79,25 @@ def load_features(path=FEATURES):
 
 
 def write_statuses(results, path=FEATURES):
-    """Replace only the status lines."""
+    """Replace only the status lines. `status` is the result with the dialect, `status_stock` the result on stock Cube."""
+    key = "status" if DIALECT else "status_stock"
     with open(path, encoding="utf-8") as f:
         lines = f.readlines()
+    out = []
     current = None
-    for i, line in enumerate(lines):
+    for line in lines:
         m = re.match(r"^- id: (.*)$", line)
         if m:
             current = m.group(1).strip()
-        elif line.startswith("  status: ") and current in results:
-            lines[i] = "  status: %s\n" % results[current]
+        if current in results and line.startswith("  %s: " % key):
+            continue
+        if current in results and line.startswith("  status: ") and not DIALECT:
+            out.append(line)
+            out.append("  status_stock: %s\n" % results[current])
+            continue
+        out.append("  status: %s\n" % results[current] if current in results and line.startswith("  status: ") else line)
     with open(path, "w", encoding="utf-8") as f:
-        f.writelines(lines)
+        f.writelines(out)
 
 
 # ----------------------------------------------------------------- HTTP
@@ -543,6 +559,26 @@ class Mcp:
         headers["Mcp-Session-Id"] = resp["Mcp-Session-Id"]
         http("POST", MB + MCP_PATH, {"jsonrpc": "2.0", "method": "notifications/initialized"}, headers)
         self.headers = headers
+
+    def with_ui(self):
+        """A second session of a client that renders MCP Apps. Metabase lists visualize_query and render_drill_through only for it."""
+        if getattr(self, "ui", None):
+            return self.ui
+        self.connect()
+        ui = Mcp(self.mb)
+        headers = {k: v for k, v in self.headers.items() if k != "Mcp-Session-Id"}
+        status, text, resp = http("POST", MB + MCP_PATH, {
+            "jsonrpc": "2.0", "id": 0, "method": "initialize",
+            "params": {"protocolVersion": "2025-03-26",
+                       "capabilities": {"extensions": {"io.modelcontextprotocol/ui": {"mimeTypes": ["text/html;profile=mcp-app"]}}},
+                       "clientInfo": {"name": "conformance-ui", "version": "1"}}}, headers)
+        if status != 200 or not resp.get("Mcp-Session-Id"):
+            raise Fail("initialize with UI: HTTP %s %s" % (status, text[:200]))
+        headers["Mcp-Session-Id"] = resp["Mcp-Session-Id"]
+        http("POST", MB + MCP_PATH, {"jsonrpc": "2.0", "method": "notifications/initialized"}, headers)
+        ui.headers = headers
+        self.ui = ui
+        return ui
 
     def rpc(self, method, params=None):
         self.connect()
@@ -1010,18 +1046,21 @@ def _(ctx):
 
 @check("dimension.opt.propagate_filters_next_to_another_sub_query")
 def _(ctx):
-    """A limit of Cube: in one query with a second sub_query dimension, the filter does not reach this one."""
-    sql = ("SELECT u.id, u.lifetime_orders, u.lifetime_paid_orders FROM users u CROSS JOIN orders o WHERE u.__cubeJoinField = o.__cubeJoinField "
-           "AND %s AND u.id <= 3 GROUP BY 1, 2, 3" % _EARLY)
-    rows = ctx.mb.native(sql)["rows"]
-    all_orders = {r[0]: r[1] for r in ch(_orders_of_user())}
-    filtered = {r[0]: r[1] for r in ch(_orders_of_user(_EARLY_TRUTH))}
-    assert_rows([[r[0], r[1]] for r in rows], [[k, v] for k, v in all_orders.items()], label="lifetime_orders")
-    got = {r[0]: r[2] for r in rows}
-    if got == filtered:
-        raise Fail("Cube now applies the filter to this column. Give this entry its full status")
-    if got != all_orders:
-        raise Fail("lifetime_paid_orders has another wrong value: %s, filtered truth %s" % (got, filtered))
+    """Two sub_query dimensions with equal SQL: with a filter Cube reads the first subquery for both, so the driver stops this, and raw rows show one of them."""
+    both = ("SELECT u.id, u.lifetime_orders, u.lifetime_paid_orders FROM users u CROSS JOIN orders o WHERE u.__cubeJoinField = o.__cubeJoinField "
+            "AND %s AND u.id <= 3 GROUP BY 1, 2, 3" % _EARLY)
+    expect_native_refusal(ctx, both, "have equal SQL")
+    # With no filter both columns are right.
+    expect_native_rows(ctx, "SELECT id, lifetime_orders, lifetime_paid_orders FROM users ORDER BY id LIMIT 3",
+                       [[r[0], r[1], r[1]] for r in sorted(ch(_orders_of_user()))[:3]])
+    query = ctx.mb.inner("users", agg=[["count"]], by=["d:users.lifetime_orders", "d:users.lifetime_paid_orders"], where=[["<=", "d:users.id", 3]])
+    expect_clear_error(ctx, query, "have equal SQL")
+    # Raw rows with a filter show the first column and NULL in the other, so no column has a wrong value.
+    rows = ctx.mb.mbql("users", fields=["d:users.id", "d:users.lifetime_orders", "d:users.lifetime_paid_orders"], where=[["<=", "d:users.id", 3]])["rows"]
+    truth = dict(map(tuple, ch(_orders_of_user())))
+    for uid, lifetime, paid in rows:
+        if paid is not None or lifetime != truth.get(uid):
+            raise Fail("raw row of user %s: %s, %s, truth %s and NULL" % (uid, lifetime, paid, truth.get(uid)))
 
 
 Q("dimension.opt.primary_key", ORD, "SELECT status FROM orders WHERE id = 7", fields=["d:orders.status"], where=ID7,
@@ -1102,16 +1141,51 @@ Q("cube.extends", "cheap_products", "SELECT count() FROM products WHERE price < 
 Q("cube.sql_alias", ORD, "SELECT status, count() FROM orders GROUP BY status", agg=["m:orders.count"], by=["d:orders.status"])
 
 
-def expect_refresh_key(ctx, data):
-    """Cube has this refresh key in its cache key. No data changes here, so this does not prove a refresh."""
-    query = urllib.parse.quote(json.dumps({"measures": ["orders.unique_customers"]}))
-    _s, text, _h = http("GET", CUBE + "/cubejs-api/v1/sql?query=" + query)
-    keys = json.dumps(json.loads(text)["sql"].get("cacheKeyQueries"))
-    if "3600" not in keys:
-        raise Fail("the cache key of orders does not use 1 hour: %s" % keys[:300])
+@check("cube.refresh_key")
+def _(ctx):
+    """A new row changes the value of the refresh key, and Cube reads the table again. The refresh key is a SQL query with no `every`."""
+    ensure_table(ctx, "refresh_marks")
+    query = lambda: ctx.mb.mbql("refresh_marks", agg=["m:refresh_marks.count"])["rows"]
+    assert_rows(query(), ch("SELECT count() FROM refresh_marks"), label="before")
+    next_id = ch("SELECT count() + 1 FROM refresh_marks")[0][0]
+    ch("INSERT INTO refresh_marks VALUES (%d)" % next_id)
+    truth = ch("SELECT count() FROM refresh_marks")
+    deadline = time.time() + 90
+    while True:
+        got = query()
+        if got == truth:
+            return
+        if time.time() > deadline:
+            raise Fail("Cube did not read the new row in 90 s: %s, truth %s" % (got, truth))
+        time.sleep(3)
 
 
-Q("cube.refresh_key", ORD, REV, agg=["m:orders.revenue"], post=expect_refresh_key)
+Q("cube.data_source", "second_source_tickets", "SELECT priority, count(), sum(minutes) FROM shop_second.tickets GROUP BY 1",
+  agg=["m:second_source_tickets.count", "m:second_source_tickets.total_minutes"], by=["d:second_source_tickets.priority"])
+
+
+@check("cube.calendar_granularity_sql")
+def _(ctx):
+    """A granularity of a calendar cube with its own SQL: the fiscal month starts 10 days before the calendar month."""
+    ensure_table(ctx, "calendar_sales")
+    fiscal = "toStartOfMonth(toDate(created_at) + 10)"
+    expect_native_rows(ctx, "SELECT DATE_TRUNC('fiscal_month', fiscal_calendar_date) AS m, MEASURE(revenue) AS r FROM calendar_sales GROUP BY 1",
+                       "SELECT %s AS m, sum(amount) FROM orders GROUP BY m" % fiscal)
+    assert_rows(ctx.mb.mbql("calendar_sales", agg=["m:calendar_sales.revenue"], by=["d:calendar_sales.fiscal_calendar_fiscal_month"])["rows"],
+                ch("SELECT %s AS m, sum(amount) FROM orders GROUP BY m" % fiscal), label="query builder")
+
+
+@check("context.filter_group")
+def _(ctx):
+    """FILTER_GROUP keeps an OR of two filters inside the SQL of the cube."""
+    ensure_table(ctx, "filter_group_orders")
+    assert_rows(ctx.mb.mbql("filter_group_orders", agg=["m:filter_group_orders.count"],
+                            where=[["or", ["=", "d:filter_group_orders.status", "shipped"], ["=", "d:filter_group_orders.quantity", 2]]])["rows"],
+                ch("SELECT count() FROM orders WHERE status = 'shipped' OR quantity = 2"))
+    assert_rows(ctx.mb.mbql("filter_group_orders", agg=["m:filter_group_orders.count"], where=[["=", "d:filter_group_orders.status", "shipped"]])["rows"],
+                ch("SELECT count() FROM orders WHERE status = 'shipped'"), label="one filter")
+
+
 Q("cube.calendar", "calendar_sales", "SELECT toDate('2025-03-01'), sum(amount) FROM orders WHERE toStartOfMonth(created_at) = '2025-03-01'",
   agg=["m:calendar_sales.revenue"], by=["d:calendar_sales.fiscal_calendar_date@month"], where=[["between", "d:calendar_sales.fiscal_calendar_date", "2025-03-01", "2025-03-31"]])
 Q("context.filter_params", "filtered_orders", "SELECT count() FROM orders WHERE status = 'shipped'", agg=["m:filtered_orders.count"], where=[["=", "d:filtered_orders.status", "shipped"]])
@@ -3026,8 +3100,12 @@ C("compile.expr.sum_of_dimension", ORD, "SELECT sum(amount), min(amount), max(am
 
 @check("compile.expr.datetime_add_in_aggregated_query_gives_error")
 def _(ctx):
+    """Stock Cube has no template for an interval on ClickHouse, so this stops with a message. The dialect has the template."""
     query = ctx.mb.inner(ORD, agg=[["count"]], by=[["expression", "d"]], exprs={"d": ["datetime-add", CRT, 1, "day"]}, order=[["asc", ["expression", "d"]]])
-    expect_clear_error(ctx, query, "cannot add an interval")
+    if DIALECT:
+        expect_rows(ctx, query, "SELECT created_at + INTERVAL 1 DAY AS d, count() FROM orders GROUP BY d", "with the dialect")
+    else:
+        expect_clear_error(ctx, query, "cannot add an interval")
 
 
 @check("compile.expr.datetime_diff_month_gives_error")
@@ -3253,6 +3331,32 @@ def _(ctx):
 
 # ClickHouse types through Cube
 
+@check("compile.ch.uint64_above_double")
+def _(ctx):
+    """The Cube SQL API reads a number as a Double. The driver stops a number above 2^53, and a text dimension gives the full digits."""
+    ensure_table(ctx, TE)
+    truth = ch("SELECT toString(ui64) FROM typed_events WHERE id = 2")
+    if int(truth[0][0]) < 2 ** 53:
+        raise Fail("the seed has no number above 2^53 here: %s" % truth)
+    expect_clear_error(ctx, ctx.mb.inner(TE, fields=["d:typed_events.ui64"], where=[["=", "d:typed_events.id", 2]]), "2^53")
+    expect_clear_error(ctx, ctx.mb.inner(TE, agg=["m:typed_events.sum_ui64"]), "2^53")
+    expect_native_refusal(ctx, "SELECT ui64 FROM typed_events WHERE id = 2", "2^53")
+    assert_rows(ctx.mb.mbql(TE, fields=["d:typed_events.ui64_text"], where=[["=", "d:typed_events.id", 2]])["rows"], truth, label="text dimension")
+    # A smaller value of the same column has all its digits.
+    assert_rows(ctx.mb.mbql(TE, fields=["d:typed_events.id"], where=[["=", "d:typed_events.id", 2]])["rows"], [[2]], label="other column")
+
+
+@check("compile.ch.decimal_above_double")
+def _(ctx):
+    """A limit: a long decimal below 2^53 fits the range of a Double, so the driver cannot see that digits are lost. A text dimension keeps them."""
+    ensure_table(ctx, TE)
+    truth = ch("SELECT toString(dec_big) FROM typed_events WHERE id = 3")
+    assert_rows(ctx.mb.mbql(TE, fields=["d:typed_events.dec_big_text"], where=[["=", "d:typed_events.id", 3]])["rows"], truth, label="text dimension")
+    got = ctx.mb.mbql(TE, fields=["d:typed_events.dec_big"], where=[["=", "d:typed_events.id", 3]])["rows"][0][0]
+    if str(got) == truth[0][0]:
+        raise Fail("the number column now has all digits. Give this entry its full status")
+
+
 C("compile.ch.decimal_sum", TE, "SELECT sum(dec_amount) FROM typed_events", kind=("regular", "post"), agg=["m:typed_events.sum_dec"])
 C("compile.ch.decimal_row", TE, "SELECT dec_amount FROM typed_events WHERE id = 7", fields=["d:typed_events.dec_amount"], where=[["=", "d:typed_events.id", 7]])
 C("compile.ch.float32", TE, "SELECT f32 FROM typed_events WHERE id = 7", fields=["d:typed_events.f32"], where=[["=", "d:typed_events.id", 7]])
@@ -3283,20 +3387,37 @@ C("compile.ch.date_part_on_ny", TE, "SELECT toHour(ts_ny, 'UTC'), count() FROM t
 
 @check("clickhouse.datetime64_millis")
 def _(ctx):
-    """A limit of Cube: it reads a time as whole seconds. A raw value has no milliseconds, and a filter on them finds nothing."""
+    """Stock Cube reads a time as whole seconds. The dialect keeps the milliseconds."""
     ensure_table(ctx, TE)
     truth = ch("SELECT toString(toTimeZone(ts64_berlin, 'UTC')) FROM typed_events WHERE id = 7")[0][0]
     if not truth.endswith(".007"):
         raise Fail("the seed has no milliseconds here: %s" % truth)
     got = ctx.mb.mbql(TE, fields=["d:typed_events.ts64_berlin"], where=[["=", "d:typed_events.id", 7]])["rows"]
+    assert_rows(ctx.mb.mbql(TE, agg=["m:typed_events.count"], by=["d:typed_events.ts64_berlin@hour"], where=[["=", "d:typed_events.id", 7]])["rows"],
+                ch("SELECT toStartOfHour(ts64_berlin, 'UTC'), count() FROM typed_events WHERE id = 7 GROUP BY 1"), label="hour bucket")
+    if DIALECT:
+        assert_rows(got, [[truth + "Z"]], label="milliseconds")
+        filtered = ctx.mb.native("SELECT MEASURE(count) AS n FROM typed_events WHERE ts64_berlin >= '%s' AND ts64_berlin < '%s8'" % (truth, truth[:-1]))["rows"]
+        assert_rows(filtered, [[1]], label="filter on milliseconds")
+        return
     if norm(got[0][0]) == norm(truth + "Z"):
         raise Fail("Cube now keeps milliseconds. Give this entry its full status")
     assert_rows(got, [[truth[:-4] + "Z"]], label="whole seconds")
-    rows = ctx.mb.native("SELECT MEASURE(count) AS n FROM typed_events WHERE ts64_berlin >= '%s' AND ts64_berlin < '%s8'" % (truth, truth[:-1]))["rows"]
-    if rows != [[0]]:
-        raise Fail("a filter on milliseconds gave %s" % rows)
-    assert_rows(ctx.mb.mbql(TE, agg=["m:typed_events.count"], by=["d:typed_events.ts64_berlin@hour"], where=[["=", "d:typed_events.id", 7]])["rows"],
-                ch("SELECT toStartOfHour(ts64_berlin, 'UTC'), count() FROM typed_events WHERE id = 7 GROUP BY 1"), label="hour bucket")
+
+
+@check("granularity.custom.offset")
+def _(ctx):
+    """Cube Store puts a time before the origin in the wrong bin. A rollup serves `revenue`, so the driver stops this. A measure that it does not serve is right."""
+    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.revenue"], by=["d:orders.created_fiscal_quarter"]), "wrong bin")
+    expect_native_refusal(ctx, "SELECT DATE_TRUNC('fiscal_quarter', created_at), MEASURE(revenue) FROM orders GROUP BY 1", "wrong bin")
+    fiscal = "addMonths(toStartOfQuarter(addMonths(created_at, -1)), 1)"
+    expect_native_rows(ctx, "SELECT DATE_TRUNC('fiscal_quarter', created_at), MEASURE(unique_customers) FROM orders GROUP BY 1",
+                       "SELECT %s AS q, uniqExact(user_id) FROM orders GROUP BY q" % fiscal)
+    # The origin of this one is before all rows, so a rollup gives the truth.
+    if ch("SELECT min(created_at) >= toDateTime('2024-04-01 00:00:00', 'UTC') FROM orders") != [[1]]:
+        raise Fail("the seed has rows before the origin of fiscal_year_april")
+    expect_native_rows(ctx, "SELECT DATE_TRUNC('fiscal_year_april', created_at), MEASURE(revenue) FROM orders GROUP BY 1",
+                       "SELECT addMonths(toStartOfYear(addMonths(created_at, -3)), 3) AS y, sum(amount) FROM orders GROUP BY y")
 
 
 @check("compile.ch.integer_within_double")
@@ -3369,8 +3490,17 @@ def _(ctx):
 
 @check("measure.multi_stage.time_shift_no_bucket_limit")
 def _(ctx):
-    """A limit of Cube: /v1/meta does not tell which measure has a time shift, so the driver cannot stop this."""
-    assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.revenue_prior_month"])["rows"], ch(REV))
+    """With no time bucket and no date filter, Cube gives the total of all rows for a time shift, so the driver stops this."""
+    query = lambda m: ctx.mb.inner(ORD, agg=[m])
+    for measure in ("m:orders.revenue_prior_month", "m:orders.revenue_next_month"):
+        expect_clear_error(ctx, query(measure), "has a time shift")
+    expect_clear_error(ctx, ctx.mb.inner("calendar_sales", agg=["m:calendar_sales.revenue_prior_fiscal"]), "has a time shift")
+    expect_native_refusal(ctx, "SELECT MEASURE(revenue_prior_month) FROM orders", "has a time shift")
+    expect_native_refusal(ctx, "SELECT status, MEASURE(revenue_prior_month) FROM orders GROUP BY 1", "has a time shift")
+    # The same measure with a bucket or a date filter is right, and so is a measure that reads another one with no shift.
+    assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.revenue_prior_month"], where=[["between", CRT, "2025-03-01", "2025-03-31"]])["rows"],
+                ch("SELECT sum(amount) FROM orders WHERE created_at >= '2025-02-01' AND created_at < '2025-03-01'"), tol=0.01, label="date filter")
+    assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.revenue_all_statuses"])["rows"], ch(REV), label="no shift")
 
 
 C("compile.rolling.with_status_filter", ORD, monthly("sumIf(o.amount, o.created_at >= addDays(e, -30) AND o.created_at <= e AND o.status = 'shipped')"), ordered=True,
@@ -4472,8 +4602,6 @@ def _(ctx):
     measure = to_mbql5(ctx.mb.walk("m:orders.revenue"))
     named5 = ["field", {"base-type": "type/DateTime"}, "created_at"]
     for label, where, cond in bound_filters("d:orders.created_at"):
-        if label == "between":
-            continue  # See mcp.query.between_is_whole_days.
         truth = ch("SELECT sum(amount) FROM orders WHERE %s" % cond.format(c="created_at"))
         for shape, stage in (
                 ("table", {"source-table": tid, "aggregation": [measure], "filters": [to_mbql5(ctx.mb.walk(where))]}),
@@ -4489,16 +4617,19 @@ def _(ctx):
         raise Fail("%d differ. %s" % (len(wrong), " | ".join(wrong[:5])))
 
 
-@check("mcp.query.between_is_whole_days")
+@check("mcp.query.between_keeps_time")
 def _(ctx):
-    """A limit of Metabase: before the driver, MCP execute_query makes `between` with a time part into whole days, >= the first day and < the day after the last."""
+    """Metabase reads each bound of `between` in MCP execute_query as a whole day. The driver keeps the time, so the rows are the rows of the bounds."""
     x, y = "2025-03-15T05:00:00", "2025-03-16T05:00:00"
     got = ctx.mcp.call("execute_query", query=mcp_query(ctx.mb, ORD, agg=["m:orders.count"], where=[["between", CRT, x, y]]))["rows"]
     days = ch("SELECT count() FROM orders WHERE toDate(created_at) BETWEEN '2025-03-15' AND '2025-03-16'")
     literal = ch("SELECT count() FROM orders WHERE created_at BETWEEN '2025-03-15 05:00:00' AND '2025-03-16 05:00:00'")
-    if got == literal:
-        raise Fail("MCP now keeps the time part. Give this entry its full status")
-    assert_rows(got, days, label="whole days")
+    if days == literal:
+        raise Fail("these bounds cannot tell a whole day from the time: %s" % days)
+    assert_rows(got, literal, label="bounds with a time")
+    # A bound with no time stays a whole day.
+    assert_rows(ctx.mcp.call("execute_query", query=mcp_query(ctx.mb, ORD, agg=["m:orders.count"], where=[["between", CRT, "2025-03-15", "2025-03-16"]]))["rows"],
+                days, label="bounds with no time")
 
 
 def _with_column(clause, by_id, by_name):
@@ -4512,34 +4643,53 @@ def _with_column(clause, by_id, by_name):
 
 @check("compile.bound.fraction_of_a_second")
 def _(ctx):
-    """A bound with a fraction on a column of whole seconds. Cube drops the fraction, so the driver rounds the bound."""
-    grid = Grid(ctx)
+    """Stock Cube drops the fraction of a bound, so the driver stops a bound with a fraction. With the dialect it is the truth, on whole seconds and on a DateTime64."""
     x, y = "2025-03-15T05:00:00.500", "2025-03-16T05:00:00.500"
-    up, down = "toDateTime('2025-03-15 05:00:01','UTC')", "toDateTime('2025-03-16 05:00:00','UTC')"
-    for label, where, cond in ((">=", [">=", CRT, x], "created_at >= %s" % up),
-                               (">", [">", CRT, x], "created_at >= %s" % up),
-                               ("<", ["<", CRT, y], "created_at <= %s" % down),
-                               ("<=", ["<=", CRT, y], "created_at <= %s" % down),
-                               (">= and <=", ["and", [">=", CRT, x], ["<=", CRT, y]], "created_at >= %s AND created_at <= %s" % (up, down)),
-                               ("> and <", ["and", [">", CRT, x], ["<", CRT, y]], "created_at >= %s AND created_at <= %s" % (up, down)),
-                               ("between", ["between", CRT, x, y], "created_at >= %s AND created_at <= %s" % (up, down))):
+    forms = ((">=", [">=", CRT, x]), (">", [">", CRT, x]), ("<", ["<", CRT, y]), ("<=", ["<=", CRT, y]), ("=", ["=", CRT, x]),
+             (">= and <=", ["and", [">=", CRT, x], ["<=", CRT, y]]), ("> and <", ["and", [">", CRT, x], ["<", CRT, y]]), ("between", ["between", CRT, x, y]))
+    if not DIALECT:
+        for _label, where in forms:
+            expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.count"], where=[where]), "fraction of a second")
+        expect_native_refusal(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at >= '2025-03-15 05:00:00.500'", "fraction of a second")
+        return
+    a, b = "toDateTime64('2025-03-15 05:00:00.500', 3, 'UTC')", "toDateTime64('2025-03-16 05:00:00.500', 3, 'UTC')"
+    grid = Grid(ctx)
+    for label, where, cond in ((">=", forms[0][1], "created_at >= %s" % a), (">", forms[1][1], "created_at > %s" % a), ("<", forms[2][1], "created_at < %s" % b),
+                               ("<=", forms[3][1], "created_at <= %s" % b), ("=", forms[4][1], "created_at = %s" % a),
+                               (">= and <=", forms[5][1], "created_at >= %s AND created_at <= %s" % (a, b)),
+                               ("> and <", forms[6][1], "created_at > %s AND created_at < %s" % (a, b)), ("between", forms[7][1], "created_at >= %s AND created_at <= %s" % (a, b))):
         grid.add(label, ctx.mb.inner(ORD, agg=["m:orders.count"], where=[where]), "SELECT count() FROM orders WHERE " + cond)
+    ts = "d:typed_events.ts64_berlin"
+    t, u = "2025-03-01T06:00:00.006", "2025-03-01T08:00:00.008"
+    c, d = "toDateTime64('2025-03-01 06:00:00.006', 3, 'UTC')", "toDateTime64('2025-03-01 08:00:00.008', 3, 'UTC')"
+    for label, where, cond in (("64 >", [">", ts, t], "ts64_berlin > %s" % c), ("64 =", ["=", ts, t], "ts64_berlin = %s" % c),
+                               ("64 between", ["between", ts, t, u], "ts64_berlin >= %s AND ts64_berlin <= %s" % (c, d)),
+                               ("64 > and <", ["and", [">", ts, t], ["<", ts, u]], "ts64_berlin > %s AND ts64_berlin < %s" % (c, d))):
+        grid.add(label, ctx.mb.inner(TE, agg=["m:typed_events.count"], where=[where]), "SELECT count() FROM typed_events WHERE " + cond)
+    # SQL push-down, because the breakout has an expression.
+    grid.add("push-down", ctx.mb.inner(TE, agg=[["count"]], by=[["expression", "k"]], exprs={"k": ["case", [[[">", "d:typed_events.id", 0], "all"]], {"default": "none"}]}, where=[[">", ts, t]]),
+             "SELECT 'all', count() FROM typed_events WHERE ts64_berlin > %s" % c)
     grid.done()
-    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.count"], where=[["=", CRT, x]]), "whole seconds")
 
 
 @check("compile.bound.datetime64_whole_seconds_limit")
 def _(ctx):
-    """A limit of Cube: it reads a DateTime64 as whole seconds in a filter. A row in the first second after a bound of > is out."""
+    """A DateTime64 keeps the rows inside one second next to a whole bound, on stock Cube too: first second after >, last second before <."""
     ensure_table(ctx, TE)
-    bound = "2025-03-01 06:00:00"
-    rows = ctx.mb.mbql(TE, agg=[["count"]], where=[[">", "d:typed_events.ts64_berlin", bound.replace(" ", "T")],
-                                                   ["<=", "d:typed_events.ts64_berlin", "2025-03-01T09:00:00"]])["rows"]
-    truth = ch("SELECT count() FROM typed_events WHERE ts64_berlin > toDateTime64('%s', 3, 'UTC') AND ts64_berlin <= toDateTime64('2025-03-01 09:00:00', 3, 'UTC')" % bound)
-    if rows[0][0] == truth[0][0]:
-        raise Fail("this now agrees with the truth %s. Give this entry its full status" % truth)
-    if rows[0][0] != truth[0][0] - 1:
-        raise Fail("expected the one row in the first second to be out: got %s, truth %s" % (rows, truth))
+    ts = "d:typed_events.ts64_berlin"
+    a, b = "2025-03-01 06:00:00", "2025-03-01 09:00:00"
+    c, d = "toDateTime64('%s', 3, 'UTC')" % a, "toDateTime64('%s', 3, 'UTC')" % b
+    if ch("SELECT count() FROM typed_events WHERE ts64_berlin > %s AND ts64_berlin < %s + INTERVAL 1 SECOND" % (c, c)) == [[0]]:
+        raise Fail("the seed has no row in the first second after the bound")
+    grid = Grid(ctx)
+    for label, where, cond in (("> and <=", [[">", ts, a.replace(" ", "T")], ["<=", ts, b.replace(" ", "T")]], "ts64_berlin > %s AND ts64_berlin <= %s" % (c, d)),
+                               ("> and <", [[">", ts, a.replace(" ", "T")], ["<", ts, b.replace(" ", "T")]], "ts64_berlin > %s AND ts64_berlin < %s" % (c, d)),
+                               (">= and <", [[">=", ts, a.replace(" ", "T")], ["<", ts, b.replace(" ", "T")]], "ts64_berlin >= %s AND ts64_berlin < %s" % (c, d)),
+                               # A row at 08:00:00.008 is in the last second before this bound.
+                               (">= and < inside", [[">=", ts, a.replace(" ", "T")], ["<", ts, "2025-03-01T08:00:01"]],
+                                "ts64_berlin >= %s AND ts64_berlin < toDateTime64('2025-03-01 08:00:01', 3, 'UTC')" % c)):
+        grid.add(label, ctx.mb.inner(TE, agg=[["count"]], where=where), "SELECT count() FROM typed_events WHERE " + cond)
+    grid.done()
 
 
 @check("native.bound.strict_lower_refused")
@@ -4547,9 +4697,25 @@ def _(ctx):
     """Finding B1 in native SQL. The driver cannot change the text, so it stops the query. Right forms still run."""
     x, y = "'2025-03-15 05:00:00'", "'2025-03-16 05:00:00'"
     truth = "SELECT count() FROM orders WHERE created_at %s AND created_at %s"
-    for lower, upper in (("> " + x, "<= " + y), ("> " + x, "< " + y), ("> TIMESTAMP " + x, "<= TIMESTAMP " + y)):
-        expect_native_refusal(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at %s AND created_at %s" % (lower, upper), "next second")
-    expect_native_refusal(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at <= %s AND status = 'shipped' AND created_at > %s" % (y, x), "next second")
+    shapes = [("created_at > %s AND created_at <= %s" % (x, y), "created_at > %s AND created_at <= %s" % (x, y)),
+              ("created_at > %s AND created_at < %s" % (x, y), "created_at > %s AND created_at < %s" % (x, y)),
+              ("created_at > TIMESTAMP %s AND created_at <= TIMESTAMP %s" % (x, y), "created_at > %s AND created_at <= %s" % (x, y)),
+              ("created_at <= %s AND status = 'shipped' AND created_at > %s" % (y, x), "created_at <= %s AND status = 'shipped' AND created_at > %s" % (y, x)),
+              # The shapes that a scan of `column op literal` alone does not read.
+              ("%s < created_at AND created_at <= %s" % (x, y), "created_at > %s AND created_at <= %s" % (x, y)),
+              ("(created_at) > %s AND created_at <= %s" % (x, y), "created_at > %s AND created_at <= %s" % (x, y)),
+              ("((created_at) > (%s)) AND ((created_at) <= (%s))" % (x, y), "created_at > %s AND created_at <= %s" % (x, y)),
+              ("orders.created_at > %s AND orders.created_at <= %s" % (x, y), "created_at > %s AND created_at <= %s" % (x, y)),
+              ("created_at > CAST(%s AS TIMESTAMP) AND created_at <= CAST(%s AS TIMESTAMP)" % (x, y), "created_at > %s AND created_at <= %s" % (x, y)),
+              ("created_at > %s::timestamp AND created_at <= %s::timestamp" % (x, y), "created_at > %s AND created_at <= %s" % (x, y)),
+              ("CAST(created_at AS TIMESTAMP) > %s AND created_at <= %s" % (x, y), "created_at > %s AND created_at <= %s" % (x, y)),
+              ("%s >= created_at AND %s < created_at" % (y, x), "created_at > %s AND created_at <= %s" % (x, y))]
+    for where, cond in shapes:
+        sql = "SELECT MEASURE(count) FROM orders WHERE " + where
+        if DIALECT:
+            expect_native_rows(ctx, sql, "SELECT count() FROM orders WHERE " + cond)
+        else:
+            expect_native_refusal(ctx, sql, "next second")
     for lower, upper in ((">= " + x, "<= " + y), (">= " + x, "< " + y), (">= '2025-03-15 05:00:01'", "<= " + y)):
         expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at %s AND created_at %s" % (lower, upper), truth % (lower, upper))
     expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at > %s" % x, "SELECT count() FROM orders WHERE created_at > %s" % x)
@@ -4895,8 +5061,12 @@ def _(ctx):
                 "select measure(cumulative_count) from orders"):
         expect_native_refusal(ctx, sql, "With no time bucket")
     for where in ("created_at >= '2025-04-15' AND created_at < '2025-06-01'", "created_at >= '2025-04-01' AND created_at < '2025-05-20'",
-                  "created_at >= TIMESTAMP '2025-04-15 00:00:00'", "created_at BETWEEN '2025-04-15 00:00:00' AND '2025-05-31 23:59:59'"):
+                  "created_at >= TIMESTAMP '2025-04-15 00:00:00'", "created_at BETWEEN '2025-04-15 00:00:00' AND '2025-05-31 23:59:59'",
+                  "'2025-04-15' <= created_at AND created_at < '2025-06-01'", "(created_at) >= '2025-04-15'"):
         expect_native_refusal(ctx, "SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_trailing_30d) FROM orders WHERE %s GROUP BY 1" % where, "Use a filter on whole months")
+    # The shapes that the scan cannot read as a bound stop too.
+    for where in ("created_at IN ('2025-04-15', '2025-05-15')", "toDate(created_at) >= '2025-04-15'", "EXTRACT(MONTH FROM created_at) = 4"):
+        expect_native_refusal(ctx, "SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_trailing_30d) FROM orders WHERE %s GROUP BY 1" % where, "cannot read")
     res = ctx.mcp.rpc("tools/call", {"name": "execute_sql", "arguments": {"database_id": ctx.mb.need_db(), "sql": "SELECT MEASURE(revenue_trailing_30d) FROM orders"}})
     if not res.get("isError"):
         raise Fail("MCP execute_sql gave no refusal: %s" % str(res)[:200])
@@ -4918,7 +5088,8 @@ def _(ctx):
     """Finding B7: Cube pads a date with no time at the end of a date range, which is documented for its REST API, and SQL reads it as midnight."""
     needle = "BETWEEN"
     a, b = "'2025-03-11'", "'2025-04-13'"
-    for where in ("created_at BETWEEN %s AND %s" % (a, b), "created_at NOT BETWEEN %s AND %s" % (a, b), "created_at between '2025-03-11 00:00:00' and %s" % b):
+    for where in ("created_at BETWEEN %s AND %s" % (a, b), "created_at NOT BETWEEN %s AND %s" % (a, b), "created_at between '2025-03-11 00:00:00' and %s" % b,
+                  "(created_at) BETWEEN (%s) AND (%s)" % (a, b), "created_at BETWEEN CAST(%s AS TEXT) AND CAST(%s AS TEXT)" % (a, b)):
         expect_native_refusal(ctx, "SELECT MEASURE(count) FROM orders WHERE " + where, needle)
     for where in ("created_at BETWEEN '2025-03-11 00:00:00' AND '2025-04-13 00:00:00'", "created_at >= %s AND created_at <= %s" % (a, b),
                   "created_at >= %s AND created_at < %s" % (a, b), "created_at <= %s" % b):
@@ -5345,6 +5516,420 @@ def _(ctx):
     expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.unique_customers"], by=[["expression", "k"]], exprs=big), "do not add up")
 
 
+# ----------------------------------------------------------------- the ClickHouse dialect
+
+
+@check("dialect.variant")
+def _(ctx):
+    """The stack is the kind of Cube that this run says. Without this, a run on the wrong stack reports a false result."""
+    query = urllib.parse.quote(json.dumps({"dimensions": ["orders.status"],
+                                           "timeDimensions": [{"dimension": "orders.created_at", "dateRange": ["2025-01-01", "2025-01-02"]}], "limit": 1}))
+    _s, text, _h = http("GET", CUBE + "/cubejs-api/v1/sql?query=" + query)
+    has_fix = "parseDateTime64BestEffort" in text
+    if has_fix != DIALECT:
+        raise Fail("this run is for %s, and Cube writes: %s" % (VARIANT_NAME, text[:300]))
+
+
+_B1_TRUTH = "SELECT count() FROM orders WHERE created_at > '2025-03-15 05:00:00' AND created_at <= '2025-03-16 05:00:00'"
+
+
+@check("dialect.b1_strict_lower_bound")
+def _(ctx):
+    """B1. The driver keeps the query builder right on each Cube. With the dialect, native SQL runs, and on stock Cube the driver stops it."""
+    query = ctx.mb.inner(ORD, agg=["m:orders.count"], where=[[">", CRT, "2025-03-15T05:00:00"], ["<=", CRT, "2025-03-16T05:00:00"]])
+    expect_rows(ctx, query, _B1_TRUTH, "query builder")
+    sql = "SELECT MEASURE(count) FROM orders WHERE created_at > '2025-03-15 05:00:00' AND created_at <= '2025-03-16 05:00:00'"
+    if DIALECT:
+        expect_native_rows(ctx, sql, _B1_TRUTH)
+    else:
+        expect_native_refusal(ctx, sql, "next second")
+
+
+@check("dialect.interval_in_native_sql")
+def _(ctx):
+    """interval. Stock Cube fails this with a message, and the dialect has the template."""
+    sql = "SELECT created_at + INTERVAL '1 day' AS d, MEASURE(count) AS n FROM orders WHERE id <= 3 GROUP BY 1 ORDER BY 1"
+    truth = "SELECT created_at + INTERVAL 1 DAY AS d, count() FROM orders WHERE id <= 3 GROUP BY d ORDER BY d"
+    if DIALECT:
+        expect_native_rows(ctx, sql, truth)
+    else:
+        expect_native_refusal(ctx, sql, "interval")
+
+
+@check("dialect.n2_legacy_planner")
+def _(ctx):
+    """N2. The service cube-legacy has the legacy planner. Stock Cube gives each bucket the same wrong number, and the dialect gives the truth."""
+    now = int(time.time())
+    def b64(x):
+        return base64.urlsafe_b64encode(x).rstrip(b"=").decode()
+    head = b64(json.dumps({"alg": "HS256", "typ": "JWT"}).encode())
+    body = b64(json.dumps({"iat": now, "exp": now + 600}).encode())
+    signature = b64(hmac.new(CUBE_LEGACY_SECRET.encode(), (head + "." + body).encode(), hashlib.sha256).digest())
+    query = urllib.parse.quote(json.dumps({"measures": ["orders.revenue_trailing_30d"], "order": {"orders.created_at": "asc"},
+                                           "timeDimensions": [{"dimension": "orders.created_at", "granularity": "month", "dateRange": ["2025-02-01", "2025-03-31"]}]}))
+    deadline = time.time() + 120
+    while True:
+        status, text, _h = http("GET", CUBE_LEGACY + "/cubejs-api/v1/load?query=" + query, headers={"Authorization": head + "." + body + "." + signature})
+        data = json.loads(text) if text.startswith("{") else {}
+        if status == 200 and data.get("error") != "Continue wait":
+            break
+        if time.time() > deadline:
+            raise Fail("cube-legacy gave no result: HTTP %s %s" % (status, text[:300]))
+        time.sleep(2)
+    got = [float(r["orders.revenue_trailing_30d"]) for r in data.get("data", [])]
+    truth = [float(r[1]) for r in ch("SELECT m, sumIf(o.amount, o.created_at >= addDays(e, -30) AND o.created_at <= e) FROM "
+                                     "(SELECT toDateTime(addMonths(toDate('2025-02-01'), toInt64(number)), 'UTC') m, toDateTime(toLastDayOfMonth(m), 'UTC') + INTERVAL 86399 SECOND e FROM numbers(2)) d "
+                                     "CROSS JOIN orders o GROUP BY m, e ORDER BY m")]
+    close = len(got) == len(truth) and all(abs(a - b) < 0.01 for a, b in zip(got, truth))
+    if DIALECT and not close:
+        raise Fail("with the dialect: %s, truth %s" % (got, truth))
+    if not DIALECT and close:
+        raise Fail("stock Cube now gives the truth on the legacy planner. Give this entry its full status")
+
+
+@check("preagg.original_sql")
+def _(ctx):
+    """m5. The dialect builds an original_sql pre-aggregation. Stock Cube stops it on ClickHouse with its own error, and the driver shows that error."""
+    ensure_table(ctx, "lambda_orders")
+    query = ctx.mb.inner("lambda_orders", agg=["m:lambda_orders.revenue"], by=["d:lambda_orders.status"])
+    truth = "SELECT status, sum(amount) FROM orders GROUP BY status"
+    if DIALECT:
+        expect_rows(ctx, query, truth, "original_sql")
+        used_rollup({"measures": ["lambda_orders.revenue"], "dimensions": ["lambda_orders.status"]}, "daily")(ctx, None)
+        return
+    res = ctx.mb.api("POST", "/api/dataset", {"database": ctx.mb.need_db(), "type": "query", "query": query}, ok=(200, 202, 400, 500))
+    text = str(res.get("error") or res.get("message") or "")
+    if "Missing columns" not in text:
+        raise Fail("stock Cube now reads this. Give this entry its full status: %s" % (text[:200] or res.get("data", {}).get("rows")))
+
+
+# ----------------------------------------------------------------- delivery by mail
+
+
+def mail_messages():
+    status, text, _h = http("GET", MAIL_URL + "/api/v1/messages?limit=200")
+    if status != 200:
+        raise Fail("the mail catcher: HTTP %s" % status)
+    return json.loads(text).get("messages") or []
+
+
+def mail_text(message_id):
+    status, text, _h = http("GET", MAIL_URL + "/api/v1/message/" + message_id)
+    if status != 200:
+        raise Fail("the mail catcher: HTTP %s" % status)
+    message = json.loads(text)
+    return (message.get("Text") or "") + "\n" + (message.get("HTML") or "")
+
+
+def wait_for_mail(address, known, needle=None, seconds=120):
+    """The text of a new message to `address`. `known` has the ids of the messages from before."""
+    deadline = time.time() + seconds
+    while True:
+        for m in mail_messages():
+            if m["ID"] not in known and any(t.get("Address") == address for t in m.get("To") or []):
+                text = mail_text(m["ID"])
+                if needle is None or needle in text:
+                    return text
+        if time.time() > deadline:
+            raise Fail("no mail to %s in %d s" % (address, seconds))
+        time.sleep(2)
+
+
+def number_in_mail(text, number):
+    plain = re.sub(r"<[^>]+>", " ", text).replace(",", "")
+    wanted = float(number)
+    return any(abs(float(found) - wanted) < 0.5 for found in re.findall(r"\d+(?:\.\d+)?", plain))
+
+
+@check("mcp.alert_write")
+def _(ctx):
+    """An agent makes an alert on a question through MCP. Metabase runs the question through the driver and mails the value of Cube."""
+    known = {m["ID"] for m in mail_messages()}
+    address = "alert-%s@example.com" % secrets.token_hex(4)
+    card = ctx.mb.mbql_card("mcp alert", ORD, agg=["m:orders.count"], where=[["=", STA, "shipped"]])
+    res = ctx.mcp.call("alert_write", method="create", card_id=card["id"], recipients=[address], channel="email",
+                       schedule={"schedule_type": "daily", "schedule_hour": 3})
+    alert_id = deep_find(res, "id")
+    ctx.mb.api("POST", "/api/notification/%d/send" % alert_id, {}, ok=(200, 202, 204))
+    text = wait_for_mail(address, known)
+    truth = ch("SELECT count() FROM orders WHERE status = 'shipped'")[0][0]
+    if not number_in_mail(text, truth):
+        raise Fail("the mail has no %s: %s" % (truth, re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", text))[:500]))
+    ctx.mcp.call("alert_write", method="update", id=alert_id, active=False)
+
+
+@check("mcp.subscription_write")
+def _(ctx):
+    """An agent subscribes a person to a dashboard through MCP. Metabase runs the card through the driver and mails the value of Cube."""
+    known = {m["ID"] for m in mail_messages()}
+    address = "subscription-%s@example.com" % secrets.token_hex(4)
+    card = ctx.mb.mbql_card("mcp subscription", ORD, agg=["m:orders.count"], where=[["=", STA, "completed"]])
+    made = ctx.mcp.call("dashboard_write", method="create", name="conformance mcp subscription", collection_id=ctx.mb.collection(), ops=[
+        {"op": "add_card", "id": -1, "card_id": card["id"], "tab": None, "position": None, "size": None, "series": None, "inline_parameters": None}])
+    dash_id = deep_find(made, "id")
+    res = ctx.mcp.call("subscription_write", method="create", dashboard_id=dash_id, recipients=[address], channel="email",
+                       schedule={"schedule_type": "daily", "schedule_hour": 3})
+    pulse_id = deep_find(res, "id")
+    pulse = ctx.mb.api("GET", "/api/pulse/%d" % pulse_id)
+    ctx.mb.api("POST", "/api/pulse/test", pulse, ok=(200, 202, 204))
+    text = wait_for_mail(address, known)
+    truth = ch("SELECT count() FROM orders WHERE status = 'completed'")[0][0]
+    if not number_in_mail(text, truth):
+        raise Fail("the mail has no %s: %s" % (truth, re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", text))[:500]))
+    ctx.mcp.call("subscription_write", method="update", id=pulse_id, archived=True)
+
+
+# ----------------------------------------------------------------- MCP tools for content
+
+
+@check("mcp.collection_write")
+def _(ctx):
+    """An agent makes a collection and puts a question in it. The question in the collection gives the value of Cube."""
+    made = ctx.mcp.call("collection_write", method="create", name="conformance mcp collection %s" % secrets.token_hex(3), description="A collection of an agent.")
+    collection_id = deep_find(made, "id")
+    res = ctx.mcp.call("question_write", method="create", name="conformance mcp in collection", collection_id=collection_id,
+                       query=mcp_query(ctx.mb, ORD, agg=["m:orders.revenue"], by=[STA]))
+    card_id = deep_find(res, "id")
+    if ctx.mb.api("GET", "/api/card/%d" % card_id).get("collection_id") != collection_id:
+        raise Fail("the question is not in the collection")
+    assert_rows(ctx.mcp.call("run_saved_question", id=card_id)["rows"], ch(STATUS_REV))
+    ctx.mcp.call("collection_write", method="update", id=collection_id, archived=True)
+
+
+@check("mcp.bookmark_content")
+def _(ctx):
+    """An agent bookmarks a question. Metabase lists it for this person, and the question gives the value of Cube."""
+    card = ctx.mb.mbql_card("mcp bookmark", ORD, agg=["m:orders.revenue"], by=[STA])
+    ctx.mcp.call("bookmark_content", type="question", id=card["id"], bookmarked=True)
+    marks = ctx.mb.api("GET", "/api/bookmark")
+    if not any(m.get("item_id") == card["id"] and m.get("type") == "card" for m in marks):
+        raise Fail("the question is not in the bookmarks: %s" % str(marks)[:300])
+    assert_rows(ctx.mcp.call("run_saved_question", id=card["id"])["rows"], ch(STATUS_REV))
+    ctx.mcp.call("bookmark_content", type="question", id=card["id"], bookmarked=False)
+    if any(m.get("item_id") == card["id"] and m.get("type") == "card" for m in ctx.mb.api("GET", "/api/bookmark")):
+        raise Fail("the bookmark did not go away")
+
+
+@check("mcp.document_write")
+def _(ctx):
+    """An agent writes a document with a card of a question. The card in the document gives the value of Cube."""
+    card = ctx.mb.mbql_card("mcp document", ORD, agg=["m:orders.count"], by=[STA])
+    body = "# Orders\n\nOrders by status.\n\n[](card:%d)\n" % card["id"]
+    made = ctx.mcp.call("document_write", method="create", name="conformance mcp document", content_markdown=body, collection_id=ctx.mb.collection())
+    doc_id = deep_find(made, "id")
+    doc = ctx.mb.api("GET", "/api/document/%d" % doc_id)
+    text = json.dumps(doc.get("document"))
+    ids = [int(i) for i in re.findall(r'"id": (\d+)', text)]
+    if card["id"] not in ids:
+        raise Fail("the document has no card %d: %s" % (card["id"], text[:400]))
+    assert_rows(ctx.mb.run_card(card["id"])["rows"], ch(STATUS_CNT))
+    ctx.mcp.call("document_write", method="update", id=doc_id, archived=True)
+
+
+@check("mcp.glossary")
+def _(ctx):
+    """An agent reads the term of the analysts, and the measure that the term names gives the value of Cube."""
+    term = "conformance revenue %s" % secrets.token_hex(3)
+    definition = "Sum of order amounts: the measure revenue of the table orders."
+    made = ctx.mb.api("POST", "/api/glossary", {"term": term, "definition": definition})
+    try:
+        res = ctx.mcp.call("glossary", term=term.upper())
+        if definition not in json.dumps(res):
+            raise Fail("the glossary has no definition: %s" % str(res)[:300])
+        mcp_rows(ctx, ORD, REV, agg=["m:orders.revenue"])
+    finally:
+        ctx.mb.api("DELETE", "/api/glossary/%d" % made["id"], ok=(200, 204))
+
+
+@check("mcp.learn")
+def _(ctx):
+    """The skill text teaches the query dialect. A query in that dialect on a Cube table gives the value of Cube."""
+    catalog = ctx.mcp.call("learn")
+    if "query" not in json.dumps(catalog).lower():
+        raise Fail("the catalog has no topic on queries: %s" % str(catalog)[:300])
+    topics = re.findall(r'[a-z][a-z_-]*query[a-z_-]*|query[a-z_-]*', json.dumps(catalog))
+    if not topics:
+        raise Fail("no topic name in the catalog: %s" % str(catalog)[:300])
+    text = ""
+    for topic in dict.fromkeys(topics):
+        res = ctx.mcp.rpc("tools/call", {"name": "learn", "arguments": {"topic": topic}})
+        if not res.get("isError"):
+            text = json.dumps(res)
+            break
+    if "source-table" not in text and "aggregation" not in text:
+        raise Fail("no topic teaches the dialect: %s" % text[:300])
+    mcp_rows(ctx, ORD, STATUS_CNT, agg=["m:orders.count"], by=[STA])
+
+
+def embed_query_rows(ctx, handle):
+    """The query behind a handle of an MCP App, by the same route as its iframe, and the rows of that query."""
+    res = ctx.mb.api("GET", "/api/embed-mcp/queries/%s" % handle)
+    query = res.get("query") or res
+    return ctx.mb.api("POST", "/api/dataset", query)["data"]["rows"]
+
+
+@check("mcp.visualize_query")
+def _(ctx):
+    """visualize_query on a session of a client with MCP Apps. The query of the chart gives the value of Cube."""
+    ui = ctx.mcp.with_ui()
+    names = [t["name"] for t in ui.rpc("tools/list").get("tools", [])]
+    if "visualize_query" not in names:
+        raise Fail("tools/list has no visualize_query: %s" % names)
+    res = ui.call("visualize_query", query=mcp_query(ctx.mb, ORD, agg=["m:orders.revenue"], by=[STA]))
+    handle = deep_find(res, "query_handle") if isinstance(res, (dict, list)) else None
+    if not handle:
+        raise Fail("no query_handle: %s" % str(res)[:300])
+    assert_rows(embed_query_rows(ctx, handle), ch(STATUS_REV))
+
+
+@check("mcp.render_drill_through")
+def _(ctx):
+    """render_drill_through takes the handle of a query that the person drilled into. Its query gives the value of Cube."""
+    ui = ctx.mcp.with_ui()
+    data = ui.call("execute_query", query=mcp_query(ctx.mb, ORD, agg=["m:orders.count"], where=[["=", STA, "shipped"]]))
+    res = ui.call("render_drill_through", query_handle=data["query_handle"])
+    handle = deep_find(res, "query_handle") if isinstance(res, (dict, list)) else None
+    if handle != data["query_handle"]:
+        raise Fail("another handle: %s" % str(res)[:300])
+    assert_rows(embed_query_rows(ctx, handle), ch(SHIPPED))
+
+
+# ----------------------------------------------------------------- the browser
+
+
+class Browser:
+    """A small client of the Chrome DevTools Protocol, with the standard library only."""
+
+    def __init__(self):
+        status, text, _h = http("PUT", BROWSER_URL + "/json/new?about:blank")
+        if status != 200:
+            raise Fail("browser: HTTP %s %s" % (status, text[:200]))
+        target = json.loads(text)
+        self.target_id = target["id"]
+        parsed = urllib.parse.urlparse(BROWSER_URL)
+        self.sock = socket.create_connection((parsed.hostname, parsed.port), timeout=60)
+        key = base64.b64encode(secrets.token_bytes(16)).decode()
+        path = "/devtools/page/" + self.target_id
+        self.sock.sendall(("GET %s HTTP/1.1\r\nHost: %s:%s\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+                           "Sec-WebSocket-Key: %s\r\nSec-WebSocket-Version: 13\r\n\r\n" % (path, parsed.hostname, parsed.port, key)).encode())
+        reply = b""
+        while b"\r\n\r\n" not in reply:
+            reply += self.sock.recv(4096)
+        if b" 101 " not in reply.split(b"\r\n")[0]:
+            raise Fail("browser websocket: %s" % reply[:200])
+        self.buffer = reply.split(b"\r\n\r\n", 1)[1]
+        self.next_id = 0
+
+    def _read(self, n):
+        while len(self.buffer) < n:
+            chunk = self.sock.recv(65536)
+            if not chunk:
+                raise Fail("the browser closed the connection")
+            self.buffer += chunk
+        out, self.buffer = self.buffer[:n], self.buffer[n:]
+        return out
+
+    def _frame(self):
+        text = b""
+        while True:
+            first, second = self._read(2)
+            size = second & 127
+            if size == 126:
+                size = struct.unpack(">H", self._read(2))[0]
+            elif size == 127:
+                size = struct.unpack(">Q", self._read(8))[0]
+            text += self._read(size)
+            if first & 0x80:
+                return text
+
+    def send(self, method, **params):
+        self.next_id += 1
+        payload = json.dumps({"id": self.next_id, "method": method, "params": params}).encode()
+        mask = secrets.token_bytes(4)
+        size = len(payload)
+        head = bytes([0x81])
+        if size < 126:
+            head += bytes([0x80 | size])
+        elif size < 65536:
+            head += bytes([0x80 | 126]) + struct.pack(">H", size)
+        else:
+            head += bytes([0x80 | 127]) + struct.pack(">Q", size)
+        self.sock.sendall(head + mask + bytes(b ^ mask[i % 4] for i, b in enumerate(payload)))
+        while True:
+            message = json.loads(self._frame())
+            if message.get("id") == self.next_id:
+                if "error" in message:
+                    raise Fail("browser %s: %s" % (method, message["error"]))
+                return message.get("result", {})
+
+    def js(self, expression):
+        result = self.send("Runtime.evaluate", expression=expression, returnByValue=True, awaitPromise=True)
+        if "exceptionDetails" in result:
+            raise Fail("browser script: %s" % str(result["exceptionDetails"])[:300])
+        return result["result"].get("value")
+
+    def wait(self, expression, what, seconds=90):
+        deadline = time.time() + seconds
+        while True:
+            value = self.js(expression)
+            if value:
+                return value
+            if time.time() > deadline:
+                raise Fail("browser: no %s in %d s. Page: %s" % (what, seconds, str(self.js("document.body.innerText"))[:400]))
+            time.sleep(1)
+
+    def click_at(self, x, y):
+        for kind in ("mouseMoved", "mousePressed", "mouseReleased"):
+            self.send("Input.dispatchMouseEvent", type=kind, x=x, y=y, button="left" if kind != "mouseMoved" else "none", clickCount=1 if kind != "mouseMoved" else 0)
+
+    def close(self):
+        self.sock.close()
+        http("GET", BROWSER_URL + "/json/close/" + self.target_id)
+
+
+@check("mb.other.drill_through_ui")
+def _(ctx):
+    """A person clicks a number in a table of a question and picks the drill-through. The rows that Metabase shows are the rows of ClickHouse."""
+    card = ctx.mb.mbql_card("ui drill", ORD, agg=["m:orders.count"], by=[STA])
+    browser = Browser()
+    try:
+        browser.send("Page.enable")
+        browser.send("Network.enable")
+        host = urllib.parse.urlparse(METABASE_INTERNAL).hostname
+        browser.send("Network.setCookie", name="metabase.SESSION", value=ctx.mb.sid, domain=host, path="/", httpOnly=True)
+        browser.send("Emulation.setDeviceMetricsOverride", width=1400, height=1000, deviceScaleFactor=1, mobile=False)
+        browser.send("Page.navigate", url="%s/question/%d" % (METABASE_INTERNAL, card["id"]))
+        browser.wait("document.querySelector('[data-testid=\"cell-data\"]') !== null", "cells of the table")
+        cell = browser.wait("""(() => {
+            const cells = [...document.querySelectorAll('[data-testid="cell-data"]')];
+            const i = cells.findIndex(c => c.innerText.trim() === 'shipped');
+            if (i < 0) return null;
+            const r = cells[i + 1].getBoundingClientRect();
+            return {x: r.x + r.width / 2, y: r.y + r.height / 2, text: cells[i + 1].innerText};
+        })()""", "the row of shipped")
+        browser.click_at(cell["x"], cell["y"])
+        browser.wait("""(() => {
+            const items = [...document.querySelectorAll('button, [role="button"], a')];
+            const item = items.find(b => /^(See|View) (these|this)/i.test(b.innerText.trim()));
+            if (!item) return false;
+            item.click();
+            return true;
+        })()""", "the drill-through in the menu")
+        truth = ch("SELECT count() FROM orders WHERE status = 'shipped'")[0][0]
+        shown = browser.wait("""(() => {
+            const t = document.body.innerText.match(/Showing (first )?([\\d,]+) rows?/);
+            return t ? t[2].replace(/,/g, '') : null;
+        })()""", "the number of rows of the drill-through")
+        limit = 2000
+        if int(shown) != min(int(truth), limit):
+            raise Fail("the drill-through shows %s rows, truth %s" % (shown, truth))
+        statuses = browser.js("""[...new Set([...document.querySelectorAll('[data-testid="cell-data"]')].map(c => c.innerText.trim()))]""")
+        if "shipped" not in statuses or "completed" in statuses:
+            raise Fail("the rows of the drill-through are not only shipped: %s" % statuses[:20])
+    finally:
+        browser.close()
+
+
 def run_suite(args):
     features = load_features()
     ids = [f["id"] for f in features]
@@ -5367,7 +5952,7 @@ def run_suite(args):
     reasons = {}
     only = re.compile(args.only) if args.only else None
     # The security checks add databases to Metabase, so they run last. The other checks must not find those objects.
-    for f in sorted(features, key=lambda x: x["id"].startswith("security.")):
+    for f in sorted(features, key=lambda x: x["id"].startswith("security.") or str(x.get("check")).startswith("security.")):
         fid = f["id"]
         if only and not only.search(fid):
             continue
@@ -5391,9 +5976,10 @@ def run_suite(args):
                 traceback.print_exc()
         else:
             # `cap` is the best status of an entry whose check cannot prove the whole feature. The reason tells why.
-            final[fid] = f.get("cap", "pass")
+            # `cap_stock` and `reason_stock` apply only on stock Cube: the dialect closes that limit.
+            final[fid] = f.get("cap", "pass") if DIALECT else f.get("cap_stock", f.get("cap", "pass"))
             if final[fid] != "pass":
-                reasons[fid] = f["reason"]
+                reasons[fid] = f.get("reason_stock", f.get("reason")) if not DIALECT else f.get("reason")
         if final[fid] == "fail":
             print("fail     %s: %s" % (fid, reasons[fid]))
         elif final[fid] == "pass":
@@ -5409,7 +5995,7 @@ def run_suite(args):
         write_statuses(final)
 
     passed = sum(1 for st in final.values() if st == "pass")
-    line = "coverage: %d/%d pass" % (passed, len(final))
+    line = "coverage: %d/%d pass on %s" % (passed, len(final), VARIANT_NAME)
     if args.only:
         line += " (only %s)" % args.only
     print(line)

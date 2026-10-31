@@ -457,8 +457,10 @@
 - id: granularity.custom.offset
   area: cube.dimensions
   title: "granularity custom offset"
-  status: blocked
-  reason: "Wrong number from Cube Store: a time before the origin of a custom granularity gets the wrong bin. An offset uses an origin in the current year, so old rows on a rollup of months go wrong: Cube gives 2025-02-01 825 and 2025-05-01 1288, and the truth is 2024-11-01 433 and 2025-02-01 1246. A measure that the rollup does not serve is right, see compile.granularity.native_offset_no_rollup. The driver cannot see this. Use an origin before all rows, such as 2000-02-01, in place of an offset."
+  status: partial
+  check: granularity.custom.offset
+  cap: partial
+  reason: "Cube Store puts a time before the origin of a custom granularity in months in the wrong bin, and no released Cube has a fix. The driver stops such a query when a rollup serves the measure and the data starts before the origin. An offset has its origin in the current year, so this stops most offsets on a rollup. A measure that no rollup serves gives the truth. An origin before all rows gives the truth on a rollup."
 - id: granularity.custom.origin
   area: cube.dimensions
   title: "granularity custom origin"
@@ -552,13 +554,13 @@
 - id: cube.calendar_granularity_sql
   area: cube.cubes
   title: "cube calendar granularity sql"
-  status: blocked
-  reason: "Needs a calendar table with SQL granularities in the demo model. Not modelled yet."
+  status: pass
+  check: cube.calendar_granularity_sql
 - id: cube.data_source
   area: cube.cubes
   title: "cube data source"
-  status: blocked
-  reason: "The demo stack has one data source. A second one needs a compose change and a Cube config, which do not exist yet."
+  status: pass
+  check: cube.data_source
 - id: cube.description
   area: cube.cubes
   title: "cube description"
@@ -582,10 +584,8 @@
 - id: cube.refresh_key
   area: cube.cubes
   title: "cube refresh key"
-  status: partial
+  status: pass
   check: cube.refresh_key
-  cap: partial
-  reason: "A refresh key has no Metabase object. The check compares the value and reads the 1 hour key in the SQL that Cube generates. It changes no data, so it does not prove a refresh."
 - id: cube.sql
   area: cube.cubes
   title: "cube sql"
@@ -609,13 +609,13 @@
 - id: context.compile_context
   area: cube.context
   title: "context compile context"
-  status: blocked
-  reason: "Needs a security context. See security.compile_context."
+  status: pass
+  check: security.compile_context
 - id: context.filter_group
   area: cube.context
   title: "context filter group"
-  status: blocked
-  reason: "FILTER_GROUP is not in the demo model yet."
+  status: pass
+  check: context.filter_group
 - id: context.filter_params
   area: cube.context
   title: "context filter params"
@@ -779,8 +779,10 @@
 - id: preagg.original_sql
   area: cube.pre_aggregations
   title: "preagg original sql"
-  status: blocked
-  reason: "Any original_sql pre-aggregation with an index fails on ClickHouse, also with no rollup on it: Missing columns: 'lambda_orders__status'. With no index, Cube refuses it. So the ClickHouse dialect has no working form. A subclass of ClickHouseQuery can drop the index, see docs/cube-findings.md."
+  status: pass
+  check: preagg.original_sql
+  cap_stock: blocked
+  reason_stock: "Stock Cube has no working form of original_sql on ClickHouse: with an index it fails with Missing columns, and with no index it refuses. The query stops with this error, so no number is wrong. cube-clickhouse builds it. Its indexes then have no effect."
 - id: preagg.partitioned
   area: cube.pre_aggregations
   title: "preagg partitioned"
@@ -876,12 +878,12 @@
 - id: restapi.compare_date_range
   area: cube.rest_api
   title: "restapi compare date range"
-  status: blocked
+  status: unsupported
   reason: "compareDateRange exists only in the REST API. No Metabase query shape maps to it."
 - id: restapi.total_query
   area: cube.rest_api
   title: "restapi total query"
-  status: blocked
+  status: unsupported
   reason: "A total query exists only in the REST API. No Metabase query shape maps to it."
 - id: clickhouse.bool
   area: clickhouse
@@ -1656,8 +1658,8 @@
 - id: mb.other.drill_through_ui
   area: metabase.other
   title: "mb other drill through ui"
-  status: blocked
-  reason: "Drill-through runs in the browser. The suite has no browser check yet."
+  status: pass
+  check: mb.other.drill_through_ui
 - id: mb.other.model_persistence
   area: metabase.other
   title: "mb other model persistence"
@@ -1676,13 +1678,13 @@
 - id: mcp.alert_write
   area: mcp
   title: "mcp alert write"
-  status: blocked
-  reason: "Needs an email or Slack channel. The demo stack has neither."
+  status: pass
+  check: mcp.alert_write
 - id: mcp.bookmark_content
   area: mcp
   title: "mcp bookmark content"
-  status: blocked
-  reason: "A bookmark holds no Cube value that a check can compare with the truth."
+  status: pass
+  check: mcp.bookmark_content
 - id: mcp.browse.descriptions_in_get_fields
   area: mcp
   title: "mcp browse descriptions in get fields"
@@ -1716,8 +1718,8 @@
 - id: mcp.collection_write
   area: mcp
   title: "mcp collection write"
-  status: blocked
-  reason: "A collection holds no Cube value that a check can compare with the truth."
+  status: pass
+  check: mcp.collection_write
 - id: mcp.connect_oauth
   area: mcp
   title: "mcp connect oauth"
@@ -1736,8 +1738,8 @@
 - id: mcp.document_write
   area: mcp
   title: "mcp document write"
-  status: blocked
-  reason: "A document holds no Cube value that a check can compare with the truth."
+  status: pass
+  check: mcp.document_write
 - id: mcp.duplicate_content
   area: mcp
   title: "mcp duplicate content"
@@ -1826,13 +1828,13 @@
 - id: mcp.glossary
   area: mcp
   title: "mcp glossary"
-  status: blocked
-  reason: "The glossary holds no Cube value that a check can compare with the truth."
+  status: pass
+  check: mcp.glossary
 - id: mcp.learn
   area: mcp
   title: "mcp learn"
-  status: blocked
-  reason: "Skill text holds no Cube value that a check can compare with the truth."
+  status: pass
+  check: mcp.learn
 - id: mcp.measure_write
   area: mcp
   title: "mcp measure write"
@@ -1866,8 +1868,8 @@
 - id: mcp.render_drill_through
   area: mcp
   title: "mcp render drill through"
-  status: blocked
-  reason: "The tools/list reply for a session without MCP Apps support does not include this tool."
+  status: pass
+  check: mcp.render_drill_through
 - id: mcp.run_saved_question
   area: mcp
   title: "mcp run saved question"
@@ -1906,13 +1908,13 @@
 - id: mcp.subscription_write
   area: mcp
   title: "mcp subscription write"
-  status: blocked
-  reason: "Needs an email or Slack channel. The demo stack has neither."
+  status: pass
+  check: mcp.subscription_write
 - id: mcp.visualize_query
   area: mcp
   title: "mcp visualize query"
-  status: blocked
-  reason: "The tools/list reply for a session without MCP Apps support does not include this tool."
+  status: pass
+  check: mcp.visualize_query
 - id: inherit.cube.members
   area: cube.inheritance
   title: "child cube inherits members"
@@ -2311,8 +2313,10 @@
 - id: compile.ch.decimal_above_double
   area: mb.compile.ch
   title: "ch decimal above double"
-  status: blocked
-  reason: "The SQL API of Cube has the type Double for numbers, and the ClickHouse driver of Cube sends JSON numbers. SELECT dec_big FROM typed_events WHERE id = 3 gives 3000000000000 where the truth is 3000000000000.00000003. A dimension with SQL toString(column) keeps the digits."
+  status: partial
+  check: compile.ch.decimal_above_double
+  cap: partial
+  reason: "Known wrong number. The SQL API of Cube has the type Double for numbers, so a long decimal loses digits. Its value fits the range of a Double, so the driver cannot see this. SELECT dec_big FROM typed_events WHERE id = 3 gives 3000000000000 where the truth is 3000000000000.00000003. A dimension with SQL toString(column) keeps the digits, and the check proves this."
 - id: compile.ch.decimal_row
   area: mb.compile.ch
   title: "ch decimal row"
@@ -2381,8 +2385,8 @@
 - id: compile.ch.uint64_above_double
   area: mb.compile.ch
   title: "ch uint64 above double"
-  status: blocked
-  reason: "The SQL API of Cube has the type Double for numbers, and the ClickHouse driver of Cube sends JSON numbers. SELECT ui64 FROM typed_events WHERE id = 2 gives 9007199254740996 where the truth is 9007199254740995, and MEASURE(sum_ui64) gives 9007199254741494000. A dimension with SQL toString(column) keeps the digits."
+  status: pass
+  check: compile.ch.uint64_above_double
 - id: compile.ch.uuid_filter
   area: mb.compile.ch
   title: "ch uuid filter"
@@ -3397,21 +3401,19 @@
   status: partial
   check: dimension.opt.propagate_filters_next_to_another_sub_query
   cap: partial
-  reason: "Wrong number from Cube with the Tesseract planner. When two sub_query dimensions have equal SQL, the generated SQL joins both subqueries and selects the first for both columns, so the propagated dimension shows the other value. Alone, it is right, see dimension.opt.propagate_filters. With other SQL, such as {orders.count} + 0, it gives the truth."
+  reason: "Cube with the Tesseract planner reads the first subquery for two sub_query dimensions with equal SQL when the query has a filter. The driver stops a query that groups by both, and raw rows show NULL in the later column. With other SQL, such as {orders.count} + 0, both work, and each is right alone, see dimension.opt.propagate_filters."
 - id: measure.multi_stage.time_shift_no_bucket_limit
   area: cube.measures
   title: "time shift with no time bucket"
-  status: partial
+  status: pass
   check: measure.multi_stage.time_shift_no_bucket_limit
-  cap: partial
-  reason: "Unclear intent. With no time bucket, a time shift measure gives the total of all rows, because a sum over all time does not change after a shift. With a date range it gives the value of the earlier month. /v1/meta does not tell which measure has a time shift, so the driver cannot ask for a time bucket here. Group by a time bucket."
 - id: clickhouse.datetime64_millis
   area: cube.clickhouse
   title: "DateTime64 milliseconds"
-  status: partial
+  status: pass
   check: clickhouse.datetime64_millis
-  cap: partial
-  reason: "The ClickHouse dialect of Cube reads a time as whole seconds. A raw value has no milliseconds, and a filter on them finds no row. Postgres keeps them. Buckets of a second and above are right. A dimension with sql: toString(column) keeps the text. A subclass of ClickHouseQuery can fix this, see docs/cube-findings.md."
+  cap_stock: partial
+  reason_stock: "Stock Cube reads a time as whole seconds. A raw value has no milliseconds. Buckets of a second and above are right. A dimension with sql: toString(column) keeps the text. cube-clickhouse keeps the milliseconds."
 - id: compile.rolling.by_day_on_boundaries
   area: mb.compile.rolling
   title: "rolling window by day"
@@ -3695,10 +3697,8 @@
 - id: compile.bound.datetime64_whole_seconds_limit
   area: mb.compile.bound
   title: "strict bound on DateTime64 reads whole seconds"
-  status: partial
+  status: pass
   check: compile.bound.datetime64_whole_seconds_limit
-  cap: partial
-  reason: "The ClickHouse dialect of Cube reads a time as whole seconds in a filter, so a row in the first second after a bound of > is out of the result. /v1/meta does not show the column type, so the driver cannot avoid this. A dimension with sql: toString(column) keeps the text. A subclass of ClickHouseQuery can fix this, see docs/cube-findings.md."
 - id: native.count_on_no_rows_limit
   area: mb.native
   title: "native COUNT(*) on no rows"
@@ -3770,15 +3770,37 @@
   title: "filter on a measure column of a model with no primary key"
   status: pass
   check: nested.measure_column.filter_with_no_key_refused
-- id: mcp.query.between_is_whole_days
+- id: mcp.query.between_keeps_time
   area: mcp
-  title: "between with a time part in MCP execute_query"
-  status: partial
-  check: mcp.query.between_is_whole_days
-  cap: partial
-  reason: "Limit of Metabase: MCP execute_query makes between with a time part into whole days before the driver, so the driver cannot see the time part. In the demo, 15 rows have that range, and MCP gives 28. The query API /api/dataset keeps the time part. Use >= and <= in MCP for a range with a time part."
+  title: "MCP between with a time part"
+  status: pass
+  check: mcp.query.between_keeps_time
 - id: compile.expr.measure_with_expression_breakout
   area: mb.compile.expr
   title: "measures with a breakout on an expression"
   status: pass
   check: compile.expr.measure_with_expression_breakout
+- id: dialect.variant
+  area: dialect
+  title: "the stack is the kind of Cube that the run says"
+  status: pass
+  check: dialect.variant
+- id: dialect.b1_strict_lower_bound
+  area: dialect
+  title: "a strict lower bound and an upper bound"
+  status: pass
+  check: dialect.b1_strict_lower_bound
+- id: dialect.interval_in_native_sql
+  area: dialect
+  title: "an interval in native SQL next to a measure"
+  status: pass
+  check: dialect.interval_in_native_sql
+  cap_stock: partial
+  reason_stock: "Stock Cube has no template for an interval on ClickHouse. The query stops with a clear message. cube-clickhouse has the template."
+- id: dialect.n2_legacy_planner
+  area: dialect
+  title: "a rolling measure on the legacy planner"
+  status: pass
+  check: dialect.n2_legacy_planner
+  cap_stock: partial
+  reason_stock: "Known wrong number. Only with CUBEJS_TESSERACT_SQL_PLANNER=false, not the default: each bucket of a rolling measure gets the same wrong number. The driver cannot see the planner. cube-clickhouse fixes this."

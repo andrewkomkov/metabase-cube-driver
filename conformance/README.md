@@ -10,6 +10,8 @@ Run the suite on nettop, because it reads the truth with `docker compose exec`.
 make conformance
 ```
 
+This command runs the suite twice, on stock Cube and on Cube with [`cube-clickhouse`](../cube-clickhouse/README.md), and prints a coverage line for each. `make conformance VARIANT=on` or `VARIANT=off` runs one. At the end the demo stack has the dialect. `status` in `features.yaml` is the result with the dialect, and `status_stock` is the result on stock Cube.
+
 This command does not read the secret store, so it needs no Touch ID and it also runs when the screen of the Mac is locked. It uses `dev/docker-compose.conformance.yml`, which adds the service `metabase-conformance`:
 
 - Its address is `127.0.0.1:3301`. The service binds to the loopback interface only.
@@ -52,6 +54,11 @@ METABASE_ADMIN_PASSWORD=... python3 conformance/run.py
 | `CUBE_SECURE_SQL_HOST`, `CUBE_SECURE_SQL_PORT` | `cube-secure`, `15432`. Metabase uses this address for the `security.*` checks. |
 | `CUBE_SECURE_REST_INTERNAL_URL` | `http://cube-secure:4000`. Metabase uses this address. |
 | `METABASE_CONTAINER` | `metabase-cube-driver-metabase-1`. The runner reads its log for `security.secret.not_in_logs`. |
+| `CUBE_CLICKHOUSE_FIXES` | `on`. `off` tells the runner that this stack is stock Cube. `dialect.variant` fails if this is false. |
+| `METABASE_INTERNAL_URL` | `http://metabase:3000`. The browser uses this address. |
+| `MAIL_URL` | `http://127.0.0.1:8025`. The runner reads the mail catcher here. |
+| `BROWSER_URL` | `http://127.0.0.1:9222`. The runner drives the headless browser here. |
+| `CUBE_LEGACY_REST_URL` | `http://127.0.0.1:4402`. The check of N2 uses the legacy planner here. |
 
 If Metabase has no admin, the runner creates one and connects the Cube database. It generates a random password if `METABASE_ADMIN_PASSWORD` is not set.
 
@@ -65,7 +72,7 @@ The runner prints one line per feature and then `coverage: N/M pass`. `M` counts
 | --- | --- |
 | `todo` | The check did not run yet. This status occurs only in `features.yaml`. |
 | `pass` | The check ran and the value is equal to the SQL truth. A check of a refusal compares the text of the error, because no truth value applies. |
-| `partial` | The check ran and passed, but it cannot prove the whole feature. The entry has `cap: partial` and a `reason`. If a limit of Cube goes away, the check fails and tells this. |
+| `partial` | The check ran and passed, but it cannot prove the whole feature. The entry has `cap: partial` and a `reason`. If a limit of Cube goes away, the check fails and tells this. `cap_stock` and `reason_stock` apply only on stock Cube. |
 | `fail` | The check ran and a value, a member or the Cube database is missing or wrong. |
 | `blocked` | The entry has no check. The `reason` tells what is necessary. |
 | `unsupported` | The feature has no meaning in Metabase. The `reason` tells why. |
@@ -85,6 +92,10 @@ The `compile.*` checks compare each number with ClickHouse. They also run `EXPLA
 ## Per-person data
 
 The `security.*` checks need the service `cube-secure`. They run last, because they add databases and people to Metabase. They remove the databases at the end. The people stay. They set a root cache policy for one check and remove it. The truth for each person is ClickHouse with the filter of the row-level rule in `dev/cube-secure/cube.js`.
+
+## Mail and the browser
+
+`mcp.alert_write` and `mcp.subscription_write` read the mail in the service `mail`, a local catcher that sends nothing out. They look for the value of ClickHouse in the text of the mail. `mb.other.drill_through_ui` drives the service `browser`, a headless Chromium, with the Chrome DevTools Protocol.
 
 ## Agent path
 
