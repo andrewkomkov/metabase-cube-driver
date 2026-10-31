@@ -62,11 +62,38 @@
 
 (declare mark-geo-views)
 
+(defn- last-name-part
+  [member-name]
+  (last (str/split (str member-name) #"\.")))
+
+(defn- with-definition-of-parents
+  "A `member` of a cube with `extends` has no :sql and no :case in /v1/meta if the cube does not define it again. The parent has them."
+  [name->cube cube kind member]
+  (if (or (:sql member) (:case member))
+    member
+    (let [parents (rest (take 20 (take-while some? (iterate #(name->cube (:extends %)) cube))))
+          same    (fn [parent] (first (filter #(= (last-name-part (:name %)) (last-name-part (:name member))) (kind parent))))]
+      (merge member (some #(not-empty (select-keys (same %) [:sql :case])) parents)))))
+
+(defn- with-inherited-definitions
+  "The compiler reads the SQL of a member, for example to find the column of a join or to tell a `switch` dimension from a dimension of a
+  column. So each member of a child cube gets the definition that it inherits."
+  [cube-meta]
+  (let [name->cube (into {} (map (juxt :name identity)) (:cubes cube-meta))
+        with-kind  (fn [cube kind]
+                     (cond-> cube
+                       (kind cube) (update kind (partial mapv #(with-definition-of-parents name->cube cube kind %)))))]
+    (update cube-meta :cubes
+            (partial mapv (fn [cube]
+                            (if (:extends cube)
+                              (reduce with-kind cube [:dimensions :measures :segments])
+                              cube))))))
+
 (defn fetch-meta
-  "GET /cubejs-api/v1/meta?extended=true. Returns the decoded body, with `:geo-readable?` on each view if Cube can read a
-  geo dimension of a view."
+  "GET /cubejs-api/v1/meta?extended=true. Returns the decoded body, with the definitions that a child cube inherits, and with
+  `:geo-readable?` on each view if Cube can read a geo dimension of a view."
   [details]
-  (mark-geo-views details (api-get details "/v1/meta" {"extended" "true"})))
+  (mark-geo-views details (with-inherited-definitions (api-get details "/v1/meta" {"extended" "true"}))))
 
 (defn rest-get
   "GET a path of the Cube REST API with a query."

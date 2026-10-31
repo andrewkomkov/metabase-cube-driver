@@ -5788,6 +5788,29 @@ def _(ctx):
         ctx.mb.api("PUT", "/api/setting/start-of-week", {"value": prev if isinstance(prev, str) and prev else None})
 
 
+# ----------------------------------------------------------------- a child cube that defines nothing again
+
+JCL = "js_child_line"
+Q("inherit.js.join_by_column_of_parent", JCL, "SELECT u.city, count() FROM orders o LEFT JOIN users u ON o.user_id = u.id GROUP BY 1",
+  agg=["m:%s.count" % JCL], by=["d:%s>users.city" % JCL])
+Q("inherit.js.raw_text_dimension", JCL, "SELECT id, status FROM orders WHERE id <= 3",
+  fields=["d:%s.id" % JCL, "d:%s.orderStatus" % JCL], where=[["<=", "d:%s.id" % JCL, 3]])
+Q("inherit.js.raw_case_dimension", JCL, "SELECT id, if(quantity >= 3, 'large', 'small') FROM orders WHERE id <= 3",
+  fields=["d:%s.id" % JCL, "d:%s.sizeBand" % JCL], where=[["<=", "d:%s.id" % JCL, 3]])
+Q("inherit.multi_level.raw_text_dimension", "level_two", "SELECT id, if(quantity >= 3, 'high', 'low') FROM orders WHERE quantity >= 3 AND id <= 20",
+  fields=["d:level_two.id", "d:level_two.quantity_band"], where=[["<=", "d:level_two.id", 20]])
+
+
+@check("inherit.js.rolling_with_no_bucket_refused")
+def _(ctx):
+    expect_refusal(ctx, JCL, "rolling window measure", agg=["m:%s.revenueTrailing" % JCL])
+
+
+@check("inherit.js.time_shift_with_no_bucket_refused")
+def _(ctx):
+    expect_refusal(ctx, JCL, "has a time shift", agg=["m:%s.revenuePriorYear" % JCL])
+
+
 # ----------------------------------------------------------------- findings of the random query generator, see dev/fuzz/README.md
 
 @check("clickhouse.aggregate_on_no_rows")

@@ -8191,3 +8191,39 @@
   status: pass
   status_stock: pass
   check: zone.rolling.sunday_week_with_no_granularity_refused
+- id: inherit.js.join_by_column_of_parent
+  area: cube.inheritance
+  title: "a child cube has the foreign key of a join of its parent, by the column"
+  status: pass
+  status_stock: pass
+  check: inherit.js.join_by_column_of_parent
+- id: inherit.js.raw_text_dimension
+  area: cube.inheritance
+  title: "a raw row of a child cube shows a text dimension of the parent"
+  status: pass
+  status_stock: pass
+  check: inherit.js.raw_text_dimension
+- id: inherit.js.raw_case_dimension
+  area: cube.inheritance
+  title: "a raw row of a child cube shows a case dimension of the parent"
+  status: pass
+  status_stock: pass
+  check: inherit.js.raw_case_dimension
+- id: inherit.multi_level.raw_text_dimension
+  area: cube.inheritance
+  title: "a raw row of a grandchild shows a text dimension of a parent"
+  status: pass
+  status_stock: pass
+  check: inherit.multi_level.raw_text_dimension
+- id: inherit.js.rolling_with_no_bucket_refused
+  area: cube.inheritance
+  title: "a rolling window measure of a parent stops on a child with no time bucket"
+  status: pass
+  status_stock: pass
+  check: inherit.js.rolling_with_no_bucket_refused
+- id: inherit.js.time_shift_with_no_bucket_refused
+  area: cube.inheritance
+  title: "a time shift of a parent stops on a child with no time bucket"
+  status: pass
+  status_stock: pass
+  check: inherit.js.time_shift_with_no_bucket_refused
