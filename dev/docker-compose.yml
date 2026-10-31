@@ -12,6 +12,7 @@ services:
     volumes:
       - "./clickhouse/seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro"
       - "./clickhouse/seed-extra.sql:/docker-entrypoint-initdb.d/seed-extra.sql:ro"
+      - "./clickhouse/profile.xml:/etc/clickhouse-server/users.d/profile.xml:ro"
       - "clickhouse-data:/var/lib/clickhouse"
     mem_limit: 3g
     ulimits: { nofile: { soft: 262144, hard: 262144 } }
