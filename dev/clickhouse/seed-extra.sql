@@ -30,3 +30,6 @@ INSERT INTO shop.metric_sales SELECT i, ['web', 'store', 'phone'][1 + i % 3], to
   toDecimal64(10 + i % 37 + if(i % 731 > 366, 5, 0), 2)
   FROM (SELECT toInt32(number + 1) AS i FROM numbers(4000))
   WHERE (SELECT count() FROM shop.metric_sales) = 0;
+
+-- A table that the checks of refresh_key change.
+CREATE TABLE IF NOT EXISTS shop.pa_mutable (id Int64, kind LowCardinality(String), ts DateTime('UTC'), amount Decimal(14, 2), version Int64) ENGINE = MergeTree ORDER BY id;

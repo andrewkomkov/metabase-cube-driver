@@ -202,6 +202,15 @@ cubes:
       - { name: c_margin, type: number, sql: "1.0 * ({m_revenue} - {c_cost}) / NULLIF({c_cost}, 0)", description: The form (a - b) / b. }
       - { name: c_product, type: number, sql: "1.0 * {m_avg_quantity} * {m_count}", description: A product of two metrics. }
       - { name: c_nested_ratio, type: number, sql: "1.0 * {m_revenue} / NULLIF({m_quantity_sum}, 0) / NULLIF({m_count}, 0)", description: The form a / b / c. }
+    pre_aggregations:
+      # Each check of this cube that matches this rollup compares a number from Cube Store with the truth.
+      - name: additive_status_day
+        measures: [m_count, m_revenue, m_min_amount, m_max_amount, m_quantity_sum, m_count_completed, m_paid_revenue, b_amount_x_quantity, c_cost]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        indexes:
+          - { name: status_idx, columns: [status] }
 
   - name: metric_payments
     title: Metric payments
@@ -407,7 +416,432 @@ cubes:
       - { name: per_order, type: number, sql: "1.0 * {revenue} / NULLIF({order_rows}, 0)", description: Doubled revenue per order. }
       - { name: order_rows, type: count, description: Orders. }
 
+  # ----- The catalog of pre-aggregation forms. conformance/run.py proves each hit and each miss from usedPreAggregations.
+  - name: pa_types
+    title: Rollup types
+    description: One measure of each type that a rollup can hold, on shop.orders. Additive and non-additive measures are in separate rollups.
+    sql_table: shop.orders
+    refresh_key: { every: 1 hour }
+    joins:
+      - { name: pa_customers, relationship: many_to_one, sql: "{CUBE}.user_id = {pa_customers.id}" }
+      - { name: pa_payments, relationship: one_to_many, sql: "{CUBE}.id = {pa_payments.order_id}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string, description: Order status. }
+      - { name: product_id, sql: product_id, type: number, description: A dimension that no rollup holds. }
+      - { name: created_at, sql: created_at, type: time, description: Time of the order. }
+    segments:
+      - { name: paid, sql: "{CUBE}.status IN ('completed','shipped')", description: Completed or shipped orders. }
+    measures:
+      - { name: count, type: count, description: Additive. }
+      - { name: revenue, type: sum, sql: amount, description: Additive. }
+      - { name: min_amount, type: min, sql: amount, description: Additive. }
+      - { name: max_amount, type: max, sql: amount, description: Additive. }
+      - { name: users_approx, type: count_distinct_approx, sql: user_id, description: Additive through a sketch. }
+      - { name: paid_count, type: count, filters: [{ sql: "{CUBE}.status IN ('completed','shipped')" }], description: Additive with a filter. }
+      - { name: paid_revenue, type: sum, sql: amount, filters: [{ sql: "{CUBE}.status IN ('completed','shipped')" }], description: Additive with a filter. }
+      - { name: per_order, type: number, sql: "1.0 * {revenue} / NULLIF({count}, 0)", description: A ratio of additive leaf measures. }
+      - { name: users, type: count_distinct, sql: user_id, description: Not additive. }
+      - { name: avg_amount, type: avg, sql: amount, description: Not additive in the docs. }
+      - { name: per_user, type: number, sql: "1.0 * {revenue} / NULLIF({users}, 0)", description: A ratio with a leaf measure that is not additive. }
+      - { name: median_amount, type: number, sql: "quantile(0.5)(toFloat64({CUBE}.amount))", description: Not additive. }
+      - { name: first_status, type: string, sql: "min({CUBE}.status)", description: A string measure. }
+      - { name: last_at, type: time, sql: "max({CUBE}.created_at)", description: A time measure. }
+      - { name: any_completed, type: boolean, sql: "max({CUBE}.status = 'completed')", description: A boolean measure. }
+      - { name: rev_3m, type: sum, sql: amount, rolling_window: { trailing: 3 month }, description: Rolling window. }
+      - { name: rev_mtd, type: sum, sql: amount, rolling_window: { type: to_date, granularity: month }, description: Rolling window to date. }
+      - { name: rev_running, type: sum, sql: amount, rolling_window: { trailing: unbounded }, description: Running total. }
+      - { name: rev_total, multi_stage: true, type: sum, sql: "{revenue}", grain: { keep_only: [] }, description: Multi-stage over an additive measure. }
+      - name: rev_prior
+        multi_stage: true
+        type: number
+        sql: "{revenue}"
+        time_shift:
+          - { time_dimension: created_at, interval: 1 month, type: prior }
+        description: Time shift over an additive measure.
+    pre_aggregations:
+      - name: additive_day
+        measures: [count, revenue, min_amount, max_amount, paid_count, paid_revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        indexes:
+          - { name: status_idx, columns: [status] }
+      - name: approx_day
+        measures: [users_approx]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+      - name: non_additive_day
+        measures: [users, avg_amount, median_amount, first_status, last_at, any_completed]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+      - name: rolling_day
+        measures: [rev_3m, rev_mtd, rev_running]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+      - name: by_state_day
+        measures: [count]
+        dimensions: [pa_customers.state]
+        time_dimension: created_at
+        granularity: day
+      - name: paid_segment
+        measures: [max_amount]
+        segments: [paid]
+        dimensions: [status]
+
+  - name: pa_customers
+    title: Rollup customers
+    description: Customers for the join of pa_types.
+    sql_table: shop.users
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: state, sql: state, type: string, description: In a rollup of pa_types. }
+      - { name: city, sql: city, type: string, description: In no rollup. }
+
+  - name: pa_payments
+    title: Rollup payments
+    description: Payments for a join with fan-out from pa_types.
+    sql: "SELECT id AS payment_id, id AS order_id, amount AS paid FROM shop.orders"
+    dimensions:
+      - { name: id, sql: payment_id, type: number, primary_key: true, public: true }
+      - { name: order_id, sql: order_id, type: number, description: Paid order. }
+    measures:
+      - { name: total, type: sum, sql: paid, description: Total paid. }
+
+  - name: pa_extended
+    extends: pa_types
+    title: Rollup extended
+    description: An extended cube that inherits each rollup of pa_types.
+
+  - name: pa_grain
+    title: Rollup granularity
+    description: A rollup for each granularity. The coarse rollups come first, so a query gets the rollup of its own grain.
+    sql_table: shop.orders
+    refresh_key: { every: 1 hour }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: created_at, sql: created_at, type: time, description: Time of the order. }
+    measures:
+      - { name: count, type: count, description: Orders. }
+      - { name: revenue, type: sum, sql: amount, description: Revenue. }
+    pre_aggregations:
+      - { name: by_year, measures: [count, revenue], time_dimension: created_at, granularity: year }
+      - { name: by_quarter, measures: [count, revenue], time_dimension: created_at, granularity: quarter }
+      - { name: by_month, measures: [count, revenue], time_dimension: created_at, granularity: month }
+      - { name: by_week, measures: [count, revenue], time_dimension: created_at, granularity: week }
+      - { name: by_day, measures: [count, revenue], time_dimension: created_at, granularity: day }
+      - { name: by_hour, measures: [count, revenue], time_dimension: created_at, granularity: hour }
+      - { name: by_minute, measures: [count, revenue], time_dimension: created_at, granularity: minute }
+      - { name: by_second, measures: [count, revenue], time_dimension: created_at, granularity: second }
+
+  - name: pa_week
+    title: Rollup by week
+    description: Only one rollup by week. A week does not divide a month, so a query by month must miss.
+    sql_table: shop.orders
+    refresh_key: { every: 1 hour }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: created_at, sql: created_at, type: time, description: Time of the order. }
+    measures:
+      - { name: revenue, type: sum, sql: amount, description: Revenue. }
+    pre_aggregations:
+      - { name: only_week, measures: [revenue], time_dimension: created_at, granularity: week }
+
+  - name: pa_partitions
+    title: Rollup partitions
+    description: A rollup for each partition granularity. Each one has its own measure, so the query names the rollup.
+    sql_table: shop.orders
+    refresh_key: { every: 1 hour }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: created_at, sql: created_at, type: time, description: Time of the order. }
+    measures:
+      - { name: rev_hour, type: sum, sql: amount, description: In a rollup with a partition for each hour. }
+      - { name: rev_day, type: sum, sql: amount, description: In a rollup with a partition for each day. }
+      - { name: rev_week, type: sum, sql: amount, description: In a rollup with a partition for each week. }
+      - { name: rev_month, type: sum, sql: amount, description: In a rollup with a partition for each month. }
+      - { name: rev_quarter, type: sum, sql: amount, description: In a rollup with a partition for each quarter. }
+      - { name: rev_year, type: sum, sql: amount, description: In a rollup with a partition for each year. }
+      - { name: rev_range, type: sum, sql: amount, description: In a rollup with a build range of the first quarter only. }
+    pre_aggregations:
+      - name: part_hour
+        measures: [rev_hour]
+        time_dimension: created_at
+        granularity: hour
+        partition_granularity: hour
+        build_range_start: { sql: "SELECT toDateTime('2025-01-01 00:00:00', 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime('2025-01-02 23:59:59', 'UTC')" }
+      - name: part_day
+        measures: [rev_day]
+        time_dimension: created_at
+        granularity: day
+        partition_granularity: day
+        build_range_start: { sql: "SELECT toDateTime('2025-01-01 00:00:00', 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime('2025-01-31 23:59:59', 'UTC')" }
+      - { name: part_week, measures: [rev_week], time_dimension: created_at, granularity: day, partition_granularity: week }
+      - { name: part_month, measures: [rev_month], time_dimension: created_at, granularity: day, partition_granularity: month }
+      - { name: part_quarter, measures: [rev_quarter], time_dimension: created_at, granularity: day, partition_granularity: quarter }
+      - { name: part_year, measures: [rev_year], time_dimension: created_at, granularity: day, partition_granularity: year }
+      - name: part_range
+        measures: [rev_range]
+        time_dimension: created_at
+        granularity: day
+        partition_granularity: month
+        build_range_start: { sql: "SELECT toDateTime('2025-01-01 00:00:00', 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime('2025-03-31 23:59:59', 'UTC')" }
+
+  - name: pa_options
+    title: Rollup options
+    description: Each option of a rollup that changes how Cube stores it or matches it. Each one has its own measure, so the query names the rollup.
+    sql_table: shop.orders
+    refresh_key: { every: 1 hour }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string, description: Order status. }
+      - { name: user_id, sql: user_id, type: number, description: Customer. }
+      - { name: created_at, sql: created_at, type: time, description: Time of the order. }
+      - { name: created_day, sql: "toDateTime(toDate(created_at), 'UTC')", type: time, description: A second time dimension. }
+    measures:
+      - { name: rev_nonstrict, type: sum, sql: amount, description: In a rollup that allows a date range that does not align. }
+      - { name: rev_strict, type: sum, sql: amount, description: In a rollup that asks for an aligned date range. }
+      - { name: rev_internal, type: sum, sql: amount, description: In a rollup in ClickHouse. }
+      - { name: rev_readonly, type: sum, sql: amount, description: In a rollup with read_only. }
+      - { name: rev_manual, type: sum, sql: amount, description: In a rollup with scheduled_refresh false. }
+      - { name: rev_unique, type: sum, sql: amount, description: In a rollup with unique_key_columns. }
+      - { name: rev_index, type: sum, sql: amount, description: In a rollup with a regular index. }
+      - { name: rev_agg_index, type: sum, sql: amount, description: In a rollup with an aggregate index. }
+      - { name: rev_two_times, type: sum, sql: amount, description: In a rollup with two time dimensions. }
+    pre_aggregations:
+      - { name: nonstrict, measures: [rev_nonstrict], time_dimension: created_at, granularity: day, allow_non_strict_date_range_match: true }
+      - { name: strict, measures: [rev_strict], time_dimension: created_at, granularity: day, allow_non_strict_date_range_match: false }
+      - { name: internal, measures: [rev_internal], dimensions: [status], external: false }
+      - { name: readonly, measures: [rev_readonly], dimensions: [status], read_only: true }
+      - { name: manual, measures: [rev_manual], dimensions: [status], scheduled_refresh: false }
+      - { name: unique, measures: [rev_unique], dimensions: [status], unique_key_columns: [status] }
+      - name: regular_index
+        measures: [rev_index]
+        dimensions: [status, user_id]
+        indexes:
+          - { name: status_user_idx, columns: [status, user_id] }
+      - name: aggregate_index
+        measures: [rev_agg_index]
+        dimensions: [status, user_id]
+        indexes:
+          - { name: status_agg_idx, type: aggregate, columns: [status] }
+      - name: two_times
+        measures: [rev_two_times]
+        time_dimensions:
+          - { dimension: created_at, granularity: day }
+          - { dimension: created_day, granularity: month }
+
+  - name: pa_original
+    title: Rollup original SQL
+    description: A cube with an original_sql pre-aggregation in ClickHouse and a rollup that reads it.
+    sql: "SELECT id, status, amount, created_at FROM shop.orders"
+    refresh_key: { every: 1 hour }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string, description: Order status. }
+      - { name: created_at, sql: created_at, type: time, description: Time of the order. }
+    measures:
+      - { name: revenue, type: sum, sql: amount, description: In the rollup that reads the original_sql table. }
+      - { name: orders, type: count, description: In no rollup, so it reads the original_sql table. }
+    pre_aggregations:
+      - name: main
+        measures: [revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        use_original_sql_pre_aggregations: true
+      - name: base
+        type: original_sql
+        external: false
+
+  - name: pa_original_external
+    title: Rollup original SQL in Cube Store
+    description: A cube with an original_sql pre-aggregation in Cube Store. The docs allow this and advise against it.
+    sql: "SELECT id, status, amount FROM shop.orders"
+    refresh_key: { every: 1 hour }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string, description: Order status. }
+    measures:
+      - { name: revenue, type: sum, sql: amount, description: Reads the original_sql table. }
+    pre_aggregations:
+      - { name: base, type: original_sql, external: true }
+
+  - name: pa_join_sales
+    title: Rollup join sales
+    description: Orders with a rollup_join by day on one data source.
+    sql_table: shop.orders
+    refresh_key: { every: 1 hour }
+    joins:
+      - { name: pa_join_customers, relationship: many_to_one, sql: "{CUBE.user_id} = {pa_join_customers.id}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: user_id, sql: user_id, type: number, description: Customer. }
+      - { name: status, sql: status, type: string, description: Order status. }
+      - { name: created_at, sql: created_at, type: time, description: Time of the order. }
+    measures:
+      - { name: revenue, type: sum, sql: amount, description: In the rollup_join. }
+      - { name: orders, type: count, description: In no rollup. }
+    pre_aggregations:
+      - name: sales
+        measures: [revenue]
+        dimensions: [user_id, status]
+        time_dimension: created_at
+        granularity: day
+        indexes:
+          - { name: user_idx, columns: [user_id] }
+      - name: joined
+        type: rollup_join
+        measures: [revenue]
+        dimensions: [status, pa_join_customers.state]
+        time_dimension: created_at
+        granularity: day
+        rollups: [pa_join_customers.customers, pa_join_sales.sales]
+
+  - name: pa_join_customers
+    title: Rollup join customers
+    description: Customers for the rollup_join of pa_join_sales.
+    sql_table: shop.users
+    refresh_key: { every: 1 hour }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: state, sql: state, type: string, description: Customer state. }
+      - { name: city, sql: city, type: string, description: In no rollup. }
+    pre_aggregations:
+      - name: customers
+        dimensions: [id, state]
+        indexes:
+          - { name: id_idx, columns: [id] }
+
+  - name: pa_lambda
+    title: Rollup lambda
+    description: A rollup_lambda with a batch up to June 2025 and the source for the rest.
+    sql_table: shop.orders
+    refresh_key: { every: 1 hour }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string, description: Order status. }
+      - { name: created_at, sql: created_at, type: time, description: Time of the order. }
+    measures:
+      - { name: revenue, type: sum, sql: amount, description: Through the rollup_lambda. }
+    pre_aggregations:
+      - name: with_source
+        type: rollup_lambda
+        union_with_source_data: true
+        rollups: [pa_lambda.batch]
+      - name: batch
+        measures: [revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        partition_granularity: month
+        build_range_start: { sql: "SELECT toDateTime('2025-01-01 00:00:00', 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime('2025-06-30 23:59:59', 'UTC')" }
+
+  - name: pa_lambda_rollups
+    title: Rollup lambda of two rollups
+    description: A rollup_lambda with no source data, over a batch up to June 2025 and a rollup of the rest.
+    sql_table: shop.orders
+    refresh_key: { every: 1 hour }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string, description: Order status. }
+      - { name: created_at, sql: created_at, type: time, description: Time of the order. }
+    measures:
+      - { name: revenue, type: sum, sql: amount, description: Through the rollup_lambda. }
+    pre_aggregations:
+      - name: two_parts
+        type: rollup_lambda
+        union_with_source_data: false
+        rollups: [pa_lambda_rollups.first_half, pa_lambda_rollups.second_half]
+      - name: first_half
+        measures: [revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        partition_granularity: month
+        build_range_start: { sql: "SELECT toDateTime('2025-01-01 00:00:00', 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime('2025-06-30 23:59:59', 'UTC')" }
+      - name: second_half
+        measures: [revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        partition_granularity: month
+        build_range_start: { sql: "SELECT toDateTime('2025-07-01 00:00:00', 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime('2026-01-31 23:59:59', 'UTC')" }
+
+  # Reads a table that the checks change. The other cubes stay fixed.
+  - name: pa_fresh
+    title: Rollup freshness
+    description: A rollup for each form of refresh_key, on a table that the suite changes.
+    sql_table: shop.pa_mutable
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: kind, sql: kind, type: string, description: The check that owns the row. }
+      - { name: ts, sql: ts, type: time, description: Time of the row. }
+    measures:
+      - { name: amt_every, type: sum, sql: amount, description: In a rollup with refresh_key every. }
+      - { name: amt_sql, type: sum, sql: amount, description: In a rollup with refresh_key sql. }
+      - { name: amt_incremental, type: sum, sql: amount, description: In a rollup with incremental and update_window. }
+      - { name: amt_last_partition, type: sum, sql: amount, description: In a rollup with incremental and no update_window. }
+      - { name: amt_manual, type: sum, sql: amount, description: In a rollup with scheduled_refresh false. }
+      - { name: amt_long, type: sum, sql: amount, description: In a rollup with a key of one day. }
+      - { name: amt_plain, type: sum, sql: amount, description: In no rollup. }
+    pre_aggregations:
+      - name: fresh_every
+        measures: [amt_every]
+        dimensions: [kind]
+        refresh_key: { every: 30 second }
+      - name: fresh_sql
+        measures: [amt_sql]
+        dimensions: [kind]
+        refresh_key: { every: 10 second, sql: "SELECT max(version) FROM shop.pa_mutable" }
+      - name: fresh_incremental
+        measures: [amt_incremental]
+        dimensions: [kind]
+        time_dimension: ts
+        granularity: day
+        partition_granularity: day
+        refresh_key: { every: 30 second, incremental: true, update_window: 2 day }
+        build_range_start: { sql: "SELECT toDateTime(today() - 6, 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime(today() + 1, 'UTC')" }
+      - name: fresh_last_partition
+        measures: [amt_last_partition]
+        dimensions: [kind]
+        time_dimension: ts
+        granularity: day
+        partition_granularity: day
+        refresh_key: { every: 30 second, incremental: true }
+        build_range_start: { sql: "SELECT toDateTime(today() - 6, 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime(today() + 1, 'UTC')" }
+      - name: fresh_manual
+        measures: [amt_manual]
+        dimensions: [kind]
+        scheduled_refresh: false
+        refresh_key: { every: 30 second }
+      - name: fresh_long
+        measures: [amt_long]
+        dimensions: [kind]
+        refresh_key: { every: 1 day }
+
 views:
+  - name: pa_view
+    title: Rollup view
+    description: A view of pa_types, so a query through it reads the rollups of the cube.
+    cubes:
+      - join_path: pa_types
+        includes: [status, product_id, created_at, count, revenue, users, per_order, paid_revenue]
+      - join_path: pa_types.pa_customers
+        prefix: true
+        includes: [state, city]
+
   - name: metric_view
     title: Metric view
     description: A view of the catalog, with a metric of its own and a metric through two joins.
