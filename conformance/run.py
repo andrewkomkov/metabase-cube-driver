@@ -3786,20 +3786,19 @@ XRAY_ABOVE_2_53 = re.compile(
     r"toString\(column\) to the data model to read the full digits as text, or filter out these rows\.")
 
 
-def xray_cards(ctx, path, table, refused=0, above_2_53_stops=False):
-    """Runs each card of the X-ray, and compares its rows with a query on ClickHouse. `refused` is the number of cards that add up a
-    dimension of a joined cube, where Cube gives another number and the driver stops the query."""
+def xray_cards(ctx, path, table, above_2_53_stops=False):
+    """Runs each card of the X-ray. A card must equal a query on ClickHouse, or stop with the documented message.
+    A card that adds up a dimension of a joined cube stops on stock Cube. A patched Cube can answer it, so no count of stopped cards is fixed."""
     dash = ctx.mb.api("GET", "/api/automagic-dashboards/" + path)
     cards = [dc["card"] for dc in dash.get("dashcards", []) if dc.get("card") and dc["card"].get("dataset_query")]
     if not cards:
         raise Fail("the X-ray has no cards")
-    failed, stopped = [], []
+    failed, compared = [], 0
     for card in cards:
         query = card["dataset_query"]
         try:
             res = ctx.mb.api("POST", "/api/dataset", query, ok=(200, 202, 400, 500))
             if XRAY_TOTAL_REFUSAL in str(res.get("error") or ""):
-                stopped.append(card.get("name"))
                 continue
             above = above_2_53_stops and XRAY_ABOVE_2_53.fullmatch(str(res.get("error") or ""))
             if above and abs(float(above.group(1))) >= 2 ** 53:
@@ -3808,12 +3807,13 @@ def xray_cards(ctx, path, table, refused=0, above_2_53_stops=False):
                 raise Fail("query failed: %s" % str(res.get("error") or res.get("error_type"))[:300])
             data = res["data"]
             assert_rows(data["rows"], ch(XrayTruth(ctx, table, data["cols"]).sql(query)), label="card")
+            compared += 1
         except Fail as e:
             failed.append((card.get("name"), str(e)[:300]))
     if failed:
         raise Fail("%d of %d cards failed: %s" % (len(failed), len(cards), failed[:6]))
-    if len(stopped) != refused:
-        raise Fail("%d cards stopped, expected %d: %s" % (len(stopped), refused, stopped))
+    if not compared:
+        raise Fail("no card of %d gave a number to compare" % len(cards))
     return cards
 
 
@@ -3824,12 +3824,12 @@ def _(ctx):
 
 @check("compile.xray.field_all_cards_run")
 def _(ctx):
-    xray_cards(ctx, "field/%d" % ctx.mb.field(ORD, "status")["id"], ORD, refused=1)
+    xray_cards(ctx, "field/%d" % ctx.mb.field(ORD, "status")["id"], ORD)
 
 
 @check("compile.xray.time_field_all_cards_run")
 def _(ctx):
-    xray_cards(ctx, "field/%d" % ctx.mb.field(ORD, "created_at")["id"], ORD, refused=1)
+    xray_cards(ctx, "field/%d" % ctx.mb.field(ORD, "created_at")["id"], ORD)
 
 
 @check("compile.xray.typed_table_all_cards_run")
