@@ -5117,6 +5117,7 @@ def _(ctx):
     month = "SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS r FROM orders GROUP BY 1"
     expect_native_refusal(ctx, "SELECT * FROM (%s) AS s WHERE m <= '2025-05-01'" % month, "LIMIT 2147483647")
     expect_native_refusal(ctx, "SELECT * FROM (%s) s WHERE r > 100" % month, "LIMIT 2147483647")
+    expect_native_refusal(ctx, "WITH c AS (%s) SELECT * FROM c WHERE m <= '2025-05-01'" % month, "LIMIT 2147483647")
     expect_native_rows(ctx, "SELECT * FROM (%s LIMIT 2147483647) AS s WHERE m <= '2025-05-01'" % month,
                        "SELECT toStartOfMonth(created_at) AS m, sum(amount) FROM orders GROUP BY m HAVING m <= '2025-05-01'")
     expect_native_refusal(ctx, "SELECT SUM(revenue) FROM (SELECT id, revenue FROM orders) AS s WHERE revenue > 100", "filter on the aggregate")

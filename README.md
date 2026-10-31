@@ -74,7 +74,7 @@ Most shapes where Cube gives a wrong number now give the truth or stop with a cl
 - A long decimal below 2^53 loses digits, because the Cube SQL API has the type Double, and its value fits a Double. A dimension with `sql: toString(column)` keeps them.
 - Native `COUNT(*)` on no rows gives `NULL` where SQL gives 0.
 - Native `SELECT *`, or a raw select of a `switch` dimension, gives each row once for each value of the dimension.
-- Native SQL in a shape that the scan of the text does not read, such as an expression on the time column, or a filter in a `WITH` query.
+- Native SQL in a shape that the scan of the text does not read. The scan is not a SQL parser. It reads the shapes in [Native SQL](docs/query-compilation.md#native-sql).
 
 On stock Cube with no dialect, also:
 

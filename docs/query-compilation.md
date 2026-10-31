@@ -129,7 +129,7 @@ The driver does not change native SQL. It makes a cheap scan of the text, and it
 
 On stock Cube, the scan also stops `x > a` next to an upper bound on the same column, and a bound with a fraction.
 
-The scan removes parentheses and casts around a column or a literal, and it reads `column op literal` on either side, `BETWEEN` and `DATE_TRUNC`, outside strings and comments. With a rolling window measure, it stops each other use of the time column, such as `IN` or a function. See the shapes that it does not read in [Known wrong numbers](#known-wrong-numbers).
+The scan also stops an outer filter over a subquery or a `WITH` query with an aggregation and no limit, and a filter on a measure column over a subquery of raw rows. It removes parentheses and casts around a column or a literal, reads an alias of a time column, and reads `column op literal` on either side, `BETWEEN` and `DATE_TRUNC`, outside strings and comments. With a rolling window measure, it stops each other use of the time column, such as `IN` or a function. See the shapes that it does not read in [Known wrong numbers](#known-wrong-numbers).
 
 ### Two join paths in a view
 
@@ -181,5 +181,5 @@ The driver cannot stop these. Each number comes with no error. [Cube findings](c
 | Stock Cube with `CUBEJS_TESSERACT_SQL_PLANNER=false`: a rolling window by a time bucket | Each bucket gets one wrong number. This is not the default. The dialect gives the truth. | `dialect.n2_legacy_planner` |
 | Native `COUNT(*)` on no rows | `NULL` where SQL gives 0 (m3). The query builder gives 0. | `native.count_on_no_rows_limit` |
 | Native `SELECT *` or a raw select of a `switch` dimension | Each row comes once for each value of the dimension. The query builder shows `NULL` in this column and keeps one row. | None. Cube documents the values as a set of groups. |
-| Native SQL in a shape that the scan does not read: an expression on the time column, such as `x + INTERVAL '0 second' > a`, or a filter in a `WITH` query | The same wrong numbers that the scan stops in the plain shape. | `native.bound.strict_lower_refused`, `native.subquery_filter_refused` |
+| Native SQL in a shape that the scan does not read. The scan is not a SQL parser, and it reads the shapes in [Native SQL](#native-sql). | The same wrong numbers that the scan stops in the plain shape. | `native.bound.strict_lower_refused`, `native.subquery_filter_refused` |
 | Postgres, not the main target: a rolling window with a range that starts inside a month (N1), a custom granularity in months with no rollup | Shifted buckets. See [Cube audit](cube-audit.md). | None. The suite runs on ClickHouse. |

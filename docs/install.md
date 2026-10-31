@@ -47,9 +47,9 @@ Set `CUBEJS_PRE_AGGREGATIONS_ALLOW_NON_STRICT_DATE_RANGE_MATCH=false` and raise 
 
 ## Memory of Cube
 
-The SQL API of Cube keeps the rewrite graph of each query in memory, up to 500 graphs in each of two caches, for each of 100 compiled models. A graph is several MB. A change of the data model makes a new compiled model, so in dev mode the memory grows with each change. On the demo stack, one run of the suite took 2.6 GB, and a process that lived through a few runs reached 7.5 GB. The memory stays until the entries go idle for one hour.
+The SQL API of Cube keeps the rewrite graph of each query in memory, up to 500 graphs in each of two caches, for each of 100 compiled models. A change of the data model makes a new compiled model, so in dev mode the memory grows with each change. On the demo stack, one run of the suite took 2.6 GB, and a process that lived through a few runs reached 7.5 GB. The memory stays until the entries go idle for one hour.
 
-Set `CUBESQL_QUERY_CACHE_SIZE` and `CUBEJS_COMPILER_CACHE_SIZE`, and give the container a memory limit. The demo stack has `50`, `4` and `2g`. A query that is not in the cache takes the time of a new rewrite, which is at most about a second.
+Set `CUBESQL_QUERY_CACHE_SIZE` and `CUBEJS_COMPILER_CACHE_SIZE`, and give the container a memory limit. The demo stack has `50`, `4` and `2g`. A query that is not in the cache takes the time of a new rewrite.
 
 ## The ClickHouse dialect
 

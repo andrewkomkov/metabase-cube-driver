@@ -488,30 +488,52 @@
                                  (range (inc where-at) (count toks))))
                   (count toks))))))
 
+(defn- check-filter-over!
+  "`inner` has the tokens of a subquery, and `where` the tokens of the filter on it. Cube pushes an outer filter below the
+  aggregation of a subquery, so the rows of the subquery change. A limit in the subquery stops this. Over a subquery with raw rows,
+  Cube reads a filter on a measure column as a filter on the aggregate."
+  [index inner where]
+  (let [aggregated? (some #(or (word? % "group") (word? % "measure")) inner)
+        limited?    (some #(word? % "limit") inner)
+        measures    (into #{} (mapcat #(:measures (get index %))) (tables inner))
+        on-measure  (first (filter #(and (name-token? %) (contains? measures (:text %))) where))]
+    (when (and aggregated? (not limited?))
+      (refuse! (str "Cube pushes a filter of an outer query below the aggregation of its subquery, so the rows of the subquery "
+                    "change and the number would be wrong. Add LIMIT 2147483647 to the subquery.")))
+    (when (and on-measure (not aggregated?))
+      (refuse! (format (str "Cube reads the filter on the measure column %s as a filter on the aggregate and not on rows, so the "
+                            "number would be wrong. Aggregate %s with GROUP BY and LIMIT in the subquery, and filter on its "
+                            "result.")
+                       (:text on-measure) (:text on-measure))))))
+
+(defn- common-table-bodies
+  "A map from the name of each query of WITH to the tokens of its body."
+  [toks]
+  (into {}
+        (keep (fn [i]
+                (when (and (word? (get toks i) "as")
+                           (= "(" (:text (get toks (inc i))))
+                           (word? (get toks (+ i 2)) "select")
+                           (name-token? (get toks (dec i))))
+                  (when-let [close (closing-paren toks (inc i))]
+                    [(:text (get toks (dec i))) (subvec toks (+ i 2) close)]))))
+        (range 1 (count toks))))
+
 (defn- check-subquery-filters!
-  "Cube pushes an outer filter below the aggregation of a subquery, so the rows of the subquery change. A limit in the subquery
-  stops this. Over a subquery with raw rows, Cube reads a filter on a measure column as a filter on the aggregate."
   [index toks]
-  (doseq [i (range (count toks))
-          :when (and (word? (get toks i) "from")
-                     (= "(" (:text (get toks (inc i))))
-                     (word? (get toks (+ i 2)) "select"))
-          :let [close (closing-paren toks (inc i))
-                where (when close (outer-where toks close))]
-          :when (seq where)]
-    (let [inner       (subvec toks (+ i 2) close)
-          aggregated? (some #(or (word? % "group") (word? % "measure")) inner)
-          limited?    (some #(word? % "limit") inner)
-          measures    (into #{} (mapcat #(:measures (get index %))) (tables inner))
-          on-measure  (first (filter #(and (name-token? %) (contains? measures (:text %))) where))]
-      (when (and aggregated? (not limited?))
-        (refuse! (str "Cube pushes a filter of an outer query below the aggregation of its subquery, so the rows of the subquery "
-                      "change and the number would be wrong. Add LIMIT 2147483647 to the subquery.")))
-      (when (and on-measure (not aggregated?))
-        (refuse! (format (str "Cube reads the filter on the measure column %s as a filter on the aggregate and not on rows, so the "
-                              "number would be wrong. Aggregate %s with GROUP BY and LIMIT in the subquery, and filter on its "
-                              "result.")
-                         (:text on-measure) (:text on-measure)))))))
+  (let [bodies (common-table-bodies toks)]
+    (doseq [i (range (count toks))
+            :when (word? (get toks i) "from")
+            :let  [next-tok (get toks (inc i))]]
+      (cond
+        (and (= "(" (:text next-tok)) (word? (get toks (+ i 2)) "select"))
+        (when-let [close (closing-paren toks (inc i))]
+          (when-let [where (seq (outer-where toks close))]
+            (check-filter-over! index (subvec toks (+ i 2) close) where)))
+
+        (contains? bodies (:text next-tok))
+        (when-let [where (seq (outer-where toks (inc i)))]
+          (check-filter-over! index (get bodies (:text next-tok)) where))))))
 
 ;;; ------------------------------------------------- time shift measures ----------------------------------------------
 
