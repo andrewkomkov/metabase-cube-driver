@@ -413,7 +413,6 @@ cubes:
     description: An extended cube. It overrides revenue, so an inherited ratio reads the new revenue.
     measures:
       - { name: revenue, type: sum, sql: "amount * 2", description: Revenue that is doubled. }
-      - { name: peak_paid, type: max, sql: amount, description: In a rollup with a segment only. }
       - { name: per_order, type: number, sql: "1.0 * {revenue} / NULLIF({order_rows}, 0)", description: Doubled revenue per order. }
       - { name: order_rows, type: count, description: Orders. }
 
@@ -441,6 +440,7 @@ cubes:
       - { name: paid_count, type: count, filters: [{ sql: "{CUBE}.status IN ('completed','shipped')" }], description: Additive with a filter. }
       - { name: paid_revenue, type: sum, sql: amount, filters: [{ sql: "{CUBE}.status IN ('completed','shipped')" }], description: Additive with a filter. }
       - { name: per_order, type: number, sql: "1.0 * {revenue} / NULLIF({count}, 0)", description: A ratio of additive leaf measures. }
+      - { name: peak_paid, type: max, sql: amount, description: In a rollup with a segment only. }
       - { name: buyers, type: count_distinct, sql: user_id, description: Not additive. }
       - { name: avg_amount, type: avg, sql: amount, description: Not additive in the docs. }
       - { name: per_buyer, type: number, sql: "1.0 * {revenue} / NULLIF({buyers}, 0)", description: A ratio with a leaf measure that is not additive. }
@@ -890,7 +890,7 @@ cubes:
         partition_granularity: day
         refresh_key: { every: 30 second, incremental: true, update_window: 2 day }
         build_range_start: { sql: "SELECT toDateTime(today() - 6, 'UTC')" }
-        build_range_end: { sql: "SELECT toDateTime(today() + 1, 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime(today(), 'UTC') + 86399" }
         indexes:
           - { name: idx, columns: [kind] }
       - name: fresh_last_partition
@@ -901,7 +901,7 @@ cubes:
         partition_granularity: day
         refresh_key: { every: 30 second, incremental: true }
         build_range_start: { sql: "SELECT toDateTime(today() - 6, 'UTC')" }
-        build_range_end: { sql: "SELECT toDateTime(today() + 1, 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime(today(), 'UTC') + 86399" }
         indexes:
           - { name: idx, columns: [kind] }
       - name: fresh_manual

@@ -1,6 +1,21 @@
 // A small ClickHouse dialect for stock Cube. It holds only the fixes that wait for a change in Cube. When Cube ships a fix,
 // remove its override here. docs/cube-audit.md has the verdict and the repro of each defect.
 const { ClickHouseQuery } = require('@cubejs-backend/schema-compiler/dist/src/adapter/ClickHouseQuery');
+const { PreAggregationLoader } = require('@cubejs-backend/query-orchestrator/dist/src/orchestrator/PreAggregationLoader');
+const { QueryCache } = require('@cubejs-backend/query-orchestrator/dist/src/orchestrator/QueryCache');
+
+// Rollup over original_sql: no pull request yet, see docs/cube-audit.md#original-sql-rollup.
+// The load of a rollup into Cube Store streams its SQL with the name of the original_sql table, and that name has no version.
+// Only the load into the source database replaces the name, so a rollup with use_original_sql_pre_aggregations fails.
+const refresh = PreAggregationLoader.prototype.refresh;
+PreAggregationLoader.prototype.refresh = function refreshWithVersionedNames(...args) {
+  const tables = this.preAggregationsTablesToTempTables;
+  if (this.preAggregation.external && tables && tables.length) {
+    const [sql, params] = this.preAggregation.sql;
+    this.preAggregation = { ...this.preAggregation, sql: [QueryCache.replacePreAggregationTableNamesInSql(sql, tables), params] };
+  }
+  return refresh.apply(this, args);
+};
 
 class ClickHouseFixes extends ClickHouseQuery {
   // B1: https://github.com/cube-js/cube/pull/12532
