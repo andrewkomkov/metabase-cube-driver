@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 886/919 pass on Cube with the ClickHouse dialect** (886 pass, 17 partial, 1 blocked, 12 unsupported, 3 fail of 919)
+**coverage: 1043/1109 pass on Cube with the ClickHouse dialect** (1043 pass, 22 partial, 1 blocked, 12 unsupported, 31 fail of 1109)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `fca19f0870df`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41224284627), 2026-10-31.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `9164bb1755ae`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41225943581), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -156,7 +156,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `fca19
 | `hierarchy.levels` | pass |  |
 | `hierarchy.public_false` | pass |  |
 | `preagg.indexes` | pass |  |
-| `preagg.original_sql` | partial | cube-clickhouse builds an original_sql pre-aggregation, and a query on the cube reads it. Its indexes have no effect. A rollup with use_original_sql_pre_aggregations still fails with Unknown table expression identifier, also with the dialect, so the query stops and no number is wrong. |
+| `preagg.original_sql` | pass |  |
 | `preagg.partitioned` | pass |  |
 | `preagg.rollup` | pass |  |
 | `preagg.rollup_join` | pass |  |
@@ -187,7 +187,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `fca19
 | `meta.base_types` | pass |  |
 | `meta.fingerprint_distinct_count` | pass |  |
 | `meta.fk_implicit_target` | pass |  |
-| `meta.measure_is_marked` | pass |  |
+| `meta.measure_is_marked` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `meta.no_internal_columns` | pass |  |
 | `meta.resync_keeps_metadata` | pass |  |
 | `meta.semantic_types` | pass |  |
@@ -296,7 +296,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `fca19
 | `mb.join.measure_across_cubes` | pass |  |
 | `mb.nested.filter_on_aggregation` | pass |  |
 | `mb.nested.question_as_source` | pass |  |
-| `mb.card.metric` | pass |  |
+| `mb.card.metric` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `mb.card.metric_with_breakout` | pass |  |
 | `mb.card.model` | pass |  |
 | `mb.card.saved_question` | pass |  |
@@ -323,8 +323,8 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `fca19
 | `mb.field_values.list` | pass |  |
 | `mb.field_values.search` | pass |  |
 | `mb.search.by_description` | pass |  |
-| `mb.search.measure` | pass |  |
-| `mb.search.segment` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-31T17:29:38.168635126Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"lib/type":"mbql/query","stages":[{"lib/type":"mbql.stage/mbql","source-table":42,"aggregation":[["count",{"lib |
+| `mb.search.measure` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
+| `mb.search.segment` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-31T17:54:28.787333516Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"lib/type":"mbql/query","stages":[{"lib/type":"mbql.stage/mbql","source-table":42,"aggregation":[["count",{"lib |
 | `mb.search.table` | pass |  |
 | `mb.xray.candidates` | pass |  |
 | `mb.xray.table` | pass |  |
@@ -334,12 +334,12 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `fca19
 | `mb.other.drill_through_ui` | pass |  |
 | `mb.other.model_persistence` | unsupported | Model persistence needs CREATE TABLE. The Cube SQL API is read only. |
 | `mb.other.uploads` | unsupported | CSV uploads write tables. The Cube SQL API is read only. |
-| `mcp.agent_journey_no_cube_knowledge` | pass |  |
+| `mcp.agent_journey_no_cube_knowledge` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `mcp.alert_write` | pass |  |
 | `mcp.bookmark_content` | pass |  |
-| `mcp.browse.descriptions_in_get_fields` | pass |  |
+| `mcp.browse.descriptions_in_get_fields` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `mcp.browse.get_fields_dimensions` | pass |  |
-| `mcp.browse.get_fields_measures` | pass |  |
+| `mcp.browse.get_fields_measures` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `mcp.browse.get_fields_segments` | pass |  |
 | `mcp.browse.list_databases` | pass |  |
 | `mcp.browse.list_tables` | pass |  |
@@ -349,26 +349,26 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `fca19
 | `mcp.dashboard_write.create_and_filter` | pass |  |
 | `mcp.document_write` | pass |  |
 | `mcp.duplicate_content` | pass |  |
-| `mcp.execute_query` | pass |  |
+| `mcp.execute_query` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `mcp.execute_query.breakout` | pass |  |
 | `mcp.execute_query.date_bucket` | pass |  |
 | `mcp.execute_query.filter` | pass |  |
 | `mcp.execute_query.implicit_join` | pass |  |
-| `mcp.execute_query.measure` | pass |  |
+| `mcp.execute_query.measure` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `mcp.execute_query.paging` | pass |  |
 | `mcp.execute_query.segment` | pass |  |
 | `mcp.execute_query.view` | pass |  |
 | `mcp.execute_sql` | pass |  |
-| `mcp.get_content` | pass |  |
-| `mcp.get_content.question` | pass |  |
+| `mcp.get_content` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
+| `mcp.get_content.question` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `mcp.get_parameter_values` | pass |  |
 | `mcp.get_parameter_values.dashboard` | pass |  |
 | `mcp.get_parameter_values.question` | pass |  |
 | `mcp.get_parameter_values.search` | pass |  |
-| `mcp.glossary` | pass |  |
+| `mcp.glossary` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `mcp.learn` | pass |  |
 | `mcp.measure_write` | pass |  |
-| `mcp.metric_write` | pass |  |
+| `mcp.metric_write` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `mcp.question_write` | pass |  |
 | `mcp.question_write.native` | pass |  |
 | `mcp.question_write.query` | pass |  |
@@ -376,10 +376,10 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `fca19
 | `mcp.render_drill_through` | pass |  |
 | `mcp.run_saved_question` | pass |  |
 | `mcp.search` | pass |  |
-| `mcp.search.measure` | pass |  |
+| `mcp.search.measure` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `mcp.search.segment` | fail | execute_query: Query failed: "This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Error executing query: ERROR: Planning Error: Initial planning error: Error during planning: No field named 'pa_types.paid'. Valid fields are 'orders.count', 'orders.unique_customers', 'orders.approx_customers', 'orders.revenue', 'orders.avg_order_value', 'orders.min_amount', 'orders.max_amount', 'orders.paid_revenue |
 | `mcp.search.table_by_description` | pass |  |
-| `mcp.search.view_description` | pass |  |
+| `mcp.search.view_description` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `mcp.segment_write` | pass |  |
 | `mcp.subscription_write` | pass |  |
 | `mcp.visualize_query` | pass |  |
@@ -417,8 +417,8 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `fca19
 | `cube.generated_jinja_second` | pass |  |
 | `cube.generated_async` | pass |  |
 | `cube.generated_async_second` | pass |  |
-| `semantic.measure.every_member` | pass |  |
-| `semantic.measure.in_summarize` | pass |  |
+| `semantic.measure.every_member` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
+| `semantic.measure.in_summarize` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `semantic.measure.type_number` | pass |  |
 | `semantic.measure.type_string` | pass |  |
 | `semantic.measure.type_time` | pass |  |
@@ -576,7 +576,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `fca19
 | `compile.native.field_filter_multi` | pass |  |
 | `compile.native.field_filter_number_range` | pass |  |
 | `compile.native.field_filter_relative_date` | pass |  |
-| `compile.nested.aggregate_of_grouped_rows` | pass |  |
+| `compile.nested.aggregate_of_grouped_rows` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `compile.nested.custom_column_on_question` | pass |  |
 | `compile.nested.model_of_a_native_query` | pass |  |
 | `compile.nested.model_raw_rows_then_group` | pass |  |
@@ -602,7 +602,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `fca19
 | `compile.part.quarter-of-year` | pass |  |
 | `compile.part.second-of-minute` | pass |  |
 | `compile.pivot.date_and_string` | pass |  |
-| `compile.pivot.two_dimensions` | pass |  |
+| `compile.pivot.two_dimensions` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `compile.rolling.by_week_sunday` | pass |  |
 | `compile.rolling.with_status_filter` | pass |  |
 | `compile.rollup.avg_reads_the_table` | pass |  |
@@ -650,9 +650,9 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `fca19
 | `compile.native.join_field` | pass |  |
 | `mcp.agent.list_tables_without_schema` | pass |  |
 | `mcp.agent.find_revenue_by_city` | pass |  |
-| `mcp.agent.search_names_owner_of_measure` | pass |  |
+| `mcp.agent.search_names_owner_of_measure` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `mcp.agent.find_segment_owner` | pass |  |
-| `mcp.agent.table_description_lists_members` | pass |  |
+| `mcp.agent.table_description_lists_members` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `mcp.agent.database_guidance_works` | pass |  |
 | `mcp.agent.question_from_measure` | pass |  |
 | `mcp.agent.dashboard_wired_filter` | pass |  |
@@ -661,7 +661,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `fca19
 | `mcp.agent.error_join_on` | pass |  |
 | `mcp.execute_query.paging_measure` | pass |  |
 | `dimension.opt.propagate_filters_next_to_another_sub_query` | partial | Cube with the Tesseract planner reads the first subquery for two sub_query dimensions with equal SQL when the query has a filter. The driver stops a query that groups by both, and raw rows show NULL in the later column. With other SQL, such as {orders.count} + 0, both work, and each is right alone, see dimension.opt.propagate_filters. |
-| `measure.multi_stage.time_shift_no_bucket_limit` | pass |  |
+| `measure.multi_stage.time_shift_no_bucket_limit` | fail | unexpected TypeError: expected str, bytes or os.PathLike object, not list |
 | `clickhouse.datetime64_millis` | pass |  |
 | `compile.rolling.by_day_on_boundaries` | pass |  |
 | `compile.rolling.no_time_bucket_gives_error` | pass |  |
@@ -748,7 +748,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `fca19
 | `measure.rolling.window_shorter_than_bucket` | pass |  |
 | `grid.compact.dataset` | pass |  |
 | `grid.compact.mcp` | pass |  |
-| `grid.compact.report_zone` | fail | 2 of 36 not expected: tz/Asia/Kathmandu/stage filter on a bucket wrong rows: got 5, truth 6. First got [['2025-08-01T00:00:00+05:45', 28045.0], ['2025-09-01T00:00:00+05:45', 26379.0]], first truth [['2025-07-01', 27110], ['2025-08- \| tz/Asia/Kathmandu/stage equal on a bucket wrong rows: got 0, truth 1. First got [], first truth [['2025-07-01', 27110]] |
+| `grid.compact.report_zone` | pass |  |
 | `grid.compact.mcp_report_zone` | pass |  |
 | `grid.compact.start_of_week` | pass |  |
 | `metric.business.average_order_value` | pass |  |
@@ -903,6 +903,196 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `fca19
 | `metric.rollup.month_window_by_month_hit` | pass |  |
 | `metric.rollup.to_date_by_month_hit` | pass |  |
 | `metric.rollup.unbounded_by_month_hit` | pass |  |
+| `preagg.additive.count.coarser_dimension_hit` | pass |  |
+| `preagg.additive.count.coarser_time_hit` | pass |  |
+| `preagg.additive.count.finer_miss` | pass |  |
+| `preagg.additive.count.other_dimension_miss` | pass |  |
+| `preagg.additive.count.same_grain_hit` | pass |  |
+| `preagg.additive.count.total_hit` | pass |  |
+| `preagg.additive.max_amount.coarser_dimension_hit` | pass |  |
+| `preagg.additive.max_amount.coarser_time_hit` | pass |  |
+| `preagg.additive.max_amount.finer_miss` | pass |  |
+| `preagg.additive.max_amount.other_dimension_miss` | pass |  |
+| `preagg.additive.max_amount.same_grain_hit` | pass |  |
+| `preagg.additive.max_amount.total_hit` | pass |  |
+| `preagg.additive.min_amount.coarser_dimension_hit` | pass |  |
+| `preagg.additive.min_amount.coarser_time_hit` | pass |  |
+| `preagg.additive.min_amount.finer_miss` | pass |  |
+| `preagg.additive.min_amount.other_dimension_miss` | pass |  |
+| `preagg.additive.min_amount.same_grain_hit` | pass |  |
+| `preagg.additive.min_amount.total_hit` | pass |  |
+| `preagg.additive.paid_count.coarser_dimension_hit` | pass |  |
+| `preagg.additive.paid_count.coarser_time_hit` | pass |  |
+| `preagg.additive.paid_count.finer_miss` | pass |  |
+| `preagg.additive.paid_count.other_dimension_miss` | pass |  |
+| `preagg.additive.paid_count.same_grain_hit` | pass |  |
+| `preagg.additive.paid_count.total_hit` | pass |  |
+| `preagg.additive.paid_revenue.coarser_dimension_hit` | pass |  |
+| `preagg.additive.paid_revenue.coarser_time_hit` | pass |  |
+| `preagg.additive.paid_revenue.finer_miss` | pass |  |
+| `preagg.additive.paid_revenue.other_dimension_miss` | pass |  |
+| `preagg.additive.paid_revenue.same_grain_hit` | pass |  |
+| `preagg.additive.paid_revenue.total_hit` | pass |  |
+| `preagg.additive.per_order.coarser_dimension_hit` | pass |  |
+| `preagg.additive.per_order.coarser_time_hit` | pass |  |
+| `preagg.additive.per_order.finer_miss` | pass |  |
+| `preagg.additive.per_order.other_dimension_miss` | pass |  |
+| `preagg.additive.per_order.same_grain_hit` | pass |  |
+| `preagg.additive.per_order.total_hit` | pass |  |
+| `preagg.additive.revenue.coarser_dimension_hit` | pass |  |
+| `preagg.additive.revenue.coarser_time_hit` | pass |  |
+| `preagg.additive.revenue.finer_miss` | pass |  |
+| `preagg.additive.revenue.other_dimension_miss` | pass |  |
+| `preagg.additive.revenue.same_grain_hit` | pass |  |
+| `preagg.additive.revenue.total_hit` | pass |  |
+| `preagg.build_range.date_range_over_the_end_reads_only_the_range` | partial | The docs warn that Cube does not return rows out of the build range. Buckets after the end are not in the result, with no error. Use rollup_lambda, or a build range over all rows. |
+| `preagg.build_range.inside_hit` | pass |  |
+| `preagg.build_range.whole_table_reads_only_the_range` | partial | The docs warn that Cube does not return rows out of the build range. The rollup gives the sum of the range with no error. Use rollup_lambda, or a build range over all rows. The driver cannot see the range, because /meta has no such field. |
+| `preagg.granularity.day_hit` | pass |  |
+| `preagg.granularity.hour_hit` | pass |  |
+| `preagg.granularity.minute_hit` | pass |  |
+| `preagg.granularity.month_hit` | pass |  |
+| `preagg.granularity.quarter_hit` | pass |  |
+| `preagg.granularity.second_hit` | pass |  |
+| `preagg.granularity.week_hit` | pass |  |
+| `preagg.granularity.week_rollup_day_miss` | pass |  |
+| `preagg.granularity.week_rollup_month_miss` | pass |  |
+| `preagg.granularity.week_rollup_week_hit` | pass |  |
+| `preagg.granularity.week_rollup_year_miss` | pass |  |
+| `preagg.granularity.year_hit` | pass |  |
+| `preagg.latency.big_orders_hit_is_faster_than_a_miss` | pass |  |
+| `preagg.metabase.coarser_hit` | pass |  |
+| `preagg.metabase.date_range_inside_a_bucket_miss` | pass |  |
+| `preagg.metabase.date_range_on_a_boundary_hit` | pass |  |
+| `preagg.metabase.extended_cube_hit` | pass |  |
+| `preagg.metabase.filter_on_a_rollup_dimension_hit` | pass |  |
+| `preagg.metabase.filter_on_another_dimension_miss` | pass |  |
+| `preagg.metabase.finer_miss` | pass |  |
+| `preagg.metabase.join_through_a_view_hit` | pass |  |
+| `preagg.metabase.non_additive_coarser_miss` | pass |  |
+| `preagg.metabase.non_additive_same_grain_hit` | pass |  |
+| `preagg.metabase.other_dimension_miss` | pass |  |
+| `preagg.metabase.same_grain_hit` | pass |  |
+| `preagg.metabase.time_zone_day_hit` | fail | expected rollups ['pa_types_additive_day'], Cube used [], request {"measures": ["pa_types.revenue"], "dimensions": [], "segments": [], "timeDimensions": [{"dimension": "pa_types.created_at", "granularity": "day"}], "order": [["pa_types.created_at", "asc"]], "filters": [{"or": [{"member": "pa_types.created_at", "operator": "afterOrOnDate", "values": ["2025-03-05T05 |
+| `preagg.metabase.time_zone_finer_miss` | pass |  |
+| `preagg.metabase.time_zone_month_hit` | pass |  |
+| `preagg.metabase.view_hit` | pass |  |
+| `preagg.metabase.view_miss` | pass |  |
+| `preagg.model.stock_form` | pass |  |
+| `preagg.multi_stage.grand_total_hit` | pass |  |
+| `preagg.multi_stage.time_shift_hit` | pass |  |
+| `preagg.non_additive.any_completed.coarser_dimension_miss` | pass |  |
+| `preagg.non_additive.any_completed.coarser_time_miss` | pass |  |
+| `preagg.non_additive.any_completed.same_grain_hit` | pass |  |
+| `preagg.non_additive.any_completed.total_miss` | pass |  |
+| `preagg.non_additive.avg_amount.coarser_dimension_miss` | pass |  |
+| `preagg.non_additive.avg_amount.coarser_time_miss` | pass |  |
+| `preagg.non_additive.avg_amount.same_grain_hit` | pass |  |
+| `preagg.non_additive.avg_amount.total_miss` | pass |  |
+| `preagg.non_additive.buyers.coarser_dimension_miss` | pass |  |
+| `preagg.non_additive.buyers.coarser_time_miss` | pass |  |
+| `preagg.non_additive.buyers.same_grain_hit` | pass |  |
+| `preagg.non_additive.buyers.total_miss` | pass |  |
+| `preagg.non_additive.first_status.coarser_dimension_miss` | pass |  |
+| `preagg.non_additive.first_status.coarser_time_miss` | pass |  |
+| `preagg.non_additive.first_status.same_grain_hit` | pass |  |
+| `preagg.non_additive.first_status.total_miss` | pass |  |
+| `preagg.non_additive.last_at.coarser_dimension_miss` | pass |  |
+| `preagg.non_additive.last_at.coarser_time_miss` | pass |  |
+| `preagg.non_additive.last_at.same_grain_hit` | pass |  |
+| `preagg.non_additive.last_at.total_miss` | pass |  |
+| `preagg.non_additive.median_amount.coarser_dimension_miss` | pass |  |
+| `preagg.non_additive.median_amount.coarser_time_miss` | pass |  |
+| `preagg.non_additive.median_amount.same_grain_hit` | pass |  |
+| `preagg.non_additive.median_amount.total_miss` | pass |  |
+| `preagg.non_additive.mixed_with_additive_miss` | pass |  |
+| `preagg.non_additive.ratio_with_a_distinct_leaf_miss` | pass |  |
+| `preagg.option.external_false_coarser_hit` | pass |  |
+| `preagg.option.external_false_hit` | pass |  |
+| `preagg.option.external_false_miss` | pass |  |
+| `preagg.option.index_aggregate_hit` | pass |  |
+| `preagg.option.index_on_a_null_column_hit` | pass |  |
+| `preagg.option.index_regular_hit` | pass |  |
+| `preagg.option.no_index` | pass |  |
+| `preagg.option.non_strict_inside_a_bucket_reads_whole_buckets` | partial | allow_non_strict_date_range_match: true on a rollup is the slight discrepancy of the docs. With a range inside a bucket, the rollup gives other rows than the truth, with no error. The env var that this stack and docs/query-compilation.md set to false does not change a rollup with this key. |
+| `preagg.option.non_strict_on_a_boundary_hit` | pass |  |
+| `preagg.option.read_only_hit` | pass |  |
+| `preagg.option.scheduled_refresh_false_hit` | pass |  |
+| `preagg.option.strict_date_range_inside_a_bucket_miss` | pass |  |
+| `preagg.option.strict_date_range_on_a_boundary_hit` | pass |  |
+| `preagg.option.two_time_dimensions_hit` | pass |  |
+| `preagg.option.unique_key_hit` | pass |  |
+| `preagg.option.use_original_sql_coarser_hit` | pass |  |
+| `preagg.option.use_original_sql_same_grain_hit` | pass |  |
+| `preagg.partition.day_hit` | pass |  |
+| `preagg.partition.hour_hit` | pass |  |
+| `preagg.partition.month_hit` | pass |  |
+| `preagg.partition.quarter_hit` | pass |  |
+| `preagg.partition.range_inside_a_day_miss` | pass |  |
+| `preagg.partition.range_over_two_partitions_hit` | pass |  |
+| `preagg.partition.week_hit` | pass |  |
+| `preagg.partition.year_hit` | pass |  |
+| `preagg.refresh.every_old_number_ends_in_time` | pass |  |
+| `preagg.refresh.incremental_keeps_a_partition_out_of_the_window` | pass |  |
+| `preagg.refresh.incremental_refreshes_the_update_window` | pass |  |
+| `preagg.refresh.long_key_keeps_the_old_number_inside_its_time` | pass |  |
+| `preagg.refresh.no_update_window_refreshes_only_the_last_partition` | pass |  |
+| `preagg.refresh.scheduled_refresh_false` | fail | a query does not refresh a rollup with scheduled_refresh false: {'amt_every': 115.0, 'amt_sql': 115.0, 'amt_incremental': 15.0, 'amt_last_partition': 10.0, 'amt_manual': 0.0, 'amt_long': 0.0} |
+| `preagg.refresh.sql_key_old_number_ends_in_time` | pass |  |
+| `preagg.refresh.through_metabase` | pass |  |
+| `preagg.rolling.finer_miss` | fail | truth SQL failed: SELECT h, sumIf(amount, created_at >= toDateTime('2025-04-01 00:00:00', 'UTC') AND created_at < h + INTERVAL 1 HOUR) FROM orders CROSS JOIN (SELECT toDateTime('2025-04-01 00:00:00', 'UTC') + INTERVAL number HOUR AS h FROM numbers(24)) GROUP BY h: Received exception from server (version 26.10.3): Code: 206. DB::Exception: Received from localhost:9000. DB::Exception: JOIN  CROSS JOIN ... no alias for subquery or table function SELECT toDateTime('2025-04-01 00:00:00', 'UTC') + toIntervalHour(number) AS h FROM numbers(24). In scope SELECT h, sum |
+| `preagg.rolling.running_same_grain_hit` | pass |  |
+| `preagg.rolling.to_date_coarser_time_hit` | pass |  |
+| `preagg.rolling.to_date_same_grain_hit` | pass |  |
+| `preagg.rolling.trailing_coarser_time_hit` | pass |  |
+| `preagg.rolling.trailing_same_grain_hit` | pass |  |
+| `preagg.shape.date_range_inside_a_bucket_miss` | pass |  |
+| `preagg.shape.date_range_on_day_boundary_hit` | pass |  |
+| `preagg.shape.date_range_on_month_boundary_hit` | pass |  |
+| `preagg.shape.extended_cube_hit` | pass |  |
+| `preagg.shape.extended_cube_miss` | pass |  |
+| `preagg.shape.filter_on_a_rollup_dimension_hit` | pass |  |
+| `preagg.shape.filter_on_another_dimension_miss` | pass |  |
+| `preagg.shape.join_dimension_in_the_rollup_coarser_hit` | pass |  |
+| `preagg.shape.join_dimension_in_the_rollup_hit` | pass |  |
+| `preagg.shape.join_dimension_not_in_the_rollup_miss` | pass |  |
+| `preagg.shape.join_with_fan_out_miss` | pass |  |
+| `preagg.shape.month_bucket_with_a_day_range_hit` | pass |  |
+| `preagg.shape.segment_in_the_rollup_hit` | pass |  |
+| `preagg.shape.segment_left_out_miss` | fail | expected rollups [], Cube used ['pa_types_paid_segment'], request {"measures": ["pa_types.peak_paid"], "dimensions": ["pa_types.status"]} |
+| `preagg.shape.segment_not_in_the_rollup_miss` | pass |  |
+| `preagg.shape.view_finer_miss` | pass |  |
+| `preagg.shape.view_hit` | pass |  |
+| `preagg.shape.view_joined_dimension_hit` | pass |  |
+| `preagg.shape.view_joined_dimension_miss` | pass |  |
+| `preagg.shape.view_non_additive_coarser_miss` | pass |  |
+| `preagg.shape.view_other_dimension_miss` | pass |  |
+| `preagg.time_zone.boundary_of_a_local_day_hit` | pass |  |
+| `preagg.time_zone.coarser_hit` | pass |  |
+| `preagg.time_zone.finer_miss` | pass |  |
+| `preagg.time_zone.inside_a_local_day_miss` | pass |  |
+| `preagg.time_zone.partitioned_hit` | fail | rows: got ['2025-12-01T00:00:00', 23166.0], truth ['2025-12-01T00:00:00', 23313.0] |
+| `preagg.time_zone.same_grain_hit` | pass |  |
+| `preagg.type.count_distinct_approx_stops` | partial | Cube has no sketch that ClickHouse can write and Cube Store can read. A rollup of count_distinct_approx stops each query on that measure, and each run of the refresh worker, so all other rollups go stale. No number is wrong while the query stops. The driver shows a clear message. The live model has no such rollup. A query with no such rollup reads the table. |
+| `preagg.type.original_sql_in_clickhouse` | pass |  |
+| `preagg.type.original_sql_in_cube_store` | pass |  |
+| `preagg.type.rollup_join_coarser_hit` | pass |  |
+| `preagg.type.rollup_join_filter_hit` | pass |  |
+| `preagg.type.rollup_join_finer_miss` | pass |  |
+| `preagg.type.rollup_join_other_dimension_miss` | pass |  |
+| `preagg.type.rollup_join_other_measure_miss` | pass |  |
+| `preagg.type.rollup_join_same_grain_hit` | pass |  |
+| `preagg.type.rollup_join_through_metabase` | pass |  |
+| `preagg.type.rollup_join_total_hit` | pass |  |
+| `preagg.type.rollup_lambda_after_the_batch_with_source` | partial | A run gives the truth or the error of cube-js/cube#12285, Stream query failed: aborted. The driver shows a clear message, and no number is wrong. |
+| `preagg.type.rollup_lambda_filter_hit` | pass |  |
+| `preagg.type.rollup_lambda_inside_the_batch_hit` | pass |  |
+| `preagg.type.rollup_lambda_miss_on_a_finer_grain` | pass |  |
+| `preagg.type.rollup_lambda_of_two_rollups_hit` | fail | rows: got 11 rows, truth has 12. got=[['2025-01-01T00:00:00', 27068.0], ['2025-02-01T00:00:00', 25988.0], ['2025-03-01T00:00:00', 27121.0], ['2025-04-01T00:00:00', 27332.0]] truth=[['2025-01-01T00:00:00', 27068.0], ['2025-02-01T00:00:00', 25988.0], ['2025-03-01T00:00:00', 27121.0], ['2025-04-01T00:00:00', 27332.0]] |
+| `preagg.type.rollup_lambda_over_the_batch_with_source` | partial | A run gives the truth or the error of cube-js/cube#12285, Stream query failed: aborted. The driver shows a clear message, and no number is wrong. |
+| `preagg.metabase.time_zone_one_bound_miss` | pass |  |
+| `preagg.metabase.time_zone_range_next_to_a_filter_hit` | fail | expected rollups ['pa_types_additive_day'], Cube used [], request {"measures": ["pa_types.revenue"], "dimensions": [], "segments": [], "order": [], "filters": [{"member": "pa_types.status", "operator": "equals", "values": ["shipped"]}, {"or": [{"member": "pa_types.created_at", "operator": "afterOrOnDate", "values": ["2025-03-05T05:00:00.000Z"]}, {"member": "pa_typ |
+| `preagg.metabase.time_zone_range_without_a_bucket_hit` | fail | expected rollups ['pa_types_additive_day'], Cube used [], request {"measures": ["pa_types.revenue"], "dimensions": [], "segments": [], "order": [], "filters": [{"or": [{"member": "pa_types.created_at", "operator": "afterOrOnDate", "values": ["2025-03-05T05:00:00.000Z"]}, {"member": "pa_types.created_at", "operator": "notSet"}]}, {"member": "pa_types.created_at", " |
 | `context.compile_context` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |
