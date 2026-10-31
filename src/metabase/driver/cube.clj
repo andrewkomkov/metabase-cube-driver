@@ -646,7 +646,7 @@
   "True if the session has a time zone with another time than UTC."
   []
   (let [rules (.getRules (session-zone))]
-    (not (and (.isFixedOffset rules) (zero? (.getTotalSeconds (.getOffset rules (Instant/EPOCH))))))))
+    (not (and (.isFixedOffset rules) (zero? (.getTotalSeconds (.getOffset rules Instant/EPOCH)))))))
 
 (defn- utc-time
   "The local time `t` of the zone of the session, as a local time in UTC."
