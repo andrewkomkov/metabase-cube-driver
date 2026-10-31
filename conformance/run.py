@@ -610,10 +610,16 @@ class Mcp:
         text = (res.get("content") or [{}])[0].get("text", "")
         if res.get("isError"):
             raise Fail("%s: %s" % (tool, text[:500]))
-        try:
-            return json.JSONDecoder().raw_decode(text)[0]
-        except ValueError:
-            return text
+        return mcp_payload(text)
+
+
+def mcp_payload(text):
+    """The JSON of a tool reply. Metabase 0.65 puts it in a <data boundary="..."> block. Metabase 0.64 sends it bare, sometimes with text after it."""
+    block = re.search(r'<data boundary="[^"]*">\s*', text)
+    try:
+        return json.JSONDecoder().raw_decode(text[block.end():] if block else text)[0]
+    except ValueError:
+        return text
 
 
 def to_mbql5(clause):
