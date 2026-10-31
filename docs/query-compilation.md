@@ -38,6 +38,7 @@ Set these two values on a Cube that Metabase reads. Without them, Cube returns w
 | ISO week of year | `EXTRACT(WEEK)` | Post-processing |
 | Bins | `FLOOR(x / w) * CAST('w' AS double precision)` | Push-down |
 | `log` | `LN(x) / LN(10)`, because `LOG(x)` on ClickHouse has base e | Push-down |
+| `a / b`, also for two measures | `a * CAST('1.0' AS double precision) / NULLIF(b * CAST('1.0' AS double precision), 0.0)`. A cast of `a` fails on ClickHouse when a measure is NULL: `Cannot convert NULL value to non-Nullable type`. A plain `1.0` is a decimal in Cube, and it cuts the digits of a `Decimal`. | Push-down |
 | `datetime-diff` in seconds, minutes, hours, days, weeks | `DATEDIFF` | Push-down |
 | Implicit or explicit join | `ON a.__cubeJoinField = b.__cubeJoinField` | Regular with a measure, push-down with `COUNT(*)` |
 | Inner join | As above, and the joined column must not be NULL | Push-down |
@@ -111,6 +112,8 @@ These queries fail with a message that tells what to do. The message includes th
 | Stock Cube: a case-sensitive text filter next to `x > t`, `x <= t`, `x = t` or `between` on a time | The text filter sends the query to the database, and there stock Cube compares a time in whole seconds. On a `DateTime64`, the rows of the second after `t` go to the wrong side. Cube does not show the type of a column, so the driver stops this for each time column. `>=` and `<` stay right. The dialect has no such limit. |
 | `trailing: unbounded` for more than one bucket, on ClickHouse before 26.10 | Cube writes a join with only an inequality, and ClickHouse before 26.10 rejects it: `Cannot determine join keys in JOIN ON expression`. One bucket works. ClickHouse 26.10 runs this join and gives the truth. |
 | Rolling window measure that is shorter than the bucket, such as month to date by a quarter | Cube can add the windows of the whole bucket, and no one number is what this means. A window of 30 days counts as a month, so it is allowed by a month. `/v1/sql` shows the window. |
+| Rolling window measure in days, by a month, a quarter or a year, when a rollup serves it | Cube Store reads the wrong days for a month that has another length than the month before it, with no error. The source gives the truth, and a window in months gives the truth from the rollup. `metric.rollup.day_window_by_month_refused` shows this. |
+| Rolling window with a length in months after the end of a bucket, such as `leading: 1 month, offset: end`, by a month, a quarter or a year | Cube reads whole months for each bucket except the last, and it cuts the last one at the end of its window. By a day, the number is right. |
 | Rolling window measure with a report time zone that is not UTC | Cube adds the wrong months together, also on its REST API. |
 | Rolling window measure on stock Cube with `CUBEJS_TESSERACT_SQL_PLANNER=false` | Each bucket gets one wrong number. `/v1/sql` shows the planner. The dialect gives the truth. |
 | A time shift measure with one date bound | Cube reads a time shift only with a date range, so it gives periods outside the filter. |
@@ -166,6 +169,18 @@ A measure column has one clause that holds the measure: `sum` for sums and count
 ### A measure on a time column
 
 A measure with `type: min` or `type: max` on a time column is NULL on the SQL API, because `/v1/meta` types it as a number. Write it with `type: time` and `sql: min(column)`, as `first_order_at` in `dev/cube/model/orders.yml` does.
+
+### Metrics made from other metrics
+
+A measure of type `number` reads other measures, so Cube computes it at the grain of the query. `sum(a) / sum(b)` by a year is the sum of the year over the sum of the year. It is not an average or a sum of the ratios of the months. A rollup with `a` and `b` serves it at a coarser grain. A distinct count stays out of this: a rollup serves it only at the grain of the rollup.
+
+| Metric | Stock form | Note |
+| --- | --- | --- |
+| Ratio of sums | `sql: "1.0 * {a} / NULLIF({b}, 0)"` | With no `1.0 *`, `Decimal / Int` on ClickHouse cuts the digits. |
+| Percentile | `sql: "quantile(0.9)(toFloat64({CUBE}.amount))"` | With no `toFloat64`, `quantile` of a `Decimal` cuts the digits of the interpolated value. |
+| Balance that adds up over accounts and not over time | `multi_stage: true`, `type: number_agg`, `sql: "argMax({total}, {day})"`, `add_group_by: [day]` | The day is a dimension. Its name must differ from `<time>_day`, because Cube uses this alias for a time dimension. Cube Store has no `argMax`, so a rollup must not have this day. A rolling window of 1 day is right by a day and by an hour, and it stops by a month. |
+
+A custom expression `a / b` of two measures gives the same number as the Cube metric, at each grain. `metric.expression.*` compare both with the truth.
 
 ## Latency
 

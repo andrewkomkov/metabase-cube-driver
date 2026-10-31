@@ -92,6 +92,10 @@ The `semantic.*` checks for model changes write `dev/cube/model/zz_conformance_p
 
 The `compile.*` checks compare each number with ClickHouse. They also run `EXPLAIN` on the Cube SQL API and check how Cube runs the query, and they send the request from the plan to the REST API to read `usedPreAggregations`. They need the `big_orders` table, which is 10 million rows. They change the `start-of-week` setting and set it back. See `docs/query-compilation.md`.
 
+## Metric catalog
+
+The `metric.*` checks read `dev/cube/model/metrics.yml` and the tables `metric_edges`, `metric_balances` and `metric_sales` in `dev/clickhouse/seed-extra.sql`. Each check sends one query through `/api/dataset` and through the MCP tool `execute_query`, and compares both with hand SQL on ClickHouse. A metric from other metrics runs at each grain: the total, status, size, paid, quantity, month, quarter, status and month, and day. The `metric.rollup.*` and `metric.semi_additive.*` checks also ask Cube if the rollup served the query. `metric.model.stock_form` stops a model that asks for a driver feature.
+
 ## Per-person data
 
 The `security.*` checks need the service `cube-secure`. They run last, because they add databases and people to Metabase. They remove the databases at the end. The people stay. They set a root cache policy for one check and remove it. The truth for each person is ClickHouse with the filter of the row-level rule in `dev/cube-secure/cube.js`.

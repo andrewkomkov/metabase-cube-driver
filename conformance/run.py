@@ -6494,6 +6494,818 @@ def _(ctx):
         browser.close()
 
 
+# ----------------------------------------------------------------- metric catalog
+# The model is dev/cube/model/metrics.yml. Each truth is hand SQL on ClickHouse. Each check runs the query builder and the MCP tool.
+
+MT = "metric_types"
+MC = "metric_customers"
+MCM = "metric_customer_months"
+ME = "metric_edges"
+MS = "metric_sales"
+MR = "metric_rollup_sales"
+MB_ = "metric_balances"
+MX = "metric_extended"
+MV = "metric_view"
+AMT = "toFloat64(amount)"
+PAID_SQL = "status IN ('completed', 'shipped')"
+MT_MONTH = "d:metric_types.created_at@month"
+MT_DAY = "d:metric_types.created_at@day"
+MT_CRT = "d:metric_types.created_at"
+
+
+def by_builder_and_mcp(ctx, table, sql, ordered=False, tol=0.0, label="rows", **kw):
+    """The same query through /api/dataset and the MCP tool execute_query. Both must equal the truth."""
+    ensure_table(ctx, table)
+    truth = sql if isinstance(sql, list) else ch(sql)
+    assert_rows(ctx.mb.mbql(table, **kw)["rows"], truth, ordered=ordered, tol=tol, label=label + " in the query builder")
+    route = {k: kw[k] for k in ("agg", "by", "where") if k in kw}
+    assert_rows(ctx.mcp.call("execute_query", query=mcp_query(ctx.mb, table, **route))["rows"], truth, tol=tol, label=label + " through MCP")
+    return truth
+
+
+def M(check_id, table, sql, ordered=False, tol=0.0, post=None, **kw):
+    def run(ctx):
+        by_builder_and_mcp(ctx, table, sql, ordered=ordered, tol=tol, **kw)
+        if post:
+            post(ctx, ctx.mb.mbql(table, **kw))
+    check(check_id)(run)
+
+
+def expect_refusal(ctx, table, needle, **kw):
+    """The query builder and MCP both stop with this text."""
+    expect_clear_error(ctx, ctx.mb.inner(table, **kw), needle)
+    route = {k: kw[k] for k in ("agg", "by", "where") if k in kw}
+    res = ctx.mcp.rpc("tools/call", {"name": "execute_query", "arguments": {"query": mcp_query(ctx.mb, table, **route)}})
+    text = (res.get("content") or [{}])[0].get("text", "")
+    if needle not in text:
+        raise Fail("MCP gave no refusal with %r: %s" % (needle, text[:300]))
+
+
+def grain(label, by=(), keys=(), where=None, wsql=None):
+    return {"label": label, "by": list(by), "keys": list(keys), "where": where, "wsql": wsql}
+
+
+def grain_truth(expr, src, g):
+    keys = g["keys"]
+    return "SELECT %s FROM %s %s %s SETTINGS join_use_nulls = 1" % (
+        ", ".join(keys + [expr]), src, "WHERE " + g["wsql"] if g["wsql"] else "",
+        "GROUP BY " + ", ".join(str(i + 1) for i in range(len(keys))) if keys else "")
+
+
+def run_grains(ctx, table, member, expr, src, grains, tol=0.0):
+    for g in grains:
+        kw = {"agg": [member]}
+        if g["by"]:
+            kw["by"] = g["by"]
+        if g["where"]:
+            kw["where"] = g["where"]
+        by_builder_and_mcp(ctx, table, grain_truth(expr, src, g), tol=tol, label=g["label"], **kw)
+
+
+FEB_FIRST_DAYS = [["between", MT_CRT, "2025-02-01", "2025-02-10"]]
+MT_GRAINS = [
+    grain("total"),
+    grain("status", ["d:metric_types.status"], ["status"]),
+    grain("size", ["d:metric_types.size"], [SIZE]),
+    grain("paid", ["d:metric_types.is_paid"], [PAID_SQL]),
+    grain("quantity", ["d:metric_types.quantity"], ["quantity"]),
+    grain("month", [MT_MONTH], ["toStartOfMonth(created_at)"]),
+    grain("quarter", ["d:metric_types.created_at@quarter"], ["toStartOfQuarter(created_at)"]),
+    grain("status and month", ["d:metric_types.status", MT_MONTH], ["status", "toStartOfMonth(created_at)"]),
+    grain("day", [MT_DAY], ["toDate(created_at)"], FEB_FIRST_DAYS, "toDate(created_at) BETWEEN '2025-02-01' AND '2025-02-10'"),
+]
+
+
+def G(check_id, member, expr, table=MT, src="orders", grains=None, tol=0.0, extra=None, post=None):
+    """A metric at each grain, each with its own truth."""
+    def run(ctx):
+        run_grains(ctx, table, member, expr, src, MT_GRAINS if grains is None else grains, tol=tol)
+        if extra:
+            extra(ctx)
+        if post:
+            post(ctx, ctx.mb.mbql(table, agg=[member]))
+    check(check_id)(run)
+
+
+def scalar(sql):
+    return float(ch(sql)[0][0])
+
+
+# ----- each measure type
+
+G("metric.type.count", "m:metric_types.m_count", "count()")
+G("metric.type.count_distinct", "m:metric_types.m_users", "uniqExact(user_id)")
+G("metric.type.count_distinct_approx", "m:metric_types.m_users_approx", "uniqExact(user_id)", tol=0.05)
+G("metric.type.sum", "m:metric_types.m_revenue", "sum(amount)")
+G("metric.type.avg", "m:metric_types.m_avg_amount", "avg(%s)" % AMT)
+G("metric.type.min", "m:metric_types.m_min_amount", "min(amount)")
+G("metric.type.max", "m:metric_types.m_max_amount", "max(amount)")
+G("metric.type.number", "m:metric_types.m_ratio", "sum(%s) / nullIf(count(), 0)" % AMT)
+G("metric.type.string", "m:metric_types.m_status_text", "min(status)")
+G("metric.type.time", "m:metric_types.m_last_order_at", "max(created_at)")
+G("metric.type.boolean", "m:metric_types.m_has_completed", "toBool(max(status = 'completed'))")
+G("metric.type.number_agg", "m:metric_types.m_median_agg", "quantile(0.5)(%s)" % AMT, tol=1e-9)
+
+
+@check("metric.type.rank")
+def _(ctx):
+    # reduce_by: [status] takes status out of the partition, so a status has a rank in its month.
+    by_builder_and_mcp(ctx, MT, "SELECT status, rank() OVER (ORDER BY sum(amount) DESC) FROM orders GROUP BY status",
+                       agg=["m:metric_types.m_rank"], by=["d:metric_types.status"], label="status")
+    by_builder_and_mcp(ctx, MT, "SELECT status, toStartOfMonth(created_at) AS m, rank() OVER (PARTITION BY m ORDER BY sum(amount) DESC) FROM orders GROUP BY status, m",
+                       agg=["m:metric_types.m_rank"], by=["d:metric_types.status", MT_MONTH], label="status and month")
+
+
+# ----- each measure option
+
+G("metric.opt.filter_one", "m:metric_types.m_count_completed", "countIf(status = 'completed')")
+G("metric.opt.filter_several", "m:metric_types.m_count_large_completed", "countIf(status = 'completed' AND quantity >= 3)")
+G("metric.opt.filter_or", "m:metric_types.m_count_completed_or_large", "countIf(status = 'completed' OR quantity >= 3)")
+# SQL gives NULL for a sum with no row, so the truth has if(...) in place of sumIf, which gives 0.
+G("metric.opt.filter_on_sum", "m:metric_types.m_paid_revenue", "sum(if(%s, amount, NULL))" % PAID_SQL)
+
+
+def over_months(expr, months):
+    """The truth of a window by month. m is the start of the month and n is the start of the next month."""
+    return ("SELECT m, %s FROM orders o CROSS JOIN (SELECT toDateTime(x, 'UTC') AS m, toDateTime(addMonths(toDateTime(x, 'UTC'), 1), 'UTC') AS n "
+            "FROM (SELECT arrayJoin(%s) AS x)) b GROUP BY m, n" % (expr, json.dumps(months).replace('"', "'")))
+
+
+def over_days(expr, days):
+    """The truth of a window by day. d is the start of the day, and e is its last second."""
+    return ("SELECT d, %s FROM orders o CROSS JOIN (SELECT toDateTime(x, 'UTC') AS d, toDateTime(x, 'UTC') + INTERVAL 86399 SECOND AS e "
+            "FROM (SELECT arrayJoin(%s) AS x)) b GROUP BY d, e" % (expr, json.dumps(days).replace('"', "'")))
+
+
+Q2 = ["2025-04-01", "2025-05-01", "2025-06-01"]
+Q2_WHERE = [[">=", MT_CRT, "2025-04-01"], ["<", MT_CRT, "2025-07-01"]]
+MAR_DAYS = ["2025-03-30", "2025-03-31", "2025-04-01"]
+MAR_DAYS_WHERE = [[">=", MT_CRT, "2025-03-30"], ["<", MT_CRT, "2025-04-02"]]
+
+
+def window(check_id, member, month_expr, day_expr):
+    """A rolling window by month and by day. Cube reads the rows in buckets, so a window of months holds whole months in the month query."""
+    def run(ctx):
+        by_builder_and_mcp(ctx, MT, over_months(month_expr, Q2), agg=[member], by=[MT_MONTH], where=Q2_WHERE, label="month")
+        by_builder_and_mcp(ctx, MT, over_days(day_expr, MAR_DAYS), agg=[member], by=[MT_DAY], where=MAR_DAYS_WHERE, label="day")
+    check(check_id)(run)
+
+
+window("metric.opt.rolling_trailing", "m:metric_types.m_rev_trailing_3m",
+       "sumIf(amount, created_at >= addMonths(m, -2) AND created_at < n)",
+       "sumIf(amount, toStartOfDay(created_at) > addMonths(e, -3) AND created_at <= e)")
+window("metric.opt.rolling_leading", "m:metric_types.m_rev_leading_1m",
+       "sumIf(amount, created_at >= m AND created_at < n)",
+       "sumIf(amount, toStartOfDay(created_at) >= d AND toStartOfDay(created_at) < addMonths(d, 1))")
+
+
+@check("metric.opt.rolling_leading_offset_end")
+def _(ctx):
+    # Cube reads whole months for each bucket but the last, and it cuts the last month at the end of the window. So a month query stops.
+    member = "m:metric_types.m_rev_leading_next"
+    by_builder_and_mcp(ctx, MT, over_days("sumIf(amount, toStartOfDay(created_at) > e AND toStartOfDay(created_at) <= addMonths(e, 1))", MAR_DAYS), agg=[member], by=[MT_DAY], where=MAR_DAYS_WHERE, label="day")
+    expect_refusal(ctx, MT, "after the end of a bucket", agg=[member], by=[MT_MONTH], where=Q2_WHERE)
+
+
+window("metric.opt.rolling_offset_end", "m:metric_types.m_rev_offset_end",
+       "sumIf(amount, created_at >= m AND created_at < n)",
+       "sumIf(amount, toStartOfDay(created_at) > addMonths(e, -1) AND created_at <= e)")
+window("metric.opt.rolling_offset_start", "m:metric_types.m_rev_offset_start",
+       "sumIf(amount, created_at >= addMonths(m, -1) AND created_at < m)",
+       "sumIf(amount, toStartOfDay(created_at) >= addMonths(d, -1) AND toStartOfDay(created_at) < d)")
+window("metric.opt.rolling_to_date", "m:metric_types.m_rev_mtd",
+       "sumIf(amount, created_at >= m AND created_at < n)",
+       "sumIf(amount, created_at >= toStartOfMonth(d) AND created_at <= e)")
+window("metric.opt.rolling_to_date_year", "m:metric_types.m_rev_ytd",
+       "sumIf(amount, created_at >= toStartOfYear(m) AND created_at < n)",
+       "sumIf(amount, created_at >= toStartOfYear(d) AND created_at <= e)")
+window("metric.opt.rolling_unbounded", "m:metric_types.m_rev_running",
+       "sumIf(amount, created_at < n)",
+       "sumIf(amount, created_at <= e)")
+
+
+@check("metric.opt.rolling_shorter_than_bucket_refused")
+def _(ctx):
+    expect_refusal(ctx, MT, "shorter than a quarter", agg=["m:metric_types.m_rev_mtd"], by=["d:metric_types.created_at@quarter"], where=[[">=", MT_CRT, "2025-01-01"], ["<", MT_CRT, "2025-07-01"]])
+
+
+G("metric.opt.multi_stage", "m:metric_types.m_rev_grand_total", "any((SELECT sum(amount) FROM orders))",
+  grains=[grain("total"), grain("status", ["d:metric_types.status"], ["status"]), grain("month", [MT_MONTH], ["toStartOfMonth(created_at)"])])
+
+
+@check("metric.opt.group_by")
+def _(ctx):
+    rows = "SELECT o.status, o.m, t.r FROM (SELECT status, toStartOfMonth(created_at) AS m FROM orders GROUP BY status, m) o JOIN (SELECT status, sum(amount) AS r FROM orders GROUP BY status) t ON o.status = t.status"
+    by_builder_and_mcp(ctx, MT, rows, agg=["m:metric_types.m_rev_group_by"], by=["d:metric_types.status", MT_MONTH], label="status and month")
+    by_builder_and_mcp(ctx, MT, "SELECT status, sum(amount) FROM orders GROUP BY status", agg=["m:metric_types.m_rev_group_by"], by=["d:metric_types.status"], label="status")
+
+
+@check("metric.opt.reduce_by")
+def _(ctx):
+    by_builder_and_mcp(ctx, MT, "SELECT status, (SELECT sum(amount) FROM orders) FROM orders GROUP BY status", agg=["m:metric_types.m_rev_reduce_by"], by=["d:metric_types.status"], label="status")
+    rows = "SELECT o.status, o.m, t.r FROM (SELECT status, toStartOfMonth(created_at) AS m FROM orders GROUP BY status, m) o JOIN (SELECT toStartOfMonth(created_at) AS m, sum(amount) AS r FROM orders GROUP BY m) t ON o.m = t.m"
+    by_builder_and_mcp(ctx, MT, rows, agg=["m:metric_types.m_rev_reduce_by"], by=["d:metric_types.status", MT_MONTH], label="status and month")
+
+
+@check("metric.opt.add_group_by")
+def _(ctx):
+    by_builder_and_mcp(ctx, MT, "SELECT avg(r) FROM (SELECT status, sum(%s) AS r FROM orders GROUP BY status)" % AMT, agg=["m:metric_types.m_rev_add_group_by"], label="total")
+    by_builder_and_mcp(ctx, MT, "SELECT m, avg(r) FROM (SELECT toStartOfMonth(created_at) AS m, status, sum(%s) AS r FROM orders GROUP BY m, status) GROUP BY m" % AMT,
+                       agg=["m:metric_types.m_rev_add_group_by"], by=[MT_MONTH], label="month")
+
+
+MONTHS_REV = "(SELECT toStartOfMonth(created_at) AS m, sum(%s) AS r FROM orders GROUP BY m)" % AMT
+FEB_APR_WHERE = [["between", MT_CRT, "2025-02-01", "2025-04-30"]]
+FEB_APR = "t.m BETWEEN '2025-02-01' AND '2025-04-01'"
+
+
+def by_prior_month(value):
+    return "SELECT t.m, %s FROM %s t LEFT JOIN %s p ON p.m = addMonths(t.m, -1) WHERE %s" % (value, MONTHS_REV, MONTHS_REV, FEB_APR)
+
+
+M("metric.opt.time_shift_prior", MT, by_prior_month("p.r"), agg=["m:metric_types.m_rev_prior_month"], by=[MT_MONTH], where=FEB_APR_WHERE)
+M("metric.opt.time_shift_calendar", "metric_calendar",
+  "SELECT toStartOfMonth(toDate(created_at) + 28) AS m, sum(amount) FROM orders GROUP BY m HAVING m = '2025-03-01'",
+  agg=["m:metric_calendar.m_rev_prior_calendar"], by=["d:metric_calendar.fiscal_calendar_date@month"],
+  where=[["between", "d:metric_calendar.fiscal_calendar_date", "2025-03-01", "2025-03-31"]])
+
+
+@check("metric.opt.time_shift_needs_a_range")
+def _(ctx):
+    expect_refusal(ctx, MT, "time shift", agg=["m:metric_types.m_rev_prior_month"])
+
+
+REV_ALL = "SELECT sum(amount) FROM orders"
+SHARE_ALL = "SELECT sum(if(%s, %s, NULL)) / sum(%s) FROM orders" % (PAID_SQL, AMT, AMT)
+
+
+def fmt(check_id, member, truth, style, decimals=None, currency=None):
+    M(check_id, MT, truth, agg=["m:metric_types.%s" % member], post=expect_format(style, currency, decimals))
+
+
+fmt("metric.format.percent", "m_fmt_percent", SHARE_ALL, "percent", 2)
+fmt("metric.format.percent_0", "m_fmt_percent_0", SHARE_ALL, "percent", 0)
+fmt("metric.format.percent_2", "m_fmt_percent_2", SHARE_ALL, "percent", 2)
+fmt("metric.format.currency", "m_fmt_currency", REV_ALL, "currency", 2)
+fmt("metric.format.currency_0", "m_fmt_currency_0", REV_ALL, "currency", 0)
+fmt("metric.format.currency_3", "m_fmt_currency_3", REV_ALL, "currency", 3)
+fmt("metric.format.currency_code", "m_fmt_currency_eur", REV_ALL, "currency", 2, "EUR")
+fmt("metric.format.number", "m_fmt_number", REV_ALL, "decimal", 2)
+fmt("metric.format.number_0", "m_fmt_number_0", REV_ALL, "decimal", 0)
+fmt("metric.format.number_3", "m_fmt_number_3", REV_ALL, "decimal", 3)
+fmt("metric.format.id", "m_fmt_id", "SELECT max(id) FROM orders", "decimal", 0)
+fmt("metric.format.d3", "m_fmt_d3", REV_ALL, "currency", 3)
+fmt("metric.format.d3_percent", "m_fmt_d3_percent", SHARE_ALL, "percent", 1)
+M("metric.format.abbr", MT, REV_ALL, agg=["m:metric_types.m_fmt_abbr"], post=expect_format_as_text(MT, "m_fmt_abbr", "decimal", 2, "Number format: .2~s."))
+M("metric.format.abbr_1", MT, REV_ALL, agg=["m:metric_types.m_fmt_abbr_1"], post=expect_format_as_text(MT, "m_fmt_abbr_1", "decimal", 1, "Number format: .1~s."))
+M("metric.format.accounting", MT, REV_ALL, agg=["m:metric_types.m_fmt_accounting"], post=expect_format_as_text(MT, "m_fmt_accounting", "decimal", 2, "Number format: (,.2~f."))
+M("metric.format.accounting_0", MT, REV_ALL, agg=["m:metric_types.m_fmt_accounting_0"], post=expect_format_as_text(MT, "m_fmt_accounting_0", "decimal", 0, "Number format: (,.0f."))
+M("metric.opt.drill_members", MT, "SELECT count() FROM orders", agg=["m:metric_types.m_count"], post=expect_description(MT, "Rows of shop.orders.", "m_count"))
+M("metric.opt.public_false", MT, "SELECT count() FROM orders", agg=["m:metric_types.m_count"], post=expect_hidden(MT, "m_private_count"))
+M("metric.opt.meta", MT, "SELECT count() FROM orders", agg=["m:metric_types.m_formatted_count"], post=expect_text(MT, "Count of orders with member meta."))
+
+
+@check("metric.opt.drill_members_text")
+def _(ctx):
+    text = ctx.mb.entity(ctx.mb.measures, MT, "m_count").get("description") or ""
+    if "To drill into this measure" not in text or "status" not in text:
+        raise Fail("the description of m_count has no drill members: %r" % text)
+
+
+# ----- business metrics
+
+G("metric.business.revenue", "m:metric_types.m_revenue", "sum(amount)")
+G("metric.business.average_order_value", "m:metric_types.b_aov_ratio", "sum(%s) / nullIf(count(), 0)" % AMT)
+
+CUSTOMER_GRAINS = [
+    grain("total"),
+    grain("city", ["d:metric_customers.city"], ["u.city"]),
+    grain("vip", ["d:metric_customers.is_vip"], ["u.is_vip"]),
+]
+CONVERSION_SRC = ("users u LEFT JOIN (SELECT user_id, count() AS n FROM orders WHERE status IN ('completed', 'shipped') "
+                  "AND created_at < toDateTime('2025-02-01 00:00:00', 'UTC') GROUP BY user_id) o ON u.id = o.user_id")
+G("metric.business.conversion", "m:metric_customers.conversion", "1.0 * countIf(o.n > 0) / nullIf(count(), 0)", table=MC, src=CONVERSION_SRC, grains=CUSTOMER_GRAINS)
+
+MCM_MONTH = "d:metric_customer_months.month_at@month"
+USERS_BY_MONTH = "(SELECT toStartOfMonth(created_at) AS m, groupUniqArray(user_id) AS u FROM orders GROUP BY m)"
+
+
+@check("metric.business.retention")
+def _(ctx):
+    truth = "SELECT t.m, 1.0 * length(arrayIntersect(t.u, n.u)) / length(t.u) FROM %s t LEFT JOIN %s n ON n.m = addMonths(t.m, 1)" % (USERS_BY_MONTH, USERS_BY_MONTH)
+    by_builder_and_mcp(ctx, MCM, truth, agg=["m:metric_customer_months.retention"], by=[MCM_MONTH])
+
+
+@check("metric.business.churn")
+def _(ctx):
+    truth = "SELECT t.m, 1.0 - 1.0 * length(arrayIntersect(t.u, n.u)) / length(t.u) FROM %s t LEFT JOIN %s n ON n.m = addMonths(t.m, 1)" % (USERS_BY_MONTH, USERS_BY_MONTH)
+    by_builder_and_mcp(ctx, MCM, truth, agg=["m:metric_customer_months.churn"], by=[MCM_MONTH])
+
+
+@check("metric.business.repeat_rate")
+def _(ctx):
+    truth = "SELECT m, 1.0 * countIf(n >= 2) / count() FROM (SELECT toStartOfMonth(created_at) AS m, user_id, count() AS n FROM orders GROUP BY m, user_id) GROUP BY m"
+    by_builder_and_mcp(ctx, MCM, truth, agg=["m:metric_customer_months.repeat_rate"], by=[MCM_MONTH])
+
+
+SHARE_GRAINS = [
+    grain("total"),
+    grain("status", ["d:metric_types.status"], ["status"]),
+    grain("month", [MT_MONTH], ["toStartOfMonth(created_at)"]),
+    grain("status and month", ["d:metric_types.status", MT_MONTH], ["status", "toStartOfMonth(created_at)"]),
+]
+SHARE_EXPR = "sum(%s) / (SELECT sum(%s) FROM orders)" % (AMT, AMT)
+G("metric.business.share_of_total", "m:metric_types.c_share_of_total", SHARE_EXPR, grains=SHARE_GRAINS)
+M("metric.business.month_over_month", MT, by_prior_month("(t.r - p.r) / nullIf(p.r, 0)"), agg=["m:metric_types.b_mom"], by=[MT_MONTH], where=FEB_APR_WHERE)
+
+MS_MONTH = "d:metric_sales.sold_at@month"
+SALES_BY_MONTH = "(SELECT toStartOfMonth(sold_at) AS m, sum(toFloat64(amount)) AS r FROM metric_sales GROUP BY m)"
+M("metric.business.year_over_year", MS,
+  "SELECT t.m, (t.r - p.r) / nullIf(p.r, 0) FROM %s t LEFT JOIN %s p ON p.m = addYears(t.m, -1) WHERE t.m BETWEEN '2025-01-01' AND '2025-03-01'" % (SALES_BY_MONTH, SALES_BY_MONTH),
+  agg=["m:metric_sales.yoy"], by=[MS_MONTH], where=[["between", "d:metric_sales.sold_at", "2025-01-01", "2025-03-31"]])
+M("metric.business.running_total", MT, over_months("sumIf(amount, created_at < n)", Q2), agg=["m:metric_types.m_rev_running"], by=[MT_MONTH], where=Q2_WHERE)
+M("metric.business.moving_average", MT, over_months("sumIf(%s, created_at >= addMonths(m, -2) AND created_at < n) / 3" % AMT, Q2), agg=["m:metric_types.b_moving_avg_3m"], by=[MT_MONTH], where=Q2_WHERE)
+G("metric.business.median", "m:metric_types.b_median", "quantile(0.5)(%s)" % AMT, tol=1e-9)
+G("metric.business.percentile", "m:metric_types.b_p90", "quantile(0.9)(%s)" % AMT, tol=1e-9)
+
+EDGE_GRAINS = [
+    grain("total"),
+    grain("group", ["d:metric_edges.grp"], ["grp"]),
+    grain("month", ["d:metric_edges.day@month"], ["toStartOfMonth(day)"]),
+    grain("group and month", ["d:metric_edges.grp", "d:metric_edges.day@month"], ["grp", "toStartOfMonth(day)"]),
+]
+
+
+def E(check_id, member, expr):
+    G(check_id, "m:metric_edges.%s" % member, expr, table=ME, src="metric_edges", grains=EDGE_GRAINS)
+
+
+E("metric.business.ratio_zero_null_denominator", "ratio", "1.0 * sum(num) / nullIf(sum(den), 0)")
+G("metric.business.weighted_average", "m:metric_types.b_weighted_amount", "sum(%s * quantity) / nullIf(sum(quantity), 0)" % AMT)
+
+JOIN_USERS = "orders o JOIN users u ON o.user_id = u.id"
+JOIN_GRAINS = [
+    grain("total"),
+    grain("status", ["d:metric_types.status"], ["o.status"]),
+    grain("month", [MT_MONTH], ["toStartOfMonth(o.created_at)"]),
+]
+G("metric.business.distinct_over_join", "m:metric_types.b_distinct_cities", "uniqExact(u.city)", src=JOIN_USERS, grains=JOIN_GRAINS)
+G("metric.business.distinct_key_over_join", "m:metric_types.b_distinct_vip_customers", "uniqExactIf(u.id, u.is_vip)", src=JOIN_USERS, grains=JOIN_GRAINS)
+
+REGION_OF_STATE = REGION_SQL % "u.state"
+VIEW_JOIN_GRAINS = [
+    grain("region", ["d:metric_view.regions_region"], [REGION_OF_STATE]),
+    grain("city", ["d:metric_view.metric_customers_city"], ["u.city"]),
+    grain("status and region", ["d:metric_view.status", "d:metric_view.regions_region"], ["o.status", REGION_OF_STATE]),
+]
+G("metric.business.through_two_joins", "m:metric_view.m_revenue", "sum(o.amount)", table=MV, src=JOIN_USERS, grains=VIEW_JOIN_GRAINS)
+PAYMENTS_OF_USER = ("users u LEFT JOIN orders o ON u.id = o.user_id LEFT JOIN (SELECT order_id, sum(paid) AS paid FROM (SELECT id AS order_id, toFloat64(amount) AS paid FROM orders "
+                    "UNION ALL SELECT id, 1.0 FROM orders) GROUP BY order_id) p ON o.id = p.order_id")
+G("metric.business.cube_measure_through_two_joins", "m:metric_customers.payments_total", "sum(p.paid)", table=MC, src=PAYMENTS_OF_USER, grains=CUSTOMER_GRAINS)
+
+
+@check("metric.business.non_additive")
+def _(ctx):
+    run_grains(ctx, MT, "m:metric_types.m_users", "uniqExact(user_id)", "orders", MT_GRAINS)
+    total = scalar("SELECT uniqExact(user_id) FROM orders")
+    months = scalar("SELECT sum(c) FROM (SELECT uniqExact(user_id) AS c FROM orders GROUP BY toStartOfMonth(created_at))")
+    if total >= months:
+        raise Fail("the data cannot show this: %s customers, %s by month" % (total, months))
+
+
+VIEW_GRAINS = [
+    grain("total"),
+    grain("status", ["d:metric_view.status"], ["o.status"]),
+    grain("city", ["d:metric_view.metric_customers_city"], ["u.city"]),
+    grain("month", ["d:metric_view.created_at@month"], ["toStartOfMonth(o.created_at)"]),
+]
+G("metric.business.on_a_view", "m:metric_view.revenue_per_order", "sum(toFloat64(o.amount)) / nullIf(count(), 0)", table=MV, src=JOIN_USERS, grains=VIEW_GRAINS)
+G("metric.business.ratio_on_a_view", "m:metric_view.c_ratio_of_sums", "sum(toFloat64(o.amount)) / nullIf(sum(o.quantity), 0)", table=MV, src=JOIN_USERS, grains=VIEW_GRAINS)
+
+EXT_GRAINS = [grain("total"), grain("status", ["d:metric_extended.status"], ["status"])]
+G("metric.business.on_an_extended_cube", "m:metric_extended.per_order", "2.0 * sum(%s) / nullIf(count(), 0)" % AMT, table=MX, grains=EXT_GRAINS)
+G("metric.business.inherited_ratio_reads_override", "m:metric_extended.per_unit", "2.0 * sum(%s) / nullIf(sum(quantity), 0)" % AMT, table=MX, grains=EXT_GRAINS)
+M("metric.business.extended_base_hidden", MX, "SELECT sum(amount * 2) FROM orders", agg=["m:metric_extended.revenue"], post=expect_no_table("metric_base"))
+
+
+# ----- metrics made from other metrics
+
+
+def ratio_rollup_is_not_finer(ctx):
+    """The data must separate a ratio of sums from an average or a sum of the finer ratios."""
+    ratio = scalar("SELECT sum(%s) / sum(quantity) FROM orders" % AMT)
+    avg_finer = scalar("SELECT avg(r) FROM (SELECT sum(%s) / sum(quantity) AS r FROM orders GROUP BY toDate(created_at))" % AMT)
+    sum_finer = scalar("SELECT sum(r) FROM (SELECT sum(%s) / sum(quantity) AS r FROM orders GROUP BY toDate(created_at))" % AMT)
+    got = ctx.mb.mbql(MT, agg=["m:metric_types.c_ratio_of_sums"])["rows"][0][0]
+    for name, other in (("the average", avg_finer), ("the sum", sum_finer)):
+        if abs(got - other) < 1e-6:
+            raise Fail("the ratio %s equals %s of the finer ratios %s" % (got, name, other))
+    assert_rows([[got]], [[ratio]])
+
+
+G("metric.composite.ratio_of_sums", "m:metric_types.c_ratio_of_sums", "sum(%s) / nullIf(sum(quantity), 0)" % AMT, extra=ratio_rollup_is_not_finer)
+
+
+def row_ratios_differ(ctx):
+    a, b = (ctx.mb.mbql(MT, agg=[m])["rows"][0][0] for m in ("m:metric_types.c_sum_of_row_ratios", "m:metric_types.c_ratio_of_sums"))
+    if abs(a - b) < 1e-6:
+        raise Fail("the sum of row ratios %s equals the ratio of sums %s" % (a, b))
+
+
+G("metric.composite.sum_of_row_ratios", "m:metric_types.c_sum_of_row_ratios", "sum(%s / nullIf(quantity, 0))" % AMT, extra=row_ratios_differ)
+G("metric.composite.avg_of_ratio", "m:metric_types.c_avg_of_ratio", "avg(%s / nullIf(quantity, 0))" % AMT)
+G("metric.composite.ratio_of_avgs", "m:metric_types.c_ratio_of_avgs", "avg(%s) / nullIf(avg(quantity), 0)" % AMT)
+
+ORDER_PAYMENTS = ("(SELECT o.status AS status, o.quantity AS quantity, o.created_at AS created_at, o.amount AS amount, p.paid AS paid, p.n AS n FROM orders o LEFT JOIN "
+                  "(SELECT order_id, sum(paid) AS paid, count() AS n FROM (SELECT id AS order_id, toFloat64(amount) AS paid FROM orders UNION ALL SELECT id, 1.0 FROM orders) GROUP BY order_id) p ON o.id = p.order_id)")
+
+
+def fan_out_would_differ(ctx):
+    plain = scalar("SELECT sum(toFloat64(o.amount)) FROM orders o JOIN (SELECT id AS order_id FROM orders UNION ALL SELECT id FROM orders) p ON o.id = p.order_id")
+    if abs(plain - scalar("SELECT sum(%s) FROM orders" % AMT)) < 1:
+        raise Fail("this join has no fan-out, so the check proves nothing")
+
+
+G("metric.composite.cross_cube_sum_ratio", "m:metric_types.c_cross_paid_ratio", "sum(paid) / nullIf(sum(%s), 0)" % AMT, src=ORDER_PAYMENTS, extra=fan_out_would_differ)
+G("metric.composite.cross_cube_count_ratio", "m:metric_types.c_cross_count_ratio", "1.0 * sum(n) / nullIf(count(), 0)", src=ORDER_PAYMENTS)
+G("metric.composite.filtered_numerator", "m:metric_types.c_paid_share", "sum(if(%s, %s, NULL)) / nullIf(sum(%s), 0)" % (PAID_SQL, AMT, AMT))
+G("metric.composite.distinct_over_count", "m:metric_types.c_customers_per_order", "1.0 * uniqExact(user_id) / nullIf(count(), 0)")
+G("metric.composite.sum_over_distinct", "m:metric_types.c_revenue_per_customer", "sum(%s) / nullIf(uniqExact(user_id), 0)" % AMT)
+G("metric.composite.value_over_total", "m:metric_types.c_share_of_total", SHARE_EXPR, grains=SHARE_GRAINS)
+
+
+@check("metric.composite.value_over_prior")
+def _(ctx):
+    member = "m:metric_types.c_to_prior"
+    by_builder_and_mcp(ctx, MT, by_prior_month("t.r / nullIf(p.r, 0)"), agg=[member], by=[MT_MONTH], where=FEB_APR_WHERE, label="month")
+    by_status = "(SELECT status, toStartOfMonth(created_at) AS m, sum(%s) AS r FROM orders GROUP BY status, m)" % AMT
+    by_builder_and_mcp(ctx, MT, "SELECT t.status, t.m, t.r / nullIf(p.r, 0) FROM %s t LEFT JOIN %s p ON p.status = t.status AND p.m = addMonths(t.m, -1) WHERE %s" % (by_status, by_status, FEB_APR),
+                       agg=[member], by=["d:metric_types.status", MT_MONTH], where=FEB_APR_WHERE, label="status and month")
+    # By a quarter, the shift moves each row by one month, so the prior value is March to May.
+    by_builder_and_mcp(ctx, MT, "SELECT toDate('2025-04-01'), sumIf(%s, created_at >= '2025-04-01' AND created_at < '2025-07-01') / nullIf(sumIf(%s, created_at >= '2025-03-01' AND created_at < '2025-06-01'), 0) FROM orders" % (AMT, AMT),
+                       agg=[member], by=["d:metric_types.created_at@quarter"], where=[["between", MT_CRT, "2025-04-01", "2025-06-30"]], label="quarter")
+    by_builder_and_mcp(ctx, MT, "SELECT d, sumIf(%s, toDate(created_at) = d) / nullIf(sumIf(%s, toDate(created_at) = addMonths(d, -1)), 0) FROM orders CROSS JOIN (SELECT toDate('2025-03-01') + number AS d FROM numbers(3)) x GROUP BY d" % (AMT, AMT),
+                       agg=[member], by=[MT_DAY], where=[["between", MT_CRT, "2025-03-01", "2025-03-03"]], label="day")
+
+
+@check("metric.composite.rolling_over_plain")
+def _(ctx):
+    member = "m:metric_types.c_rolling_to_plain"
+    ratio = "sumIf(%s, created_at >= addMonths(m, -2) AND created_at < n) / nullIf(sumIf(%s, created_at >= m AND created_at < n), 0)" % (AMT, AMT)
+    by_builder_and_mcp(ctx, MT, over_months(ratio, Q2), agg=[member], by=[MT_MONTH], where=Q2_WHERE, label="month")
+    by_status = ("SELECT status, m, %s FROM orders o CROSS JOIN (SELECT toDateTime(x, 'UTC') AS m, toDateTime(addMonths(toDateTime(x, 'UTC'), 1), 'UTC') AS n "
+                 "FROM (SELECT arrayJoin(%s) AS x)) b GROUP BY status, m, n" % (ratio, json.dumps(Q2).replace('"', "'")))
+    by_builder_and_mcp(ctx, MT, by_status, agg=[member], by=["d:metric_types.status", MT_MONTH], where=Q2_WHERE, label="status and month")
+    by_builder_and_mcp(ctx, MT, over_days("sumIf(%s, toStartOfDay(created_at) > addMonths(e, -3) AND created_at <= e) / nullIf(sumIf(%s, created_at >= d AND created_at <= e), 0)" % (AMT, AMT), MAR_DAYS),
+                       agg=[member], by=[MT_DAY], where=MAR_DAYS_WHERE, label="day")
+
+
+G("metric.composite.difference_over_base", "m:metric_types.c_margin", "(sum(%s) - sum(quantity * 10)) / nullIf(sum(quantity * 10), 0)" % AMT)
+G("metric.composite.product", "m:metric_types.c_product", "avg(quantity) * count()")
+G("metric.composite.nested_ratio", "m:metric_types.c_nested_ratio", "sum(%s) / nullIf(sum(quantity), 0) / nullIf(count(), 0)" % AMT)
+
+E("metric.edge.sum_of_numerator", "num", "sum(num)")
+E("metric.edge.sum_of_denominator", "den", "sum(den)")
+E("metric.edge.rows", "rows", "count()")
+E("metric.edge.avg_ignores_null", "avg_num", "avg(num)")
+E("metric.edge.min_negative", "min_den", "min(den)")
+E("metric.edge.max_negative", "max_den", "max(den)")
+E("metric.edge.sum_of_row_ratios", "sum_of_ratios", "sum(1.0 * num / nullIf(den, 0))")
+E("metric.edge.avg_of_row_ratios", "avg_of_ratios", "avg(1.0 * num / nullIf(den, 0))")
+E("metric.edge.change_over_base", "change", "1.0 * (sum(num) - sum(den)) / nullIf(sum(den), 0)")
+E("metric.edge.filtered_sum", "positive_num", "sum(if(num > 0, num, NULL))")
+E("metric.edge.filtered_share", "positive_share", "1.0 * sum(if(num > 0, num, NULL)) / nullIf(sum(num), 0)")
+
+
+@check("metric.edge.ratio_with_no_guard")
+def _(ctx):
+    # A ratio with no NULLIF on a zero denominator has no number. SQL stops or gives NULL, so a number here is wrong.
+    for route in ("builder", "mcp"):
+        rows = (ctx.mb.mbql(ME, agg=["m:metric_edges.ratio_raw"], by=["d:metric_edges.grp"])["rows"] if route == "builder" else
+                ctx.mcp.call("execute_query", query=mcp_query(ctx.mb, ME, agg=["m:metric_edges.ratio_raw"], by=["d:metric_edges.grp"]))["rows"])
+        got = {r[0]: r[1] for r in rows}
+        assert_rows([[got["plain"]], [got["neg_num"]]], ch("SELECT 1.0 * sum(num) / sum(den) FROM metric_edges WHERE grp IN ('plain', 'neg_num') GROUP BY grp"), label=route)
+        for grp in ("zero_den", "cancels", "null_den", "null_num"):
+            if isinstance(got[grp], (int, float)) and abs(got[grp]) < 1e300:
+                raise Fail("%s: %s with no denominator gives the number %s" % (route, grp, got[grp]))
+
+
+# ----- additive, semi-additive and non-additive metrics, with a rollup by day and status
+
+MR_DAY = "d:metric_rollup_sales.created_at@day"
+MR_MONTH = "d:metric_rollup_sales.created_at@month"
+MR_HOUR = "d:metric_rollup_sales.created_at@hour"
+MR_STATUS = "d:metric_rollup_sales.status"
+MR_CRT = "d:metric_rollup_sales.created_at"
+MB_CRT = "d:metric_balances.ts"
+MR_FEB = [[">=", MR_CRT, "2025-02-01"], ["<", MR_CRT, "2025-03-01"]]
+MR_FEB_DAY = [[">=", MR_CRT, "2025-02-03"], ["<", MR_CRT, "2025-02-04"]]
+MR_Q1 = [[">=", MR_CRT, "2025-01-01"], ["<", MR_CRT, "2025-04-01"]]
+FEB_SQL = "created_at >= '2025-02-01' AND created_at < '2025-03-01'"
+FEB_DAY_SQL = "created_at >= '2025-02-03' AND created_at < '2025-02-04'"
+Q1_SQL = "created_at >= '2025-01-01' AND created_at < '2025-04-01'"
+
+
+def expect_used(ctx, table, needle, hit, **kw):
+    """Asks Cube if the request of this query reads the rollup."""
+    request = request_of(compile_query(ctx, ctx.mb.inner(table, **kw)))
+    for _ in range(120):
+        status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": request})
+        res = json.loads(text)
+        if res.get("error") == "Continue wait":
+            time.sleep(2)
+            continue
+        if status != 200:
+            raise Fail("Cube load: HTTP %s %s" % (status, text[:300]))
+        used = json.dumps(res.get("usedPreAggregations") or {})
+        if (needle in used) != hit:
+            raise Fail("want %s of %s, used %s, request %s" % ("a hit" if hit else "a miss", needle, used[:200], json.dumps(request)[:300]))
+        return
+    raise Fail("Cube load: timeout")
+
+
+def rollup_case(check_id, table, needle, hit, sql, **kw):
+    def run(ctx):
+        ensure_table(ctx, table)
+        expect_used(ctx, table, needle, hit, **kw)
+        by_builder_and_mcp(ctx, table, sql, **kw)
+    check(check_id)(run)
+
+
+def mr(member):
+    return "m:metric_rollup_sales.%s" % member
+
+
+NEEDLE = "by_status_day"
+rollup_case("metric.rollup.additive_at_rollup_grain_hit", MR, NEEDLE, True, "SELECT status, toDate(created_at), sum(amount) FROM orders WHERE %s GROUP BY 1, 2" % FEB_DAY_SQL, agg=[mr("revenue")], by=[MR_STATUS, MR_DAY], where=MR_FEB_DAY)
+rollup_case("metric.rollup.additive_coarser_hit", MR, NEEDLE, True, "SELECT toStartOfMonth(created_at), sum(amount) FROM orders WHERE %s GROUP BY 1" % Q1_SQL, agg=[mr("revenue")], by=[MR_MONTH], where=MR_Q1)
+rollup_case("metric.rollup.additive_finer_miss", MR, NEEDLE, False, "SELECT toStartOfHour(created_at), sum(amount) FROM orders WHERE %s GROUP BY 1" % FEB_DAY_SQL, agg=[mr("revenue")], by=[MR_HOUR], where=MR_FEB_DAY)
+rollup_case("metric.rollup.ratio_of_sums_coarser_hit", MR, NEEDLE, True, "SELECT toStartOfMonth(created_at), sum(%s) / nullIf(sum(quantity), 0) FROM orders WHERE %s GROUP BY 1" % (AMT, Q1_SQL), agg=[mr("per_unit")], by=[MR_MONTH], where=MR_Q1)
+rollup_case("metric.rollup.ratio_of_sums_status_hit", MR, NEEDLE, True, "SELECT status, sum(%s) / nullIf(sum(quantity), 0) FROM orders GROUP BY 1" % AMT, agg=[mr("per_unit")], by=[MR_STATUS])
+rollup_case("metric.rollup.ratio_of_sums_finer_miss", MR, NEEDLE, False, "SELECT toStartOfHour(created_at), sum(%s) / nullIf(sum(quantity), 0) FROM orders WHERE %s GROUP BY 1" % (AMT, FEB_DAY_SQL), agg=[mr("per_unit")], by=[MR_HOUR], where=MR_FEB_DAY)
+rollup_case("metric.rollup.non_additive_at_rollup_grain_hit", MR, NEEDLE, True, "SELECT status, toDate(created_at), uniqExact(user_id) FROM orders WHERE %s GROUP BY 1, 2" % FEB_DAY_SQL, agg=[mr("customers")], by=[MR_STATUS, MR_DAY], where=MR_FEB_DAY)
+rollup_case("metric.rollup.non_additive_coarser_miss", MR, NEEDLE, False, "SELECT toStartOfMonth(created_at), uniqExact(user_id) FROM orders WHERE %s GROUP BY 1" % Q1_SQL, agg=[mr("customers")], by=[MR_MONTH], where=MR_Q1)
+rollup_case("metric.rollup.non_additive_finer_miss", MR, NEEDLE, False, "SELECT toStartOfHour(created_at), uniqExact(user_id) FROM orders WHERE %s GROUP BY 1" % FEB_DAY_SQL, agg=[mr("customers")], by=[MR_HOUR], where=MR_FEB_DAY)
+rollup_case("metric.rollup.sum_over_distinct_coarser_miss", MR, NEEDLE, False, "SELECT toStartOfMonth(created_at), sum(%s) / nullIf(uniqExact(user_id), 0) FROM orders WHERE %s GROUP BY 1" % (AMT, Q1_SQL), agg=[mr("per_customer")], by=[MR_MONTH], where=MR_Q1)
+
+
+def over_rollup_months(expr):
+    return ("SELECT m, %s FROM orders o CROSS JOIN (SELECT toDateTime(x, 'UTC') AS m, toDateTime(addMonths(toDateTime(x, 'UTC'), 1), 'UTC') AS n "
+            "FROM (SELECT arrayJoin(['2025-01-01', '2025-02-01', '2025-03-01']) AS x)) b GROUP BY m, n" % expr)
+
+
+def over_rollup_days(expr):
+    return ("SELECT d, %s FROM orders o CROSS JOIN (SELECT toDateTime(x, 'UTC') AS d, toDateTime(x, 'UTC') + INTERVAL 86399 SECOND AS e "
+            "FROM (SELECT arrayJoin(['2025-02-28', '2025-03-01', '2025-03-31']) AS x)) b GROUP BY d, e" % expr)
+
+
+MR_DAYS = [["=", MR_CRT, "2025-02-28"]]
+MR_LAST_DAYS = [[">=", MR_CRT, "2025-02-28"], ["<", MR_CRT, "2025-04-01"]]
+rollup_case("metric.rollup.month_window_by_month_hit", MR, NEEDLE, True, over_rollup_months("sumIf(amount, created_at >= m AND created_at < n)"), agg=[mr("revenue_1m")], by=[MR_MONTH], where=MR_Q1)
+rollup_case("metric.rollup.to_date_by_month_hit", MR, NEEDLE, True, over_rollup_months("sumIf(amount, created_at >= m AND created_at < n)"), agg=[mr("revenue_mtd")], by=[MR_MONTH], where=MR_Q1)
+rollup_case("metric.rollup.unbounded_by_month_hit", MR, NEEDLE, True, over_rollup_months("sumIf(amount, created_at < n)"), agg=[mr("revenue_running")], by=[MR_MONTH], where=MR_Q1)
+
+
+@check("metric.rollup.day_window_by_day_hit")
+def _(ctx):
+    days = ["2025-03-30", "2025-03-31", "2025-04-01"]
+    truth = ("SELECT d, %s FROM orders o CROSS JOIN (SELECT toDateTime(x, 'UTC') AS d, toDateTime(x, 'UTC') + INTERVAL 86399 SECOND AS e FROM (SELECT arrayJoin(%s) AS x)) b GROUP BY d, e"
+             % ("sumIf(amount, toStartOfDay(created_at) > e - INTERVAL 30 DAY AND created_at <= e)", json.dumps(days).replace('"', "'")))
+    kw = {"agg": [mr("revenue_30d")], "by": [MR_DAY], "where": [[">=", MR_CRT, "2025-03-30"], ["<", MR_CRT, "2025-04-02"]]}
+    expect_used(ctx, MR, NEEDLE, True, **kw)
+    by_builder_and_mcp(ctx, MR, truth, **kw)
+
+
+@check("metric.rollup.day_window_by_month_refused")
+def _(ctx):
+    # Cube Store gives wrong windows here. A month has its own length, and Cube reads the window of another month.
+    expect_refusal(ctx, MR, "rollup", agg=[mr("revenue_30d")], by=[MR_MONTH], where=MR_Q1)
+
+
+def mbal(member):
+    return "m:metric_balances.%s" % member
+
+
+BAL_DAY = "d:metric_balances.ts@day"
+BAL_MONTH = "d:metric_balances.ts@month"
+BAL_QUARTER = "d:metric_balances.ts@quarter"
+BAL_HOUR = "d:metric_balances.ts@hour"
+BAL_REGION = "d:metric_balances.region"
+BAL_MAR_DAYS = [[">=", MB_CRT, "2025-03-30"], ["<", MB_CRT, "2025-04-01"]]
+BAL_MAR_DAYS_SQL = "toDate(ts) >= '2025-03-30' AND toDate(ts) < '2025-04-01'"
+BAL_ROLLUP = "by_region_day"
+BAL_Q1 = [[">=", MB_CRT, "2025-01-01"], ["<", MB_CRT, "2025-04-01"]]
+BAL_DAYS = "(SELECT region, toDate(ts) AS d, sum(toFloat64(balance)) AS v FROM metric_balances GROUP BY region, d)"
+BAL_DAY_TOTAL = "(SELECT toDate(ts) AS d, sum(toFloat64(balance)) AS v FROM metric_balances GROUP BY d)"
+rollup_case("metric.semi_additive.closing_at_rollup_grain_hit", MB_, BAL_ROLLUP, True,
+            "SELECT toDate(ts), sum(balance) FROM metric_balances WHERE %s GROUP BY 1" % BAL_MAR_DAYS_SQL, agg=[mbal("balance_closing")], by=[BAL_DAY], where=BAL_MAR_DAYS)
+rollup_case("metric.semi_additive.closing_region_at_rollup_grain_hit", MB_, BAL_ROLLUP, True,
+            "SELECT region, toDate(ts), sum(balance) FROM metric_balances WHERE %s GROUP BY 1, 2" % BAL_MAR_DAYS_SQL, agg=[mbal("balance_closing")], by=[BAL_REGION, BAL_DAY], where=BAL_MAR_DAYS)
+
+
+@check("metric.semi_additive.closing_finer_miss")
+def _(ctx):
+    # Each account has its own hour. By hour the window of one day holds the latest balance of each account.
+    where = [[">=", MB_CRT, "2025-03-30 00:00:00"], ["<", MB_CRT, "2025-03-30 04:00:00"]]
+    kw = {"agg": [mbal("balance_closing")], "by": [BAL_HOUR], "where": where}
+    expect_used(ctx, MB_, BAL_ROLLUP, False, **kw)
+    truth = ("SELECT h, sum(b.balance) FROM (SELECT toDateTime('2025-03-30 00:00:00', 'UTC') + toIntervalHour(number) AS h FROM numbers(4)) AS t "
+             "CROSS JOIN metric_balances b WHERE b.ts > h + INTERVAL 3599 SECOND - INTERVAL 1 DAY AND b.ts <= h + INTERVAL 3599 SECOND GROUP BY h")
+    by_builder_and_mcp(ctx, MB_, truth, **kw)
+
+
+@check("metric.semi_additive.closing_by_month_refused")
+def _(ctx):
+    expect_refusal(ctx, MB_, "shorter than a month", agg=[mbal("balance_closing")], by=[BAL_MONTH], where=BAL_Q1)
+
+
+LAST_DAY_TRUTH = "SELECT toStartOfMonth(d) AS m, argMax(v, d) FROM %s WHERE d < '2025-04-01' GROUP BY m" % BAL_DAY_TOTAL
+
+
+@check("metric.semi_additive.last_day_coarser_miss")
+def _(ctx):
+    kw = {"agg": [mbal("balance_last_day")], "by": [BAL_MONTH], "where": BAL_Q1}
+    expect_used(ctx, MB_, BAL_ROLLUP, False, **kw)
+    by_builder_and_mcp(ctx, MB_, LAST_DAY_TRUTH, label="month", **kw)
+    by_builder_and_mcp(ctx, MB_, "SELECT toStartOfQuarter(d) AS q, argMax(v, d) FROM %s WHERE d < '2025-04-01' GROUP BY q" % BAL_DAY_TOTAL, agg=[mbal("balance_last_day")], by=[BAL_QUARTER], where=BAL_Q1, label="quarter")
+    # It adds up over regions at one day, and it is not the sum of the months.
+    by_builder_and_mcp(ctx, MB_, "SELECT region, toStartOfMonth(d) AS m, argMax(v, d) FROM %s WHERE d < '2025-04-01' GROUP BY region, m" % BAL_DAYS, agg=[mbal("balance_last_day")], by=[BAL_REGION, BAL_MONTH], where=BAL_Q1, label="region and month")
+
+
+@check("metric.semi_additive.last_day_at_day_and_total")
+def _(ctx):
+    by_builder_and_mcp(ctx, MB_, "SELECT toDate(ts), sum(balance) FROM metric_balances WHERE %s GROUP BY 1" % BAL_MAR_DAYS_SQL, agg=[mbal("balance_last_day")], by=[BAL_DAY], where=BAL_MAR_DAYS, label="day")
+    by_builder_and_mcp(ctx, MB_, "SELECT argMax(v, d) FROM %s" % BAL_DAY_TOTAL, agg=[mbal("balance_last_day")], label="total")
+
+
+@check("metric.semi_additive.is_not_additive_over_time")
+def _(ctx):
+    closing = scalar("SELECT argMax(v, d) FROM %s" % BAL_DAY_TOTAL)
+    got = ctx.mb.mbql(MB_, agg=[mbal("balance_last_day")])["rows"][0][0]
+    total = ctx.mb.mbql(MB_, agg=[mbal("balance_total")])["rows"][0][0]
+    assert_rows([[got]], [[closing]])
+    if abs(got - total) < 1:
+        raise Fail("the closing balance %s equals the sum of all days %s" % (got, total))
+
+
+rollup_case("metric.semi_additive.daily_average_at_rollup_grain_hit", MB_, BAL_ROLLUP, True,
+            "SELECT region, toDate(ts), sum(toFloat64(balance)) / nullIf(uniqExact(toDate(ts)), 0) FROM metric_balances WHERE %s GROUP BY 1, 2" % BAL_MAR_DAYS_SQL,
+            agg=[mbal("balance_daily_average")], by=[BAL_REGION, BAL_DAY], where=BAL_MAR_DAYS)
+rollup_case("metric.semi_additive.daily_average_coarser_miss", MB_, BAL_ROLLUP, False,
+            "SELECT toStartOfMonth(ts), sum(toFloat64(balance)) / nullIf(uniqExact(toDate(ts)), 0) FROM metric_balances WHERE toDate(ts) < '2025-04-01' GROUP BY 1",
+            agg=[mbal("balance_daily_average")], by=[BAL_MONTH], where=BAL_Q1)
+rollup_case("metric.semi_additive.total_of_one_day_over_regions_hit", MB_, BAL_ROLLUP, True,
+            "SELECT toDate(ts), sum(balance) FROM metric_balances WHERE %s GROUP BY 1" % BAL_MAR_DAYS_SQL, agg=[mbal("balance_total")], by=[BAL_DAY], where=BAL_MAR_DAYS)
+
+
+# ----- a custom expression of two measures
+
+
+def expression_or_refusal(ctx, table, truth, needle, tol=0.0, **kw):
+    """The custom expression must give the number of the Cube metric, or stop with a clear message. The route must not change the answer."""
+    ensure_table(ctx, table)
+    query = ctx.mb.inner(table, **kw)
+    res = ctx.mb.api("POST", "/api/dataset", {"database": ctx.mb.need_db(), "type": "query", "query": query}, ok=(200, 202, 400, 500))
+    error = str(res.get("error") or "")
+    route = {k: kw[k] for k in ("agg", "by", "where") if k in kw}
+    mres = ctx.mcp.rpc("tools/call", {"name": "execute_query", "arguments": {"query": mcp_query(ctx.mb, table, **route)}})
+    mtext = (mres.get("content") or [{}])[0].get("text", "")
+    if error:
+        if needle not in error:
+            raise Fail("the query builder has no clear refusal: %s" % error[:400])
+        if needle not in mtext:
+            raise Fail("MCP has no clear refusal: %s" % mtext[:400])
+        return "refused"
+    if res.get("status") == "failed":
+        raise Fail("the query builder failed: %s" % str(res)[:300])
+    rows = ch(truth)
+    assert_rows(res["data"]["rows"], rows, tol=tol, label="query builder")
+    assert_rows(mcp_payload(mtext)["rows"], rows, tol=tol, label="MCP")
+    return "number"
+
+
+EXPRESSION_REFUSAL = "Cube cannot compute this expression"
+
+
+def divide(check_id, table, a, b, expr, src, grains):
+    def run(ctx):
+        for g in grains:
+            kw = {"agg": [["/", a, b]]}
+            if g["by"]:
+                kw["by"] = g["by"]
+            if g["where"]:
+                kw["where"] = g["where"]
+            expression_or_refusal(ctx, table, grain_truth(expr, src, g), EXPRESSION_REFUSAL, **kw)
+    check(check_id)(run)
+
+
+divide("metric.expression.ratio_of_two_sums", MT, "m:metric_types.m_revenue", "m:metric_types.m_quantity_sum", "sum(%s) / nullIf(sum(quantity), 0)" % AMT, "orders", MT_GRAINS)
+divide("metric.expression.sum_over_count", MT, "m:metric_types.m_revenue", "m:metric_types.m_count", "sum(%s) / nullIf(count(), 0)" % AMT, "orders", MT_GRAINS)
+divide("metric.expression.zero_and_null_denominator", ME, "m:metric_edges.num", "m:metric_edges.den", "1.0 * sum(num) / nullIf(sum(den), 0)", "metric_edges", EDGE_GRAINS)
+divide("metric.expression.distinct_over_count", MT, "m:metric_types.m_users", "m:metric_types.m_count", "1.0 * uniqExact(user_id) / nullIf(count(), 0)", "orders", MT_GRAINS)
+divide("metric.expression.sum_over_distinct", MT, "m:metric_types.m_revenue", "m:metric_types.m_users", "sum(%s) / nullIf(uniqExact(user_id), 0)" % AMT, "orders", MT_GRAINS)
+divide("metric.expression.filtered_over_plain", MT, "m:metric_types.m_paid_revenue", "m:metric_types.m_revenue", "sum(if(%s, %s, NULL)) / nullIf(sum(%s), 0)" % (PAID_SQL, AMT, AMT), "orders", MT_GRAINS)
+divide("metric.expression.avg_over_avg", MT, "m:metric_types.m_avg_amount", "m:metric_types.m_avg_quantity", "avg(%s) / nullIf(avg(quantity), 0)" % AMT, "orders", MT_GRAINS)
+
+
+@check("metric.composite.value_over_total_with_a_filter")
+def _(ctx):
+    """A filter applies to the value and to its total, as WHERE does for sum() OVER ()."""
+    where = [["=", "d:metric_types.is_paid", True]]
+    wsql = "WHERE %s" % PAID_SQL
+    truth = "SELECT status, sum(%s) / (SELECT sum(%s) FROM orders %s) FROM orders %s GROUP BY status" % (AMT, AMT, wsql, wsql)
+    by_builder_and_mcp(ctx, MT, truth, agg=["m:metric_types.c_share_of_total"], by=["d:metric_types.status"], where=where)
+
+
+@check("metric.expression.same_as_the_cube_metric")
+def _(ctx):
+    for by in ([], ["d:metric_types.status"], [MT_MONTH]):
+        kw = {"by": by} if by else {}
+        metric = ctx.mb.mbql(MT, agg=["m:metric_types.c_ratio_of_sums"], **kw)["rows"]
+        res = ctx.mb.api("POST", "/api/dataset", {"database": ctx.mb.need_db(), "type": "query",
+                                                  "query": ctx.mb.inner(MT, agg=[["/", "m:metric_types.m_revenue", "m:metric_types.m_quantity_sum"]], **kw)}, ok=(200, 202, 400, 500))
+        if res.get("error"):
+            if EXPRESSION_REFUSAL not in str(res["error"]):
+                raise Fail("no clear refusal: %s" % str(res["error"])[:300])
+            continue
+        assert_rows(res["data"]["rows"], metric, label="by %s" % by)
+
+
+# ----- each dimension type that feeds a metric
+
+
+def feed(check_id, table, member, expr, src, by, keys, where, wsql):
+    """A metric by this dimension and with a filter on it."""
+    def run(ctx):
+        by_builder_and_mcp(ctx, table, grain_truth(expr, src, grain("by", by, keys)), agg=[member], by=by, label="group")
+        by_builder_and_mcp(ctx, table, grain_truth(expr, src, grain("filter", wsql=wsql)), agg=[member], where=where, label="filter")
+    check(check_id)(run)
+
+
+RATIO = "sum(%s) / nullIf(sum(quantity), 0)" % AMT
+CRATIO = "m:metric_types.c_ratio_of_sums"
+feed("metric.dimension.string", MT, CRATIO, RATIO, "orders", ["d:metric_types.status"], ["status"], [["=", "d:metric_types.status", "shipped"]], "status = 'shipped'")
+feed("metric.dimension.number", MT, CRATIO, RATIO, "orders", ["d:metric_types.quantity"], ["quantity"], [[">=", "d:metric_types.quantity", 3]], "quantity >= 3")
+feed("metric.dimension.boolean", MT, CRATIO, RATIO, "orders", ["d:metric_types.is_paid"], [PAID_SQL], [["=", "d:metric_types.is_paid", True]], PAID_SQL)
+feed("metric.dimension.time", MT, CRATIO, RATIO, "orders", [MT_MONTH], ["toStartOfMonth(created_at)"], [["between", MT_CRT, "2025-02-01", "2025-02-28"]], "toDate(created_at) BETWEEN '2025-02-01' AND '2025-02-28'")
+feed("metric.dimension.case", MT, CRATIO, RATIO, "orders", ["d:metric_types.size"], [SIZE], [["=", "d:metric_types.size", "large"]], "quantity >= 3")
+feed("metric.dimension.joined_string", MT, "m:metric_types.m_revenue", "sum(o.amount)", JOIN_USERS, ["d:metric_types>metric_customers.city"], ["u.city"], [["=", "d:metric_types>metric_customers.city", "Austin"]], "u.city = 'Austin'")
+
+# A customer with no order has a count of 0: the count of the join reads no order for this customer.
+USER_LIFETIME = "users u LEFT JOIN (SELECT user_id, count() AS m FROM orders GROUP BY user_id) c ON u.id = c.user_id"
+LIFETIME = "ifNull(c.m, 0)"
+feed("metric.dimension.sub_query", MC, "m:metric_customers.customers", "count()", USER_LIFETIME, ["d:metric_customers.lifetime_orders"], [LIFETIME], [[">=", "d:metric_customers.lifetime_orders", 25]], LIFETIME + " >= 25")
+feed("metric.dimension.geo", MC, "m:metric_customers.customers", "count()", "users u", ["d:metric_customers.location__latitude", "d:metric_customers.location__longitude"], ["u.latitude", "u.longitude"],
+     [["=", "d:metric_customers.location__latitude", 30.27]], "u.latitude = 30.27")
+USER_REVENUE = "users u LEFT JOIN orders o ON u.id = o.user_id"
+feed("metric.dimension.geo_with_a_joined_metric", MC, "m:metric_customers.revenue", "sum(o.amount)", USER_REVENUE, ["d:metric_customers.location__latitude", "d:metric_customers.location__longitude"], ["u.latitude", "u.longitude"],
+     [["=", "d:metric_customers.location__latitude", 30.27]], "u.latitude = 30.27")
+feed("metric.dimension.ratio_by_sub_query", MC, "m:metric_customers.conversion", "1.0 * countIf(p.n > 0) / nullIf(count(), 0)",
+     USER_LIFETIME + " LEFT JOIN (SELECT user_id, count() AS n FROM orders WHERE status IN ('completed', 'shipped') "
+     "AND created_at < toDateTime('2025-02-01 00:00:00', 'UTC') GROUP BY user_id) p ON u.id = p.user_id",
+     ["d:metric_customers.lifetime_orders"], [LIFETIME], [[">=", "d:metric_customers.lifetime_orders", 25]], LIFETIME + " >= 25")
+
+
+# ----- the whole catalog
+
+
+METRIC_MODEL = os.path.join(REPO, "dev", "cube", "model", "metrics.yml")
+
+
+@check("metric.model.stock_form")
+def _(ctx):
+    """No metric asks for a driver feature. The key date_only and the name of the driver are the only ways that a model can do this."""
+    with open(METRIC_MODEL, encoding="utf-8") as f:
+        text = f.read()
+    for word in ("date_only", "metabase", "__cubeJoinField", "cube-clickhouse", "FILTER_PARAMS"):
+        if word.lower() in text.lower():
+            raise Fail("the model has %s" % word)
+
+
+@check("metric.mcp.discovery")
+def _(ctx):
+    """An agent finds each public measure of the catalog through MCP, with its description. It does not find a private one."""
+    status, text, _h = http("GET", CUBE + "/cubejs-api/v1/meta")
+    cubes = json.loads(text)["cubes"]
+    for name in (MT, MC, MCM, MS, ME, MR, MB_, MX, MV):
+        table = ctx.mb.table(name)
+        res = ctx.mcp.call("browse_data", action="get_fields", table_ids=[table["id"]])
+        blob = json.dumps(res)
+        cube = next(c for c in cubes if c["name"] == name)
+        for member in cube["measures"]:
+            title = member.get("shortTitle") or member["name"].split(".")[1]
+            short = member["name"].split(".")[1]
+            if not member.get("public", True) or short == "m_private_count":
+                continue
+            entity = ctx.mb.entity(ctx.mb.measures, name, short)
+            if not entity:
+                raise Fail("%s has no measure in Metabase" % member["name"])
+            if entity["name"] not in blob and title not in blob:
+                raise Fail("MCP get_fields of %s has no %s" % (name, member["name"]))
+        if name == MT and "m_private_count" in blob:
+            raise Fail("MCP shows a private measure")
+
+
 def run_suite(args):
     features = load_features()
     ids = [f["id"] for f in features]
