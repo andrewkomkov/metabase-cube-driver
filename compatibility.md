@@ -22,5 +22,5 @@ The image `ghcr.io/andrewkomkov/cube` is temporary. See [the page of the image](
 
 | Image | State | Metabase | ClickHouse | cube-clickhouse | Conformance | Coverage | Run |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `v1.8.15-mcd-candidate.ae9cfadfdaf0` | candidate | `v0.65.2.3` | `26.8.36-alpine` | off | failure | coverage: 728/767 pass on stock Cube | [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41190176078) |
-| `v1.8.15-mcd-candidate.ae9cfadfdaf0` | candidate | `v0.65.2.3` | `26.8.36-alpine` | on | failure | coverage: 739/767 pass on Cube with the ClickHouse dialect | [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41190176078) |
+| `v1.8.15-mcd-candidate.ae9cfadfdaf0` | candidate | `v0.65.2.3` | `26.8.36-alpine` | off | failure | coverage: 728/767 pass on stock Cube | [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41194396826) |
+| `v1.8.15-mcd-candidate.ae9cfadfdaf0` | candidate | `v0.65.2.3` | `26.8.36-alpine` | on | failure | coverage: 740/767 pass on Cube with the ClickHouse dialect | [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41194396826) |
