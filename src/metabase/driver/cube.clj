@@ -2058,6 +2058,8 @@
    ["lead to row multiplication"
     (str "Cube cannot add up an expression on columns of two joined cubes, because a join multiplies rows. Add a measure to the data "
          "model, or start from one cube.")]
+   ["out-of-range datetime"
+    (str "Cube cannot read a date this far from today. Use a shorter relative date, or a fixed date.")]
    ["Cannot evaluate binary expression"
     (str "Cube cannot compare this time with a time of a later stage, because one has a time zone and the other has none. Put the filter "
          "inside the first stage, or use a time bucket.")]

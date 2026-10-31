@@ -167,7 +167,8 @@ def gen_aggregated(rng, src):
     # An order and a limit need a total order: an additive first aggregation and each breakout. A column that can be NULL has no order that all databases share.
     first = spec["agg"][0]
     safe = first.get("f") == "count" or ("m" in first and src["measures"][first["m"]]["kind"] == "int" and not src["measures"][first["m"]].get("tol"))
-    if safe and spec["by"] and not any(src["cols"][b["c"]]["nullable"] for b in spec["by"]) and _maybe(rng, 0.2):
+    # An Enum sorts by its number in ClickHouse and on Postgres, and the truth reads its text.
+    if safe and spec["by"] and not any(src["cols"][b["c"]]["nullable"] or b["c"] == "en" for b in spec["by"]) and _maybe(rng, 0.2):
         spec["order"] = [{"agg": 0, "dir": rng.choice(["asc", "desc"])}] + [{"by": j, "dir": rng.choice(["asc", "desc"])} for j in range(len(spec["by"]))]
         spec["limit"] = rng.choice([1, 2, 3, 5, 10])
     return spec
@@ -253,7 +254,7 @@ def gen_stage_aggregated(rng, src, via):
             outer["by"] = [{"i": rng.choice(times), "unit": rng.choice(["month", "quarter", "year"])}]
         else:
             outer["by"] = [{"i": rng.randrange(n_by)}]
-    if choice == "top" and all(not _nullable(src, b) for b in inner["by"]):
+    if choice == "top" and all(not _nullable(src, b) and b["c"] != "en" for b in inner["by"]):
         outer["order"] = [{"i": j, "dir": "asc"} for j in range(n_by)]
         outer["limit"] = rng.choice([1, 3])
     inner.update(stage={"via": via, **outer})

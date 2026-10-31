@@ -1,0 +1,29 @@
+{
+ "found": {
+  "diff": null,
+  "error": "ERROR: Rewrite Error: Unexpected panic. Reason: invalid or out-of-range datetime. Please check logs for additional information\nQUERY: SELECT MEASURE(\"metric_edges\".\"num\") AS \"sum\" FROM \"metric_edges\" WHERE (\"metric_edges\".\"day\" >= DATE_TRUNC('quarter', (NOW() + INTERVAL '-1500 month'))) AND (\"metric_edges\".\"day\" < DATE_TRUNC('quarter', NOW()))",
+  "index": 858,
+  "seed": "7101",
+  "truth_sql": "SELECT sumOrNull(e.num) AS c0 FROM shop.metric_edges e WHERE (toStartOfQuarter(toTimeZone(e.day, 'UTC')) >= addQuarters(toStartOfQuarter(now('UTC')), -500) AND toStartOfQuarter(toTimeZone(e.day, 'UTC')) < toStartOfQuarter(now('UTC'))) SETTINGS join_use_nulls = 1",
+  "verdict": "raw_error"
+ },
+ "spec": {
+  "agg": [
+   {
+    "m": "num"
+   }
+  ],
+  "by": [],
+  "source": "metric_edges",
+  "week": null,
+  "where": [
+   {
+    "c": "day",
+    "n": -500,
+    "op": "time-interval",
+    "unit": "quarter"
+   }
+  ],
+  "zone": null
+ }
+}
