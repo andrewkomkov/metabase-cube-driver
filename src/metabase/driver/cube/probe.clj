@@ -100,10 +100,12 @@
        :measure (first (filter #(= full-name (:name %)) (:measures cube)))
        :dimension (first (filter #(= full-name (:name %)) (:dimensions cube)))})))
 
+(declare root-member)
+
 (defn time-shift-candidate?
-  "True if the measure with this full name can have a time shift."
+  "True if the measure with this full name can have a time shift. A measure of a view is an alias of the measure of its cube."
   [cube-meta full-name]
-  (boolean (some-> (:measure (member-of cube-meta full-name)) shift-candidate?)))
+  (boolean (some-> (:measure (member-of cube-meta (root-member cube-meta full-name :measure))) shift-candidate?)))
 
 (defn- root-member
   "The member that an alias of a view stands for. A measure stops at the last one that reads another member, so the alias of a time
@@ -131,10 +133,9 @@
 (defn time-shift?
   "True if this measure of this cube has a time shift. With no answer this is false."
   [details cube-meta cube-name measure-name]
-  (let [cube    (cube-named cube-meta cube-name)
-        measure (first (filter #(= measure-name (:name %)) (:measures cube)))]
+  (let [cube (cube-named cube-meta cube-name)]
     (boolean
-     (when (and measure (shift-candidate? measure))
+     (when (time-shift-candidate? cube-meta measure-name)
        (cached details [:time-shift measure-name]
                (fn []
                  (let [root (root-member cube-meta measure-name :measure)

@@ -5600,13 +5600,16 @@ def _(ctx):
 
 @check("preagg.original_sql")
 def _(ctx):
-    """m5. The dialect builds an original_sql pre-aggregation. Stock Cube stops it on ClickHouse with its own error. This cube is hidden, because each query on it fails on stock Cube, and the demo Cube in dev mode reads a hidden cube."""
-    sql = "SELECT status, MEASURE(revenue) FROM lambda_orders GROUP BY 1"
+    """m5. The dialect builds an original_sql pre-aggregation, and a query on the cube reads it. A rollup over it stays a limit of Cube. Stock Cube stops each form on ClickHouse with its own error. These cubes are hidden, because they fail on stock Cube, and the demo Cube in dev mode reads a hidden cube."""
+    sql = "SELECT status, MEASURE(revenue) FROM original_sql_orders GROUP BY 1"
     if DIALECT:
         expect_native_rows(ctx, sql, "SELECT status, sum(amount) FROM orders GROUP BY status")
-        used_rollup({"measures": ["lambda_orders.revenue"], "dimensions": ["lambda_orders.status"]}, "base")(ctx, None)
+        used_rollup({"measures": ["original_sql_orders.revenue"], "dimensions": ["original_sql_orders.status"]}, "base")(ctx, None)
     else:
         expect_native_refusal(ctx, sql, "Missing columns")
+    rows, error = native_outcome(ctx, "SELECT status, MEASURE(revenue) FROM lambda_orders GROUP BY 1", None, None)
+    if error is None:
+        raise Fail("a rollup over original_sql now works: %s. Give this entry its full status" % rows[:3])
 
 
 # ----------------------------------------------------------------- delivery by mail
@@ -5726,10 +5729,11 @@ def _(ctx):
     doc_id = deep_find(made, "id")
     doc = ctx.mb.api("GET", "/api/document/%d" % doc_id)
     text = json.dumps(doc.get("document"))
-    ids = [int(i) for i in re.findall(r'"id": (\d+)', text)]
-    if card["id"] not in ids:
-        raise Fail("the document has no card %d: %s" % (card["id"], text[:400]))
-    assert_rows(ctx.mb.run_card(card["id"])["rows"], ch(STATUS_CNT))
+    # Metabase can give the document its own copy of the card, so this runs the card that the document names.
+    ids = [int(i) for i in re.findall(r'"type": "cardEmbed", "attrs": \{[^{}]*?"id": (\d+)', text)]
+    if not ids:
+        raise Fail("the document has no card: %s" % text[:600])
+    assert_rows(ctx.mb.run_card(ids[0])["rows"], ch(STATUS_CNT))
     ctx.mcp.call("document_write", method="update", id=doc_id, archived=True)
 
 
@@ -5770,7 +5774,8 @@ def _(ctx):
 
 def embed_query_rows(ctx, handle):
     """The query behind a handle of an MCP App, by the same route as its iframe, and the rows of that query."""
-    status, text, _h = http("GET", MB + "/api/embed-mcp/queries/%s" % handle, headers=ctx.mcp.with_ui().headers)
+    headers = {"Mcp-Session-Id": ctx.mcp.with_ui().headers["Mcp-Session-Id"], "Cookie": "metabase.SESSION=" + ctx.mb.sid}
+    status, text, _h = http("GET", MB + "/api/embed-mcp/queries/%s" % handle, headers=headers)
     if status != 200:
         raise Fail("the query of the handle: HTTP %s %s" % (status, text[:300]))
     query = json.loads(base64.b64decode(json.loads(text)["query"]))
@@ -5909,13 +5914,14 @@ def _(ctx):
         browser.send("Emulation.setDeviceMetricsOverride", width=1400, height=1000, deviceScaleFactor=1, mobile=False)
         browser.send("Page.navigate", url="%s/question/%d" % (METABASE_INTERNAL, card["id"]))
         browser.wait("document.querySelector('[data-testid=\"cell-data\"]') !== null", "cells of the table")
-        cell = browser.wait("""(() => {
+        find_cell = """(() => {
             const cells = [...document.querySelectorAll('[data-testid="cell-data"]')];
             const i = cells.findIndex(c => c.innerText.trim() === 'shipped');
             if (i < 0) return null;
             const r = cells[i + 1].getBoundingClientRect();
             return {x: r.x + r.width / 2, y: r.y + r.height / 2, text: cells[i + 1].innerText};
-        })()""", "the row of shipped")
+        })()"""
+        browser.wait(find_cell, "the row of shipped")
         # The grid can draw again after the first cells, and a click then goes nowhere, so this clicks until the menu is there.
         click_drill = """(() => {
             const items = [...document.querySelectorAll('button, [role="button"], a')];
@@ -5926,6 +5932,7 @@ def _(ctx):
         })()"""
         for _try in range(10):
             time.sleep(2)
+            cell = browser.js(find_cell)
             browser.click_at(cell["x"], cell["y"])
             time.sleep(1)
             if browser.js(click_drill):

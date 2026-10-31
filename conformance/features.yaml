@@ -781,7 +781,9 @@
   title: "preagg original sql"
   status: pass
   check: preagg.original_sql
-  cap_stock: blocked
+  cap: partial
+  reason: "cube-clickhouse builds an original_sql pre-aggregation, and a query on the cube reads it. Its indexes have no effect. A rollup with use_original_sql_pre_aggregations still fails with Unknown table expression identifier, also with the dialect, so the query stops and no number is wrong."
+  cap_stock: partial
   reason_stock: "Stock Cube has no working form of original_sql on ClickHouse: with an index it fails with Missing columns, and with no index it refuses. The query stops with this error, so no number is wrong. cube-clickhouse builds it. Its indexes then have no effect."
 - id: preagg.partitioned
   area: cube.pre_aggregations
