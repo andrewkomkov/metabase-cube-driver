@@ -408,6 +408,19 @@
   (when-let [cube-meta (current-meta)]
     (cube.probe/rollup-on-time? cube-meta (table-name-of-field field) (:name (stored-field field)))))
 
+(defn- value-read-members-of
+  "See `cube.probe/value-read-members`."
+  [table-name]
+  (when-let [cube-meta (when table-name (current-meta))]
+    (cube.probe/value-read-members (:details (driver-api/database (driver-api/metadata-provider))) cube-meta table-name)))
+
+(defn- date-range-column?
+  "True if this column needs a date range: a rollup can read it, or the SQL of the cube reads its range as a value."
+  [field]
+  (or (rollup-on-column? field)
+      (some-> (value-read-members-of (table-name-of-field field))
+              (contains? (str/lower-case (str (:name (stored-field field))))))))
+
 ;;; A report time zone. Cube reads the two bounds of a date range in the zone of the session. Each other bound, also one bound
 ;;; next to another filter or inside OR or NOT, it reads as UTC. So the meaning of a literal depends on the other filters of the query.
 ;;; The driver writes each bound in the form that Cube does not merge, with the literal in UTC. A time shift needs a date range, so
@@ -462,8 +475,8 @@
     (nth field 2)))
 
 (defn- range-of-column
-  "The clauses of the only two bounds, or the only `between`, on one column with a rollup. Cube reads these as a date range in the zone
-  of the session, and a rollup needs a date range. A third bound or another filter on the column makes the literals UTC, so this gives nil."
+  "The clauses of the only two bounds, or the only `between`, on one column that needs a date range. Cube reads these as a date range in the
+  zone of the session. A third bound or another filter on the column makes the literals UTC, so this gives nil."
   [parts id]
   (let [on-column  (filter #(some #{id} (tree-seq vector? seq %)) parts)
         lower      (filter #(= :>= (first %)) on-column)
@@ -472,7 +485,7 @@
         times      (fn [clause] (every? zone-bound-time (drop 3 clause)))]
     (when (and (every? times on-column)
                (every? #(= id (plain-column-id %)) on-column)
-               (rollup-on-column? (nth (first on-column) 2))
+               (date-range-column? (nth (first on-column) 2))
                (or (= 1 (count on-column) (count between))
                    (and (= 2 (count on-column)) (= 1 (count lower) (count upper)))))
       on-column)))
@@ -599,7 +612,7 @@
     (check-no-fraction! field t)
     (or
      (exact-bound driver clause)
-     (if (or (nil? t) *inside-not* *keep-date-ranges* (exact-bounds? field) (rollup-on-column? field))
+     (if (or (nil? t) *inside-not* *keep-date-ranges* (exact-bounds? field) (date-range-column? field))
        (postgres-clause driver clause)
        (not-merged driver field (postgres-clause driver clause))))))
 
@@ -1265,8 +1278,57 @@
                               (:name field))
                       {:type :invalid-query})))))
 
+(defn- date-range-clauses?
+  "True if these clauses on one time column are a date range for Cube: one `between`, or one `>=` next to one `<` or `<=`, with time literals."
+  [clauses]
+  (let [ops (map first clauses)]
+    (and (every? #(contains? #{nil :default} (:temporal-unit (second (nth % 2)))) clauses)
+         (every? (fn [clause] (every? zone-bound-time (drop 3 clause))) clauses)
+         (or (= [:between] ops)
+             (= #{:>= :<} (set ops))
+             (= #{:>= :<=} (set ops)))
+         (= (count ops) (count (set ops))))))
+
+(defn- check-value-read-members!
+  "The SQL of a cube can read a filter of Cube as a value. Cube gives this value only for a date range, or for one equal value. With another
+  filter or none, the database reads `1 = 1` there, so the result is empty or wrong, or the database fails with an unclear message. A filter of a
+  later stage over raw rows also reaches Cube."
+  [stages]
+  (let [provider (driver-api/metadata-provider)
+        table-id (:source-table (first stages))
+        members  (when (pos-int? table-id)
+                   (value-read-members-of (:name (driver-api/table provider table-id))))]
+    (doseq [[member kind] members]
+      (let [stages-to-cube (let [[raw more] (split-with #(empty? (:aggregation %)) stages)]
+                             (concat raw (take 1 more)))
+            on-member      (for [[i stage] (map-indexed vector stages-to-cube)
+                                 clause    (filter-parts (:filters stage))
+                                 :let      [earlier (subvec (vec stages) 0 i)]
+                                 :when     (some (fn [f] (= member (some-> (:name (column-field earlier f)) str/lower-case)))
+                                                 (field-clauses [clause]))]
+                             {:clause clause, :stage stage})
+            clauses        (map :clause on-member)]
+        (when-not (if (= :time kind)
+                    (and (date-range-clauses? clauses)
+                         (not (and (report-zone?) (some #(reads-the-database? (:stage %) (:filters (:stage %))) on-member))))
+                    (and (= 1 (count clauses))
+                         (= := (ffirst clauses))
+                         (= 4 (count (first clauses)))))
+          (throw (ex-info (format (if (= :time kind)
+                                    (str "The SQL of this cube reads the date range of %s as a value, through FILTER_PARAMS. Cube gives that value "
+                                         "only for a lower and an upper bound, >= with < or <=, or between, with no OR and no NOT. With another "
+                                         "filter or none, the database reads 1 = 1 there, so the number would be wrong. Give %s a lower and an "
+                                         "upper bound. With a report time zone, also remove a text filter, a part of a date or an expression "
+                                         "next to it, because then Cube does not read a date range.")
+                                    (str "The SQL of this cube reads the filter on %s as a value, through FILTER_PARAMS. Cube gives that value only "
+                                         "for one equal value. With another filter or none, the database reads 1 = 1 there, so the number would "
+                                         "be wrong. Filter %s on one value."))
+                                  member member)
+                          {:type :invalid-query})))))))
+
 (defn- check-stages!
   [stages]
+  (check-value-read-members! stages)
   (doseq [i (range (count stages))
           :let [stage (nth stages i)]
           :when (not= :mbql.stage/native (:lib/type stage))]
@@ -1807,6 +1869,7 @@
   [details cube-meta]
   {:keeps-fractions? (cube.probe/keeps-fractions? details cube-meta nil)
    :report-zone?     (report-zone?)
+   :value-read       (partial cube.probe/value-read-members details cube-meta)
    :rolling-reason   (partial cube.probe/rolling-window-reason details)
    :rolling-zone-reason (when (report-zone?)
                           (fn [measure time-dimension _unit]

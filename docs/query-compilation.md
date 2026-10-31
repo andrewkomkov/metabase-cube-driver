@@ -75,7 +75,7 @@ The driver asks Cube how it writes a date range, with `/v1/sql`. If Cube keeps t
 | `x >= t`, `x <= t`, `between` | As they are | The range is exact at a whole second. |
 | A bound with a fraction, `x = t.5` | The driver stops the query | Cube drops the fraction, and this would move the bound on a `DateTime64`. |
 
-With a report time zone that is not UTC, Cube reads the two bounds of a date range in that zone, and each other bound as UTC. One bound, a bound next to `OR` or `NOT`, and a bound of a filter on an expression are "other". So on each Cube, the driver writes each bound on a column with `(x >= t OR x IS NULL) AND x IS NOT NULL` and `t` in UTC. Cube never merges this form into a range. A time shift needs a date range, so with a time shift the two bounds stay in the zone. A rollup needs a date range too. So two bounds on a column with a rollup stay in the zone. This applies when these two bounds are the only filters on that column, at the top level of the filter. A filter on a time of a stage with an aggregation stops, see [What the driver stops](#what-the-driver-stops).
+With a report time zone that is not UTC, Cube reads the two bounds of a date range in that zone, and each other bound as UTC. One bound, a bound next to `OR` or `NOT`, and a bound of a filter on an expression are "other". So on each Cube, the driver writes each bound on a column with `(x >= t OR x IS NULL) AND x IS NOT NULL` and `t` in UTC. Cube never merges this form into a range. A time shift needs a date range, so with a time shift the two bounds stay in the zone. A rollup needs a date range too, and so does a cube whose SQL reads the range as a value. So two bounds on such a column stay in the zone. This applies when these two bounds are the only filters on that column, at the top level of the filter. A filter on a time of a stage with an aggregation stops, see [What the driver stops](#what-the-driver-stops).
 
 ### Stages
 
@@ -125,6 +125,7 @@ These queries fail with a message that tells what to do. The message includes th
 | A time shift measure with a date range that starts or ends inside a bucket, with a report time zone that is not UTC | Cube moves rows of other periods into the bucket. |
 | A time shift measure with one date bound | Cube reads a time shift only with a date range, so it gives periods outside the filter. |
 | A time shift measure with `x > t` on stock Cube | A date range on stock Cube has no form for this bound that is right for a `DateTime64`. Use `>=` with the next second, or the dialect. |
+| A cube whose SQL reads a filter as a value, as in `v(date_from = ${FILTER_PARAMS.c.t.filter((from, to) => from)})`, when the filter on that dimension is not a lower and an upper bound on a time, or one equal value on another type | Cube writes `1 = 1` in the place of the value, and the database reads it as a value. So the result is empty or wrong, or the database fails with an unclear message. `/v1/sql` shows this form. A cube that reads the filter as a condition, as in `WHERE ${FILTER_PARAMS.c.t.filter('t')}`, has no limit. With a report time zone, a text filter, a part of a date or an expression next to the bounds also stops here, because Cube then reads no date range. |
 | A dimension with `meta: { date_only: true }`, with a report time zone, on stock Cube | Stock Cube reads a `Date` as a time at midnight UTC. The dialect gives the truth. |
 | Another aggregation of a measure column that Cube rejects, such as `max` of a count | Cube fails with `Measure aggregation type doesn't match`. |
 | Filter on a measure column of a table, or of a model with no primary key, or on a rolling window measure | Cube reads this as a filter on the aggregate, so it does not filter rows. |
@@ -160,6 +161,7 @@ The driver changes native SQL in one case: it writes `COALESCE(x, 0)` around a c
 | `SELECT *` on a cube with a rolling window measure | The star reads that measure, and it needs a time bucket and a date filter. |
 | `SUM(j.x)` or `AVG(j.x)` of a dimension of a joined cube | See the table above. |
 | With a report time zone, each filter on a time with no lower and upper bound, or next to `OR` or `NOT`, or with `DATE_TRUNC` | Cube reads a literal in the zone only in a date range, and as UTC in other forms. |
+| A cube whose SQL reads a filter as a value, with another filter on that dimension or none | See the table above. |
 
 On stock Cube, the scan also stops `x > a` next to an upper bound on the same column, and a bound with a fraction.
 

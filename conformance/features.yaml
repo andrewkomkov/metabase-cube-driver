@@ -8227,3 +8227,81 @@
   status: pass
   status_stock: pass
   check: inherit.js.time_shift_with_no_bucket_refused
+- id: filter_params.value.date_range
+  area: cube.context
+  title: "a date range reaches a cube that reads it as a value"
+  status: pass
+  status_stock: pass
+  check: filter_params.value.date_range
+- id: filter_params.value.date_range_by_month
+  area: cube.context
+  title: "a date range by a month reaches a cube that reads it as a value"
+  status: pass
+  status_stock: pass
+  check: filter_params.value.date_range_by_month
+- id: filter_params.value.date_range_in_a_zone
+  area: cube.context
+  title: "a date range in a report time zone reaches a cube that reads it as a value"
+  status: pass
+  status_stock: pass
+  check: filter_params.value.date_range_in_a_zone
+- id: filter_params.value.date_range_with_two_bounds_in_a_zone
+  area: cube.context
+  title: "two bounds in a report time zone reach a cube that reads them as a value"
+  status: pass
+  status_stock: pass
+  check: filter_params.value.date_range_with_two_bounds_in_a_zone
+- id: filter_params.value.one_bound_refused
+  area: cube.context
+  title: "one bound stops on a cube that reads a date range as a value"
+  status: pass
+  status_stock: pass
+  check: filter_params.value.one_bound_refused
+- id: filter_params.value.no_filter_refused
+  area: cube.context
+  title: "no filter stops on a cube that reads a date range as a value"
+  status: pass
+  status_stock: pass
+  check: filter_params.value.no_filter_refused
+- id: filter_params.value.or_refused
+  area: cube.context
+  title: "OR stops on a cube that reads a date range as a value"
+  status: pass
+  status_stock: pass
+  check: filter_params.value.or_refused
+- id: filter_params.value.expression_in_a_zone_refused
+  area: cube.context
+  title: "a text filter next to a date range in a report time zone stops on a cube that reads it as a value"
+  status: pass
+  status_stock: pass
+  check: filter_params.value.expression_in_a_zone_refused
+- id: filter_params.value.native_date_range
+  area: cube.context
+  title: "native SQL with a date range reaches a cube that reads it as a value"
+  status: pass
+  status_stock: pass
+  check: filter_params.value.native_date_range
+- id: filter_params.value.native_one_bound_refused
+  area: cube.context
+  title: "native SQL with one bound stops on a cube that reads a date range as a value"
+  status: pass
+  status_stock: pass
+  check: filter_params.value.native_one_bound_refused
+- id: filter_params.value.one_text_value
+  area: cube.context
+  title: "one text value reaches a cube that reads it as a value"
+  status: pass
+  status_stock: pass
+  check: filter_params.value.one_text_value
+- id: filter_params.value.other_text_filter_refused
+  area: cube.context
+  title: "another text filter stops on a cube that reads it as a value"
+  status: pass
+  status_stock: pass
+  check: filter_params.value.other_text_filter_refused
+- id: filter_params.condition.other_operator
+  area: cube.context
+  title: "a cube that reads a filter as a condition keeps other operators"
+  status: pass
+  status_stock: pass
+  check: filter_params.condition.other_operator

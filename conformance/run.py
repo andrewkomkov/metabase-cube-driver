@@ -5811,6 +5811,94 @@ def _(ctx):
     expect_refusal(ctx, JCL, "has a time shift", agg=["m:%s.revenuePriorYear" % JCL])
 
 
+# ----------------------------------------------------------------- FILTER_PARAMS as a value, see dev/cube/model/filter_values.js
+
+FV = "orders_in_window"
+FVT = "orders_of_status"
+FV_REV = "m:%s.revenue" % FV
+FV_NY = "America/New_York"
+FV_DAYS = ["2025-01-01", "2025-03-09"]
+FV_RANGE = ["between", "d:%s.createdAt@day" % FV] + FV_DAYS
+FV_IN_RANGE = "toDate(%s) BETWEEN '2025-01-01' AND '2025-03-09'"
+FV_READS = "reads the date range of createdat as a value"
+Q("filter_params.value.date_range", FV, "SELECT sum(amount) FROM orders WHERE " + FV_IN_RANGE % "created_at", agg=[FV_REV], where=[FV_RANGE])
+Q("filter_params.value.date_range_by_month", FV, "SELECT toStartOfMonth(created_at), sum(amount) FROM orders WHERE %s GROUP BY 1" % (FV_IN_RANGE % "created_at"),
+  agg=[FV_REV], by=["d:%s.createdAt@month" % FV], where=[FV_RANGE])
+Q("filter_params.value.one_text_value", FVT, "SELECT sum(amount) FROM orders WHERE status = 'shipped'",
+  agg=["m:%s.revenue" % FVT], where=[["=", "d:%s.status" % FVT, "shipped"]])
+Q("filter_params.condition.other_operator", "filtered_orders", "SELECT count() FROM orders WHERE status != 'shipped'",
+  agg=["m:filtered_orders.count"], where=[["!=", "d:filtered_orders.status", "shipped"]])
+
+
+@check("filter_params.value.date_range_in_a_zone")
+def _(ctx):
+    in_zone = FV_IN_RANGE % ("toTimeZone(created_at, '%s')" % FV_NY)
+
+    def run():
+        assert_rows(ctx.mb.mbql(FV, agg=[FV_REV], where=[FV_RANGE])["rows"], ch("SELECT sum(amount) FROM orders WHERE " + in_zone))
+        assert_rows(ctx.mb.mbql(FV, agg=[FV_REV], by=["d:%s.status" % FV], where=[FV_RANGE])["rows"],
+                    ch("SELECT status, sum(amount) FROM orders WHERE %s GROUP BY 1" % in_zone))
+    with_report_timezone(ctx, FV_NY, run)
+
+
+@check("filter_params.value.date_range_with_two_bounds_in_a_zone")
+def _(ctx):
+    created = "d:%s.createdAt" % FV
+    bounds = [[">=", created, "2025-03-09T00:00:00"], ["<", created, "2025-03-10T00:00:00"]]
+    with_report_timezone(ctx, FV_NY, lambda: assert_rows(
+        ctx.mb.mbql(FV, agg=[FV_REV], where=bounds)["rows"],
+        ch("SELECT sum(amount) FROM orders WHERE toDate(toTimeZone(created_at, '%s')) = '2025-03-09'" % FV_NY)))
+
+
+@check("filter_params.value.one_bound_refused")
+def _(ctx):
+    created = "d:%s.createdAt" % FV
+    for clause in ([">=", created, "2025-03-01T00:00:00"], ["<", created, "2025-03-01T00:00:00"]):
+        expect_refusal(ctx, FV, FV_READS, agg=[FV_REV], where=[clause])
+        with_report_timezone(ctx, FV_NY, lambda clause=clause: expect_refusal(ctx, FV, FV_READS, agg=[FV_REV], where=[clause]))
+
+
+@check("filter_params.value.no_filter_refused")
+def _(ctx):
+    expect_refusal(ctx, FV, FV_READS, agg=[FV_REV])
+
+
+@check("filter_params.value.or_refused")
+def _(ctx):
+    expect_refusal(ctx, FV, FV_READS, agg=[FV_REV], where=[["or", FV_RANGE, ["=", "d:%s.status" % FV, "shipped"]]])
+
+
+@check("filter_params.value.expression_in_a_zone_refused")
+def _(ctx):
+    with_report_timezone(ctx, FV_NY, lambda: expect_refusal(ctx, FV, FV_READS, agg=[FV_REV], where=[FV_RANGE, ["contains", "d:%s.status" % FV, "ship"]]))
+
+
+@check("filter_params.value.native_one_bound_refused")
+def _(ctx):
+    try:
+        data = ctx.mb.native("SELECT MEASURE(revenue) FROM %s WHERE createdAt >= '2025-03-01T00:00:00'" % FV)
+    except Fail as e:
+        if "as a value" not in getattr(e, "body", str(e)):
+            raise Fail("no clear refusal: %s" % str(e)[:300])
+        return
+    raise Fail("native SQL gave rows: %s" % str(data["rows"])[:200])
+
+
+N("filter_params.value.native_date_range", "SELECT MEASURE(revenue) FROM %s WHERE createdAt >= '2025-01-01T00:00:00' AND createdAt < '2025-03-10T00:00:00'" % FV,
+  "SELECT sum(amount) FROM orders WHERE " + FV_IN_RANGE % "created_at")
+
+
+@check("filter_params.value.other_text_filter_refused")
+def _(ctx):
+    needle = "reads the filter on status as a value"
+    agg = ["m:%s.revenue" % FVT]
+    status = "d:%s.status" % FVT
+    expect_refusal(ctx, FVT, needle, agg=agg)
+    expect_refusal(ctx, FVT, needle, agg=agg, where=[["!=", status, "shipped"]])
+    expect_refusal(ctx, FVT, needle, agg=agg, where=[["contains", status, "ship"]])
+    expect_refusal(ctx, FVT, needle, agg=agg, where=[["=", status, "shipped", "cancelled"]])
+
+
 # ----------------------------------------------------------------- findings of the random query generator, see dev/fuzz/README.md
 
 @check("clickhouse.aggregate_on_no_rows")

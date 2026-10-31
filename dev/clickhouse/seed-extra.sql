@@ -56,3 +56,11 @@ FROM (
         toTimeZone(toDateTime(day, 'UTC') + 43200 + number % 3600, 'UTC'), toTimeZone(toDateTime(day, 'UTC') + 61200 + number % 3600, 'UTC')])) AS p
     FROM numbers(412)))
 WHERE (SELECT count() FROM shop.zone_events) = 0;
+
+-- Views with parameters, for the cubes of dev/cube/model/filter_values.js.
+CREATE OR REPLACE VIEW shop.orders_window AS
+SELECT id, status, amount, created_at FROM shop.orders
+WHERE created_at >= parseDateTimeBestEffort({date_from:String}) AND created_at <= parseDateTimeBestEffort({date_to:String});
+
+CREATE OR REPLACE VIEW shop.orders_status AS
+SELECT id, status, amount FROM shop.orders WHERE status = {wanted:String};

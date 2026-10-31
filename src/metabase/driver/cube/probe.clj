@@ -65,6 +65,57 @@
                         "parseDateTimeBestEffort"))
                   (catch Exception _ false)))))))
 
+;;; FILTER_PARAMS as a value. A cube can pass a filter of Cube to the database as a value, for example to a parameter of a view:
+;;; `v(date_from = ${FILTER_PARAMS.c.t.filter((from, to) => from)})`. With no filter that Cube can read there, Cube writes `1 = 1` in that
+;;; place, and the database reads it as a value. As a condition, as in `WHERE ${FILTER_PARAMS.c.t.filter('t')}`, this gives all rows and the
+;;; outer filter of Cube still applies, so that form needs nothing.
+
+(def ^:private condition-words
+  #"(?i)\b(where|and|or|not|on|having|when|then|else)$")
+
+(defn- value-places
+  "The number of `1 = 1` in a place of the text where a value goes."
+  [text]
+  (let [matcher ^java.util.regex.Matcher (re-matcher #"1 = 1" text)]
+    (loop [places 0]
+      (if (.find matcher)
+        (let [before (str/replace (subs text 0 (.start matcher)) #"[\s(]+$" "")]
+          (recur (if (re-find condition-words before) places (inc places))))
+        places))))
+
+(defn- first-member-query
+  [cube]
+  (if-let [measure (first (:measures cube))]
+    {:measures [(:name measure)], :limit 1}
+    {:dimensions [(:name (first (:dimensions cube)))], :limit 1}))
+
+(defn value-read-members
+  "A map from the lower case short name of each dimension that the SQL of this cube reads as a value to :time or :other. Each answer is
+  cached, and most cubes need one request. With no answer the map is empty."
+  [details cube-meta cube-name]
+  (let [cube (cube-named cube-meta cube-name)]
+    (if-not cube
+      {}
+      (cached details [:value-read (:name cube)]
+              (fn []
+                (try
+                  (let [query  (first-member-query cube)
+                        base   (value-places (:text (sql-of details query)))
+                        places (fn [{member :name, kind :type}]
+                                 (value-places
+                                  (:text (sql-of details
+                                                 (if (= "time" kind)
+                                                   (assoc query :timeDimensions [{:dimension member, :dateRange ["2025-01-01" "2025-01-31"]}])
+                                                   (assoc query :filters [{:member member, :operator "equals", :values ["1"]}]))))))]
+                    (if (zero? base)
+                      {}
+                      (into {}
+                            (comp (filter #(< (places %) base))
+                                  (map (fn [{member :name, kind :type}]
+                                         [(str/lower-case (last (str/split member #"\."))) (if (= "time" kind) :time :other)])))
+                            (:dimensions cube))))
+                  (catch Exception _ {})))))))
+
 ;;; Time shifts. /v1/meta shows a measure with a time shift as a plain measure.
 
 (defn shift-candidate?

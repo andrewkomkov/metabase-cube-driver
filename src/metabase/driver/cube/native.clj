@@ -648,6 +648,29 @@
                             "ClickHouse dialect, see cube-clickhouse/README.md.")
                        column)))))
 
+(defn- check-value-read!
+  "The SQL of a cube can read a filter of Cube as a value. See `cube.probe/value-read-members`."
+  [index toks params value-read]
+  (doseq [table (tables toks)
+          :let  [cube-name (:cube-name (get index table))]
+          :when cube-name
+          [member kind] (value-read cube-name)]
+    (let [found (comparisons toks params #{member})
+          ops   (set (map :op found))
+          other (some #(or (word? % "or") (word? % "not")) toks)]
+      (when (or other
+                (if (= :time kind)
+                  (not (or (:between ops) (and (some ops [:> :>=]) (some ops [:< :<=]))))
+                  (not= #{:=} ops)))
+        (refuse! (format (if (= :time kind)
+                           (str "The SQL of %s reads the date range of %s as a value, through FILTER_PARAMS. Cube gives that value only for a "
+                                "lower and an upper bound, with no OR and no NOT. With another filter or none, the database reads 1 = 1 "
+                                "there, so the number would be wrong. Write %s >= a AND %s < b.")
+                           (str "The SQL of %s reads the filter on %s as a value, through FILTER_PARAMS. Cube gives that value only for one "
+                                "equal value. With another filter or none, the database reads 1 = 1 there, so the number would be wrong. "
+                                "Write %s = a, with no OR and no NOT."))
+                         cube-name member member member))))))
+
 ;;; ------------------------------------------------- filters on a subquery ---------------------------------------------
 
 (defn- closing-paren
@@ -783,8 +806,8 @@
   "For the text that a person or an agent wrote. `questions` has the answers that need Cube: :keeps-fractions? a boolean,
   :time-shift? a function of the cube and the full name of a measure, :wrong-bin-reason a function of the cube, the time
   member, the granularity and the full names of the measures, :rolling-reason a function of the full names of a measure and a time
-  member and the unit, and :report-zone? a boolean."
-  [cube-meta sql params {:keys [keeps-fractions? time-shift? wrong-bin-reason report-zone?] :as questions}]
+  member and the unit, :value-read a function of a cube that gives `cube.probe/value-read-members`, and :report-zone? a boolean."
+  [cube-meta sql params {:keys [keeps-fractions? time-shift? value-read wrong-bin-reason report-zone?] :as questions}]
   (let [index (cond->> (cube-index cube-meta)
                 keeps-fractions? (into {} (map (fn [[k v]] [k (dissoc v :date-only)]))))
         toks  (unwrap (tokens sql))]
@@ -796,6 +819,8 @@
     (check-text-case! toks)
     (check-raw-select! index toks)
     (check-total-through-join! index toks)
+    (when value-read
+      (check-value-read! index toks params value-read))
     (when report-zone?
       (check-report-zone! index toks params))
     (when-not keeps-fractions?
