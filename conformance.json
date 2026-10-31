@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 699,
-    "partial": 18,
-    "blocked": 22,
-    "unsupported": 10,
-    "fail": 0,
-    "total": 749
+    "pass": 715,
+    "partial": 15,
+    "blocked": 2,
+    "unsupported": 12,
+    "fail": 9,
+    "total": 753
   },
-  "coverage": "coverage: 699/749 pass",
+  "coverage": "coverage: 715/753 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -57,8 +57,8 @@
     },
     {
       "id": "measure.multi_stage.filter_exclude",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-31T00:57:20.550260609Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: revenue_all_statuses has a time shift. With no time bucket and no date filter, Cube returns the total of all rows,"
     },
     {
       "id": "measure.multi_stage.grain_exclude",
@@ -457,8 +457,8 @@
     },
     {
       "id": "granularity.custom.offset",
-      "status": "blocked",
-      "reason": "Wrong number from Cube Store: a time before the origin of a custom granularity gets the wrong bin. An offset uses an origin in the current year, so old rows on a rollup of months go wrong: Cube gives 2025-02-01 825 and 2025-05-01 1288, and the truth is 2024-11-01 433 and 2025-02-01 1246. A measure that the rollup does not serve is right, see compile.granularity.native_offset_no_rollup. The driver cannot see this. Use an origin before all rows, such as 2000-02-01, in place of an offset."
+      "status": "partial",
+      "reason": "Cube Store puts a time before the origin of a custom granularity in months in the wrong bin, and no released Cube has a fix. The driver stops such a query when a rollup serves the measure and the data starts before the origin. An offset has its origin in the current year, so this stops most offsets on a rollup. A measure that no rollup serves gives the truth. An origin before all rows gives the truth on a rollup."
     },
     {
       "id": "granularity.custom.origin",
@@ -552,13 +552,13 @@
     },
     {
       "id": "cube.calendar_granularity_sql",
-      "status": "blocked",
-      "reason": "Needs a calendar table with SQL granularities in the demo model. Not modelled yet."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "cube.data_source",
-      "status": "blocked",
-      "reason": "The demo stack has one data source. A second one needs a compose change and a Cube config, which do not exist yet."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "cube.description",
@@ -582,8 +582,8 @@
     },
     {
       "id": "cube.refresh_key",
-      "status": "partial",
-      "reason": "A refresh key has no Metabase object. The check compares the value and reads the 1 hour key in the SQL that Cube generates. It changes no data, so it does not prove a refresh."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "cube.sql",
@@ -606,14 +606,9 @@
       "reason": ""
     },
     {
-      "id": "context.compile_context",
-      "status": "blocked",
-      "reason": "Needs a security context. See security.compile_context."
-    },
-    {
       "id": "context.filter_group",
-      "status": "blocked",
-      "reason": "FILTER_GROUP is not in the demo model yet."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "context.filter_params",
@@ -757,8 +752,8 @@
     },
     {
       "id": "preagg.original_sql",
-      "status": "blocked",
-      "reason": "Any original_sql pre-aggregation with an index fails on ClickHouse, also with no rollup on it: Missing columns: 'lambda_orders__status'. With no index, Cube refuses it. So the ClickHouse dialect has no working form. A subclass of ClickHouseQuery can drop the index, see docs/cube-findings.md."
+      "status": "fail",
+      "reason": "SELECT status, MEASURE(revenue) FROM lambda_orders GROUP BY 1: query failed: Cube cannot read a rollup_lambda on ClickHouse with a range that reads source rows. Add a date filter inside the range of the rollup, or read this measure from a plain rollup. Cube said: Error executing query: ERROR: Database Execution Error: Stream query failed: Error: Unknown table expression iden"
     },
     {
       "id": "preagg.partitioned",
@@ -852,12 +847,12 @@
     },
     {
       "id": "restapi.compare_date_range",
-      "status": "blocked",
+      "status": "unsupported",
       "reason": "compareDateRange exists only in the REST API. No Metabase query shape maps to it."
     },
     {
       "id": "restapi.total_query",
-      "status": "blocked",
+      "status": "unsupported",
       "reason": "A total query exists only in the REST API. No Metabase query shape maps to it."
     },
     {
@@ -1632,8 +1627,8 @@
     },
     {
       "id": "mb.other.drill_through_ui",
-      "status": "blocked",
-      "reason": "Drill-through runs in the browser. The suite has no browser check yet."
+      "status": "fail",
+      "reason": "the drill-through shows 2000 rows, truth 1000"
     },
     {
       "id": "mb.other.model_persistence",
@@ -1652,13 +1647,13 @@
     },
     {
       "id": "mcp.alert_write",
-      "status": "blocked",
-      "reason": "Needs an email or Slack channel. The demo stack has neither."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.bookmark_content",
-      "status": "blocked",
-      "reason": "A bookmark holds no Cube value that a check can compare with the truth."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.browse.descriptions_in_get_fields",
@@ -1692,8 +1687,8 @@
     },
     {
       "id": "mcp.collection_write",
-      "status": "blocked",
-      "reason": "A collection holds no Cube value that a check can compare with the truth."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.connect_oauth",
@@ -1712,8 +1707,8 @@
     },
     {
       "id": "mcp.document_write",
-      "status": "blocked",
-      "reason": "A document holds no Cube value that a check can compare with the truth."
+      "status": "fail",
+      "reason": "the document has no card 60: {\"type\": \"doc\", \"content\": [{\"type\": \"heading\", \"attrs\": {\"level\": 1, \"_id\": \"27677449-27b0-44c0-a6c8-716a2fd4baa4\"}, \"content\": [{\"type\": \"text\", \"text\": \"Orders\"}]}, {\"type\": \"paragraph\", \"attrs\": {\"_id\": \"7077aa64-6818-448c-8f8d-bf1b781166ed\"}, \"content\": [{\"type\": \"text\", \"text\": \"Orders by status.\"}]}, {\"type\": \"resizeNode\", \"attrs\": {\"height\": 442, \"minHeight\": 280}, \"content\": [{\"type\": \"ca"
     },
     {
       "id": "mcp.duplicate_content",
@@ -1802,13 +1797,13 @@
     },
     {
       "id": "mcp.glossary",
-      "status": "blocked",
-      "reason": "The glossary holds no Cube value that a check can compare with the truth."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.learn",
-      "status": "blocked",
-      "reason": "Skill text holds no Cube value that a check can compare with the truth."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.measure_write",
@@ -1842,8 +1837,8 @@
     },
     {
       "id": "mcp.render_drill_through",
-      "status": "blocked",
-      "reason": "The tools/list reply for a session without MCP Apps support does not include this tool."
+      "status": "fail",
+      "reason": "the query of the handle: HTTP 403 {\"error\":\"scope_not_permitted\",\"message\":\"Scoped tokens cannot access this endpoint.\"}"
     },
     {
       "id": "mcp.run_saved_question",
@@ -1882,13 +1877,13 @@
     },
     {
       "id": "mcp.subscription_write",
-      "status": "blocked",
-      "reason": "Needs an email or Slack channel. The demo stack has neither."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.visualize_query",
-      "status": "blocked",
-      "reason": "The tools/list reply for a session without MCP Apps support does not include this tool."
+      "status": "fail",
+      "reason": "the query of the handle: HTTP 403 {\"error\":\"scope_not_permitted\",\"message\":\"Scoped tokens cannot access this endpoint.\"}"
     },
     {
       "id": "inherit.cube.members",
@@ -2287,8 +2282,8 @@
     },
     {
       "id": "compile.ch.decimal_above_double",
-      "status": "blocked",
-      "reason": "The SQL API of Cube has the type Double for numbers, and the ClickHouse driver of Cube sends JSON numbers. SELECT dec_big FROM typed_events WHERE id = 3 gives 3000000000000 where the truth is 3000000000000.00000003. A dimension with SQL toString(column) keeps the digits."
+      "status": "partial",
+      "reason": "Known wrong number. The SQL API of Cube has the type Double for numbers, so a long decimal loses digits. Its value fits the range of a Double, so the driver cannot see this. SELECT dec_big FROM typed_events WHERE id = 3 gives 3000000000000 where the truth is 3000000000000.00000003. A dimension with SQL toString(column) keeps the digits, and the check proves this."
     },
     {
       "id": "compile.ch.decimal_row",
@@ -2357,8 +2352,8 @@
     },
     {
       "id": "compile.ch.uint64_above_double",
-      "status": "blocked",
-      "reason": "The SQL API of Cube has the type Double for numbers, and the ClickHouse driver of Cube sends JSON numbers. SELECT ui64 FROM typed_events WHERE id = 2 gives 9007199254740996 where the truth is 9007199254740995, and MEASURE(sum_ui64) gives 9007199254741494000. A dimension with SQL toString(column) keeps the digits."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.ch.uuid_filter",
@@ -3278,17 +3273,17 @@
     {
       "id": "dimension.opt.propagate_filters_next_to_another_sub_query",
       "status": "partial",
-      "reason": "Wrong number from Cube with the Tesseract planner. When two sub_query dimensions have equal SQL, the generated SQL joins both subqueries and selects the first for both columns, so the propagated dimension shows the other value. Alone, it is right, see dimension.opt.propagate_filters. With other SQL, such as {orders.count} + 0, it gives the truth."
+      "reason": "Cube with the Tesseract planner reads the first subquery for two sub_query dimensions with equal SQL when the query has a filter. The driver stops a query that groups by both, and raw rows show NULL in the later column. With other SQL, such as {orders.count} + 0, both work, and each is right alone, see dimension.opt.propagate_filters."
     },
     {
       "id": "measure.multi_stage.time_shift_no_bucket_limit",
-      "status": "partial",
-      "reason": "Unclear intent. With no time bucket, a time shift measure gives the total of all rows, because a sum over all time does not change after a shift. With a date range it gives the value of the earlier month. /v1/meta does not tell which measure has a time shift, so the driver cannot ask for a time bucket here. Group by a time bucket."
+      "status": "fail",
+      "reason": "the error has no 'has a time shift': "
     },
     {
       "id": "clickhouse.datetime64_millis",
-      "status": "partial",
-      "reason": "The ClickHouse dialect of Cube reads a time as whole seconds. A raw value has no milliseconds, and a filter on them finds no row. Postgres keeps them. Buckets of a second and above are right. A dimension with sql: toString(column) keeps the text. A subclass of ClickHouseQuery can fix this, see docs/cube-findings.md."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.rolling.by_day_on_boundaries",
@@ -3427,8 +3422,8 @@
     },
     {
       "id": "measure.rolling.strict_bound_on_boundary",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "strict bound: got 2 rows, truth has 1. got=[['2025-03-01T00:00:00', 26428.0], ['2025-04-01T00:00:00', 27332.0]] truth=[['2025-04-01T00:00:00', 27332.0]]"
     },
     {
       "id": "nested.measure_column.filter_gives_row_values",
@@ -3572,8 +3567,8 @@
     },
     {
       "id": "compile.bound.datetime64_whole_seconds_limit",
-      "status": "partial",
-      "reason": "The ClickHouse dialect of Cube reads a time as whole seconds in a filter, so a row in the first second after a bound of > is out of the result. /v1/meta does not show the column type, so the driver cannot avoid this. A dimension with sql: toString(column) keeps the text. A subclass of ClickHouseQuery can fix this, see docs/cube-findings.md."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "native.count_on_no_rows_limit",
@@ -3582,8 +3577,8 @@
     },
     {
       "id": "nested.model.multi_stage_measure_column",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "1 of 5 differ. all statuses: ERROR revenue_all_statuses has a time shift. With no time bucket and no date filter, Cube returns the total of all rows, and a shift of that is not a number that you "
     },
     {
       "id": "nested.question.multi_stage_outer_date_filter",
@@ -3631,12 +3626,37 @@
       "reason": ""
     },
     {
-      "id": "mcp.query.between_is_whole_days",
-      "status": "partial",
-      "reason": "Limit of Metabase: MCP execute_query makes between with a time part into whole days before the driver, so the driver cannot see the time part. In the demo, 15 rows have that range, and MCP gives 28. The query API /api/dataset keeps the time part. Use >= and <= in MCP for a range with a time part."
+      "id": "mcp.query.between_keeps_time",
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.expr.measure_with_expression_breakout",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dialect.variant",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dialect.b1_strict_lower_bound",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dialect.interval_in_native_sql",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dialect.n2_legacy_planner",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "context.compile_context",
       "status": "pass",
       "reason": ""
     },
