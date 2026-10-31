@@ -803,24 +803,6 @@ cubes:
         indexes:
           - { name: idx, columns: [status] }
 
-  - name: pa_approx
-    title: Rollup with an approximate count
-    description: A rollup of count_distinct_approx. Cube has no such sketch for ClickHouse, so each query on the measure stops.
-    sql_table: shop.orders
-    refresh_key: { every: 1 hour }
-    dimensions:
-      - { name: id, sql: id, type: number, primary_key: true, public: true }
-      - { name: status, sql: status, type: string, description: Order status. }
-    measures:
-      - { name: buyers_approx, type: count_distinct_approx, sql: user_id, description: In a rollup. }
-      - { name: orders, type: count, description: In no rollup. }
-    pre_aggregations:
-      - name: approx
-        measures: [buyers_approx]
-        dimensions: [status]
-        indexes:
-          - { name: idx, columns: [status] }
-
   - name: pa_no_index
     title: Rollup with no index
     description: The smallest form in the docs. It has no index.
