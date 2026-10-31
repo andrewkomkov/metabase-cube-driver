@@ -3594,7 +3594,110 @@ C("compile.tz.dst_day_in_new_york_column", TE, "SELECT toStartOfDay(ts_ny, 'UTC'
 # X-rays run the queries of the generated dashboard
 
 
-def xray_cards(ctx, path):
+# The ClickHouse expression of each column that an X-ray card reads. A proxy of a granularity has the formula of that granularity.
+XRAY_COLUMNS = {
+    "orders": {
+        "status": "status",
+        "created_at": "created_at",
+        "created_label": "created_at",
+        "created_month_proxy": "toStartOfMonth(created_at)",
+        "created_half_day": "toStartOfInterval(created_at, INTERVAL 12 HOUR)",
+        "created_week_sunday": "toStartOfWeek(created_at, 0)",
+        "created_fiscal_year": "addMonths(toStartOfYear(addMonths(created_at, -3)), 3)",
+        "created_fiscal_quarter": "addMonths(toStartOfMonth(created_at), -((toMonth(created_at) + 1) % 3))",
+    },
+    "typed_events": {name: name for name in ("ts_utc", "ts_ny", "ts64_berlin", "day", "day32", "n_ts")},
+}
+XRAY_JOINS = {("users", "id"): ("users", "user_id")}
+XRAY_UNITS = {
+    None: "{}",
+    "default": "{}",
+    "minute": "toStartOfMinute({})",
+    "hour": "toStartOfHour({})",
+    "day": "toDate({})",
+    "week": "toStartOfWeek({}, 0)",
+    "month": "toStartOfMonth({})",
+    "quarter": "toStartOfQuarter({})",
+    "year": "toStartOfYear({})",
+    "day-of-week": "toDayOfWeek({}, 3)",
+    "hour-of-day": "toHour({})",
+    "day-of-month": "toDayOfMonth({})",
+    "month-of-year": "toMonth({})",
+    "quarter-of-year": "toQuarter({})",
+}
+
+
+class XrayTruth:
+    """Writes the ClickHouse query of one X-ray card. A shape that it does not know is a failure, so no card goes with no compare."""
+
+    def __init__(self, ctx, table):
+        self.table = table
+        self.names = {f["id"]: (t["name"], f["name"]) for t in ctx.mb.tables.values() for f in t["fields"]}
+        self.joins = []
+
+    def column(self, ref):
+        # MBQL 5 is ["field", options, id], and the older form is ["field", id, options].
+        options, field_id = (ref[1], ref[2]) if isinstance(ref[1], dict) else (ref[2] or {}, ref[1])
+        table, name = self.names[field_id]
+        if table != self.table:
+            if (table, name) not in XRAY_JOINS:
+                raise Fail("no truth for the column %s.%s of the card" % (table, name))
+            other, key = XRAY_JOINS[(table, name)]
+            if not self.joins:
+                self.joins.append("LEFT JOIN %s AS joined ON base.%s = joined.%s" % (other, key, name))
+            return "joined.%s" % name, options
+        expr = XRAY_COLUMNS.get(self.table, {}).get(name)
+        if expr is None:
+            raise Fail("no truth for the column %s.%s of the card" % (table, name))
+        return expr, options
+
+    def bucketed(self, ref):
+        expr, options = self.column(ref)
+        unit = options.get("temporal-unit")
+        if options.get("binning") or unit not in XRAY_UNITS:
+            raise Fail("no truth for the bucket of %s" % json.dumps(ref)[:200])
+        if options.get("base-type") in ("type/DateTime", "type/Date", "type/DateTimeWithLocalTZ"):
+            expr = "toDateTime(%s, 'UTC')" % expr
+        return XRAY_UNITS[unit].format(expr)
+
+    def aggregation(self, clause):
+        kinds = {"distinct": "uniqExact(%s)", "sum": "sum(%s)", "avg": "avg(%s)", "min": "min(%s)", "max": "max(%s)"}
+        if clause[0] == "count" and not [c for c in clause[1:] if isinstance(c, list)]:
+            return "count()"
+        if clause[0] in kinds:
+            return kinds[clause[0]] % self.bucketed([c for c in clause[1:] if isinstance(c, list)][0])
+        raise Fail("no truth for the aggregation %s" % json.dumps(clause)[:200])
+
+    def condition(self, clause):
+        args = [c for c in clause[1:] if not isinstance(c, dict)]
+        if clause[0] == "is-null":
+            return "%s IS NULL" % self.column(args[0])[0]
+        if clause[0] == "not-null":
+            return "%s IS NOT NULL" % self.column(args[0])[0]
+        if clause[0] == "time-interval" and args[2] == "day" and isinstance(args[1], int) and args[1] < 0:
+            day = "toDate(toDateTime(%s, 'UTC'))" % self.column(args[0])[0]
+            return "%s >= today() - %d AND %s < today()" % (day, -args[1], day)
+        raise Fail("no truth for the filter %s" % json.dumps(clause)[:200])
+
+    def sql(self, query):
+        stages = query.get("stages")
+        if stages and len(stages) != 1:
+            raise Fail("no truth for a card with %d stages" % len(stages))
+        stage = stages[0] if stages else query["query"]
+        filters = stage.get("filters") or ([stage["filter"]] if stage.get("filter") else [])
+        keys = [self.bucketed(b) for b in stage.get("breakout") or []]
+        aggregations = [self.aggregation(a) for a in stage.get("aggregation") or []]
+        if not aggregations:
+            raise Fail("no truth for a card with no aggregation: %s" % json.dumps(stage)[:200])
+        where = [self.condition(f) for f in filters]
+        return "SELECT %s FROM %s AS base %s %s %s SETTINGS join_use_nulls = 1" % (
+            ", ".join(keys + aggregations), self.table, " ".join(self.joins),
+            "WHERE " + " AND ".join(where) if where else "",
+            "GROUP BY " + ", ".join(str(i + 1) for i in range(len(keys))) if keys else "")
+
+
+def xray_cards(ctx, path, table):
+    """Runs each card of the X-ray, and compares its rows with a query on ClickHouse."""
     dash = ctx.mb.api("GET", "/api/automagic-dashboards/" + path)
     cards = [dc["card"] for dc in dash.get("dashcards", []) if dc.get("card") and dc["card"].get("dataset_query")]
     if not cards:
@@ -3603,33 +3706,34 @@ def xray_cards(ctx, path):
     for card in cards:
         query = card["dataset_query"]
         try:
-            ctx.mb.dataset(query)
+            rows = ctx.mb.dataset(query)["data"]["rows"]
+            assert_rows(rows, ch(XrayTruth(ctx, table).sql(query)), label="card")
         except Fail as e:
-            failed.append((card.get("name"), str(e)[:160]))
+            failed.append((card.get("name"), str(e)[:300]))
     if failed:
-        raise Fail("%d of %d cards failed: %s" % (len(failed), len(cards), failed[:3]))
+        raise Fail("%d of %d cards failed: %s" % (len(failed), len(cards), failed[:6]))
     return cards
 
 
 @check("compile.xray.table_all_cards_run")
 def _(ctx):
-    xray_cards(ctx, "table/%d" % ctx.mb.table(ORD)["id"])
+    xray_cards(ctx, "table/%d" % ctx.mb.table(ORD)["id"], ORD)
 
 
 @check("compile.xray.field_all_cards_run")
 def _(ctx):
-    xray_cards(ctx, "field/%d" % ctx.mb.field(ORD, "status")["id"])
+    xray_cards(ctx, "field/%d" % ctx.mb.field(ORD, "status")["id"], ORD)
 
 
 @check("compile.xray.time_field_all_cards_run")
 def _(ctx):
-    xray_cards(ctx, "field/%d" % ctx.mb.field(ORD, "created_at")["id"])
+    xray_cards(ctx, "field/%d" % ctx.mb.field(ORD, "created_at")["id"], ORD)
 
 
 @check("compile.xray.typed_table_all_cards_run")
 def _(ctx):
     ensure_table(ctx, TE)
-    xray_cards(ctx, "table/%d" % ctx.mb.table(TE)["id"])
+    xray_cards(ctx, "table/%d" % ctx.mb.table(TE)["id"], TE)
 
 
 # which queries read a rollup
@@ -4659,6 +4763,109 @@ def _with_column(clause, by_id, by_name):
             return by_name
         return [_with_column(c, by_id, by_name) for c in clause]
     return clause
+
+
+# The driver wraps Metabase vars, and it adds a topic to the Metabase events. These checks use Sample Database, on another driver.
+# ClickHouse has no truth for it, so its truth is a REST query that does not go through the wrapped code.
+
+
+def other_database(ctx):
+    dbs = ctx.mb.api("GET", "/api/database")
+    dbs = dbs.get("data", dbs) if isinstance(dbs, dict) else dbs
+    for db in dbs:
+        if db.get("is_sample") and db["engine"] != "cube":
+            meta = ctx.mb.api("GET", "/api/database/%d/metadata" % db["id"])
+            table = next(t for t in meta["tables"] if t["name"].lower() == "orders")
+            field = next(f for f in table["fields"] if f["name"].lower() == "created_at")
+            return db, meta, table["id"], field["id"]
+    raise Fail("Metabase has no sample database on another driver, so this check shows nothing")
+
+
+def metabase_minor():
+    status, text, _ = http("GET", MB + "/api/session/properties")
+    if status != 200:
+        raise Fail("session properties: HTTP %s" % status)
+    return int(json.loads(text)["version"]["tag"].split(".")[1])
+
+
+@check("isolation.other_driver_mcp_between")
+def _(ctx):
+    """On another database, the MCP tool gives what Metabase itself gives: whole days on 0.64, the time of the bounds on 0.65."""
+    db, _meta, table, field = other_database(ctx)
+    x, y = "2025-03-15T05:00:00", "2025-03-16T05:00:00"
+
+    def rest(ref, lo, hi):
+        return ctx.mb.dataset({"database": db["id"], "type": "query", "query": {
+            "source-table": table, "aggregation": [["count"]], "filter": ["between", ref, lo, hi]}})["data"]["rows"]
+
+    days = rest(["field", field, {"temporal-unit": "day"}], "2025-03-15", "2025-03-16")
+    literal = rest(["field", field, None], x, y)
+    if days == literal:
+        raise Fail("these bounds cannot tell a whole day from the time: %s" % days)
+    got = ctx.mcp.call("execute_query", query={"lib/type": "mbql/query", "database": db["id"], "stages": [{
+        "lib/type": "mbql.stage/mbql", "source-table": table, "aggregation": [["count", {}]],
+        "filters": [["between", {}, ["field", {}, field], x, y]]}]})["rows"]
+    assert_rows(got, days if metabase_minor() < 65 else literal, label="MCP between on %s" % db["engine"])
+
+
+@check("isolation.other_driver_cache")
+def _(ctx):
+    """The cache middleware has a wrap of the driver. A question on another database still comes from the cache."""
+    db, _meta, table, _field = other_database(ctx)
+    card = ctx.mb.card("isolation cache", {"database": db["id"], "type": "query", "query": {"source-table": table, "aggregation": [["count"]]}})
+    truth = ctx.mb.dataset({"database": db["id"], "type": "query", "query": {"source-table": table, "aggregation": [["count"]]}})["data"]["rows"]
+    ctx.mb.api("PUT", "/api/cache", {"model": "root", "model_id": 0, "strategy": {"type": "ttl", "multiplier": 100000, "min_duration_ms": 0}})
+    try:
+        for _i in range(20):
+            res = ctx.mb.api("POST", "/api/card/%d/query" % card["id"], {"parameters": []})
+            if res.get("cached"):
+                break
+            time.sleep(1)
+        else:
+            raise Fail("a question on %s did not come from the cache" % db["engine"])
+        assert_rows(res["data"]["rows"], truth, label="from the cache")
+    finally:
+        ctx.mb.api("DELETE", "/api/cache", {"model": "root", "model_id": [0]})
+
+
+def other_database_state(ctx, db_id):
+    meta = ctx.mb.api("GET", "/api/database/%d/metadata" % db_id)
+    fields = sorted((f["id"], f.get("display_name"), f.get("description"), f.get("semantic_type"), json.dumps(f.get("settings"), sort_keys=True))
+                    for t in meta["tables"] for f in t["fields"])
+    tables = {t["id"] for t in meta["tables"]}
+    extras = []
+    for kind in ("measure", "segment"):
+        rows = ctx.mb.api("GET", "/api/%s" % kind)
+        extras += [(kind, r["id"]) for r in (rows.get("data", rows) if isinstance(rows, dict) else rows) if r.get("table_id") in tables]
+    return {"description": meta.get("description"), "fields": fields, "extras": sorted(extras)}
+
+
+@check("isolation.other_driver_sync")
+def _(ctx):
+    """The driver adds a topic to the Metabase events. A sync of another database goes on, and the driver writes nothing to it."""
+    db, _meta, _table, _field = other_database(ctx)
+    container = os.environ.get("METABASE_CONTAINER", "metabase-cube-driver-metabase-1")
+    finished = "FINISHED: Sync metadata for %s Database %d" % (db["engine"], db["id"])
+
+    def log():
+        return subprocess.run(["docker", "logs", container], capture_output=True, text=True, timeout=120).stdout
+
+    before = other_database_state(ctx, db["id"])
+    runs = log().count(finished)
+    ctx.mb.api("POST", "/api/database/%d/sync_schema" % db["id"])
+    for _i in range(60):
+        if log().count(finished) > runs:
+            break
+        time.sleep(2)
+    else:
+        raise Fail("the sync of %s did not finish" % db["name"])
+    # The event that the driver reads comes after the step in the log.
+    time.sleep(3)
+    after = other_database_state(ctx, db["id"])
+    if before != after:
+        raise Fail("the sync changed the database of another driver: before %s, after %s" % (str(before)[:300], str(after)[:300]))
+    if "Could not sync the Cube data model to database %d" % db["id"] in log():
+        raise Fail("the driver acted on the sync of another database")
 
 
 @check("compile.bound.fraction_of_a_second")

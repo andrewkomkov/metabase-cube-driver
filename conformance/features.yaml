@@ -3826,35 +3826,27 @@
 - id: compile.xray.table_all_cards_run
   area: mb.compile.xray
   title: "xray table all cards run"
-  status: partial
-  status_stock: partial
+  status: pass
+  status_stock: pass
   check: compile.xray.table_all_cards_run
-  cap: partial
-  reason: "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
 - id: compile.xray.field_all_cards_run
   area: mb.compile.xray
   title: "xray field all cards run"
-  status: partial
-  status_stock: partial
+  status: pass
+  status_stock: pass
   check: compile.xray.field_all_cards_run
-  cap: partial
-  reason: "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
 - id: compile.xray.time_field_all_cards_run
   area: mb.compile.xray
   title: "xray time field all cards run"
-  status: partial
-  status_stock: partial
+  status: pass
+  status_stock: pass
   check: compile.xray.time_field_all_cards_run
-  cap: partial
-  reason: "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
 - id: compile.xray.typed_table_all_cards_run
   area: mb.compile.xray
   title: "xray typed table all cards run"
-  status: partial
-  status_stock: partial
+  status: pass
+  status_stock: pass
   check: compile.xray.typed_table_all_cards_run
-  cap: partial
-  reason: "The check proves that each card of the X-ray runs. It does not compare the value of each card with SQL truth. mb.xray.table and mb.xray.view compare a plain count."
 - id: compile.granularity.native_offset_no_rollup
   area: mb.compile.granularity
   title: "granularity native offset no rollup"
@@ -4525,6 +4517,24 @@
   status: pass
   status_stock: pass
   check: mcp.query.between_keeps_time
+- id: isolation.other_driver_mcp_between
+  area: isolation
+  title: "the wrap for MCP between does not act on another driver"
+  status: pass
+  status_stock: pass
+  check: isolation.other_driver_mcp_between
+- id: isolation.other_driver_cache
+  area: isolation
+  title: "the wrap of the cache does not act on another driver"
+  status: pass
+  status_stock: pass
+  check: isolation.other_driver_cache
+- id: isolation.other_driver_sync
+  area: isolation
+  title: "the event topic of the driver does not act on the sync of another driver"
+  status: pass
+  status_stock: pass
+  check: isolation.other_driver_sync
 - id: compile.expr.measure_with_expression_breakout
   area: mb.compile.expr
   title: "measures with a breakout on an expression"
