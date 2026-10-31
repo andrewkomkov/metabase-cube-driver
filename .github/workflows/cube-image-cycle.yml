@@ -15,6 +15,9 @@ on:
       test-mode:
         type: string
         default: none
+      clickhouse-version:
+        type: string
+        default: ""
 
 permissions: {}
 
@@ -304,6 +307,7 @@ jobs:
       artifact-name: cube-image-cell-${{ inputs.tag }}-candidate
       image: ${{ needs.prepare.outputs.candidate }}
       clickhouse-fixes: "on"
+      clickhouse-version: ${{ inputs.clickhouse-version }}
 
   stack-alone:
     name: candidate with no dialect
@@ -318,6 +322,7 @@ jobs:
       artifact-name: cube-image-cell-${{ inputs.tag }}-alone
       image: ${{ needs.prepare.outputs.candidate }}
       clickhouse-fixes: "off"
+      clickhouse-version: ${{ inputs.clickhouse-version }}
 
   stack-baseline:
     name: stock Cube with the dialect
@@ -332,6 +337,7 @@ jobs:
       artifact-name: cube-image-cell-${{ inputs.tag }}-baseline
       image: cubejs/cube:${{ inputs.tag }}
       clickhouse-fixes: "on"
+      clickhouse-version: ${{ inputs.clickhouse-version }}
 
   gate:
     name: ${{ inputs.tag }} gate
@@ -368,7 +374,7 @@ jobs:
   publish:
     name: ${{ inputs.tag }} publish
     needs: [prepare, gate]
-    if: ${{ !cancelled() && needs.gate.outputs.verdict == 'pass' && github.ref == 'refs/heads/main' && inputs.test-mode == 'none' }}
+    if: ${{ !cancelled() && needs.gate.outputs.verdict == 'pass' && github.ref == 'refs/heads/main' && inputs.test-mode == 'none' && inputs.clickhouse-version == '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -400,7 +406,7 @@ jobs:
   compat:
     name: ${{ inputs.tag }} compatibility rows
     needs: [prepare, gate, publish]
-    if: ${{ !cancelled() && needs.gate.result == 'success' && github.ref == 'refs/heads/main' && inputs.test-mode == 'none' }}
+    if: ${{ !cancelled() && needs.gate.result == 'success' && github.ref == 'refs/heads/main' && inputs.test-mode == 'none' && inputs.clickhouse-version == '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     concurrency:

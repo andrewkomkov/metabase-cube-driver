@@ -14,6 +14,10 @@ on:
         description: Comma-separated, for example amd64,arm64. Empty means the value in cube-image/queue.json.
         type: string
         default: ""
+      clickhouse-version:
+        description: ClickHouse image tag for the gate. Empty means the pin. A run with a value publishes nothing.
+        type: string
+        default: ""
       test-mode:
         description: A test of a failure path. It publishes nothing.
         type: choice
@@ -68,3 +72,4 @@ jobs:
       tag: ${{ matrix.tag }}
       platforms: ${{ needs.plan.outputs.platforms }}
       test-mode: ${{ inputs.test-mode || 'none' }}
+      clickhouse-version: ${{ inputs.clickhouse-version }}
