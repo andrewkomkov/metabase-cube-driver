@@ -6786,8 +6786,8 @@
 - id: preagg.metabase.time_zone_relative_range_hit
   area: cube.pre_aggregations
   title: "preagg metabase time zone relative range hit"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: preagg.metabase.time_zone_relative_range_hit
 - id: zone.ny.a.report.day
   area: cube.zone_day
