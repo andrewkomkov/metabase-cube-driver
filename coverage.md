@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 740/767 pass on Cube with the ClickHouse dialect** (740 pass, 13 partial, 2 blocked, 12 unsupported, 0 fail of 767)
+**coverage: 741/767 pass on Cube with the ClickHouse dialect** (741 pass, 13 partial, 1 blocked, 12 unsupported, 0 fail of 767)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `625a4d2044a3`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41198772020), 2026-10-31.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `c52fac6be1b3`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41199587148), 2026-10-31.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -42,7 +42,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, commit `625a4
 | `measure.rolling.to_date_month` | pass |  |
 | `measure.rolling.to_date_year` | pass |  |
 | `measure.rolling.trailing` | pass |  |
-| `measure.rolling.unbounded` | blocked | ClickHouse before 26.10 rejects the join with only an inequality that Cube writes for more than one bucket: Cannot determine join keys in JOIN ON expression. The driver stops this query with a clear message. trailing: 100 year in the data model works. |
+| `measure.rolling.unbounded` | pass |  |
 | `measure.type.avg` | pass |  |
 | `measure.type.boolean` | pass |  |
 | `measure.type.count` | pass |  |

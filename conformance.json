@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 740,
+    "pass": 741,
     "partial": 13,
-    "blocked": 2,
+    "blocked": 1,
     "unsupported": 12,
     "fail": 0,
     "total": 767
   },
-  "coverage": "coverage: 740/767 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 741/767 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -182,8 +182,8 @@
     },
     {
       "id": "measure.rolling.unbounded",
-      "status": "blocked",
-      "reason": "ClickHouse before 26.10 rejects the join with only an inequality that Cube writes for more than one bucket: Cannot determine join keys in JOIN ON expression. The driver stops this query with a clear message. trailing: 100 year in the data model works."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "measure.type.avg",
