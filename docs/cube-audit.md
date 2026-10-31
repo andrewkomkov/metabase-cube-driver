@@ -4,7 +4,7 @@ This audit tries to refute the 18 defects with the verdict `cube-bug` or `cube-c
 
 ## How this was checked
 
-- **Versions:** Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, Postgres `17-alpine`. Some cases also ran on ClickHouse `25.3-alpine` and on older Cube tags.
+- **Versions:** Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, Postgres `17-alpine`. Some cases also ran on ClickHouse `25.3-alpine` and on older Cube tags.
 - **Configs:** each case ran on ClickHouse and Postgres, with `CUBEJS_TESSERACT_SQL_PLANNER` on and off, unless the table says otherwise.
 - **Query shape:** the shape comes from `EXPLAIN` of each SQL API case. `regular` is a plan with only a `CubeScan`. `post-processing` is a plan with other nodes over a `CubeScan`. `pushdown` is a plan with `CubeScanWrappedSql`. `not-planned` means that `EXPLAIN` failed too. `no EXPLAIN` is a case with parameters and no literal form to explain. For a REST case, the table says if the response has `usedPreAggregations`.
 - **Expected values:** 302 cases, written before the runs from a small table that you can read in `dev/audit/cases/`. Each amount is a power of 10 where this helps, so that a sum names its rows. Where direct SQL makes sense, the table also shows its result. ClickHouse output is not the truth when its semantics differ: for example, `sum` of no rows is 0 on ClickHouse and NULL in the SQL standard.
