@@ -109,7 +109,7 @@ services:
     ports: ["127.0.0.1:4402:4000"]
     restart: unless-stopped
   metabase:
-    image: metabase/metabase:${METABASE_VERSION:-v0.64.3}
+    image: metabase/metabase:${METABASE_VERSION:-v0.65.2.3}
     depends_on: [cube]
     mem_limit: 3g
     environment:

@@ -6,7 +6,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 
 You write the driver code. Read `AGENTS.md` first. It is binding, and it overrides this file.
 
-- Read Metabase code at tag `v0.64.3`, as `AGENTS.md` tells. Do not guess driver multimethods.
+- Read Metabase code at tag `v0.65.2.3`, as `AGENTS.md` tells. Do not guess driver multimethods.
 - Test against Cube on ClickHouse first.
 - A change is not done until it ran on the live stack. Use the `deploy-nettop` skill, then the
   `run-conformance` skill.
