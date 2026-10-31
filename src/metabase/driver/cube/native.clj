@@ -4,7 +4,8 @@
   It is not a SQL parser. docs/query-compilation.md lists the shapes that it does not read in \"Known wrong numbers\"."
   (:require
    [clojure.string :as str]
-   [metabase.driver.cube.meta :as cube.meta])
+   [metabase.driver.cube.meta :as cube.meta]
+   [metabase.driver.cube.probe :as cube.probe])
   (:import
    (java.time DayOfWeek LocalDate LocalDateTime OffsetDateTime ZoneOffset ZonedDateTime)
    (java.time.temporal ChronoUnit TemporalAdjusters)))
@@ -167,6 +168,15 @@
                 {:time     (into #{} (comp (filter #(= "time" (:type %))) (map (comp short-name :name))) dimensions)
                  :rolling  (into #{} (comp (filter :cumulative) (map (comp short-name :name))) measures)
                  :measures (into #{} (map (comp short-name :name)) measures)
+                 :count-measures (into #{}
+                                       (comp (filter #(contains? #{"count" "countDistinct" "countDistinctApprox"} (:aggType %)))
+                                             (map (comp short-name :name)))
+                                       measures)
+                 :dimensions (into #{} (map (comp short-name :name)) dimensions)
+                 :switches (cube.meta/switch-dimension-names cube-meta cube-name)
+                 :date-only (into #{}
+                                  (comp (filter #(cube.probe/date-only? cube-meta (:name %))) (map (comp short-name :name)))
+                                  dimensions)
                  :same-source (cube.meta/same-source-groups dimensions)
                  :same-sql (cube.meta/same-sql-groups dimensions)
                  :cube-name cube-name}]))
@@ -411,6 +421,40 @@
                 (:text tok))))
           (range (count toks)))))
 
+(def ^:private filter-end
+  "Words that end a WHERE."
+  #{"group" "order" "limit" "having" "union"})
+
+(defn- where-indexes
+  "The indexes of the tokens of each WHERE."
+  [toks]
+  (mapcat (fn [i]
+            (when (word? (get toks i) "where")
+              (take-while #(let [tok (get toks %)]
+                             (not (and (= :word (:kind tok)) (contains? filter-end (:text tok)))))
+                          (range (inc i) (count toks)))))
+          (range (count toks))))
+
+(defn- time-function-in-filter
+  "The name of a time column inside DATE_TRUNC in a WHERE, or nil. The scan reads DATE_TRUNC only as the bucket of the query."
+  [toks columns]
+  (let [trunc (trunc-column-indexes toks columns)]
+    (some (fn [i] (when (contains? trunc i) (:text (get toks i)))) (where-indexes toks))))
+
+(defn- bound-with-arithmetic
+  "The name of a time column compared with a literal that has more text after it, such as `+ INTERVAL '14 day'`, or nil."
+  [toks params columns]
+  (some (fn [{:keys [column literal high at]}]
+          (when-let [end (:next (or high literal))]
+            (let [tok (get toks end)]
+              (when (and tok
+                         (> end at)
+                         (not (= ")" (:text tok)))
+                         (not (= ";" (:text tok)))
+                         (not (contains? #{"and" "or" "group" "order" "limit" "having" "union"} (:text tok))))
+                column))))
+        (comparisons toks params columns)))
+
 (defn- used-rolling
   [index toks]
   (let [used (used-names toks)]
@@ -419,10 +463,15 @@
           (tables toks))))
 
 (defn- check-rolling!
-  [index toks params]
+  [index toks params {:keys [report-zone? rolling-reason]}]
   (when-let [measure (first (used-rolling index toks))]
     (let [columns (time-columns index toks)
           units   (date-trunc-units toks columns)]
+      (when report-zone?
+        (refuse! (format (str "%s is a rolling window measure. With a report time zone that is not UTC, Cube adds the wrong months "
+                              "together, so the number would be wrong. Remove the report time zone, or use a measure with no rolling window "
+                              "and a date filter.")
+                         measure)))
       (when (empty? units)
         (refuse! (format (str "%s is a rolling window measure. With no time bucket, Cube returns the total of all rows, not "
                               "the window. Group by DATE_TRUNC on a time column and add a date filter on whole buckets.")
@@ -433,7 +482,9 @@
           (refuse! (format (str "%s is a rolling window measure, and Cube computes it for each whole bucket. This scan cannot "
                                 "show that a filter with OR or NOT keeps whole buckets, so write the filter with >= and <.")
                            measure)))
-        (when-let [other (other-time-use toks params columns)]
+        (when-let [other (or (time-function-in-filter toks columns)
+                             (bound-with-arithmetic toks params columns)
+                             (other-time-use toks params columns))]
           (refuse! (format (str "%s is a rolling window measure, and Cube computes it for each whole bucket. This scan cannot read "
                                 "how the query uses %s, so it cannot show that the filter keeps whole buckets. Write the filter "
                                 "with >= and <, and use only DATE_TRUNC on this column.")
@@ -442,6 +493,11 @@
           (refuse! (format (str "%s is a rolling window measure, and this scan cannot read the bucket '%s' of native SQL. "
                                 "Use a bucket of day, week, month, quarter or year, or the query builder.")
                            measure unit)))
+        (when rolling-reason
+          (when-let [table (first (filter #(contains? (:rolling (get index %)) measure) (tables toks)))]
+            (let [cube-name (:cube-name (get index table))]
+              (when-let [reason (rolling-reason (str cube-name "." measure) (str cube-name "." column) (keyword unit))]
+                (refuse! reason)))))
         (doseq [{:keys [op literal low high negated]} (comparisons toks params #{column})]
           (let [ok? (case op
                       :between (and (not negated)
@@ -456,6 +512,145 @@
                                     "starts or ends inside a %s, and Cube does not apply that part, so the number would count "
                                     "rows outside the filter. Use a filter on whole %ss.")
                                measure unit unit unit)))))))))
+
+;;; ----------------------------------------------- shapes that Cube reads otherwise ---------------------------------------
+
+(declare closing-paren)
+
+(defn- check-equal-time-in-bucket!
+  "With DATE_TRUNC on the same column, Cube reads `x = t` as the bucket that starts at `t`, and it returns the whole bucket."
+  [index toks params]
+  (let [columns (time-columns index toks)
+        units   (date-trunc-units toks columns)]
+    (doseq [{:keys [op column]} (comparisons toks params columns)
+            :when (and (= := op) (contains? units column))]
+      (refuse! (format (str "With DATE_TRUNC on %s, Cube reads %s = t as the whole bucket that starts at t, so the number would be wrong. "
+                            "Write %s >= t AND %s <= t.")
+                       column column column column)))))
+
+(defn- wildcard-with-letters?
+  [pattern]
+  (and (re-find #"[%_]" pattern) (re-find #"\p{L}" pattern)))
+
+(defn- check-text-case!
+  "Cube reads these forms as its operators, and on ClickHouse they ignore case. SQL and Metabase read them as case sensitive."
+  [toks]
+  (let [message (fn [text]
+                  (format (str "Cube reads %s as a filter that ignores case, so the number can differ from SQL. Write ILIKE to ignore case. To "
+                               "keep the case, write STRPOS(column, 'text') >= 1 to find a text, or STRPOS(column, 'text') = 1 for the start of a "
+                               "column.")
+                          text))]
+    (doseq [i (range (count toks))
+            :let [tok (get toks i)]]
+      (when (and (word? tok "like")
+                 (not= ")" (:text (get toks (dec i))))
+                 (= :string (:kind (get toks (inc i))))
+                 (wildcard-with-letters? (:text (get toks (inc i)))))
+        (refuse! (message (str "LIKE '" (:text (get toks (inc i))) "'"))))
+      (when (and (= :word (:kind tok)) (contains? #{"strpos" "left" "right"} (:text tok)) (= "(" (:text (get toks (inc i)))))
+        (when-let [close (closing-paren toks (inc i))]
+          (let [op    (:text (get toks (inc close)))
+                value (:text (get toks (+ close 2)))]
+            (when (or (and (= "strpos" (:text tok)) (= ">" op) (= "0" value))
+                      (and (not= "strpos" (:text tok)) (= "=" op)))
+              (refuse! (message (str (str/upper-case (:text tok)) "() " op " " value))))))))))
+
+(defn- text-before-group?
+  [toks]
+  (not-any? #(or (word? % "group") (word? % "measure")) toks))
+
+(defn- star?
+  "True if a top SELECT reads all columns."
+  [toks]
+  (some (fn [i]
+          (and (= "*" (:text (get toks i)))
+               (or (word? (get toks (dec i)) "select")
+                   (and (= "." (:text (get toks (dec i)))) (word? (get toks (- i 3)) "select")))))
+        (range (count toks))))
+
+(defn- check-raw-select!
+  "A raw select gives each row once for each value of a `switch` dimension. SELECT * also reads a rolling window measure, and then Cube
+  fails with a message about a date range."
+  [index toks]
+  (when (text-before-group? toks)
+    (let [used (used-names toks)]
+      (doseq [table (tables toks)
+              :let  [{:keys [switches rolling]} (get index table)]]
+        (when (and (star? toks) (seq rolling))
+          (refuse! (format (str "SELECT * on %s also reads its rolling window measures, such as %s, and these need a time bucket and a date "
+                                "filter. Name the columns that you need.")
+                           table (first (sort rolling)))))
+        (when-let [switch (or (when (star? toks) (first (sort switches)))
+                              (first (sort (filter used switches))))]
+          (refuse! (format (str "%s of %s is a switch dimension. A select of raw rows gives each row once for each of its values, so the rows "
+                                "would be wrong. Group by it with a measure, or leave out this column.")
+                           switch table)))))))
+
+;;; A sum of a dimension of a joined cube.
+
+(defn- table-aliases
+  "A map from each name that can stand before a column to its table, and the first table of the text under :first."
+  [toks]
+  (reduce (fn [found i]
+            (if (or (word? (get toks i) "from") (word? (get toks i) "join"))
+              (if-let [[table next-at] (read-table toks (inc i))]
+                (let [alias-name (let [before (get toks (dec next-at))] (:text before))]
+                  (cond-> (assoc found table table alias-name table)
+                    (nil? (:first found)) (assoc :first table)))
+                found)
+              found))
+          {}
+          (range (count toks))))
+
+(defn- check-total-through-join!
+  "Cube adds each row of a joined cube once. See compile.join.total_of_dimension_refused."
+  [index toks]
+  (let [aliases (table-aliases toks)
+        start   (:first aliases)]
+    (when (next (tables toks))
+      (doseq [i (range (count toks))
+              :when (and (or (word? (get toks i) "sum") (word? (get toks i) "avg"))
+                         (= "(" (:text (get toks (inc i))))
+                         (= "." (:text (get toks (+ i 3))))
+                         (= ")" (:text (get toks (+ i 5)))))
+              :let [table  (get aliases (:text (get toks (+ i 2))))
+                    column (:text (get toks (+ i 4)))]
+              :when (and table
+                         (not= table start)
+                         (contains? (:dimensions (get index table)) column))]
+        (refuse! (format (str "Cube cannot add up the dimension %s of %s over the rows of %s. It adds each row of the joined cube once, so "
+                              "the number would be wrong. Add a measure to the data model, or start from %s.")
+                         column table start table))))))
+
+;;; A report time zone.
+
+(defn- check-report-zone!
+  "Cube reads the two bounds of a date range in the zone of the session, and each other bound as UTC. The driver cannot tell what a literal in
+  native SQL means in another form, so only that form goes through."
+  [index toks params]
+  (let [columns (time-columns index toks)
+        found   (comparisons toks params columns)
+        message (fn [column]
+                  (format (str "With a report time zone that is not UTC, Cube reads a literal on %s in this zone only if the filter has a lower "
+                               "and an upper bound and no OR or NOT. In other forms it reads it as UTC, so the number would be wrong. Write "
+                               "%s >= a AND %s < b, or remove the report time zone.")
+                          column column column))]
+    (when-let [column (time-function-in-filter toks columns)]
+      (refuse! (message column)))
+    (doseq [[column bounds] (group-by :column found)
+            :let  [ops (set (map :op bounds))]
+            :when (or (some #(or (word? % "or") (word? % "not")) toks)
+                      (not (or (:between ops)
+                               (and (some ops [:> :>=]) (some ops [:< :<=]))))
+                      (:= ops))]
+      (refuse! (message column)))
+    (doseq [table (tables toks)
+            :let  [{:keys [date-only]} (get index table)]
+            column (filter (used-names toks) date-only)]
+      (refuse! (format (str "%s is a Date column, and stock Cube reads it as a time at midnight UTC. With a report time zone that is not UTC, "
+                            "each row can move to another day, so the number would be wrong. Remove the report time zone, or install the "
+                            "ClickHouse dialect, see cube-clickhouse/README.md.")
+                       column)))))
 
 ;;; ------------------------------------------------- filters on a subquery ---------------------------------------------
 
@@ -590,15 +785,23 @@
 
 (defn check-native!
   "For the text that a person or an agent wrote. `questions` has the answers that need Cube: :keeps-fractions? a boolean,
-  :time-shift? a function of the cube and the full name of a measure, and :wrong-bin-reason a function of the cube, the time
-  member, the granularity and the full names of the measures."
-  [cube-meta sql params {:keys [keeps-fractions? time-shift? wrong-bin-reason]}]
-  (let [index (cube-index cube-meta)
+  :time-shift? a function of the cube and the full name of a measure, :wrong-bin-reason a function of the cube, the time
+  member, the granularity and the full names of the measures, :rolling-reason a function of the full names of a measure and a time
+  member and the unit, and :report-zone? a boolean."
+  [cube-meta sql params {:keys [keeps-fractions? time-shift? wrong-bin-reason report-zone?] :as questions}]
+  (let [index (cond->> (cube-index cube-meta)
+                keeps-fractions? (into {} (map (fn [[k v]] [k (dissoc v :date-only)]))))
         toks  (unwrap (tokens sql))]
     (check-one-path! index toks)
-    (check-rolling! index toks params)
+    (check-rolling! index toks params questions)
     (check-between! index toks params)
     (check-subquery-filters! index toks)
+    (check-equal-time-in-bucket! index toks params)
+    (check-text-case! toks)
+    (check-raw-select! index toks)
+    (check-total-through-join! index toks)
+    (when report-zone?
+      (check-report-zone! index toks params))
     (when-not keeps-fractions?
       (check-strict-bound! index toks params)
       (check-fraction! index toks params))
@@ -606,3 +809,48 @@
       (check-time-shift! index toks params time-shift?))
     (when wrong-bin-reason
       (check-granularity! index toks wrong-bin-reason))))
+
+;;; ---------------------------------------------- COUNT on no rows ------------------------------------------------
+
+(defn- located-tokens
+  "The tokens of `sql` with their positions in the text, with no comments."
+  [^String sql]
+  (let [matcher (re-matcher token-pattern sql)]
+    (loop [out []]
+      (if (.find matcher)
+        (let [text (.group matcher)]
+          (recur (if (comment-text? text)
+                   out
+                   (conj out (assoc (token text) :start (.start matcher) :end (.end matcher))))))
+        out))))
+
+(defn- count-call?
+  "True if the call that opens at `open` is a count: COUNT(...), or MEASURE() of a measure that counts."
+  [toks i count-measures]
+  (or (word? (get toks i) "count")
+      (and (word? (get toks i) "measure")
+           (contains? count-measures (:text (get toks (- (or (closing-paren toks (inc i)) 0) 1)))))))
+
+(defn count-on-no-rows
+  "Cube reads a rollup with SUM, so a count over no rows is NULL where SQL has 0. This writes COALESCE around each count of a text with one
+  SELECT and no grouping, the same as a compiled query. With more than one SELECT, the scan cannot show that the text has one row."
+  [cube-meta ^String sql]
+  (let [toks (located-tokens sql)
+        selects (count (filter #(word? % "select") toks))]
+    (if (or (not= 1 selects)
+            (some #(or (word? % "group") (word? % "over") (word? % "union") (word? % "having")) toks))
+      sql
+      (let [index          (cube-index cube-meta)
+            count-measures (into #{} (mapcat #(:count-measures (get index %))) (tables toks))
+            calls          (for [i (range (count toks))
+                                 :when (and (= "(" (:text (get toks (inc i))))
+                                            (count-call? toks i count-measures)
+                                            (not (and (= "(" (:text (get toks (dec i))))
+                                                      (word? (get toks (- i 2)) "coalesce"))))
+                                 :let [close (closing-paren toks (inc i))]
+                                 :when close]
+                             [(:start (get toks i)) (:end (get toks close))])]
+        (reduce (fn [^String text [start end]]
+                  (str (subs text 0 start) "COALESCE(" (subs text start end) ", 0)" (subs text end)))
+                sql
+                (reverse calls))))))

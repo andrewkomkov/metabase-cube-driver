@@ -1,4 +1,5 @@
-"""Signs in to the review Metabase and connects Cube with the dialect and stock Cube."""
+"""Signs in to the review Metabase and connects Cube with the dialect, stock Cube and, if it runs, the Postgres copy of the demo data."""
+import os
 import time
 
 from lib import Metabase
@@ -18,7 +19,14 @@ for name, (host, port, rest) in DBS.items():
             "host": host, "port": port, "dbname": "cube", "user": "cube", "password": "cube-dev-only",
             "cube-rest-url": rest, "cube-api-secret": SECRET}})
         have[name] = d
-for name in DBS:
+# The Postgres copy is the second opinion on what a unit means in Metabase.
+names = list(DBS)
+if os.environ.get("REVIEW_POSTGRES") and "PG" not in have:
+    have["PG"] = mb.api("POST", "/api/database", {"engine": "postgres", "name": "PG", "details": {
+        "host": os.environ["REVIEW_POSTGRES"], "port": 5432, "dbname": "shop", "user": "shop", "password": "shop-dev-only", "ssl": False}})
+if "PG" in have:
+    names.append("PG")
+for name in names:
     for _ in range(100):
         d = mb.api("GET", "/api/database/%d" % have[name]["id"])
         if d.get("initial_sync_status") == "complete":

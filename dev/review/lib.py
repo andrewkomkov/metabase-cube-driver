@@ -13,8 +13,8 @@ import urllib.request
 
 MB = os.environ.get("REVIEW_MB", "http://127.0.0.1:13300")
 CH = os.environ.get("REVIEW_CH", "http://127.0.0.1:18123")
-ADMIN = "review@example.com"
-PASSWORD = "review-dev-only-1"
+ADMIN = os.environ.get("REVIEW_ADMIN", "review@example.com")
+PASSWORD = os.environ.get("REVIEW_PASSWORD", "review-dev-only-1")
 REDIRECT = "http://127.0.0.1:9/callback"
 SCOPES = "mcp"
 

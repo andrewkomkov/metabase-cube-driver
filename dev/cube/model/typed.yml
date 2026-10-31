@@ -14,7 +14,7 @@ cubes:
       - { name: ts_utc, sql: ts_utc, type: time, description: DateTime in UTC. }
       - { name: ts_ny, sql: ts_ny, type: time, description: DateTime in New York. }
       - { name: ts64_berlin, sql: ts64_berlin, type: time, description: DateTime64(3) in Berlin. }
-      - { name: day, sql: day, type: time, description: Date. }
+      - { name: day, sql: day, type: time, description: Date., meta: { date_only: true } }
       - { name: day32, sql: day32, type: time, description: Date32. }
       - { name: n_int, sql: n_int, type: number, description: Nullable(Int32). }
       - { name: n_str, sql: n_str, type: string, description: Nullable(String). }

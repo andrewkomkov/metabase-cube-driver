@@ -20,7 +20,7 @@
    [toucan2.core :as t2])
   (:import
    (java.sql ResultSet ResultSetMetaData Types)
-   (java.time DayOfWeek Instant LocalDate LocalDateTime OffsetDateTime ZoneId ZonedDateTime)
+   (java.time DayOfWeek Instant LocalDate LocalDateTime OffsetDateTime ZoneId ZoneOffset ZonedDateTime)
    (java.time.format DateTimeFormatter)
    (java.time.temporal ChronoUnit TemporalAdjusters)))
 
@@ -341,7 +341,7 @@
 ;;; `(x > t OR x IS NULL) AND x IS NOT NULL` has the same rows as `x > t`. A dialect that keeps the fraction needs none of this,
 ;;; so the driver asks Cube. See cube.probe/keeps-fractions?.
 
-(declare relative-time current-meta table-name-of-field)
+(declare bucket-rank bucket-start relative-time current-meta report-zone? table-name-of-field utc-time)
 
 (def ^:private ^:dynamic *keep-date-ranges*
   "Not nil if a measure of this query needs a date range, because it reads no other filter as a range: :rolling for a rolling
@@ -351,11 +351,6 @@
 (def ^:private ^:dynamic *inside-not*
   "True inside a NOT. Cube does not merge it into a date range, and the form with IS NULL would keep the rows with no value."
   false)
-
-(defmethod sql.qp/->honeysql [:cube :not]
-  [driver clause]
-  (binding [*inside-not* true]
-    ((get-method sql.qp/->honeysql [:postgres :not]) driver clause)))
 
 (defn- plain-bound-time
   "The time of the value in a comparison of a column with no time bucket, or nil."
@@ -413,47 +408,173 @@
   (when-let [cube-meta (current-meta)]
     (cube.probe/rollup-on-time? cube-meta (table-name-of-field field) (:name (stored-field field)))))
 
+;;; A report time zone. Cube reads the two bounds of a date range in the zone of the session. Each other bound, also one bound
+;;; next to another filter or inside OR or NOT, it reads as UTC. So the meaning of a literal depends on the other filters of the query.
+;;; The driver writes each bound in the form that Cube does not merge, with the literal in UTC. A time shift needs a date range, so
+;;; with a time shift the bounds stay in the zone, and check-time-shift-bounds! stops one bound alone.
+
+(defn- zone-bound-time
+  "The time in the zone of the session of a value in a comparison with a time, also a date with a unit, as a filter on a whole day
+  or month has it. Nil for a value that is not a time."
+  ^LocalDateTime [value]
+  (let [[tag _ a unit] (when (vector? value) value)]
+    (case tag
+      :absolute-datetime (when-let [t (session-time a)]
+                           (if (bucket-rank unit) (bucket-start unit t) t))
+      :relative-datetime (cond
+                           (number? a)    (relative-time a unit)
+                           (= :current a) (relative-time 0 unit))
+      nil)))
+
+(defn- post-processed-column?
+  "True if `field` is a column of an earlier stage with an aggregation. Cube keeps the limit on that stage, so this filter reads the
+  result of the stage, where a time is in the zone of the session. A column of raw rows goes to the scan of Cube."
+  [[_ _ id]]
+  (and (string? id)
+       (let [{:keys [aggregation breakout]} (:source-query sql.qp/*inner-query*)]
+         (or (seq aggregation) (seq breakout)))))
+
+(defn- zone-bound
+  "A comparison of `field` with a time, in the form for a report time zone, or nil if this comparison is not one."
+  [driver [op opts field value]]
+  (when (and (report-zone?)
+             (not= :shift *keep-date-ranges*)
+             (vector? field)
+             (= :field (first field))
+             (contains? #{nil :default} (:temporal-unit (second field)))
+             (not (post-processed-column? field)))
+    (when-let [t (zone-bound-time value)]
+      (let [compiled (postgres-clause driver [op opts field (at-time (utc-time t))])]
+        (if (or *inside-not* *inside-case*)
+          compiled
+          (not-merged driver field compiled))))))
+
+(defn- check-no-strict-bound-with-shift!
+  "A time shift needs a date range, and a date range on stock Cube has no form for `x > t` that is right for a DateTime64."
+  [field t]
+  (when (and t (= :shift *keep-date-ranges*) (not (exact-bounds? field)))
+    (throw (ex-info (str "This measure has a time shift, and it needs a date range. Stock Cube cannot write x > t in a date range so that "
+                         "it is right for a DateTime64, so the number could be wrong. Use >= with the next second, or install the "
+                         "ClickHouse dialect, see cube-clickhouse/README.md.")
+                    {:type :invalid-query}))))
+
 (defmethod sql.qp/->honeysql [:cube :>]
   [driver [_ opts field value :as clause]]
   (let [t (plain-bound-time field value)]
     (check-no-fraction! field t)
-    (cond
-      (or (nil? t) *inside-not*) (postgres-clause driver clause)
-      ;; A range that starts 1 ms after the end of a bucket would read that bucket, also with a dialect that keeps the fraction.
-      (= :rolling *keep-date-ranges*) (postgres-clause driver [:>= opts field (at-time (.plusSeconds (whole-second-down t) 1))])
-      (exact-bounds? field) (postgres-clause driver clause)
-      ;; A time shift needs a range, and stock Cube has no other way to write this bound in a range.
-      *keep-date-ranges* (postgres-clause driver [:>= opts field (at-time (.plusSeconds (whole-second-down t) 1))])
-      :else (not-merged driver field (postgres-clause driver clause)))))
+    (or
+     (zone-bound driver clause)
+     (cond
+       (or (nil? t) *inside-not*) (postgres-clause driver clause)
+       ;; A range that starts 1 ms after the end of a bucket would read that bucket, also with a dialect that keeps the fraction.
+       (= :rolling *keep-date-ranges*) (postgres-clause driver [:>= opts field (at-time (.plusSeconds (whole-second-down t) 1))])
+       (exact-bounds? field) (postgres-clause driver clause)
+       :else (do (check-no-strict-bound-with-shift! field t)
+                 (not-merged driver field (postgres-clause driver clause)))))))
 
 (defmethod sql.qp/->honeysql [:cube :>=]
   [driver [_ _opts field value :as clause]]
   (check-no-fraction! field (plain-bound-time field value))
-  (postgres-clause driver clause))
+  (or (zone-bound driver clause)
+      (postgres-clause driver clause)))
 
 (defmethod sql.qp/->honeysql [:cube :<]
   [driver [_ _opts field value :as clause]]
   (let [t (plain-bound-time field value)]
     (check-no-fraction! field t)
-    (if (or (nil? t) *inside-not* *keep-date-ranges* (exact-bounds? field) (rollup-on-column? field))
-      (postgres-clause driver clause)
-      (not-merged driver field (postgres-clause driver clause)))))
+    (or
+     (zone-bound driver clause)
+     (if (or (nil? t) *inside-not* *keep-date-ranges* (exact-bounds? field) (rollup-on-column? field))
+       (postgres-clause driver clause)
+       (not-merged driver field (postgres-clause driver clause))))))
 
 (defmethod sql.qp/->honeysql [:cube :<=]
   [driver [_ _opts field value :as clause]]
   (check-no-fraction! field (plain-bound-time field value))
-  (postgres-clause driver clause))
+  (or (zone-bound driver clause)
+      (postgres-clause driver clause)))
 
 (defmethod sql.qp/->honeysql [:cube :between]
-  [driver [_ _opts field low high :as clause]]
+  [driver [_ opts field low high :as clause]]
   (check-no-fraction! field (plain-bound-time field low) (plain-bound-time field high))
-  (postgres-clause driver clause))
-
-(doseq [op [:= :!=]]
-  (defmethod sql.qp/->honeysql [:cube op]
-    [driver [_ _opts field value :as clause]]
-    (check-no-fraction! field (plain-bound-time field value))
+  (if (and (zone-bound-time low) (zone-bound-time high) (zone-bound driver [:>= opts field low]))
+    [:and
+     (sql.qp/->honeysql driver [:>= opts field low])
+     (sql.qp/->honeysql driver [:<= opts field high])]
     (postgres-clause driver clause)))
+
+;; With a breakout on the same column, Cube reads `x = t` as the bucket that starts at `t`, and it returns the whole bucket. Two
+;; bounds give the rows at `t`.
+(defmethod sql.qp/->honeysql [:cube :=]
+  [driver [_ opts field value :as clause]]
+  (let [t (plain-bound-time field value)]
+    (check-no-fraction! field t)
+    (if (and t (not *inside-case*))
+      [:and
+       (sql.qp/->honeysql driver [:>= opts field value])
+       (sql.qp/->honeysql driver [:<= opts field value])]
+      (or (zone-bound driver clause)
+          (postgres-clause driver clause)))))
+
+(defmethod sql.qp/->honeysql [:cube :!=]
+  [driver [_ _opts field value :as clause]]
+  (check-no-fraction! field (plain-bound-time field value))
+  (or (zone-bound driver clause)
+      (postgres-clause driver clause)))
+
+;; SQL push-down compares whole seconds in NOT on stock Cube, and Cube reads the literal of a NOT as UTC. So NOT of a bound on a time
+;; is the opposite bound. Rows with no value stay out on both forms. See the docs in Known wrong numbers.
+(def ^:private opposite-bound
+  {:> :<=, :>= :<, :< :>=, :<= :>, := :!=, :!= :=})
+
+(defn- without-not
+  "The clause that has the rows of NOT `clause`, with no NOT around a bound on a time, or nil if the clause has none."
+  [clause]
+  (let [[op opts & args] (when (vector? clause) clause)]
+    (cond
+      (= :not op)  (first args)
+      (= :and op)  (into [:or opts] (map #(or (without-not %) [:not {} %])) args)
+      (= :or op)   (into [:and opts] (map #(or (without-not %) [:not {} %])) args)
+      (and (= :between op)
+           (plain-bound-time (first args) (second args))) [:or opts
+                                                           [:< opts (first args) (second args)]
+                                                           [:> opts (first args) (nth args 2)]]
+      (and (opposite-bound op)
+           (plain-bound-time (first args) (second args))) [(opposite-bound op) opts (first args) (second args)])))
+
+(defn- has-time-bound?
+  [clause]
+  (some #(and (vector? %)
+              (or (opposite-bound (first %)) (= :between (first %)))
+              (plain-bound-time (nth % 2 nil) (nth % 3 nil)))
+        (tree-seq vector? seq clause)))
+
+(defmethod sql.qp/->honeysql [:cube :not]
+  [driver [_ _opts inner :as clause]]
+  (if-let [opposite (when (has-time-bound? inner) (without-not inner))]
+    (sql.qp/->honeysql driver opposite)
+    (binding [*inside-not* true]
+      ((get-method sql.qp/->honeysql [:postgres :not]) driver clause))))
+
+;;; Text filters. Cube reads `x LIKE '%a%'` as its operator `contains`, and also `STRPOS(x, 'a') > 0`, `LEFT` and `RIGHT`. On ClickHouse
+;;; that operator ignores case, and in Metabase these filters are case sensitive by default. These forms are not an operator for Cube, so
+;;; they go to the database. `chr(31)` marks the end of the text for `ends-with`.
+
+(defn- case-sensitive?
+  [opts]
+  (:case-sensitive opts true))
+
+(doseq [[tag position-sql]
+        {:contains    (fn [column text] [:>= [:strpos column text] [:inline 1]])
+         :starts-with (fn [column text] [:= [:strpos column text] [:inline 1]])
+         :ends-with   (fn [column text]
+                        (let [end [:chr [:inline 31]]]
+                          [:>= [:strpos [:|| column end] [:|| text end]] [:inline 1]]))}]
+  (defmethod sql.qp/->honeysql [:cube tag]
+    [driver [_ opts field text :as clause]]
+    (if (case-sensitive? opts)
+      (position-sql (sql.qp/->honeysql driver field) (sql.qp/->honeysql driver text))
+      (postgres-clause driver clause))))
 
 (defn- zero-when-empty
   "Cube reads a rollup with SUM, so a count over no rows is NULL. SQL has 0 there. With a breakout there are no rows."
@@ -471,7 +592,7 @@
 ;;; total of all rows, and a date filter that ends inside a bucket does not limit the window. Both give a number that
 ;;; looks right, so the driver stops these queries.
 
-(declare start-of-week-index)
+(declare full-member-name start-of-week-index)
 
 (def ^:private bucket-rank
   "The units that make a time series, from small to large."
@@ -493,6 +614,17 @@
     ZonedDateTime  (LocalDateTime/ofInstant (.toInstant ^ZonedDateTime t) (session-zone))
     Instant        (LocalDateTime/ofInstant ^Instant t (session-zone))
     nil))
+
+(defn- report-zone?
+  "True if the session has a time zone with another time than UTC."
+  []
+  (let [rules (.getRules (session-zone))]
+    (not (and (.isFixedOffset rules) (zero? (.getTotalSeconds (.getOffset rules (Instant/EPOCH))))))))
+
+(defn- utc-time
+  "The local time `t` of the zone of the session, as a local time in UTC."
+  ^LocalDateTime [^LocalDateTime t]
+  (LocalDateTime/ofInstant (.toInstant (.atZone t (session-zone))) ZoneOffset/UTC))
 
 (defn- bucket-start
   ^LocalDateTime [unit ^LocalDateTime t]
@@ -680,6 +812,15 @@
           :=         (every? #(and (on-boundary false %) (on-boundary true %)) values)
           false)))))
 
+(defn- rolling-time-member
+  "The full name of the time dimension of the bucket of this stage."
+  [stage earlier]
+  (some (fn [clause]
+          (let [field (column-field earlier clause)]
+            (when (and (= :dimension (field-kind field)) (bucket-rank (:temporal-unit (second clause))))
+              (str (:name (driver-api/table (driver-api/metadata-provider) (:table-id field))) "." (:name field)))))
+        (:breakout stage)))
+
 (defn- check-rolling-measure!
   "`stages` are the stages up to and including the one with the measure. A filter of an earlier stage goes to the same scan
   of Cube, so it counts too."
@@ -692,6 +833,17 @@
                                    "filter.")
                               measure-name)
                       {:type :invalid-query})))
+    (when (report-zone?)
+      (throw (ex-info (format (str "%s is a rolling window measure. With a report time zone that is not UTC, Cube adds the wrong months "
+                                   "together, so the number would be wrong. Remove the report time zone, or use a measure with no "
+                                   "rolling window and a date filter.")
+                              measure-name)
+                      {:type :invalid-query})))
+    (when-let [reason (cube.probe/rolling-window-reason (:details (driver-api/database (driver-api/metadata-provider)))
+                                                        (full-member-name field)
+                                                        (rolling-time-member (peek stages) (pop stages))
+                                                        unit)]
+      (throw (ex-info reason {:type :invalid-query})))
     (doseq [i     (range (count stages))
             :let  [earlier (subvec stages 0 i)
                    same?   #(= field-id (:id (column-field earlier %)))]
@@ -795,6 +947,54 @@
                                     (:name field))
                             {:type :invalid-query}))))))))
 
+(defn- bound-sides
+  "The sides of the date range that the bounds in `filters` make on the time columns: :lower and :upper, for an AND of plain bounds."
+  [earlier filters]
+  (let [time? #(time-field? (column-field earlier %))]
+    (into #{}
+          (mapcat (fn [[op _ field]]
+                    (when (time? field)
+                      (case op
+                        (:> :>=) [:lower]
+                        (:< :<=) [:upper]
+                        (:between :=) [:lower :upper]
+                        nil))))
+          (mapcat (fn [clause] (if (= :and (first clause)) (drop 2 clause) [clause])) filters))))
+
+(defn- check-time-shift-bounds!
+  "A measure with a time shift reads a date range. One bound alone is not a range, so Cube returns months outside the filter."
+  [stages]
+  (let [stage   (peek stages)
+        earlier (pop stages)
+        sides   (bound-sides earlier (:filters stage))]
+    (when (= 1 (count sides))
+      (when-let [cube-meta (current-meta)]
+        (let [details (:details (driver-api/database (driver-api/metadata-provider)))]
+          (doseq [field (aggregated-measure-fields earlier stage)
+                  :let  [table-name (:name (driver-api/table (driver-api/metadata-provider) (:table-id field)))]
+                  :when (cube.probe/time-shift? details cube-meta table-name (full-member-name field))]
+            (throw (ex-info (format (str "%s has a time shift, and Cube reads it only with a date range. This filter has one bound, so "
+                                         "Cube would return periods outside the filter. Give the filter a lower and an upper bound.")
+                                    (:name field))
+                            {:type :invalid-query}))))))))
+
+(defn- check-date-only-columns!
+  "With a report time zone, stock Cube reads a Date as a time at midnight UTC, so it moves to another day. Cube does not show the type of
+  a column, so this acts on a dimension that the model marks with `meta: { date_only: true }`."
+  [earlier {:keys [breakout filters fields aggregation expressions]}]
+  (when (report-zone?)
+    (when-let [cube-meta (current-meta)]
+      (doseq [clause (field-clauses [breakout filters fields aggregation expressions])
+              :let   [field (column-field earlier clause)]
+              :when  (and field
+                          (cube.probe/date-only? cube-meta (full-member-name field))
+                          (not (exact-bounds? clause)))]
+        (throw (ex-info (format (str "%s is a Date column, and stock Cube reads it as a time at midnight UTC. With a report time zone "
+                                     "that is not UTC, each row can move to another day, so the number would be wrong. Remove the report "
+                                     "time zone, or install the ClickHouse dialect, see cube-clickhouse/README.md.")
+                                (:name field))
+                        {:type :invalid-query}))))))
+
 (defn- check-custom-granularities!
   "A breakout on a dimension that reads a custom granularity, with a measure that a rollup serves."
   [stages]
@@ -868,6 +1068,8 @@
       (check-equal-sql-breakout! (pop upto) stage)
       (check-aggregations! upto)
       (check-time-shift! upto)
+      (check-time-shift-bounds! upto)
+      (check-date-only-columns! (pop upto) stage)
       (check-custom-granularities! upto))))
 
 (defn- needs-date-ranges
@@ -1364,6 +1566,8 @@
   "The answers from Cube that the scan of native SQL needs. See cube.native/check-native!."
   [details cube-meta]
   {:keeps-fractions? (cube.probe/keeps-fractions? details cube-meta nil)
+   :report-zone?     (report-zone?)
+   :rolling-reason   (partial cube.probe/rolling-window-reason details)
    :time-shift?      (partial cube.probe/time-shift? details cube-meta)
    :wrong-bin-reason (partial cube.probe/wrong-bin-reason details cube-meta)})
 
@@ -1420,7 +1624,13 @@
 
 (defmethod sql.qp/date [:cube :second-of-minute] [_ _ expr] (since :second :minute expr))
 (defmethod sql.qp/date [:cube :minute-of-hour]   [_ _ expr] (since :minute :hour expr))
-(defmethod sql.qp/date [:cube :hour-of-day]      [_ _ expr] (since :hour :day expr))
+;; DATEDIFF counts boundaries of hours in absolute time. In a zone with an offset of part of an hour, each row is one hour too high, and on the day
+;; of a clock change the rows move. The text of the time has the hour on the clock, and it goes to the database with no bucket.
+(defmethod sql.qp/date [:cube :hour-of-day]
+  [_ _ expr]
+  (if (report-zone?)
+    (h2x/cast "double precision" [:substr (h2x/cast "text" expr) [:inline 12] [:inline 2]])
+    (since :hour :day expr)))
 (defmethod sql.qp/date [:cube :day-of-month]     [_ _ expr] [:+ (since :day :month expr) [:inline 1]])
 (defmethod sql.qp/date [:cube :day-of-year]      [_ _ expr] [:+ (since :day :year expr) [:inline 1]])
 (defmethod sql.qp/date [:cube :month-of-year]    [_ _ expr] [:+ (since :month :year expr) [:inline 1]])
@@ -1447,9 +1657,29 @@
         first-day   [:% [:+ [:% [:- (weekday-from start expr) days-before] [:inline 7]] [:inline 7]] [:inline 7]]]
     [:+ [:floor [:/ [:+ days-before first-day] [:inline 7.0]]] [:inline 1]]))
 
+;; Metabase core defines this unit as ceil(day-of-year(week(x)) / 7), so it is the same number on each database. A week can start in the year
+;; before, and Cube cannot add an interval to a time, so this reads the day of the year where the week starts. 0 or less is a day of the year
+;; before. That year has 365 or 366 days, so the week is 53 for the last day of that year and for
+;; the day before it in a long year, and 52 for each earlier day.
+(defn- long-year-before
+  [expr]
+  (let [year-before [:+ (datediff :year [:raw "TIMESTAMP '1970-01-01 00:00:00'"] expr) [:inline 1969]]
+        divides?    (fn [n] [:= [:% year-before [:inline n]] [:inline 0]])]
+    [:and (divides? 4) [:or [:not (divides? 100)] (divides? 400)]]))
+
+(defn- week-of-year-of-week-start
+  "`day` is the day of the year where the week starts, from 1."
+  [start expr]
+  (let [day [:+ [:- (since :day :year expr) (weekday-from start expr)] [:inline 1]]]
+    [:case
+     [:>= day [:inline 1]]                                       [:floor [:/ [:+ day [:inline 6]] [:inline 7.0]]]
+     [:or [:= day [:inline 0]]
+      [:and [:= day [:inline -1]] (long-year-before expr)]]      [:inline 53.0]
+     :else                                                       [:inline 52.0]]))
+
 (defmethod sql.qp/date [:cube :week-of-year]
   [_driver _unit expr]
-  (week-of-year-from (start-of-week-index) expr))
+  (week-of-year-of-week-start (start-of-week-index) expr))
 
 (defmethod sql.qp/date [:cube :week-of-year-instance]
   [_driver _unit expr]
@@ -1568,6 +1798,9 @@
    ["Stream query failed"
     (str "Cube cannot read a rollup_lambda on ClickHouse with a range that reads source rows. Add a date "
          "filter inside the range of the rollup, or read this measure from a plain rollup.")]
+   ["doesn't look like datepart name in dateTrunc"
+    (str "Cube cannot use a custom granularity next to this filter, such as NOT of a group. Change the filter, or set the first day of "
+         "the week to Monday in Metabase.")]
    ["Date range is required for time series"
     (str "Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the "
          "same time column. Add a date filter.")]])
@@ -1606,6 +1839,15 @@
                                    (native-questions (:details (driver-api/database (driver-api/metadata-provider))) cube-meta))
         (cube.native/check-paths! cube-meta sql)))))
 
+(defn- with-count-on-no-rows
+  "See cube.native/count-on-no-rows."
+  [{{sql :query} :native, :as query}]
+  (if (and (string? sql) (not (sync-query? query)) (native-only? query))
+    (if-let [cube-meta (current-meta)]
+      (assoc-in query [:native :query] (cube.native/count-on-no-rows cube-meta sql))
+      query)
+    query))
+
 ;;; Numbers above 2^53. The Cube SQL API has the type Double for a number, and the ClickHouse driver of Cube reads JSON numbers, so
 ;;; these lost digits before they reach this driver. The driver cannot get them back, so it stops the query.
 
@@ -1637,7 +1879,7 @@
   (check-sql! query)
   (try
     (binding [*stop-big-numbers* (not (sync-query? query))]
-      (sql-jdbc.execute/execute-reducible-query driver query context respond))
+      (sql-jdbc.execute/execute-reducible-query driver (with-count-on-no-rows query) context respond))
     (catch Exception e
       (if-let [text (clear-error (exception-text e))]
         (throw (ex-info text {:type :invalid-query}))

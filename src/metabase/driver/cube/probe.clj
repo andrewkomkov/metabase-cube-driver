@@ -149,6 +149,71 @@
                               (catch Exception _ false)))
                           (time-dimensions-to-try cube-meta cube))))))))))
 
+;;; Rolling windows. /v1/meta shows a rolling window as `cumulative: true`, with no size. The join of the window in /v1/sql shows it.
+
+(def ^:private unit-days
+  "The usual length of each unit in days. A window of 30 days is as long as a month, because a person who writes it means this."
+  {"minute" 1/1440, "hour" 1/24, "day" 1, "week" 7, "month" 30, "quarter" 90, "year" 365})
+
+(defn- join-of-window
+  [text]
+  (some-> (re-find #"(?is)\bJOIN\b.*?rolling_source.*?\bON\b(.*?)\bGROUP BY\b" text) second))
+
+(defn- window-days
+  "The length of the window in the text of its join: {:days n, :kind :size or :to-date}, or nil for an unbounded window or no answer."
+  [join]
+  (when join
+    (let [[_ amount size-unit]   (re-find #"(?i)INTERVAL\s+'?(\d+)\s+(minute|hour|day|week|month|quarter|year)" join)
+          [_ start-of]           (re-find #"(?i)toStartOf(Minute|Hour|Day|Week|Month|Quarter|Year)\b" join)
+          [_ trunc]              (re-find #"(?i)date_trunc\s*\(\s*'(minute|hour|day|week|month|quarter|year)'" join)]
+      (cond
+        amount (let [days (unit-days (str/lower-case size-unit))]
+                 {:days (* (Long/parseLong amount) days), :text (str amount " " (str/lower-case size-unit)), :kind :size})
+        (or start-of trunc) (let [unit (str/lower-case (or start-of trunc))]
+                              {:days (unit-days unit), :text (str unit " to date"), :kind :to-date})))))
+
+(defn- rolling-sql
+  [details measure time-dimension unit]
+  (cached details [:rolling-sql measure time-dimension unit]
+          (fn []
+            (try
+              (:text (sql-of details {:measures       [measure]
+                                      :timeDimensions [{:dimension time-dimension, :granularity (name unit)
+                                                        :dateRange ["2025-01-01" "2025-06-30"]}]
+                                      :limit          1}))
+              (catch Exception _ nil)))))
+
+(defn- legacy-stock-planner?
+  "The legacy planner names the series after the time dimension. Stock Cube writes it with two arrayJoin calls in one SELECT, and these give a
+  cross product of the bounds. The dialect writes arrayZip."
+  [text]
+  (and (boolean (re-find #"\.[A-Za-z0-9_]+_series\b" text))
+       (str/includes? text "arrayJoin")
+       (not (str/includes? text "arrayZip"))))
+
+(defn rolling-window-reason
+  "A text if this rolling window by this bucket gives a wrong number, or nil. With no answer from Cube this stops nothing."
+  [details measure time-dimension unit]
+  (when-let [text (and measure time-dimension (rolling-sql details measure time-dimension unit))]
+    (let [short-name (last (str/split measure #"\."))]
+      (if (legacy-stock-planner? text)
+        (format (str "%s is a rolling window measure. With CUBEJS_TESSERACT_SQL_PLANNER=false, stock Cube gives each bucket one wrong number. "
+                     "Remove this setting, or install the ClickHouse dialect, see cube-clickhouse/README.md.")
+                short-name)
+        (when-let [{:keys [days] window-text :text} (window-days (join-of-window text))]
+          (when (< days (get unit-days (name unit) 0))
+            (format (str "%s is a rolling window measure with a window of %s, which is shorter than a %s. Cube does not show one number "
+                         "that this can mean for a %s: it can add the windows of the whole bucket. Group by a bucket that is not longer "
+                         "than the window.")
+                    short-name window-text (name unit) (name unit))))))))
+
+;;; Date columns.
+
+(defn date-only?
+  "True if the data model marks the dimension with this full name with `meta: { date_only: true }`. Cube does not show the type of a column."
+  [cube-meta full-name]
+  (boolean (:date_only (:meta (:dimension (member-of cube-meta (root-member cube-meta full-name :dimension)))))))
+
 ;;; Custom granularities. Cube Store rounds toward zero, so a time before the origin of a granularity in months gets the wrong
 ;;; bin. No released Cube has a fix. See docs/cube-audit.md#gran.
 

@@ -15,8 +15,10 @@ class ClickHouseFixes extends ClickHouseQuery {
 
   // datetime64: https://github.com/cube-js/cube/pull/12533
   // Precision 0 drops the milliseconds of a selected time and of a time in SQL push-down.
+  // M3: no pull request yet, see docs/review/0.1.0-final.md. toDateTime64 with the zone keeps the instant of a DateTime, and it reads a Date as
+  // midnight in that zone. toTimeZone(toDateTime64(x, 3), zone) reads a Date as midnight UTC, so it moves to the day before, west of UTC.
   convertTz(field) {
-    return `toTimeZone(toDateTime64(${field}, 3), '${this.timezone}')`;
+    return `toDateTime64(${field}, 3, '${this.timezone}')`;
   }
 
   // N2: no pull request yet, branch fix/clickhouse-legacy-time-series, see docs/cube-audit.md#n2.

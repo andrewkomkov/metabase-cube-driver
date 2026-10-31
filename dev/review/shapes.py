@@ -579,11 +579,11 @@ def grid_native():
         n("rolling_between_mid", "SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_mtd) FROM orders WHERE created_at BETWEEN TIMESTAMP '2025-03-15 00:00:00' AND TIMESTAMP '2025-03-31 23:59:59' GROUP BY 1", None, expect="refusal"),
         n("rolling_day_trunc_in", "SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_mtd) FROM orders WHERE DATE_TRUNC('day', created_at) >= '2025-03-15' AND created_at < '2025-05-01' GROUP BY 1", None, expect="refusal"),
         n("rolling_hidden_upper_case", "select date_trunc('month', CREATED_AT), measure(revenue_mtd) from orders where CREATED_AT >= '2025-03-15' and CREATED_AT < '2025-05-01' group by 1", None, expect="refusal"),
-        n("switch_star", "SELECT status, display_currency FROM orders WHERE id = 1", "SELECT status, NULL FROM %s WHERE id = 1" % O, known="README: raw select of a switch dimension"),
+        n("switch_star", "SELECT status, display_currency FROM orders WHERE id = 1", None, expect="refusal"),
         n("select_star_rows", "SELECT id FROM orders WHERE id = 1", "SELECT 1"),
-        n("star", "SELECT * FROM orders WHERE id = 1 LIMIT 100", None, kind="row_count", want_rows=1, known="README: native SELECT *"),
+        n("star", "SELECT * FROM orders WHERE id = 1 LIMIT 100", None, expect="refusal"),
         n("sum_price_join", "SELECT o.status, SUM(p.price) FROM orders o JOIN products p ON o.__cubeJoinField = p.__cubeJoinField GROUP BY 1",
-          "SELECT o.status, sum(p.price) FROM %s o JOIN shop.products p ON o.product_id = p.id GROUP BY 1" % O, known="docs: native sum of a joined dimension"),
+          None, expect="refusal"),
         n("cross_join", "SELECT MEASURE(o.revenue), u.city FROM orders o CROSS JOIN users u GROUP BY 2", "SELECT sum(o.amount), u.city FROM %s GROUP BY 2" % J),
         n("sum_decimal_dim", "SELECT SUM(amount_dim) FROM orders", "SELECT sum(amount) FROM %s" % O),
         n("avg_measure_col", "SELECT AVG(revenue) FROM orders", None, soft=True),
@@ -678,6 +678,38 @@ def grid_followup():
         ("join_having", "SELECT SUM(r) FROM (SELECT DATE_TRUNC('month', created_at) b, MEASURE(revenue) r FROM orders GROUP BY 1) t HAVING MIN(b) IS NOT NULL"),
     ]:
         out.append({"id": "follow/subquery_native/" + name, "native": sql, "truth": R if name != "join_having" else "SELECT sum(amount) FROM %s" % O})
+    # An equality on a time in native SQL next to a bucket, finding B1.
+    out.append({"id": "follow/eq_native/orders_month", "native": "SELECT DATE_TRUNC('month', created_at), MEASURE(count) FROM orders WHERE created_at = TIMESTAMP '2025-03-01 00:00:00' GROUP BY 1", "truth": None, "expect": "refusal"})
+    out.append({"id": "follow/eq_native/no_bucket", "native": "SELECT MEASURE(count) FROM orders WHERE created_at = TIMESTAMP '2025-03-15 05:00:00'", "truth": "SELECT countIf(created_at = '2025-03-15 05:00:00') FROM %s" % O})
+    # Each form that Cube reads as its text operator, and a form with the case kept.
+    for name, cond, tr in [("strpos_gt", "STRPOS(status, 'COMP') > 0", None), ("left", "LEFT(status, 4) = 'COMP'", None), ("right", "RIGHT(status, 2) = 'ED'", None),
+                           ("strpos_ge", "STRPOS(status, 'COMP') >= 1", "SELECT 0"), ("strpos_start", "STRPOS(status, 'comp') = 1", "SELECT countIf(status LIKE 'comp%%') FROM %s" % O),
+                           ("exact_like", "status LIKE 'COMPLETED'", "SELECT 0")]:
+        out.append(dict({"id": "follow/case_native/" + name, "native": "SELECT COALESCE(MEASURE(count), 0) FROM orders WHERE " + cond, "truth": tr}, **({} if tr else {"expect": "refusal"})))
+    # A text filter inside a NOT, a CASE and with a measure of each kind.
+    out.append({"id": "follow/case/not_group", "table": "orders", "agg": ["m:orders.count"], "by": [], "where": [["not", ["or", ["contains", STA, "COMP"], ["=", STA, "shipped"]]]], "truth": "SELECT countIf(NOT (status LIKE '%%COMP%%' OR status = 'shipped')) FROM %s" % O})
+    out.append({"id": "follow/case/count_where", "table": "orders", "agg": [["count-where", ["contains", STA, "ship"]]], "by": [], "where": [], "truth": "SELECT countIf(status LIKE '%%ship%%') FROM %s" % O})
+    out.append({"id": "follow/case/distinct", "table": "orders", "agg": ["m:orders.unique_customers"], "by": [], "where": [["ends-with", STA, "ed"]], "truth": "SELECT uniqExact(user_id) FROM %s WHERE status LIKE '%%ed'" % O})
+    out.append({"id": "follow/case/ends_with_mark", "table": "orders", "agg": ["m:orders.count"], "by": [], "where": [["ends-with", STA, "pp"]], "truth": "SELECT 0"})
+    # A window that is shorter than the bucket, finding M1. A window as long as the bucket has a truth in grid_time.
+    for m, unit, where in [("revenue_mtd", "quarter", [[">=", CRT, "2025-01-01"], ["<", CRT, "2025-07-01"]]), ("revenue_mtd", "year", [[">=", CRT, "2025-01-01"], ["<", CRT, "2026-01-01"]]),
+                           ("revenue_trailing_30d", "quarter", [[">=", CRT, "2025-01-01"], ["<", CRT, "2025-07-01"]]), ("revenue_leading_7d", "month", WHOLE)]:
+        out.append({"id": "follow/window_short/%s/%s" % (m, unit), "table": "orders", "agg": ["m:orders.%s" % m], "by": [CRT + "@" + unit], "where": where, "truth": None, "expect": "refusal"})
+        out.append({"id": "follow/window_short_native/%s/%s" % (m, unit), "native": "SELECT DATE_TRUNC('%s', created_at), MEASURE(%s) FROM orders WHERE created_at >= '%s' AND created_at < '%s' GROUP BY 1" % (unit, m, where[0][2], where[1][2]), "truth": None, "expect": "refusal"})
+    # A time shift with one bound or a strict bound, finding M4.
+    out.append({"id": "follow/shift/one_bound", "table": "orders", "agg": ["m:orders.revenue_prior_month"], "by": [CRT + "@month"], "where": [[">=", CRT, "2025-11-01"]], "truth": None, "expect": "refusal"})
+    # NOT of a bound, finding M4. Stock Cube compares whole seconds inside a NOT.
+    d = "d:typed_events."
+    out.append({"id": "follow/not/group", "table": "typed_events", "agg": ["m:typed_events.count"], "by": [], "where": [["not", ["or", [">", d + "ts64_berlin", "2025-03-01T02:00:00"], ["=", d + "lc", "nope"]]]],
+                "truth": "SELECT countIf(NOT (ts64_berlin > toDateTime64('2025-03-01 02:00:00', 3, 'UTC') OR lc = 'nope')) FROM shop.typed_events"})
+    out.append({"id": "follow/not/between", "table": "typed_events", "agg": ["m:typed_events.count"], "by": [], "where": [["not", ["between", d + "ts64_berlin", "2025-03-01T02:00:00", "2025-03-05T02:00:00"]]],
+                "truth": "SELECT countIf(NOT (ts64_berlin >= toDateTime64('2025-03-01 02:00:00', 3, 'UTC') AND ts64_berlin <= toDateTime64('2025-03-05 02:00:00', 3, 'UTC'))) FROM shop.typed_events"})
+    # Native count on no rows, also on the measure of a cube with a rollup.
+    for name, sql in [("star", "SELECT COUNT(*) FROM orders WHERE status = 'nope'"), ("one", "SELECT COUNT(1) c FROM orders WHERE status = 'nope'"), ("measure", "SELECT MEASURE(count) FROM orders WHERE status = 'nope'"), ("distinct", "SELECT COUNT(DISTINCT user_id) FROM orders WHERE status = 'nope'"), ("no_rollup", "SELECT COUNT(*) FROM typed_events WHERE lc = 'nope'"), ("with_rows", "SELECT COUNT(*) FROM orders WHERE status = 'shipped'")]:
+        out.append({"id": "follow/count_native/" + name, "native": sql, "truth": "SELECT countIf(status = 'shipped') FROM %s" % O if name == "with_rows" else "SELECT 0"})
+    # The native form of a known limit of stock Cube.
+    out.append({"id": "edge/ts64_native_half_open", "native": "SELECT MEASURE(count) FROM typed_events WHERE ts64_berlin >= '2025-03-01 02:00:00' AND ts64_berlin < '2025-03-01 03:00:00'",
+                "truth": "SELECT countIf(ts64_berlin >= toDateTime64('2025-03-01 02:00:00', 3, 'UTC') AND ts64_berlin < toDateTime64('2025-03-01 03:00:00', 3, 'UTC')) FROM shop.typed_events"})
     return out
 
 
