@@ -676,9 +676,12 @@ cubes:
         use_original_sql_pre_aggregations: true
         indexes:
           - { name: idx, columns: [status] }
+      # The dialect does not use this index. Stock Cube stops with no index, and that stops its refresh worker too.
       - name: base
         type: original_sql
         external: false
+        indexes:
+          - { name: idx, columns: [status] }
 
   - name: pa_original_external
     title: Rollup original SQL in Cube Store
@@ -691,7 +694,11 @@ cubes:
     measures:
       - { name: revenue, type: sum, sql: amount, description: Reads the original_sql table. }
     pre_aggregations:
-      - { name: base, type: original_sql, external: true }
+      - name: base
+        type: original_sql
+        external: true
+        indexes:
+          - { name: idx, columns: [status] }
 
   - name: pa_join_sales
     title: Rollup join sales
@@ -839,20 +846,6 @@ cubes:
         build_range_end: { sql: "SELECT toDateTime('2026-01-31 23:59:59', 'UTC')" }
         indexes:
           - { name: idx, columns: [status] }
-
-  - name: pa_no_index
-    title: Rollup with no index
-    description: The smallest form in the docs. It has no index.
-    sql_table: shop.orders
-    refresh_key: { every: 1 hour }
-    dimensions:
-      - { name: id, sql: id, type: number, primary_key: true, public: true }
-      - { name: status, sql: status, type: string, description: Order status. }
-      - { name: created_at, sql: created_at, type: time, description: Time of the order. }
-    measures:
-      - { name: revenue, type: sum, sql: amount, description: In a rollup with no index. }
-    pre_aggregations:
-      - { name: plain, measures: [revenue], dimensions: [status], time_dimension: created_at, granularity: month }
 
   - name: pa_nulls
     title: Rollup with NULL in a key

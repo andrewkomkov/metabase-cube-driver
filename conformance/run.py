@@ -7512,11 +7512,7 @@ def _(ctx):
         raise Fail("the refresh worker now goes on with this rollup. Give this entry its full status")
     finally:
         os.remove(PROBE_FILE)
-        for _ in range(60):
-            status, text, _h = http("GET", CUBE + "/cubejs-api/v1/meta")
-            if status == 200 and "pa_approx" not in text:
-                break
-            time.sleep(2)
+        pa_wait_for_meta(False, "pa_approx")
 
 
 # ----- rolling windows and multi-stage measures read a rollup too
@@ -7802,30 +7798,77 @@ PA("preagg.option.two_time_dimensions_hit", pa_query([OPT + "rev_two_times"], []
    "SELECT toDate(created_at), sum(amount) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-03-03' GROUP BY 1", ["pa_options_two_times"])
 
 
+PA_NO_INDEX_MODEL = """cubes:
+  - name: pa_no_index
+    sql_table: shop.orders
+    refresh_key: { every: 1 hour }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string }
+      - { name: created_at, sql: created_at, type: time }
+    measures:
+      - { name: revenue, type: sum, sql: amount }
+    pre_aggregations:
+      - { name: plain, measures: [revenue], dimensions: [status], time_dimension: created_at, granularity: month }
+"""
+
+
+def pa_wait_for_meta(present, cube):
+    for _ in range(90):
+        status, text, _h = http("GET", CUBE + "/cubejs-api/v1/meta")
+        if status == 200 and ('"%s"' % cube in text) == present:
+            return
+        time.sleep(2)
+    raise Fail("Cube did not reload the model, cube %s" % cube)
+
+
 @check("preagg.option.no_index")
 def _(ctx):
-    """The dialect builds the smallest form of the docs. Stock Cube stops each query on it with a clear error."""
+    """The dialect builds the smallest form of the docs. Stock Cube stops each query on it, and each run of the refresh worker, so the live model has no such rollup."""
     query = pa_query(["pa_no_index.revenue"], ["pa_no_index.status"])
-    if DIALECT:
-        res = pa_load(query)
-        pa_expect_used(res, ["pa_no_index_plain"], query)
-        assert_rows(pa_rows(res, query), ch("SELECT status, sum(amount) FROM orders GROUP BY 1"))
-        return
-    status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
-    if status == 200 or "without indexes" not in text:
-        raise Fail("stock Cube changed: %s" % text[:200])
+    start = time.time()
+    with open(PROBE_FILE, "w", encoding="utf-8") as f:
+        f.write(PA_NO_INDEX_MODEL)
+    try:
+        pa_wait_for_meta(True, "pa_no_index")
+        if DIALECT:
+            res = pa_load(query)
+            pa_expect_used(res, ["pa_no_index_plain"], query)
+            assert_rows(pa_rows(res, query), ch("SELECT status, sum(amount) FROM orders GROUP BY 1"))
+            return
+        status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
+        if status == 200 or "without indexes" not in text:
+            raise Fail("stock Cube changed: %s" % text[:200])
+        for _ in range(45):
+            if pa_refresh_errors("%ds" % (time.time() - start + 1)):
+                return
+            time.sleep(2)
+        raise Fail("the refresh worker of stock Cube now goes on with this rollup")
+    finally:
+        os.remove(PROBE_FILE)
+        pa_wait_for_meta(False, "pa_no_index")
 
 
 # ----- original_sql, use_original_sql_pre_aggregations, rollup_join and rollup_lambda
+
+
+def pa_stock_stops(query):
+    """Stock Cube stops this form on ClickHouse with its own error, so no number can be wrong."""
+    status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
+    for _ in range(60):
+        if json.loads(text).get("error") != "Continue wait":
+            break
+        time.sleep(2)
+        status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
+    if status == 200:
+        raise Fail("stock Cube now gives a result: %s. Give this entry its full status" % text[:200])
 
 
 @check("preagg.type.original_sql_in_clickhouse")
 def _(ctx):
     query = pa_query(["pa_original.orders"], ["pa_original.status"])
     if not DIALECT:
-        status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
-        if status == 200 or "without indexes" not in text:
-            raise Fail("stock Cube changed: %s" % text[:200])
+        pa_stock_stops(query)
         return
     res = pa_load(query)
     pa_expect_used(res, ["pa_original_base"], query, external=False)
@@ -7836,9 +7879,7 @@ def _(ctx):
 def _(ctx):
     query = pa_query(["pa_original_external.revenue"], ["pa_original_external.status"])
     if not DIALECT:
-        status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
-        if status == 200 or "without indexes" not in text:
-            raise Fail("stock Cube changed: %s" % text[:200])
+        pa_stock_stops(query)
         return
     res = pa_load(query)
     pa_expect_used(res, ["pa_original_external_base"], query)
@@ -7848,9 +7889,7 @@ def _(ctx):
 def pa_rollup_over_original(query, truth):
     def run(ctx):
         if not DIALECT:
-            status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
-            if status == 200 or "without indexes" not in text:
-                raise Fail("stock Cube changed: %s" % text[:200])
+            pa_stock_stops(query)
             return
         res = pa_load(query)
         pa_expect_used(res, ["pa_original_base", "pa_original_main"], query)
