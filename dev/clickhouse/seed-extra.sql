@@ -33,3 +33,26 @@ INSERT INTO shop.metric_sales SELECT i, ['web', 'store', 'phone'][1 + i % 3], to
 
 -- A table that the checks of refresh_key change.
 CREATE TABLE IF NOT EXISTS shop.pa_mutable (id Int64, kind LowCardinality(String), ts DateTime('UTC'), amount Decimal(14, 2), version Int64) ENGINE = MergeTree ORDER BY id;
+
+-- Rows on each side of midnight in UTC, New York and Kolkata, for each day from 2024-11-25 to 2026-01-10, and two rows inside a day.
+-- The same instant has each form of a day: a UTC column, a column typed in the zone, and a day that the ETL stored. See dev/cube/model/zone_day.yml.jinja.
+CREATE TABLE IF NOT EXISTS shop.zone_events (
+  id Int32, ts DateTime('UTC'), ts64 DateTime64(3, 'UTC'), ts_ny DateTime('America/New_York'), ts_kol DateTime('Asia/Kolkata'),
+  ny_day Date, ny_day_s String, kol_day Date, kol_day_s String,
+  user_id Int32, status LowCardinality(String), quantity Int32, amount Decimal(12, 2)) ENGINE = MergeTree ORDER BY id;
+INSERT INTO shop.zone_events
+SELECT i, t, addMilliseconds(toDateTime64(t, 3, 'UTC'), i % 1000), t, t,
+       toDate(t, 'America/New_York'), toString(toDate(t, 'America/New_York')), toDate(t, 'Asia/Kolkata'), toString(toDate(t, 'Asia/Kolkata')),
+       toInt32(1 + (i * 13) % 50), ['completed', 'shipped', 'processing', 'cancelled', 'completed'][1 + (i * 7) % 5], toInt32(1 + (i * 11) % 4),
+       toDecimal64(1 + (i * 37) % 97, 2) + toDecimal64((i * 3) % 100, 2) / 100
+FROM (
+  SELECT toInt32(d * 8 + p.1) AS i, p.2 AS t
+  FROM (
+    SELECT number AS d, toDate('2024-11-25') + number AS day,
+      arrayJoin(arrayZip(range(1, 9), [
+        toTimeZone(toDateTime(day, 'America/New_York') - 1, 'UTC'), toTimeZone(toDateTime(day, 'America/New_York'), 'UTC'),
+        toTimeZone(toDateTime(day, 'UTC') - 1, 'UTC'), toTimeZone(toDateTime(day, 'UTC'), 'UTC'),
+        toTimeZone(toDateTime(day, 'Asia/Kolkata') - 1, 'UTC'), toTimeZone(toDateTime(day, 'Asia/Kolkata'), 'UTC'),
+        toTimeZone(toDateTime(day, 'UTC') + 43200 + number % 3600, 'UTC'), toTimeZone(toDateTime(day, 'UTC') + 61200 + number % 3600, 'UTC')])) AS p
+    FROM numbers(412)))
+WHERE (SELECT count() FROM shop.zone_events) = 0;

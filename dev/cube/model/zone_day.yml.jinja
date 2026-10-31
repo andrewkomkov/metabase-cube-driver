@@ -1,0 +1,124 @@
+# The catalog of metrics on each form that a day in a zone has in ClickHouse. The truth of each measure is toDate(ts, zone) on ClickHouse. See conformance/run.py.
+{%- set zones = [
+  {'p': 'ny', 'zone': 'America/New_York', 'typed': 'ts_ny', 'day': 'ny_day', 'day_s': 'ny_day_s'},
+  {'p': 'kol', 'zone': 'Asia/Kolkata', 'typed': 'ts_kol', 'day': 'kol_day', 'day_s': 'kol_day_s'}] %}
+cubes:
+{%- for z in zones %}
+{%- set shapes = [
+  {'s': 'a', 'at': 'ts', 'day': "toDate(toTimeZone(ts, '" ~ z.zone ~ "'))", 'date': false},
+  {'s': 'a64', 'at': 'ts64', 'day': "toDate(toTimeZone(ts64, '" ~ z.zone ~ "'))", 'date': false},
+  {'s': 'b', 'at': z.typed, 'day': 'toDate(' ~ z.typed ~ ')', 'date': false},
+  {'s': 'c', 'at': z.day, 'day': z.day, 'date': true},
+  {'s': 'cs', 'at': 'toDate(' ~ z.day_s ~ ')', 'day': 'toDate(' ~ z.day_s ~ ')', 'date': true},
+  {'s': 'd', 'at': "toDate(ts, '" ~ z.zone ~ "')", 'day': "toDate(ts, '" ~ z.zone ~ "')", 'date': true}] %}
+{%- for s in shapes %}
+  - name: {{ z.p | safe }}_{{ s.s | safe }}
+    title: Zone {{ z.p | safe }} {{ s.s | safe }}
+    description: Events with the day in {{ z.zone | safe }} in the form {{ s.s | safe }}.
+    sql_table: shop.zone_events
+    sql_alias: z_{{ z.p | safe }}_{{ s.s | safe }}
+    joins:
+      - { name: metric_customers, relationship: many_to_one, sql: "{CUBE}.user_id = {metric_customers.id}" }
+      - { name: metric_payments, relationship: one_to_many, sql: "{CUBE}.id = {metric_payments.order_id}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string, description: Status of the event. }
+      - { name: at, sql: "{{ s.at | safe }}", type: time, description: Time or stored day of the event., granularities: [{ name: week_from_sunday, interval: 1 week, offset: -1 day }]{% if s.date %}, meta: { date_only: true }{% endif %} }
+      - { name: day_at, sql: "{{ s.day | safe }}", type: time, description: The day in {{ z.zone | safe }} as a Date., granularities: [{ name: week_from_sunday, interval: 1 week, offset: -1 day }], meta: { date_only: true } }
+      - { name: plain_day, sql: "toString({{ s.day | safe }})", type: string, description: The day in {{ z.zone | safe }} as text. A report time zone does not change it. }
+    measures:
+      - { name: m_count, type: count, description: Rows. }
+      - { name: m_users, type: count_distinct, sql: user_id, description: Distinct customers. }
+      - { name: m_users_approx, type: count_distinct_approx, sql: user_id, description: Approximate distinct customers. }
+      - { name: m_revenue, type: sum, sql: amount, description: Revenue. }
+      - { name: m_avg_amount, type: avg, sql: amount, description: Average amount. }
+      - { name: m_min_amount, type: min, sql: amount, description: Smallest amount. }
+      - { name: m_max_amount, type: max, sql: amount, description: Largest amount. }
+      - { name: m_quantity_sum, type: sum, sql: quantity, description: Units. }
+      - { name: m_avg_quantity, type: avg, sql: quantity, description: Average units. }
+      - { name: m_ratio, type: number, sql: "1.0 * {m_revenue} / NULLIF({m_count}, 0)", description: Revenue per row. }
+      - { name: m_status_text, type: string, sql: "min({CUBE}.status)", description: First status. }
+      - { name: m_last_at, type: time, sql: "max({CUBE}.ts)", description: Last time. }
+      - { name: m_last_local, type: time, sql: "max({SQL_UTILS.convertTz('ts')})", description: Last time on the clock of the query. }
+      - { name: m_has_completed, type: boolean, sql: "max({CUBE}.status = 'completed')", description: Has a completed row. }
+      - { name: m_median_agg, type: number_agg, multi_stage: true, sql: "quantile(0.5)(toFloat64({m_revenue}))", grain: { include: [id] }, description: Median by number_agg. }
+      - { name: m_rank, type: rank, multi_stage: true, reduce_by: [status], order_by: [{ sql: "{m_revenue}", dir: desc }], description: Rank of a status inside its day. }
+      - { name: m_count_completed, type: count, filters: [{ sql: "{CUBE}.status = 'completed'" }], description: Completed rows. }
+      - { name: m_count_large_completed, type: count, filters: [{ sql: "{CUBE}.status = 'completed'" }, { sql: "{CUBE}.quantity >= 3" }], description: Large completed rows. }
+      - { name: m_paid_revenue, type: sum, sql: amount, filters: [{ sql: "{CUBE}.status IN ('completed', 'shipped')" }], description: Paid revenue. }
+      - { name: m_rev_trailing_7d, type: sum, sql: amount, rolling_window: { trailing: 7 day }, description: Revenue of 7 days. }
+      - { name: m_rev_trailing_1m, type: sum, sql: amount, rolling_window: { trailing: 1 month }, description: Revenue of a month. }
+      - { name: m_rev_trailing_3m, type: sum, sql: amount, rolling_window: { trailing: 3 month }, description: Revenue of 3 months. }
+      - { name: m_rev_leading_1m, type: sum, sql: amount, rolling_window: { leading: 1 month, offset: start }, description: Revenue of the next month from the start. }
+      - { name: m_rev_leading_next, type: sum, sql: amount, rolling_window: { leading: 1 month, offset: end }, description: Revenue of the month after the end. }
+      - { name: m_rev_offset_end, type: sum, sql: amount, rolling_window: { trailing: 1 month, offset: end }, description: A month that ends at the end. }
+      - { name: m_rev_offset_start, type: sum, sql: amount, rolling_window: { trailing: 1 month, offset: start }, description: A month that ends at the start. }
+      - { name: m_rev_wtd, type: sum, sql: amount, rolling_window: { type: to_date, granularity: week }, description: Week to date. }
+      - { name: m_rev_mtd, type: sum, sql: amount, rolling_window: { type: to_date, granularity: month }, description: Month to date. }
+      - { name: m_rev_qtd, type: sum, sql: amount, rolling_window: { type: to_date, granularity: quarter }, description: Quarter to date. }
+      - { name: m_rev_ytd, type: sum, sql: amount, rolling_window: { type: to_date, granularity: year }, description: Year to date. }
+      - { name: m_rev_running, type: sum, sql: amount, rolling_window: { trailing: unbounded }, description: Running revenue. }
+      - { name: m_users_mtd, type: count_distinct, sql: user_id, rolling_window: { type: to_date, granularity: month }, description: Distinct customers of the month to date. }
+      - { name: m_rev_grand_total, multi_stage: true, sql: "{m_revenue}", type: sum, grain: { keep_only: [] }, description: Revenue of all rows. }
+      - { name: m_rev_group_by, multi_stage: true, sql: "{m_revenue}", type: sum, group_by: [status], description: Revenue at the grain of status. }
+      - { name: m_rev_reduce_by, multi_stage: true, sql: "{m_revenue}", type: sum, reduce_by: [status], description: Revenue with no grain of status. }
+      - { name: m_rev_add_group_by, multi_stage: true, sql: "{m_revenue}", type: avg, add_group_by: [status], description: Average over statuses. }
+      - { name: m_rev_prior_day, multi_stage: true, sql: "{m_revenue}", type: number, time_shift: [{ interval: 1 day, type: prior }], description: Revenue one day earlier. }
+      - { name: m_rev_prior_month, multi_stage: true, sql: "{m_revenue}", type: number, time_shift: [{ interval: 1 month, type: prior }], description: Revenue one month earlier. }
+      - { name: b_mom, multi_stage: true, type: number, sql: "1.0 * ({m_revenue} - {m_rev_prior_month}) / NULLIF({m_rev_prior_month}, 0)", description: Change from the prior month. }
+      - { name: b_moving_avg_3m, type: number, sql: "1.0 * {m_rev_trailing_3m} / 3", description: Average of a month over 3 months. }
+      - { name: b_median, type: number, sql: "quantile(0.5)(toFloat64({CUBE}.amount))", description: Median amount. }
+      - { name: b_p90, type: number, sql: "quantile(0.9)(toFloat64({CUBE}.amount))", description: 90th percentile. }
+      - { name: b_amount_x_quantity, type: sum, sql: "amount * quantity", description: Amount by units. }
+      - { name: b_weighted_amount, type: number, sql: "1.0 * {b_amount_x_quantity} / NULLIF({m_quantity_sum}, 0)", description: Weighted amount. }
+      - { name: b_distinct_cities, type: count_distinct, sql: "{metric_customers.city}", description: Distinct cities over a join. }
+      - { name: c_ratio_of_sums, type: number, sql: "1.0 * {m_revenue} / NULLIF({m_quantity_sum}, 0)", description: Ratio of two sums. }
+      - { name: c_sum_of_row_ratios, type: sum, sql: "1.0 * amount / NULLIF(quantity, 0)", description: Sum of the ratios of rows. }
+      - { name: c_avg_of_ratio, type: avg, sql: "1.0 * amount / NULLIF(quantity, 0)", description: Average of the ratios of rows. }
+      - { name: c_ratio_of_avgs, type: number, sql: "1.0 * {m_avg_amount} / NULLIF({m_avg_quantity}, 0)", description: Ratio of two averages. }
+      - { name: c_cross_paid_ratio, type: number, sql: "1.0 * {metric_payments.total} / NULLIF({m_revenue}, 0)", description: Payments over revenue with fan-out. }
+      - { name: c_paid_share, type: number, sql: "1.0 * {m_paid_revenue} / NULLIF({m_revenue}, 0)", description: Share of paid revenue. }
+      - { name: c_customers_per_row, type: number, sql: "1.0 * {m_users} / NULLIF({m_count}, 0)", description: Customers per row. It is not additive. }
+      - { name: c_revenue_per_customer, type: number, sql: "1.0 * {m_revenue} / NULLIF({m_users}, 0)", description: Revenue per customer. It is not additive. }
+      - { name: c_share_of_total, multi_stage: true, type: number, sql: "1.0 * {m_revenue} / NULLIF({m_rev_grand_total}, 0)", description: Share of all revenue. }
+      - { name: c_to_prior, multi_stage: true, type: number, sql: "1.0 * {m_revenue} / NULLIF({m_rev_prior_month}, 0)", description: Revenue over the prior month. }
+      - { name: c_rolling_to_plain, type: number, sql: "1.0 * {m_rev_trailing_3m} / NULLIF({m_revenue}, 0)", description: 3 months over the point. }
+{%- endfor %}
+  # Rollups by a day in the zone. Cube keeps one table for each time zone of a query.
+  - name: {{ z.p | safe }}_roll
+    title: Zone {{ z.p | safe }} rollups
+    description: Events with rollups by a day in {{ z.zone | safe }}.
+    sql_table: shop.zone_events
+    sql_alias: z_{{ z.p | safe }}_roll
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string, description: Status of the event. }
+      - { name: at, sql: ts, type: time, description: Time of the event. }
+      - { name: stored_day, sql: "{{ z.day | safe }}", type: time, description: The day that the ETL stored., meta: { date_only: true } }
+      - { name: text_day, sql: "{{ z.day_s | safe }}", type: string, description: The day that the ETL stored as text. }
+    measures:
+      - { name: m_count, type: count, description: Rows. }
+      - { name: m_revenue, type: sum, sql: amount, description: Revenue. }
+      - { name: m_users, type: count_distinct, sql: user_id, description: Distinct customers. It is not additive. }
+      - { name: c_revenue_per_customer, type: number, sql: "1.0 * {m_revenue} / NULLIF({m_users}, 0)", description: Revenue per customer. It is not additive. }
+      - { name: m_rev_mtd, type: sum, sql: amount, rolling_window: { type: to_date, granularity: month }, description: Month to date. }
+      - { name: m_rev_trailing_7d, type: sum, sql: amount, rolling_window: { trailing: 7 day }, description: Revenue of 7 days. }
+    pre_aggregations:
+      - { name: by_at_day, measures: [m_count, m_revenue, m_users, m_rev_mtd, m_rev_trailing_7d], dimensions: [status], time_dimension: at, granularity: day, refresh_key: { every: 1 hour }, indexes: [{ name: status_idx, columns: [status] }] }
+      - { name: by_stored_day, measures: [m_count, m_revenue, m_users], dimensions: [status], time_dimension: stored_day, granularity: day, refresh_key: { every: 1 hour }, indexes: [{ name: status_idx, columns: [status] }] }
+      - { name: by_text_day, measures: [m_count, m_revenue, m_users], dimensions: [text_day], refresh_key: { every: 1 hour }, indexes: [{ name: text_idx, columns: [text_day] }] }
+  # A rollup that nothing builds but a job, so that a test can build it for UTC only.
+  - name: {{ z.p | safe }}_roll_job
+    title: Zone {{ z.p | safe }} rollup of a job
+    description: Events with a rollup with scheduled_refresh false.
+    sql_table: shop.zone_events
+    sql_alias: z_{{ z.p | safe }}_roll_job
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string, description: Status of the event. }
+      - { name: at, sql: ts, type: time, description: Time of the event. }
+    measures:
+      - { name: m_revenue, type: sum, sql: amount, description: Revenue. }
+    pre_aggregations:
+      - { name: by_day, measures: [m_revenue], dimensions: [status], time_dimension: at, granularity: day, scheduled_refresh: false, indexes: [{ name: status_idx, columns: [status] }] }
+{%- endfor %}

@@ -41,7 +41,7 @@ cubes:
       - { name: m_avg_quantity, type: avg, sql: quantity, title: Average units, description: Average units of an order. }
       - { name: m_ratio, type: number, sql: "1.0 * {m_revenue} / NULLIF({m_count}, 0)", format: currency, title: Revenue per order, description: "Revenue divided by orders, NULL when there are no orders." }
       - { name: m_status_text, type: string, sql: "min({CUBE}.status)", title: First status, description: The first status of the group by name. }
-      - { name: m_last_order_at, type: time, sql: "max({CUBE}.created_at)", title: Last order, description: "Latest order time in the group." }
+      - { name: m_last_order_at, type: time, sql: "max({SQL_UTILS.convertTz('mt.created_at')})", title: Last order, description: "Latest order time in the group, in the time zone of the query." }
       - { name: m_has_completed, type: boolean, sql: "max({CUBE}.status = 'completed')", title: Has completed, description: "True when the group has a completed order." }
       - { name: m_median_agg, type: number_agg, multi_stage: true, sql: "quantile(0.5)(toFloat64({m_revenue}))", grain: { include: [id] }, title: Median by number_agg, description: Median amount. }
       - name: m_rank
@@ -262,13 +262,13 @@ cubes:
     description: One row for each customer and month with an order. Retention, churn and repeat rate read it.
     sql: >
       SELECT a.user_id AS user_id, a.month_at AS month_at, a.orders_in_month AS orders_in_month, n.user_id != 0 AS active_next_month
-      FROM (SELECT user_id, toDateTime(toStartOfMonth(created_at), 'UTC') AS month_at, count() AS orders_in_month FROM shop.orders GROUP BY user_id, month_at) AS a
-      LEFT JOIN (SELECT DISTINCT user_id, toDateTime(toStartOfMonth(created_at), 'UTC') AS month_at FROM shop.orders) AS n
-      ON a.user_id = n.user_id AND toDateTime(addMonths(a.month_at, 1), 'UTC') = n.month_at
+      FROM (SELECT user_id, toStartOfMonth({SQL_UTILS.convertTz("created_at")}) AS month_at, count() AS orders_in_month FROM shop.orders GROUP BY user_id, month_at) AS a
+      LEFT JOIN (SELECT DISTINCT user_id, toStartOfMonth({SQL_UTILS.convertTz("created_at")}) AS month_at FROM shop.orders) AS n
+      ON a.user_id = n.user_id AND addMonths(a.month_at, 1) = n.month_at
     dimensions:
       - { name: id, sql: "concat(toString(user_id), '-', toString(month_at))", type: string, primary_key: true, public: true }
       - { name: user_id, sql: user_id, type: number, description: Customer. }
-      - { name: month_at, sql: month_at, type: time, description: Month of the activity. }
+      - { name: month_at, sql: month_at, type: time, description: "Month of the activity, in the time zone of the query." }
       - { name: orders_in_month, sql: orders_in_month, type: number, description: Orders of the customer in the month. }
       - { name: active_next_month, sql: active_next_month, type: boolean, description: The customer has an order in the next month. }
     measures:
@@ -365,7 +365,7 @@ cubes:
       - { name: account_id, sql: account_id, type: number, description: Account. }
       - { name: region, sql: region, type: string, description: Region of the account. }
       - { name: ts, sql: ts, type: time, description: Time of the balance. }
-      - { name: balance_day, sql: "toDateTime(toDate(ts), 'UTC')", type: time, description: Day of the balance. }
+      - { name: balance_day, sql: "toDate({SQL_UTILS.convertTz('mb.ts')})", type: time, description: "Day of the balance, in the time zone of the query." }
     measures:
       - { name: balance_total, type: sum, sql: balance, format: currency, description: Sum of the balance rows. It has a meaning only for one day. }
       - name: balance_closing
