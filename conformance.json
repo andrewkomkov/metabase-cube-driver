@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 889,
+    "pass": 886,
     "partial": 17,
     "blocked": 1,
     "unsupported": 12,
-    "fail": 0,
+    "fail": 3,
     "total": 919
   },
-  "coverage": "coverage: 889/919 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 886/919 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -1592,8 +1592,8 @@
     },
     {
       "id": "mb.search.segment",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-31T17:29:38.168635126Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/mbql\",\"source-table\":42,\"aggregation\":[[\"count\",{\"lib"
     },
     {
       "id": "mb.search.table",
@@ -1857,8 +1857,8 @@
     },
     {
       "id": "mcp.search.segment",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "execute_query: Query failed: \"This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Error executing query: ERROR: Planning Error: Initial planning error: Error during planning: No field named 'pa_types.paid'. Valid fields are 'orders.count', 'orders.unique_customers', 'orders.approx_customers', 'orders.revenue', 'orders.avg_order_value', 'orders.min_amount', 'orders.max_amount', 'orders.paid_revenue"
     },
     {
       "id": "mcp.search.table_by_description",
@@ -3712,8 +3712,8 @@
     },
     {
       "id": "grid.compact.report_zone",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "2 of 36 not expected: tz/Asia/Kathmandu/stage filter on a bucket wrong rows: got 5, truth 6. First got [['2025-08-01T00:00:00+05:45', 28045.0], ['2025-09-01T00:00:00+05:45', 26379.0]], first truth [['2025-07-01', 27110], ['2025-08- | tz/Asia/Kathmandu/stage equal on a bucket wrong rows: got 0, truth 1. First got [], first truth [['2025-07-01', 27110]]"
     },
     {
       "id": "grid.compact.mcp_report_zone",
