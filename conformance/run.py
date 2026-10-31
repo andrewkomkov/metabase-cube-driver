@@ -3594,21 +3594,39 @@ C("compile.tz.dst_day_in_new_york_column", TE, "SELECT toStartOfDay(ts_ny, 'UTC'
 # X-rays run the queries of the generated dashboard
 
 
-# The ClickHouse expression of each column that an X-ray card reads. A proxy of a granularity has the formula of that granularity.
+# The ClickHouse expression of each column that an X-ray card reads, from the demo model. {t} is the alias of the table. A proxy of
+# a granularity has the formula of that granularity.
 XRAY_COLUMNS = {
-    "orders": {
-        "status": "status",
-        "created_at": "created_at",
-        "created_label": "created_at",
-        "created_month_proxy": "toStartOfMonth(created_at)",
-        "created_half_day": "toStartOfInterval(created_at, INTERVAL 12 HOUR)",
-        "created_week_sunday": "toStartOfWeek(created_at, 0)",
-        "created_fiscal_year": "addMonths(toStartOfYear(addMonths(created_at, -3)), 3)",
-        "created_fiscal_quarter": "addMonths(toStartOfMonth(created_at), -((toMonth(created_at) + 1) % 3))",
-    },
-    "typed_events": {name: name for name in ("ts_utc", "ts_ny", "ts64_berlin", "day", "day32", "n_ts")},
+    "orders": dict(
+        {name: "{t}." + name for name in ("id", "user_id", "product_id", "status", "created_at")},
+        status_sorted="{t}.status", status_meta="{t}.status", status_linked="{t}.status", masked_status="{t}.status",
+        cancel_status="nullIf({t}.status, 'completed')",
+        size="if({t}.quantity >= 3, 'large', 'small')",
+        quantity_dim="{t}.quantity", amount_dim="{t}.amount", amount_eur="{t}.amount", amount_abbr="{t}.amount",
+        amount_pct="{t}.amount / 1000", order_ref="{t}.id",
+        is_paid="{t}.status IN ('completed', 'shipped')",
+        created_label="{t}.created_at",
+        created_month_proxy="toStartOfMonth({t}.created_at)",
+        created_half_day="toStartOfInterval({t}.created_at, INTERVAL 12 HOUR)",
+        created_week_sunday="toStartOfWeek({t}.created_at, 0)",
+        created_fiscal_year="addMonths(toStartOfYear(addMonths({t}.created_at, -3)), 3)",
+        created_fiscal_quarter="addMonths(toStartOfMonth({t}.created_at), -((toMonth({t}.created_at) + 1) % 3))"),
+    "users": dict(
+        {name: "{t}." + name for name in ("id", "name", "email", "city", "state", "is_vip", "created_at", "lifetime_orders")},
+        location="concat(toString({t}.latitude), ',', toString({t}.longitude))",
+        location__latitude="{t}.latitude", location__longitude="{t}.longitude"),
+    "products": {name: "{t}." + name for name in ("id", "name", "category", "price")},
+    "typed_events": dict(
+        {name: "{t}." + name for name in ("id", "dec_amount", "dec_big", "ui64", "f32", "ts_utc", "ts_ny", "ts64_berlin", "day", "day32",
+                                          "n_int", "n_str", "n_dec", "n_ts", "n_bool", "lc", "lc_n", "flag", "en")},
+        ui64_text="toString({t}.ui64)", dec_big_text="toString({t}.dec_big)", uid="toString({t}.uid)",
+        tags_text="arrayStringConcat({t}.tags, ',')", nums_len="length({t}.nums)", has_t1="has({t}.tags, 't1')"),
 }
-XRAY_JOINS = {("users", "id"): ("users", "user_id")}
+XRAY_JOINS = {
+    "users": ("(SELECT u.*, c.n AS lifetime_orders FROM users AS u LEFT JOIN (SELECT user_id, count() AS n FROM orders GROUP BY user_id) AS c "
+              "ON u.id = c.user_id)", "user_id"),
+    "products": ("products", "product_id"),
+}
 XRAY_UNITS = {
     None: "{}",
     "default": "{}",
@@ -3628,44 +3646,53 @@ XRAY_UNITS = {
 
 
 class XrayTruth:
-    """Writes the ClickHouse query of one X-ray card. A shape that it does not know is a failure, so no card goes with no compare."""
+    """Writes the ClickHouse query of one X-ray card. A shape that it does not know is a failure, so no card goes with no compare.
 
-    def __init__(self, ctx, table):
+    Metabase selects the width of a bin, so the truth reads this width from the result, and it counts the rows of each bin itself."""
+
+    def __init__(self, ctx, table, cols):
         self.table = table
-        self.names = {f["id"]: (t["name"], f["name"]) for t in ctx.mb.tables.values() for f in t["fields"]}
-        self.joins = []
+        self.cols = cols
+        self.fields = {f["id"]: (t["name"], f) for t in ctx.mb.tables.values() for f in t["fields"]}
+        self.joins = {}
 
     def column(self, ref):
         # MBQL 5 is ["field", options, id], and the older form is ["field", id, options].
         options, field_id = (ref[1], ref[2]) if isinstance(ref[1], dict) else (ref[2] or {}, ref[1])
-        table, name = self.names[field_id]
+        table, field = self.fields[field_id]
+        alias = "base"
         if table != self.table:
-            if (table, name) not in XRAY_JOINS:
-                raise Fail("no truth for the column %s.%s of the card" % (table, name))
-            other, key = XRAY_JOINS[(table, name)]
-            if not self.joins:
-                self.joins.append("LEFT JOIN %s AS joined ON base.%s = joined.%s" % (other, key, name))
-            return "joined.%s" % name, options
-        expr = XRAY_COLUMNS.get(self.table, {}).get(name)
+            if table not in XRAY_JOINS:
+                raise Fail("no truth for the column %s.%s of the card" % (table, field["name"]))
+            source, key = XRAY_JOINS[table]
+            alias = "joined_" + table
+            self.joins[alias] = "LEFT JOIN %s AS %s ON base.%s = %s.id" % (source, alias, key, alias)
+        expr = XRAY_COLUMNS.get(table, {}).get(field["name"])
         if expr is None:
-            raise Fail("no truth for the column %s.%s of the card" % (table, name))
-        return expr, options
+            raise Fail("no truth for the column %s.%s of the card" % (table, field["name"]))
+        return expr.format(t=alias), options, field
 
-    def bucketed(self, ref):
-        expr, options = self.column(ref)
+    def bucketed(self, ref, position=None):
+        expr, options, field = self.column(ref)
         unit = options.get("temporal-unit")
-        if options.get("binning") or unit not in XRAY_UNITS:
+        if options.get("binning"):
+            info = self.cols[position].get("binning_info") if position is not None else None
+            if not info or not info.get("bin_width"):
+                raise Fail("the result has no width of the bin of %s" % field["name"])
+            return "floor(toFloat64(%s) / %r) * %r" % (expr, info["bin_width"], info["bin_width"])
+        if unit not in XRAY_UNITS:
             raise Fail("no truth for the bucket of %s" % json.dumps(ref)[:200])
-        if options.get("base-type") in ("type/DateTime", "type/Date", "type/DateTimeWithLocalTZ"):
+        if field.get("base_type") in ("type/DateTime", "type/Date", "type/DateTimeWithLocalTZ"):
             expr = "toDateTime(%s, 'UTC')" % expr
         return XRAY_UNITS[unit].format(expr)
 
     def aggregation(self, clause):
         kinds = {"distinct": "uniqExact(%s)", "sum": "sum(%s)", "avg": "avg(%s)", "min": "min(%s)", "max": "max(%s)"}
-        if clause[0] == "count" and not [c for c in clause[1:] if isinstance(c, list)]:
+        args = [c for c in clause[1:] if isinstance(c, list)]
+        if clause[0] == "count" and not args:
             return "count()"
-        if clause[0] in kinds:
-            return kinds[clause[0]] % self.bucketed([c for c in clause[1:] if isinstance(c, list)][0])
+        if clause[0] in kinds and args:
+            return kinds[clause[0]] % self.bucketed(args[0])
         raise Fail("no truth for the aggregation %s" % json.dumps(clause)[:200])
 
     def condition(self, clause):
@@ -3684,14 +3711,16 @@ class XrayTruth:
         if stages and len(stages) != 1:
             raise Fail("no truth for a card with %d stages" % len(stages))
         stage = stages[0] if stages else query["query"]
+        if stage.get("limit") is not None:
+            raise Fail("no truth for a card with a limit")
         filters = stage.get("filters") or ([stage["filter"]] if stage.get("filter") else [])
-        keys = [self.bucketed(b) for b in stage.get("breakout") or []]
+        keys = [self.bucketed(b, i) for i, b in enumerate(stage.get("breakout") or [])]
         aggregations = [self.aggregation(a) for a in stage.get("aggregation") or []]
         if not aggregations:
             raise Fail("no truth for a card with no aggregation: %s" % json.dumps(stage)[:200])
         where = [self.condition(f) for f in filters]
         return "SELECT %s FROM %s AS base %s %s %s SETTINGS join_use_nulls = 1" % (
-            ", ".join(keys + aggregations), self.table, " ".join(self.joins),
+            ", ".join(keys + aggregations), self.table, " ".join(self.joins.values()),
             "WHERE " + " AND ".join(where) if where else "",
             "GROUP BY " + ", ".join(str(i + 1) for i in range(len(keys))) if keys else "")
 
@@ -3706,8 +3735,8 @@ def xray_cards(ctx, path, table):
     for card in cards:
         query = card["dataset_query"]
         try:
-            rows = ctx.mb.dataset(query)["data"]["rows"]
-            assert_rows(rows, ch(XrayTruth(ctx, table).sql(query)), label="card")
+            data = ctx.mb.dataset(query)["data"]
+            assert_rows(data["rows"], ch(XrayTruth(ctx, table, data["cols"]).sql(query)), label="card")
         except Fail as e:
             failed.append((card.get("name"), str(e)[:300]))
     if failed:
@@ -4792,16 +4821,23 @@ def metabase_minor():
 def _(ctx):
     """On another database, the MCP tool gives what Metabase itself gives: whole days on 0.64, the time of the bounds on 0.65."""
     db, _meta, table, field = other_database(ctx)
-    x, y = "2025-03-15T05:00:00", "2025-03-16T05:00:00"
-
     def rest(ref, lo, hi):
         return ctx.mb.dataset({"database": db["id"], "type": "query", "query": {
             "source-table": table, "aggregation": [["count"]], "filter": ["between", ref, lo, hi]}})["data"]["rows"]
 
-    days = rest(["field", field, {"temporal-unit": "day"}], "2025-03-15", "2025-03-16")
-    literal = rest(["field", field, None], x, y)
-    if days == literal:
-        raise Fail("these bounds cannot tell a whole day from the time: %s" % days)
+    latest = ctx.mb.dataset({"database": db["id"], "type": "query", "query": {
+        "source-table": table, "aggregation": [["max", ["field", field, None]]]}})["data"]["rows"][0][0]
+    last = dt.date.fromisoformat(str(latest)[:10])
+    # The sample has some rows each day. These bounds must cut rows from the days at their ends.
+    for back in range(1, 60):
+        lo, hi = last - dt.timedelta(days=back + 1), last - dt.timedelta(days=back)
+        x, y = lo.isoformat() + "T05:00:00", hi.isoformat() + "T05:00:00"
+        days = rest(["field", field, {"temporal-unit": "day"}], lo.isoformat(), hi.isoformat())
+        literal = rest(["field", field, None], x, y)
+        if days != literal:
+            break
+    else:
+        raise Fail("no two days of the sample can tell a whole day from the time")
     got = ctx.mcp.call("execute_query", query={"lib/type": "mbql/query", "database": db["id"], "stages": [{
         "lib/type": "mbql.stage/mbql", "source-table": table, "aggregation": [["count", {}]],
         "filters": [["between", {}, ["field", {}, field], x, y]]}]})["rows"]

@@ -27,6 +27,8 @@ Give options to the runner with `ARGS`:
 make conformance ARGS="--only dimension.type.geo --no-write"
 ```
 
+To test another Metabase version with the same jar, send its tag: `METABASE_VERSION=v0.64.3 make conformance`. The status lines in `features.yaml` record the pinned version, so add `ARGS="--no-write"`.
+
 To remove the service and its volume, run `make conformance-down`.
 
 To run the suite on the normal Metabase, send its admin password:
