@@ -758,9 +758,7 @@ def stock_limit(fid):
         if path == "report":
             if date_form:
                 return REASON_DATE
-            if part == "stages":
-                return REASON_SHIFT
-            return REASON_SECONDS if form == "a64" and part in ("day", "filter") else None
+            return REASON_SHIFT if part == "stages" else None
         if date_form:
             return REASON_DATE if p == "ny" else None
         if form == "a64" and part in ("day", "filter"):
