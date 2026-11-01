@@ -53,6 +53,34 @@ jobs:
       load-check: false
       clickhouse-fixes: "off"
 
+  # Dev mode reads private members and accepts each JWT, so the suite above says nothing about these. See dev/review/README.md.
+  production:
+    name: a sample on Cube with dev mode off and Cube Store
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    env:
+      PRODUCTION_OUT: ci-out
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/build-jar
+      - name: Make the plugins directory usable by the Metabase container
+        run: |
+          chmod 777 dev/plugins
+          chmod 644 dev/plugins/cube.metabase-driver.jar
+      - name: Run the sample
+        run: make production
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: production-sample
+          path: ci-out
+          if-no-files-found: ignore
+          retention-days: 14
+
   status:
     needs: conformance
     if: ${{ !cancelled() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}

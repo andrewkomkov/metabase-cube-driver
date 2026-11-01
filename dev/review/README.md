@@ -49,3 +49,7 @@ The `grid.compact.*` checks in `conformance/run.py` run a stable part of the sam
 ## Other scripts
 
 `run_all.sh` runs the whole review in its own compose project. `evidence.py`, `known_wrong.py`, `security_review.py` and `plugin_effect.py` are parts of that review. `/api/dataset` has no cache strategy, so a result from there does not come from the cache. See `security.metabase_cache`.
+
+## Production mode
+
+`make production` starts Cube with `CUBEJS_DEV_MODE=false`, Cube Store and a refresh worker (`dev/docker-compose.production.yml`), next to the demo Cube, in compose project `mcd-production`. It compares the two models, reads the doors of a private key, and runs the shapes of the catalog, the rollups, the New York day, the sources and each tenth shape of the grid from `gate/shapes_gate.py`. The command fails on a wrong number, a raw error, a value of a private key or another model. A refusal does not fail it. CI runs it on each push. It uses the ports of the demo stack, so stop that stack first on a host where it runs.

@@ -84,7 +84,7 @@ The scan of native SQL is not a SQL parser and not a security boundary, so do no
 
 A join needs no value of the key, because Cube takes the join from the data model. So sync keeps a private primary key as a hidden field of type `cube.dimension/private-key`: `stock_items.warehouse_id` stays a foreign key to `warehouses.id`, with an implicit join to `warehouses.code`.
 
-With dev mode off, `/v1/meta` has no private member, but its joins name the key, so the driver adds the same hidden field from the join. The model has the same fields and foreign keys on both modes. The checks are `security.private_member_gives_no_value` and `sync.private_primary_key_keeps_the_foreign_key`. `make production` reads the same doors with dev mode off.
+A private key that no join targets does not sync. With dev mode off, `/v1/meta` has no private member, but its joins name the key, so the driver adds the same hidden field from the join. The model has the same fields and foreign keys on both modes. The checks are `security.private_member_gives_no_value` and `sync.private_primary_key_keeps_the_foreign_key`. `make production` reads the same doors with dev mode off.
 
 A foreign key column is a public member of its own cube, so `stock_items.warehouse_id` shows its values, which are the values of the key. To hide them, make that column private in the model. The foreign key then goes.
 

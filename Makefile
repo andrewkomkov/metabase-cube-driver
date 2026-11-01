@@ -2,7 +2,7 @@
 package:
 	sh scripts/package.sh
 
-.PHONY: up down load-check conformance conformance-down grid fuzz tools lint docs
+.PHONY: up down load-check conformance conformance-down grid fuzz production tools lint docs
 up: package
 	cd dev && docker compose up -d --wait clickhouse cube cube-secure mail
 	cd dev && docker compose up -d metabase
@@ -25,6 +25,10 @@ grid:
 fuzz:
 	SEED="$(SEED)" COUNT="$(COUNT)" sh dev/fuzz/fuzz.sh $(ARGS)
 
+# A sample of the review shapes on Cube with dev mode off and Cube Store. See dev/review/README.md.
+production:
+	sh dev/review/production.sh $(ARGS)
+
 conformance-down:
 	cd dev && docker compose -f docker-compose.yml -f docker-compose.conformance.yml rm -sfv metabase-conformance
 	docker volume rm -f metabase-cube-driver_metabase-conformance-data
@@ -42,6 +46,7 @@ lint:
 	gitleaks git --redact --no-banner .
 	docker compose -f dev/docker-compose.yml config -q
 	docker compose -f dev/docker-compose.yml -f dev/docker-compose.conformance.yml config -q
+	docker compose -f dev/docker-compose.yml -f dev/docker-compose.production.yml config -q
 
 docs:
 	python3 -m pip install -r docs/requirements.txt

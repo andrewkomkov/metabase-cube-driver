@@ -55,7 +55,7 @@ Each Measure and Segment has a fixed `entity_id`, a hash of the Metabase databas
 | --- | --- |
 | New member | New Measure or Segment |
 | New title, description, measure type | The same object changes |
-| Member removed, or `public: false` | Measure or Segment archived. The field becomes inactive. A private primary key stays as a hidden field, because a foreign key needs its target. Raw rows show `NULL` for it, and a query on its values stops. |
+| Member removed, or `public: false` | Measure or Segment archived. The field becomes inactive. A private primary key that a join targets stays as a hidden field, because a foreign key needs its target. Another private primary key does not sync. Raw rows show `NULL` for it, and a query on its values stops. With dev mode off, the field comes from the SQL of the join. See [Security](security.md#private-members-and-dev-mode). |
 | Cube removed | Table inactive. Its Measures and Segments archived. |
 | Member comes back | The same object is active again |
 | Join removed | Foreign key removed |

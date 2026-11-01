@@ -860,15 +860,26 @@
       (let [toks      (tokens sql)
             tables    (table-names toks)
             read-from (set (vals tables))
+            aliases   (into #{}
+                            (keep (fn [i]
+                                    (when (and (= :word (:kind (get toks i))) (= "as" (:text (get toks i))))
+                                      (:text (get toks (inc i))))))
+                            (range (count toks)))
+            ;; The clause of the query at each token.
+            clauses   (first (reduce (fn [[out clause] {:keys [kind text]}]
+                                       (let [clause (if (and (= :word kind) (#{"select" "from" "where" "group" "order" "having"} text)) text clause)]
+                                         [(conj out clause) clause]))
+                                     [[] nil]
+                                     toks))
             refuse-member! (fn [member table]
                              (refuse! (format (str "%s is a private member of %s in the Cube data model, so it has no values here. Use another column, or make it public in the "
                                                    "model. A Cube in dev mode reads private members, so do not run dev mode in production.")
                                               member table)))]
         (doseq [table read-from
                 :when (hidden table)]
-          (refuse! (format (str "%s is private in the Cube data model, so it has no values here. A Cube in dev mode reads private cubes, so do not run dev mode in production.")
+          (refuse! (format "%s is private in the Cube data model, so it has no values here. A Cube in dev mode reads private cubes, so do not run dev mode in production."
                            table)))
-        (when (some #(seq (get (cube.meta/private-members cube-meta :with-join-targets? false) %)) read-from)
+        (when (some #(seq (get (cube.meta/private-members cube-meta :in-cube-only? true) %)) read-from)
           (doseq [i (range (count toks))
                   :when (star-of-select? toks i)]
             (refuse! "A table of this query has private members in the Cube data model, and a Cube in dev mode gives them for *. List the columns.")))
@@ -876,6 +887,9 @@
                 :let [{:keys [kind text]} (get toks i)]
                 :when (contains? #{:word :ident} kind)]
           (let [before    (get toks (dec i))
+                ;; ORDER BY "count" reads the alias that the SELECT gave, not a member.
+                alias?    (and (contains? aliases text)
+                               (contains? #{"order" "group"} (get clauses i)))
                 qualified (= "." (:text before))
                 prefix    (when qualified (:text (get toks (- i 2))))
                 as?       (and (= :word (:kind before)) (= "as" (:text before)))
@@ -886,7 +900,7 @@
               (when (contains? (get private (get tables prefix)) text)
                 (refuse-member! text (get tables prefix)))
 
-              (or qualified as? call? dotted?)
+              (or qualified as? call? dotted? alias?)
               nil
 
               :else

@@ -469,7 +469,7 @@
   See [[metabase.driver.cube.semantic]]."
   [cube]
   (let [fields (concat (for [dimension (:dimensions cube)
-                             :when (or (public? dimension) (:primaryKey dimension))
+                             :when (or (public? dimension) (::join-target dimension))
                              m (with-geo-parts cube dimension)]
                          (with-member-info (dimension->field m) m :dimension))
                        (for [m (:measures cube) :when (public? m)]
@@ -520,12 +520,13 @@
         (first (filter by-name dimensions)))))
 
 (defn- with-join-target-keys
-  "With dev mode off, /v1/meta has no private member, also not a private primary key that a join targets. A foreign key needs its target field, and the join SQL names it, so
-  the target cube gets that key as a private dimension. The model of a Cube is then the same with dev mode on and off. This adds nothing that Cube can read: the driver reads
-  no value of a private member, and a Cube with dev mode off refuses it."
+  "A foreign key needs its target field, also if that primary key is private, so such a key gets `::join-target`, and sync keeps it as a hidden field. A private key that no join
+  targets has no use in Metabase, so it does not sync. With dev mode off, /v1/meta has no private member, but the join SQL names the key, so the target cube gets it here as a
+  private dimension, with `::not-in-cube`. The model is then the same with dev mode on and off. This adds nothing that Cube can read: the driver reads no value of a private
+  member, and a Cube with dev mode off refuses it."
   [cube-meta]
   (let [name->cube (into {} (map (juxt :name identity)) (:cubes cube-meta))
-        wanted     (for [cube  (:cubes cube-meta)
+        targets    (for [cube  (:cubes cube-meta)
                          {:keys [relationship sql], join-name :name, join-alias :alias} (:joins cube)
                          :let  [[left right] (parse-join-sql sql)
                                 side          (fn [[reference column kind]]
@@ -536,35 +537,44 @@
                                 b             (when right (side right))
                                 [local remote] (if (= (:name (first a)) (:name cube)) [a b] [b a])
                                 [from to]     (if (#{"belongsTo" "many_to_one"} relationship) [local remote] [remote local])]
-                         :when (and (first from) (first to)
-                                    (not (apply find-dimension to))
-                                    (not-any? :primaryKey (:dimensions (first to))))
-                         :let  [from-dimension (apply find-dimension from)]
-                         :when from-dimension]
-                     {:cube (:name (first to)), :column (second to), :type (:type from-dimension)})
-        new-keys   (group-by :cube (distinct wanted))]
+                         :when (and (first from) (first to))
+                         :let  [from-dimension (apply find-dimension from)
+                                to-dimension   (apply find-dimension to)]
+                         :when (and from-dimension
+                                    (public? from-dimension)
+                                    (if to-dimension
+                                      (and (:primaryKey to-dimension) (not (public? to-dimension)))
+                                      (not-any? :primaryKey (:dimensions (first to)))))]
+                     {:cube   (:name (first to))
+                      :member (some-> to-dimension :name)
+                      :column (second to)
+                      :type   (:type from-dimension)})
+        by-cube    (group-by :cube (distinct targets))]
     (update cube-meta :cubes
             (partial mapv (fn [cube]
-                            (reduce (fn [cube {:keys [column], member-type :type}]
-                                      (update cube :dimensions (fnil conj [])
-                                              {:name            (str (:name cube) "." column)
-                                               :type            member-type
-                                               :sql             column
-                                               :public          false
-                                               :primaryKey      true
-                                               ::join-target-key true}))
+                            (reduce (fn [cube {:keys [member column], member-type :type}]
+                                      (if member
+                                        (update cube :dimensions (partial mapv #(cond-> % (= member (:name %)) (assoc ::join-target true))))
+                                        (update cube :dimensions (fnil conj [])
+                                                {:name         (str (:name cube) "." column)
+                                                 :type         member-type
+                                                 :sql          column
+                                                 :public       false
+                                                 :primaryKey   true
+                                                 ::join-target true
+                                                 ::not-in-cube true})))
                                     cube
-                                    (new-keys (:name cube))))))))
+                                    (by-cube (:name cube))))))))
 
 (defn private-members
-  "A map from the lower case name of a cube to the lower case short names of the members that Cube marks private. With `:with-join-targets? false`, this has no key that
-  only [[with-join-target-keys]] adds, because Cube has no column for it in `SELECT *`."
-  [cube-meta & {:keys [with-join-targets?] :or {with-join-targets? true}}]
+  "A map from the lower case name of a cube to the lower case short names of the members that Cube marks private. With `:in-cube-only? true`, this has no key that only
+  [[with-join-target-keys]] adds, because Cube has no column for it in `SELECT *`."
+  [cube-meta & {:keys [in-cube-only?]}]
   (into {}
         (keep (fn [{cube-name :name, :keys [dimensions measures segments]}]
                 (when-let [members (seq (for [member (concat dimensions measures segments)
                                               :when  (and (not (public? member))
-                                                          (or with-join-targets? (not (::join-target-key member))))]
+                                                          (not (and in-cube-only? (::not-in-cube member))))]
                                           (str/lower-case (short-name (:name member)))))]
                   [(str/lower-case cube-name) (set members)])))
         (:cubes cube-meta)))

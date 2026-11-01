@@ -237,7 +237,7 @@
 
 ;;; --------------------------------------------------- compiler --------------------------------------------------
 
-(declare ^:dynamic *bucketed-field*)
+(declare ^:dynamic *bucketed-field* current-meta)
 
 (defn- stored-field
   [clause]
@@ -341,14 +341,15 @@
     [:in (sql.qp/->honeysql driver field) (mapv #(sql.qp/->honeysql driver %) values)]
     ((get-method sql.qp/->honeysql [:postgres :or]) driver clause)))
 
-;; SUBSTRING x FROM a FOR b stops Cube above a subquery with "unsupported type Utf8View". SUBSTR goes to the database.
+;; Cube computes SUBSTRING and SUBSTR above a subquery, and a sort of that column stops with "unsupported type Utf8View". A cast to text gives a type that it can sort.
 (defmethod sql.qp/->honeysql [:cube :substring]
   [driver [_ _opts arg start length]]
   (let [text  (sql.qp/->honeysql driver arg)
         start (sql.qp/->honeysql driver start)]
-    (if (some? length)
-      [:substr text start (sql.qp/->honeysql driver length)]
-      [:substr text start])))
+    (h2x/cast "text"
+              (if (some? length)
+                [:substr text start (sql.qp/->honeysql driver length)]
+                [:substr text start]))))
 
 ;; With a query parameter for a string, Cube names each column of its plan after the placeholder. Two of them in one
 ;; expression make it fail with "duplicate unqualified field name 'Utf8("replaced_placeholder")'".
@@ -1369,7 +1370,7 @@
                                    "joined cube once, so the number would be wrong. Add a measure to the data model, or start "
                                    "from the cube of this dimension.")
                               (:name field))
-                      {:type :invalid-query, ::adds-up-a-joined-column true})))))
+                      {:type :invalid-query, ::try-two-stages true})))))
 
 (defn- date-range-clauses?
   "True if these clauses on one time column are a date range for Cube: one `between`, or one `>=` next to one `<` or `<=`, with time literals."
@@ -1419,29 +1420,41 @@
                                   member member)
                           {:type :invalid-query})))))))
 
-(defn- private-key-of-name
-  "The private primary key of `table-id` that `column-name` names, or nil. Metabase also takes a reference by name, which has no stored field."
+(defn- private-of-name
+  "A map with the name of a member that `column-name` names on `table-id`, if Cube marks that member private, or nil. Metabase also takes a reference by name, which has no stored
+  field. A private member that no foreign key targets has no field at all, so this also reads the model."
   [table-id column-name]
   (when (and (pos-int? table-id) (string? column-name))
-    (first (filter #(and (= cube.meta/private-key-type (:database-type %))
-                         (= (str/lower-case column-name) (str/lower-case (:name %))))
-                   (driver-api/fields (driver-api/metadata-provider) table-id)))))
+    (let [provider (driver-api/metadata-provider)
+          lower    (str/lower-case column-name)
+          table    (:name (driver-api/table provider table-id))]
+      (or (first (filter #(and (= cube.meta/private-key-type (:database-type %))
+                               (= lower (str/lower-case (:name %))))
+                         (driver-api/fields provider table-id)))
+          (when-let [cube-meta (current-meta)]
+            (when (contains? (get (cube.meta/private-members cube-meta) (str/lower-case table)) lower)
+              {:name column-name}))))))
+
+(defn- refuse-private-member!
+  [{field-name :name, :keys [database-type]}]
+  (throw (ex-info (if (= cube.meta/private-key-type database-type)
+                    (format "%s is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model." field-name)
+                    (format "%s is a private member of the cube, so it has no values here. Use another column, or make it public in the model." field-name))
+                  {:type :invalid-query})))
 
 (defn- check-no-private-key!
   "A private primary key is a field only as the target of a foreign key. Cube does not read it, or it reads it only in dev mode, so a stage must not read its values. A raw row
   has NULL for a field by id, see raw-select-item. A reference by name has no such step, so `:fields` counts for it. cube.native/check-no-private-member! also reads the SQL
-  of each query, for the other private members and for the forms that this misses."
+  of each query, for the forms that this misses."
   [{:keys [source-table] :as stage}]
   (doseq [form  (tree-seq coll? seq (select-keys stage [:breakout :filters :aggregation :order-by :expressions :fields]))
           :when (and (vector? form) (= :field (first form)))
-          :let  [field (stored-field form)
-                 key-of-name (when-not (:join-alias (second form)) (private-key-of-name source-table (nth form 2 nil)))]
-          :when (or key-of-name
+          :let  [field   (stored-field form)
+                 by-name (when-not (:join-alias (second form)) (private-of-name source-table (nth form 2 nil)))]
+          :when (or by-name
                     (and (= cube.meta/private-key-type (:database-type field))
                          (not (some #(identical? form %) (:fields stage)))))]
-    (throw (ex-info (format "%s is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
-                            (:name (or key-of-name field)))
-                    {:type :invalid-query}))))
+    (refuse-private-member! (or by-name field))))
 
 (defn- check-no-private-key-of-earlier-stage!
   "A later stage reads a column of an earlier stage by its name. Raw rows of a private key are NULL, but Cube reads a filter of a later stage as a filter on the member, so
@@ -1452,11 +1465,12 @@
           :let  [earlier (subvec stages 0 i)
                  stage   (nth stages i)]
           form  (field-clauses (select-keys stage [:breakout :filters :aggregation :order-by :expressions]))
-          :let  [field (or (column-field earlier form)
-                           (private-key-of-name (:source-table (first stages)) (nth form 2 nil)))]
-          :when (= cube.meta/private-key-type (:database-type field))]
-    (throw (ex-info (format "%s is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model." (:name field))
-                    {:type :invalid-query}))))
+          :let  [field (column-field earlier form)
+                 field (if (= cube.meta/private-key-type (:database-type field))
+                         field
+                         (private-of-name (:source-table (first stages)) (nth form 2 nil)))]
+          :when field]
+    (refuse-private-member! field)))
 
 (defn- check-stages!
   [stages]
@@ -2122,7 +2136,7 @@
            (update stage :where #(if % [:and % every-row] every-row))
            (throw (ex-info (format "%s Cube would give a part of the rows with no error, and each column of this table is in the rollup, so the driver cannot read the source. Add a date filter in the range of the rollup, or change the rollup."
                                    (:reason wrong))
-                           {:type :invalid-query})))
+                           {:type :invalid-query, ::try-two-stages true})))
          stage)
        stage))
    form))
@@ -2144,11 +2158,12 @@
           (when-let [still (cube.probe/wrong-rollup details cube-meta text zone)]
             (throw (ex-info (format "%s Cube would give a part of the rows with no error, and it does not read the source for this query. Add a date filter in the range of the rollup, or change the rollup."
                                     (:reason still))
-                            {:type :invalid-query}))))
+                            {:type :invalid-query, ::try-two-stages true}))))
         [new-sql new-args]))))
 
 ;;; Two stages. Cube plans a query in two ways: it reads members with a CubeScan, or it writes SQL of its own, push-down. A view with default_filters has no push-down for a query that
 ;;; reads a member inside a function. Cube adds up each row of a joined cube once in a SQL aggregation, and it cannot plan an expression that reads one column twice next to COUNT(*).
+;;; A rollup does not hold a raw time, so this form also reads the source where a filter cannot make Cube do that.
 ;;; In each case, an inner stage that reads the plain members with GROUP BY works, and an outer stage computes the rest from it. Cube writes both stages as one SQL query of the
 ;;; database, so CUBEJS_DB_QUERY_LIMIT does not cut the inner one, and it applies the default_filters. An aggregation of the outer stage then needs the rows of each group:
 ;;;
@@ -2406,7 +2421,7 @@
                 (compile-two-stages driver query cube-meta))
               compiled))
         (catch clojure.lang.ExceptionInfo e
-          (or (when (::adds-up-a-joined-column (ex-data e))
+          (or (when (::try-two-stages (ex-data e))
                 (compile-two-stages driver query cube-meta))
               (throw e)))))))
 

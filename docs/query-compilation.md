@@ -85,6 +85,23 @@ A subquery with raw rows has no limit, because Cube reads the outer filter corre
 
 If a later stage filters or groups by a measure column, and the model has the primary key of the cube, the driver writes `MEASURE(x)` and `GROUP BY` of the dimensions in the subquery. Each group is then one row, so `revenue > 150` filters rows, and a breakout on `revenue` has one group for each value. With no primary key in the model, a group is more than one row, so the driver stops the query.
 
+### Two stages
+
+Cube cannot plan some first stages, and it can plan the same query as two stages. The driver asks Cube with `EXPLAIN` for a stage that can fail to plan, and it asks at most once a minute for one SQL text. If Cube has no plan, or the stage needs it, the driver writes an inner stage with the plain members and `GROUP BY`, and an outer stage that computes the rest. Cube writes both stages as one SQL query of the database, so `CUBEJS_DB_QUERY_LIMIT` does not cut the inner stage, and it applies `default_filters`.
+
+| Stage | Why one stage fails |
+| --- | --- |
+| A view with `default_filters`, with a part of a date, a filter that needs push-down, or `distinct` next to a measure | Cube has no push-down for such a view. It fails with `Can't detect Cube query`, or with `was used with the aggregate function`. |
+| `count-where`, `sum-where`, `share`, `sum` or `avg` on a column of a joined cube, through a many to one join | Cube adds each row of the joined cube once. The outer stage adds up the row count of the first cube, so the number is the number of a SQL join. |
+| A custom column that reads one column twice, such as `case` with two branches, next to `COUNT(*)` or a `SUM` | Cube fails with `Schema contains duplicate qualified field name`. |
+
+The outer stage needs the rows of each group, so these limits apply. If one does not hold, the query keeps its message:
+
+- A measure must add up over groups: `sum`, `count`, `min` or `max`, with no rolling window and with no other measure in its SQL. A distinct count or an average stops.
+- A column that the outer stage folds must come from the cube of each measure, or from a many to one join of it, and it cannot be a `switch` dimension. Else a row of the cube is in two groups.
+- A row count needs a measure of type `count` with no filter on the first cube, and no row with a NULL key.
+- Under a report time zone, a filter on a time stays in the inner stage. If Cube cannot plan it there, the query stops. See the row on a time filter below.
+
 ### Fan-out
 
 A join does not change a measure. Over a fan-out from `orders` to `payments`, `SUM(quantity_dim)` is the total quantity of the orders, as a measure, and each order counts once. `COUNT(*)` counts the rows of the join. So in the demo, `COUNT(*)` is 10000 and the sum is 12500, where a plain SQL join gives 25000. Use a measure of a cube to count that cube.
@@ -100,7 +117,7 @@ These queries fail with a message that tells what to do. The message includes th
 | Query | Reason |
 | --- | --- |
 | Join on columns that no join of the model compares | The driver writes `__cubeJoinField`, so Cube would use the model join. Cube refuses `JOIN ... ON a = b` on other columns in native SQL with `Can't detect Cube query`, and `CROSS JOIN ... WHERE o.other_id = u.id` applies the model join and then the filter. |
-| Sum or average of a dimension of a joined cube, from the side with the foreign key | Cube adds each row of the joined cube once. `SUM(products.price)` by a column of `orders` gives the total of the products, for each group. A subquery gives the same number, so the driver stops this query. Add a measure, or start from the cube of the dimension. |
+| Sum or average of a dimension of a joined cube, when [two stages](#two-stages) cannot give it | Cube adds each row of the joined cube once. `SUM(products.price)` by a column of `orders` in one stage gives the total of the products, for each group. Add a measure, or start from the cube of the dimension. |
 | Join of a question, or with a filter inside the join | A subquery that lists its columns has no `__cubeJoinField`. A subquery with `SELECT *` has it, but a filter inside it applies to the whole query, so it has no use here. |
 | `median`, `percentile` | The Cube templates for ClickHouse have no `PERCENTILE_CONT`. |
 | `datetime-diff` in months, quarters, years | Cube has no form for whole months. Its `DATEDIFF` counts boundaries. |
@@ -122,7 +139,7 @@ These queries fail with a message that tells what to do. The message includes th
 | Stock Cube: a measure with `type: time`, with a report time zone that is not UTC, unless its SQL reads `SQL_UTILS.convertTz` | Stock Cube prints the clock of the zone of the column, and it does not show that zone. [The dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) gives each such measure in the report time zone, on each column type. |
 | A measure with `type: count` and no SQL of its own, on a cube where rows have a NULL primary key | Cube writes `count(pk)`, so a row with a NULL key does not count. This form keeps a left join from counting a row with no match, so the driver cannot write `COUNT(*)` in its place. The count of rows of Metabase gives the truth. The driver finds this with one query for each cube and minute. |
 | A filter or a breakout on a measure column of a model, when a group of the dimensions of the model is more than one row, for example with a NULL key | The driver reads the value of a row with `GROUP BY`, so rows would join. The driver compares the rows and the groups for this shape only, and a model on a unique key keeps its value. |
-| `distinct` of a time column, with a report time zone that has a clock change | Cube counts the clock, so two rows in the repeated hour count once. |
+| `distinct` of a time column, with a report time zone that repeats an hour now or since 1970 | Cube counts the clock, so two rows in the repeated hour count once. A zone with no repeated hour, such as `Asia/Kathmandu`, works. |
 | `count-where`, `sum-where` or `share` on a column of a joined cube, also a column of a view that comes from another cube than the first dimension of the view | Cube adds each row of that cube once, so the number would be wrong. |
 | A filter on a time column of a question with an aggregation, with a report time zone that is not UTC | The database reads the filter value as UTC, and a rollup reads it in the zone. So the filter can pick another bucket, and the driver cannot see which one Cube reads. A filter inside the question has no such limit. |
 | A relative date before the year 1900 | ClickHouse clips such a time with no error, so the filter compares with another date. |
@@ -141,7 +158,7 @@ These queries fail with a message that tells what to do. The message includes th
 | Two `sub_query` dimensions with equal SQL in a query with a filter | Cube reads the first subquery for both. Raw rows show `NULL` in the later column. |
 | A number at or above 2^53 in a result | It has lost digits, because the SQL API has the type Double. A dimension with `sql: toString(column)` gives the full digits as text. |
 | A distinct count or a measure with its own SQL, next to a breakout on an expression, or a filter or a group on a measure column | The driver reads the values of rows here, and these values do not add up to the measure. |
-| `rollup_lambda` on ClickHouse, when the range reads source rows | Cube fails with `Stream query failed: aborted`. Inside the range of the rollup it works. See `preagg.rollup_lambda`. |
+| `rollup_lambda` on ClickHouse, when the range reads source rows, with no report time zone | Cube fails with `Stream query failed: aborted`. Inside the range of the rollup it works. See `preagg.rollup_lambda`. |
 | `OR` of two segments | Cube fails with `Can't use OR operator with segments`. |
 | A segment of another cube | Cube fails with `No field named`. Use a view that has it. |
 
@@ -149,11 +166,11 @@ These checks read the stages of the query, so they work on the query builder, on
 
 ### Rollups that hold a part of the rows
 
-Cube answers from a rollup with no error in three cases where the rollup does not hold each row of the query: the query is out of the build range, the rollups of a `rollup_lambda` have a gap, or the rollup has `allow_non_strict_date_range_match: true` and a bound of the query is inside a bucket. Cube reads a rollup of a lambda up to the start of its last partition, so a gap comes when the next rollup does not hold that partition. A build range that ends inside a partition holds rows only up to that end. If only the database can tell an end of a build range, the driver gives the first or the last partition no credit.
+Cube answers from a rollup with no error in four cases where the rollup does not give each row of the query once: the query is out of the build range, the rollups of a `rollup_lambda` have a gap, the rollup has `allow_non_strict_date_range_match: true` and a bound of the query is inside a bucket, or a `rollup_lambda` joins a rollup to its source under a report time zone. In the last case stock Cube reads a row twice or not at all: `lambda_sales` by month in New York gives 319894 and in Kolkata 319607, and the truth is 319790. Cube reads a rollup of a lambda up to the start of its last partition, so a gap comes when the next rollup does not hold that partition. A build range that ends inside a partition holds rows only up to that end. If only the database can tell an end of a build range, the driver gives the first or the last partition no credit.
 
 `/v1/meta` names these rollups, so a query on another cube adds no request. For a query on such a cube or a view on it, the driver asks Cube what it would read: `EXPLAIN` gives the request, `/v1/sql` the rollups, and `/v1/load` with one row the partitions. A bound that the query does not have is the first or the last time of the source. Each answer is at most one minute old.
 
-If the rollups do not hold each row, the driver adds a filter that holds for each row, as `(id IS NULL) OR (id IS NOT NULL)`, on a column that the rollup does not hold. Cube then reads the source, so the number is right and the query is slower. A query that the rollup holds keeps the rollup. Only two cases stop with a message: a table with each column in the rollup, and native SQL, which has no stage for the filter. A filter on a column that the rollup does not hold, or a date filter in the range, lets native SQL run. The REST API of Cube has no driver in front of it, so it still gives the rows of the rollup.
+If the rollups do not hold each row, the driver adds a filter that holds for each row, as `(id IS NULL) OR (id IS NOT NULL)`, on a column that the rollup does not hold. If the rollup holds each public dimension, the filter is on its time column, which also makes Cube read the source. Cube then reads the source, so the number is right and the query is slower. A query that the rollup holds keeps the rollup. Only two cases stop with a message: a table with each column in the rollup, and native SQL, which has no stage for the filter. A filter on a column that the rollup does not hold, or a date filter in the range, lets native SQL run. The REST API of Cube has no driver in front of it, so it still gives the rows of the rollup.
 
 ### Native SQL
 
