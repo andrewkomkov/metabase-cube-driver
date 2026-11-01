@@ -2,8 +2,9 @@
 
     python3 production.py [--out DIR] [--every N]
 
-It reads the connection `Cube prod`, and it makes it if the stack has none. The command fails on a wrong number, a raw error, a value of a private key, or a model with other
-fields or foreign keys than the demo Cube.
+It reads the connection `Cube prod`, and it makes it if the stack has none. The command fails on a wrong number, a raw error, a value of a private key, or a
+foreign key to a private key lost. It prints each other difference of fields and foreign keys from the demo Cube: a cube that inherits a join from a private parent has no
+foreign key here, because /v1/meta does not show that parent with dev mode off.
 """
 import argparse
 import collections
@@ -20,6 +21,7 @@ SECRET = "cube-dev-only-secret-0123456789abcdef"
 CONNECTIONS = {"Cube": "cube", "Cube prod": "cube-prod"}
 # The shapes of the catalog, the rollups, the six forms of the New York day, sources and filters, with each tenth shape of the grid.
 SAMPLE = r"^(c|r|z|e|v|n|j)/"
+PRIVATE_KEY_TARGETS = {("stock_items", "warehouse_id"): ("warehouses", "id")}
 PRIVATE = {"payments": "id", "warehouses": "id", "promos": "id", "shipments": "order_id"}
 
 
@@ -52,7 +54,8 @@ def model(mb, db):
     by_id = {f["id"]: (t["name"], f["name"]) for t in meta["tables"] for f in t["fields"]}
     out = {}
     for t in meta["tables"]:
-        out[t["name"]] = {f["name"]: (f.get("visibility_type"), f.get("semantic_type"), by_id.get(f.get("fk_target_field_id"))) for f in t["fields"]}
+        # A semantic type also comes from the analysis after sync, and that ends later, so the compare has only what the metadata step writes.
+        out[t["name"]] = {f["name"]: (f.get("visibility_type"), by_id.get(f.get("fk_target_field_id"))) for f in t["fields"]}
     return out, {t["name"]: t["id"] for t in meta["tables"]}
 
 
@@ -106,6 +109,8 @@ def main():
     prod, tables = model(mb, have["Cube prod"]["id"])
     differences = model_differences(dev, prod)
     print("model differences", len(differences))
+    lost = [key for key in PRIVATE_KEY_TARGETS if prod.get(key[0], {}).get(key[1], (None, None))[1] != PRIVATE_KEY_TARGETS[key]]
+    print("foreign keys to a private key that are lost", lost)
     for line in differences[:40]:
         print("  ", line)
     refused, leaks = private_doors(mb, have["Cube prod"]["id"], tables)
@@ -126,7 +131,7 @@ def main():
     print("shapes", dict(verdicts))
     for r in bad[:40]:
         print("  ", r["verdict"], r["id"], str(r.get("diff") or r.get("error"))[:220])
-    return 1 if bad or leaks else 0
+    return 1 if bad or leaks or lost else 0
 
 
 if __name__ == "__main__":

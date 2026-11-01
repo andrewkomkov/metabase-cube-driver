@@ -45,6 +45,8 @@ In Metabase, go to **Admin > Databases > Add database** and select **Cube**.
 
 Set `CUBEJS_PRE_AGGREGATIONS_ALLOW_NON_STRICT_DATE_RANGE_MATCH=false` and raise `CUBEJS_DB_QUERY_LIMIT` on Cube. With the defaults, Cube returns wrong numbers with no error. See [How queries reach Cube](query-compilation.md).
 
+Run a production Cube with `CUBEJS_DEV_MODE=false`. Dev mode is unsafe for production, see [Private members and dev mode](security.md#private-members-and-dev-mode). `dev/docker-compose.production.yml` has such a Cube with Cube Store and a refresh worker, and `make production` tests it.
+
 ## Memory of Cube
 
 The SQL API of Cube keeps the rewrite graph of each query in memory, up to 500 graphs in each of two caches, for each of 100 compiled models. A change of the data model makes a new compiled model, so in dev mode the memory grows with each change. On the demo stack, one run of the suite took 2.6 GB, and a process that lived through a few runs reached 7.5 GB. The memory stays until the entries go idle for one hour.
