@@ -600,14 +600,25 @@ class Grid:
             self.compare(form, self.rest(cube, other, members, "day", None, None, "at", (), None), want, members)
 
     def time_measure(self, ctx, p):
-        """A measure of type time. With SQL_UTILS.convertTz it has the clock of the zone, on each form. A plain max(ts) is the same instant in UTC, with no offset, so the catalog uses the first form."""
+        """A measure of type time. With SQL_UTILS.convertTz it has the clock of the zone, on each form. A plain max(ts) is the same instant in UTC, with no offset. Cube gives that on its REST API, and the driver stops it, because a person reads it as the clock of the zone."""
         zone = ZONES[p]
         local = {tuple(r[:1]): r[1] for r in self.truth("SELECT toString(%s) AS k, toString(max(toTimeZone(ts, '%s'))) FROM zone_events GROUP BY k" % (day_of(zone), zone))}
         utc = {tuple(r[:1]): r[1] for r in self.truth("SELECT toString(%s) AS k, toString(max(ts)) FROM zone_events GROUP BY k" % day_of(zone))}
         for form in ("a", "b", "d"):
             cube = self.cube_of(p, form)
             for member, want in (("m_last_local", local), ("m_last_at", utc)):
-                for name, got in (("Metabase", self.metabase(ctx, cube, zone, [member], "day", None, None, "at", (), None)), ("Cube", self.rest(cube, zone, [member], "day", None, None, "at", (), None))):
+                if member == "m_last_at":
+                    try:
+                        self.metabase(ctx, cube, zone, [member], "day", None, None, "at", (), None)
+                    except self.run.Fail as e:
+                        if "measure of type time" not in str(e):
+                            raise
+                    else:
+                        raise self.run.Fail("%s %s gave a number under a report time zone" % (form, member))
+                pairs = [("Cube", lambda: self.rest(cube, zone, [member], "day", None, None, "at", (), None))]
+                if member == "m_last_local":
+                    pairs.append(("Metabase", lambda: self.metabase(ctx, cube, zone, [member], "day", None, None, "at", (), None)))
+                for name, got in ((n, fetch()) for n, fetch in pairs):
                     for key, truth in want.items():
                         if dt.datetime.fromisoformat(got[key][member]) != dt.datetime.fromisoformat(truth):
                             raise self.run.Fail("%s %s %s: %s is %s, truth %s" % (form, name, member, key, got[key][member], truth))
