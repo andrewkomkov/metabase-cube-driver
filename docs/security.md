@@ -71,7 +71,7 @@ What gives a value of a private member, on Cube `v1.8.15`:
 | Door | Dev mode off | Dev mode on |
 | --- | --- | --- |
 | The query builder, `/api/dataset`, a dashboard, a field list, a parameter value, an x-ray and MCP `execute_query`: by field id, by name in each clause and each stage | No. Cube has no such member, and the driver stops the name of a key first. | No. The driver stops it. |
-| Raw rows of a table with a private primary key | No. | No. The column is `NULL`. |
+| Raw rows of a table with a private primary key | No. | No. The column is `NULL`. A later stage, a model or a saved question shows that `NULL`, and it cannot filter, group, sort or aggregate on it, because Cube would read a filter there as a filter on the member. |
 | Native SQL and MCP `execute_sql`, for a person with native permission | No. Cube answers `not found`. | The driver scans the text and stops it, with a clear message. The scan knows a private member by its name in a table of the query, it stops `SELECT *` on a table with a private member, and it stops a hidden cube. |
 | A saved native question that reads a private member | No. | The same scan stops it, also as the source of a query builder question. |
 | The SQL API or the REST API of Cube, past Metabase | No. | **Yes.** Each client that reaches the port reads each member. The driver cannot stop this. |

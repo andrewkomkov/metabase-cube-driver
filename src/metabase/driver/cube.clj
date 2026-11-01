@@ -1443,9 +1443,25 @@
                             (:name (or key-of-name field)))
                     {:type :invalid-query}))))
 
+(defn- check-no-private-key-of-earlier-stage!
+  "A later stage reads a column of an earlier stage by its name. Raw rows of a private key are NULL, but Cube reads a filter of a later stage as a filter on the member, so
+  `x > 100000` over a stage with `NULL AS x` counts the rows of the real value. So a later stage can show that column in its rows, and it cannot read it. A model and a saved question
+  are stages too."
+  [stages]
+  (doseq [i     (range 1 (count stages))
+          :let  [earlier (subvec stages 0 i)
+                 stage   (nth stages i)]
+          form  (field-clauses (select-keys stage [:breakout :filters :aggregation :order-by :expressions]))
+          :let  [field (or (column-field earlier form)
+                           (private-key-of-name (:source-table (first stages)) (nth form 2 nil)))]
+          :when (= cube.meta/private-key-type (:database-type field))]
+    (throw (ex-info (format "%s is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model." (:name field))
+                    {:type :invalid-query}))))
+
 (defn- check-stages!
   [stages]
   (check-value-read-members! stages)
+  (check-no-private-key-of-earlier-stage! stages)
   (doseq [i (range (count stages))
           :let [stage (nth stages i)]
           :when (not= :mbql.stage/native (:lib/type stage))]
