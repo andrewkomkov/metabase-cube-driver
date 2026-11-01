@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1284/1323 pass on Cube with the ClickHouse dialect** (1284 pass, 22 partial, 1 blocked, 12 unsupported, 4 fail of 1323)
+**coverage: 1303/1342 pass on Cube with the ClickHouse dialect** (1303 pass, 23 partial, 1 blocked, 12 unsupported, 3 fail of 1342)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `a799683910c1`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41250574933), 2026-10-31.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `ebcf391e7ac2`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41253312500), 2026-11-01.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -639,7 +639,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `a7996
 | `compile.ch.integer_within_double` | pass |  |
 | `compile.xray.table_all_cards_run` | pass |  |
 | `compile.xray.field_all_cards_run` | fail | 1 of 15 cards failed: [('Status by User → Signup Cohort', 'no truth for the column users.signup_cohort of the card')] |
-| `compile.xray.time_field_all_cards_run` | fail | 1 of 15 cards failed: [('Count of User → Signup Cohort by Created at', 'no truth for the column users.signup_cohort of the card')] |
+| `compile.xray.time_field_all_cards_run` | partial | The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) can stop. Stock Cube adds each row of the joined cube once. So it gives another number, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. The check accepts this message or a number equal to the truth. |
 | `compile.xray.typed_table_all_cards_run` | pass |  |
 | `compile.granularity.native_offset_no_rollup` | pass |  |
 | `compile.filter.quote_in_value` | pass |  |
@@ -1297,16 +1297,35 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `a7996
 | `zone.kol.rollup.stored_day` | pass |  |
 | `zone.kol.rollup.text_day` | pass |  |
 | `zone.ny.stored_day_other_zone` | pass |  |
-| `zone.ny.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-31T23:45:29.195771466Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr |
+| `zone.ny.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-01T00:23:45.349621201Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr |
 | `zone.ny.native` | pass |  |
 | `zone.ny.mcp` | pass |  |
 | `zone.ny.catalog` | pass |  |
 | `zone.kol.stored_day_other_zone` | pass |  |
-| `zone.kol.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-10-31T23:45:41.20133168Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wro |
+| `zone.kol.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-01T00:23:56.635983983Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr |
 | `zone.kol.native` | pass |  |
 | `zone.kol.mcp` | pass |  |
 | `zone.kol.catalog` | pass |  |
 | `zone.rolling.sunday_week_with_no_granularity_refused` | pass |  |
+| `inherit.js.join_by_column_of_parent` | pass |  |
+| `inherit.js.raw_text_dimension` | pass |  |
+| `inherit.js.raw_case_dimension` | pass |  |
+| `inherit.multi_level.raw_text_dimension` | pass |  |
+| `inherit.js.rolling_with_no_bucket_refused` | pass |  |
+| `inherit.js.time_shift_with_no_bucket_refused` | pass |  |
+| `filter_params.value.date_range` | pass |  |
+| `filter_params.value.date_range_by_month` | pass |  |
+| `filter_params.value.date_range_in_a_zone` | pass |  |
+| `filter_params.value.date_range_with_two_bounds_in_a_zone` | pass |  |
+| `filter_params.value.one_bound_refused` | pass |  |
+| `filter_params.value.no_filter_refused` | pass |  |
+| `filter_params.value.or_refused` | pass |  |
+| `filter_params.value.expression_in_a_zone_refused` | pass |  |
+| `filter_params.value.native_date_range` | pass |  |
+| `filter_params.value.native_one_bound_refused` | pass |  |
+| `filter_params.value.one_text_value` | pass |  |
+| `filter_params.value.other_text_filter_refused` | pass |  |
+| `filter_params.condition.other_operator` | pass |  |
 | `context.compile_context` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |

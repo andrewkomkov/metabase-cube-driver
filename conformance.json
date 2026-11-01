@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 1284,
-    "partial": 22,
+    "pass": 1303,
+    "partial": 23,
     "blocked": 1,
     "unsupported": 12,
-    "fail": 4,
-    "total": 1323
+    "fail": 3,
+    "total": 1342
   },
-  "coverage": "coverage: 1284/1323 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1303/1342 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -3167,8 +3167,8 @@
     },
     {
       "id": "compile.xray.time_field_all_cards_run",
-      "status": "fail",
-      "reason": "1 of 15 cards failed: [('Count of User \u2192 Signup Cohort by Created at', 'no truth for the column users.signup_cohort of the card')]"
+      "status": "partial",
+      "reason": "The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) can stop. Stock Cube adds each row of the joined cube once. So it gives another number, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. The check accepts this message or a number equal to the truth."
     },
     {
       "id": "compile.xray.typed_table_all_cards_run",
@@ -6458,7 +6458,7 @@
     {
       "id": "zone.ny.time_measure",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-31T23:45:29.195771466Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-01T00:23:45.349621201Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr"
     },
     {
       "id": "zone.ny.native",
@@ -6483,7 +6483,7 @@
     {
       "id": "zone.kol.time_measure",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-10-31T23:45:41.20133168Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wro"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-01T00:23:56.635983983Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr"
     },
     {
       "id": "zone.kol.native",
@@ -6502,6 +6502,101 @@
     },
     {
       "id": "zone.rolling.sunday_week_with_no_granularity_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.js.join_by_column_of_parent",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.js.raw_text_dimension",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.js.raw_case_dimension",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.multi_level.raw_text_dimension",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.js.rolling_with_no_bucket_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "inherit.js.time_shift_with_no_bucket_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter_params.value.date_range",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter_params.value.date_range_by_month",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter_params.value.date_range_in_a_zone",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter_params.value.date_range_with_two_bounds_in_a_zone",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter_params.value.one_bound_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter_params.value.no_filter_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter_params.value.or_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter_params.value.expression_in_a_zone_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter_params.value.native_date_range",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter_params.value.native_one_bound_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter_params.value.one_text_value",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter_params.value.other_text_filter_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "filter_params.condition.other_operator",
       "status": "pass",
       "reason": ""
     },
