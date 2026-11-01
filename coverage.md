@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1311/1350 pass on Cube with the ClickHouse dialect** (1311 pass, 23 partial, 1 blocked, 12 unsupported, 3 fail of 1350)
+**coverage: 1313/1350 pass on Cube with the ClickHouse dialect** (1313 pass, 24 partial, 1 blocked, 12 unsupported, 0 fail of 1350)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `dcce573a6a36`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41303922726), 2026-11-01.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e8e2782d9d8c`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41308181904), 2026-11-01.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -160,7 +160,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `dcce5
 | `preagg.partitioned` | pass |  |
 | `preagg.rollup` | pass |  |
 | `preagg.rollup_join` | pass |  |
-| `preagg.rollup_lambda` | fail | 1 of 1 differ. whole range: ERROR The rollup batch of lambda_sales has no rows at 2025-07-01T00:00. Cube would give a part of the rows with no error, and each column of this table is in the roll |
+| `preagg.rollup_lambda` | partial | Inside the range of the rollup, the lambda gives the truth. With a range that reads source rows on the demo data, the REST API and the SQL API of Cube can stop on ClickHouse with Stream query failed: aborted, see cube-js/cube#12285. A run gives the truth or this error. The driver shows a clear message for this. dev/cube/model/rollups.yml has the model. |
 | `sqlapi.aggregate_function` | pass |  |
 | `sqlapi.date_trunc` | pass |  |
 | `sqlapi.having` | pass |  |
@@ -190,7 +190,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `dcce5
 | `meta.measure_is_marked` | pass |  |
 | `meta.no_internal_columns` | pass |  |
 | `meta.resync_keeps_metadata` | pass |  |
-| `meta.semantic_types` | fail | users.state semantic_type type/FK, want type/State |
+| `meta.semantic_types` | pass |  |
 | `meta.tables_match_public_members` | pass |  |
 | `mb.agg.avg_field` | pass |  |
 | `mb.agg.count_rows` | pass |  |
@@ -407,7 +407,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `dcce5
 | `view.on_extended_cube` | pass |  |
 | `view.prefix_sync` | pass |  |
 | `view.member_alias_sync` | pass |  |
-| `cube.sql_sync` | fail | payments.id must not sync |
+| `cube.sql_sync` | pass |  |
 | `cube.sql_alias_sync` | pass |  |
 | `cube.data_source_default` | pass |  |
 | `cube.polymorphic_first` | pass |  |

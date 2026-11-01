@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 1311,
-    "partial": 23,
+    "pass": 1313,
+    "partial": 24,
     "blocked": 1,
     "unsupported": 12,
-    "fail": 3,
+    "fail": 0,
     "total": 1350
   },
-  "coverage": "coverage: 1311/1350 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1313/1350 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -772,8 +772,8 @@
     },
     {
       "id": "preagg.rollup_lambda",
-      "status": "fail",
-      "reason": "1 of 1 differ. whole range: ERROR The rollup batch of lambda_sales has no rows at 2025-07-01T00:00. Cube would give a part of the rows with no error, and each column of this table is in the roll"
+      "status": "partial",
+      "reason": "Inside the range of the rollup, the lambda gives the truth. With a range that reads source rows on the demo data, the REST API and the SQL API of Cube can stop on ClickHouse with Stream query failed: aborted, see cube-js/cube#12285. A run gives the truth or this error. The driver shows a clear message for this. dev/cube/model/rollups.yml has the model."
     },
     {
       "id": "sqlapi.aggregate_function",
@@ -922,8 +922,8 @@
     },
     {
       "id": "meta.semantic_types",
-      "status": "fail",
-      "reason": "users.state semantic_type type/FK, want type/State"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "meta.tables_match_public_members",
@@ -2007,8 +2007,8 @@
     },
     {
       "id": "cube.sql_sync",
-      "status": "fail",
-      "reason": "payments.id must not sync"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "cube.sql_alias_sync",
