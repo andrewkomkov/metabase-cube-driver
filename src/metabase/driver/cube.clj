@@ -326,19 +326,26 @@
                         (= 4 (count clause))
                         (vector? (nth clause 3))
                         (= :value (first (nth clause 3)))
-                        (let [v (nth (nth clause 3) 2)] (or (number? v) (string? v)))
-                        (let [lhs (nth clause 2)]
+                        (let [v   (nth (nth clause 3) 2)
+                              lhs (nth clause 2)]
                           (and (vector? lhs) (= :field (first lhs)) (integer? (nth lhs 2 nil))
                                (let [{:keys [base-type]} (stored-field lhs)]
-                                 (or (isa? base-type :type/Number) (isa? base-type :type/Text)))))))
+                                 (or (and (number? v) (isa? base-type :type/Number))
+                                     (and (string? v) (isa? base-type :type/Text))))))))
           field-of (fn [clause] (let [[_ opts id] (nth clause 2)] [id (:join-alias opts) (:temporal-unit opts)]))]
       (when (and (every? plain? clauses) (apply = (map field-of clauses)))
         [(nth (first clauses) 2) (map #(nth % 3) clauses)]))))
 
+(declare fraction-value? exact-column)
+
 (defmethod sql.qp/->honeysql [:cube :or]
   [driver [_ _opts & clauses :as clause]]
   (if-let [[field values] (equal-list clauses)]
-    [:in (sql.qp/->honeysql driver field) (mapv #(sql.qp/->honeysql driver %) values)]
+    [:in
+     (if (some fraction-value? values)
+       (exact-column driver field)
+       (sql.qp/->honeysql driver field))
+     (mapv #(sql.qp/->honeysql driver %) values)]
     ((get-method sql.qp/->honeysql [:postgres :or]) driver clause)))
 
 ;; Cube computes SUBSTRING and SUBSTR above a subquery, and a sort of that column stops with "unsupported type Utf8View". A cast to text gives a type that it can sort.
@@ -617,14 +624,23 @@
                          "ClickHouse dialect, see cube-clickhouse/README.md.")
                     {:type :invalid-query}))))
 
+(defn- fraction-value?
+  "True if this clause is a number with a part after the point that is not zero."
+  [[tag _ value :as clause]]
+  (and (vector? clause) (= :value tag) (number? value) (not (integer? value)) (not= (double value) (Math/rint (double value)))))
+
+(defn- exact-column
+  "A column in an expression makes Cube write the number that it compares with as it is, and it compares two doubles."
+  [driver field]
+  [:* (sql.qp/->honeysql driver field) (h2x/cast "double precision" (h2x/literal "1.0"))])
+
 (defn- fraction-bound
-  "Cube sends a number to ClickHouse as text, and ClickHouse cuts text to the scale of a Decimal column. So `x < 12.50001` reads as `x < 12.5`.
-  A column in an expression makes Cube write the number as it is, and it compares two doubles."
+  "Cube sends a number to ClickHouse as text, and ClickHouse cuts text to the scale of a Decimal column. So `x < 12.50001` reads as `x < 12.5`, and `x IN (44.001)` as `x IN (44)`."
   [driver [op _opts field & values]]
   (when (and (vector? field)
              (= :field (first field))
-             (some (fn [[tag _ value]] (and (= :value tag) (number? value) (not (integer? value)) (not= (double value) (Math/rint (double value))))) (filter vector? values)))
-    (let [column  [:* (sql.qp/->honeysql driver field) (h2x/cast "double precision" (h2x/literal "1.0"))]
+             (some fraction-value? values))
+    (let [column  (exact-column driver field)
           numbers (map (partial sql.qp/->honeysql driver) values)]
       (case op
         :between [:and [:>= column (first numbers)] [:<= column (second numbers)]]
@@ -1353,24 +1369,72 @@
                  (= table-id (:table-id (driver-api/field provider fk-target-field-id)))))
           (driver-api/fields provider source-table))))
 
+(def ^:private row-aggregations
+  "The aggregations that give another number if a row of a joined cube counts once and not for each row of the query. `min`, `max` and `distinct` do not depend on this. A count of rows has no column,
+  so it does not stop here. Cube gives `median` and `percentile` no form, so they have their own message."
+  #{:sum :avg :stddev :var :sum-where :count-where :share :count :cum-sum :cum-count :median :percentile})
+
+(defn- expression-of-stage
+  "The clause of the custom column `expression-name` of this stage, or nil."
+  [{:keys [expressions]} expression-name]
+  (if (map? expressions)
+    (get expressions expression-name)
+    (first (filter #(= expression-name (:lib/expression-name (second %))) expressions))))
+
+(defn- source-fields
+  "The stored fields that `clause` reads, in the stage after `earlier`. This reads through a custom column, and through a column of an earlier stage of raw rows. A column of a stage
+  with an aggregation or a breakout is a value of a group, so a later stage gives the number of SQL."
+  [earlier stage clause]
+  (mapcat (fn [form]
+            (cond
+              (and (vector? form) (= :expression (first form)))
+              (when-let [definition (expression-of-stage stage (nth form 2 nil))]
+                (source-fields earlier stage definition))
+
+              (and (vector? form) (= :field (first form)))
+              (let [id     (nth form 2 nil)
+                    source (peek earlier)]
+                (cond
+                  (integer? id) (keep identity [(stored-field form)])
+
+                  (and (string? id) source (empty? (:aggregation source)) (empty? (:breakout source)))
+                  (when-let [selected (first (filter (fn [item]
+                                                       (or (selected-as? id item)
+                                                           (and (= :expression (first item)) (= id (nth item 2 nil)))))
+                                                     (:fields source)))]
+                    (source-fields (pop earlier) source selected))))))
+          (tree-seq #(and (coll? %) (not (and (vector? %) (= :field (first %))))) seq clause)))
+
+(defn- joined-through-model?
+  "True if a row of the table `root-table` reads one row of the table of this field, so a query has each row of that table for many rows of the query."
+  [cube-meta root-table {:keys [table-id], field-name :name}]
+  (let [provider (driver-api/metadata-provider)]
+    (if (= root-table table-id)
+      (and cube-meta (cube.meta/joined-member-of-view? cube-meta (:name (driver-api/table provider table-id)) field-name))
+      (or (foreign-key-to-table? root-table table-id)
+          (and cube-meta
+               (cube.meta/shared-by-many-rows? cube-meta
+                                               (:name (driver-api/table provider root-table))
+                                               (:name (driver-api/table provider table-id))))))))
+
 (defn- check-no-total-through-join!
-  "Cube protects a dimension of the one side of a join from fan-out, so it adds each row of that cube once. SUM(products.price)
-  by a column of orders gives the total of the products in place of the sum over the orders. A subquery gives the same number."
-  [{:keys [source-table aggregation]}]
-  (when (integer? source-table)
-    (doseq [form  (tree-seq coll? seq aggregation)
-            :when (and (vector? form) (#{:sum :avg :stddev :var :sum-where :count-where :share} (first form)))
-            field (map stored-field (field-clauses form))
-            :when (and (= :dimension (field-kind field))
-                       (if (= source-table (:table-id field))
-                         (when-let [cube-meta (current-meta)]
-                           (cube.meta/joined-member-of-view? cube-meta (table-name-of-field [:field {} (:id field)]) (:name field)))
-                         (foreign-key-to-table? source-table (:table-id field))))]
-      (throw (ex-info (format (str "Cube cannot add up the dimension %s over the rows of this query. It adds each row of the "
-                                   "joined cube once, so the number would be wrong. Add a measure to the data model, or start "
-                                   "from the cube of this dimension.")
-                              (:name field))
-                      {:type :invalid-query, ::try-two-stages true})))))
+  "Cube protects a dimension of the one side of a join from fan-out, so it reads each row of that cube once. SUM(products.price) by a column of orders gives the total of the products in place of the
+  sum over the orders, and COUNT(products.price) gives the number of products. A later stage over raw rows gives the same number, because Cube reads it as one query."
+  [stages]
+  (let [stage   (peek stages)
+        earlier (pop stages)
+        root    (:source-table (first stages))]
+    (when (integer? root)
+      (doseq [form  (tree-seq coll? seq (:aggregation stage))
+              :when (and (vector? form) (row-aggregations (first form)))
+              field (source-fields earlier stage (vec (drop 2 form)))
+              :when (and (= :dimension (field-kind field))
+                         (joined-through-model? (current-meta) root field))]
+        (throw (ex-info (format (str "Cube cannot add up the dimension %s over the rows of this query. It reads each row of the "
+                                     "joined cube once, so the number would be wrong. Add a measure to the data model, or start "
+                                     "from the cube of this dimension.")
+                                (:name field))
+                        {:type :invalid-query, ::try-two-stages true}))))))
 
 (defn- date-range-clauses?
   "True if these clauses on one time column are a date range for Cube: one `between`, or one `>=` next to one `<` or `<=`, with time literals."
@@ -1481,7 +1545,7 @@
           :when (not= :mbql.stage/native (:lib/type stage))]
     (let [upto (subvec stages 0 (inc i))]
       (check-no-private-key! stage)
-      (check-no-total-through-join! stage)
+      (check-no-total-through-join! upto)
       (check-no-time-filter-over-aggregation-in-zone! (pop upto) stage)
       (check-no-group-by-member! (pop upto) stage)
       (check-no-filter-on-measure! (pop upto) stage)
@@ -2041,6 +2105,7 @@
   [details cube-meta]
   {:keeps-fractions? (cube.probe/keeps-fractions? details cube-meta nil)
    :report-zone?     (report-zone?)
+   :joined-member-of-view? (partial cube.meta/joined-member-of-view? cube-meta)
    :value-read       (partial cube.probe/value-read-members details cube-meta)
    :rolling-reason   (partial cube.probe/rolling-window-reason details)
    :rolling-zone-reason (when (report-zone?)
@@ -2055,7 +2120,15 @@
     (let [details (:details (driver-api/database (driver-api/metadata-provider)))]
       (doseq [{:keys [native params]} stages
               :when (string? native)]
+        (cube.native/check-native-private-member! cube-meta native)
         (cube.native/check-native! cube-meta native (or params []) (native-questions details cube-meta))))))
+
+(defn- exact-native-stage
+  "A saved native question as a stage of a query. See cube.native/exact-fractions."
+  [{:keys [native params] :as stage}]
+  (if-let [cube-meta (when (string? native) (current-meta))]
+    (assoc stage :native (cube.native/exact-fractions cube-meta native params))
+    stage))
 
 (defn- query-with-stages
   "`query` with the checks done and the limits added, the measures that a later stage aggregates, the columns that Cube reads as
@@ -2065,7 +2138,7 @@
     (let [preprocessed (vec (sql.qp/preprocess driver query))]
       (check-stages! preprocessed)
       (check-native-stages! preprocessed)
-      [(assoc query :stages (limit-subqueries (vec stages)))
+      [(assoc query :stages (limit-subqueries (mapv exact-native-stage stages)))
        (aggregated-measures preprocessed)
        (named-measures preprocessed)
        (row-measure-names preprocessed)
@@ -2254,6 +2327,10 @@
                                                                 0]
       (#{:min :max :distinct} tag)                             [tag opts (outer-form arg)]
       (= :sum tag)                                             [:sum opts (times arg)]
+      (= :cum-sum tag)                                         [:cum-sum opts (times arg)]
+      (= :cum-count tag)                                       [:cum-sum opts (if arg
+                                                                                [:case (u) [[(not-null arg) (rows)]] 0]
+                                                                                (rows))]
       (= :avg tag)                                             [:/ (named opts tag ctx)
                                                                 [:sum (u) (times arg)]
                                                                 [:sum-where (u) (rows) (not-null arg)]]
@@ -2408,6 +2485,37 @@
           ;; A filter of an outer stage on a time reads its literal in another zone than the column under a report time zone. See check-no-time-filter-over-aggregation-in-zone!.
           (if (report-zone?) [:all :time] [:all :time :none]))))
 
+(defn- merged-raw-stage
+  "`stages` with a first stage of raw rows and the stage after it as one stage, or nil. Cube reads the two as one query, so an aggregation of a joined column in the second stage has the
+  same problem as in one stage, and one stage has the form of [[split-first-stage]]. Nil if the first stage does more than select columns and filter, or if a column has no field."
+  [[{:keys [fields] :as first-stage} {:keys [aggregation] :as second-stage} & more]]
+  (when (and (= :mbql.stage/mbql (:lib/type first-stage))
+             (= :mbql.stage/mbql (:lib/type second-stage))
+             (seq aggregation)
+             (seq fields)
+             (every? integer-field? fields)
+             (not-any? first-stage [:aggregation :breakout :expressions :order-by :limit]))
+    (let [column-names (fn [[_ opts :as clause]]
+                         (keep identity [(inner-column-name clause) (:lib/desired-column-alias opts) (:name opts)]))
+          by-name      (into {} (for [clause fields, column-name (column-names clause)] [column-name clause]))
+          missing?     (atom false)
+          merged       (walk/postwalk
+                        (fn [form]
+                          (if (and (vector? form) (= :field (first form)) (string? (nth form 2 nil)))
+                            (if-let [[_ selected-opts id] (get by-name (nth form 2))]
+                              [:field (merge (dissoc selected-opts :lib/uuid) (select-keys (second form) [:lib/uuid :temporal-unit :binning])) id]
+                              (do (reset! missing? true) form))
+                            form))
+                        (dissoc second-stage :lib/type))]
+      (when-not @missing?
+        (into [(cond-> (assoc merged
+                              :lib/type :mbql.stage/mbql
+                              :source-table (:source-table first-stage))
+                 (seq (:joins first-stage))    (assoc :joins (:joins first-stage))
+                 (or (seq (:filters first-stage))
+                     (seq (:filters merged)))  (assoc :filters (into (vec (:filters first-stage)) (:filters merged))))]
+              more)))))
+
 (defn- may-fail-to-plan?
   "True if Cube may fail to plan this first stage, so the driver asks it. See the note on two stages."
   [cube-meta {:keys [source-table aggregation expressions breakout filters]}]
@@ -2438,7 +2546,9 @@
         (catch clojure.lang.ExceptionInfo e
           (or (when (::try-two-stages (ex-data e))
                 (binding [*read-source* true]
-                  (compile-two-stages driver query cube-meta)))
+                  (or (compile-two-stages driver query cube-meta)
+                      (when-let [merged (merged-raw-stage (:stages query))]
+                        (compile-two-stages driver (assoc query :stages merged) cube-meta)))))
               (throw e)))))))
 
 (defn- time-measure-columns
@@ -2644,6 +2754,12 @@
   [["PERCENTILE_CONT"
     (str "Cube cannot compute a median or a percentile on this data source. Add a measure with the SQL of the database "
          "to the data model.")]
+   ["percentile_cont"
+    (str "Cube cannot compute a median or a percentile on this data source. Add a measure with the SQL of the database "
+         "to the data model.")]
+   ["Can't find join path"
+    (str "Cube has no join path between these tables in the direction of this query. A join starts at the cube that holds the join in the data model. Start from that cube, "
+         "or add the join to the data model.")]
    ["Invalid identifier"
     (str "This table has no column with that name. Call browse_data with action get_fields to read the columns of the "
          "table. A column of another cube is not on this table: use a view that has it, or write "
@@ -2794,17 +2910,18 @@
       (cube.native/check-no-private-member! cube-meta sql)
       (if (native-only? query)
         (let [details (:details (driver-api/database (driver-api/metadata-provider)))]
+          (cube.native/check-native-private-member! cube-meta sql)
           (cube.native/check-native! cube-meta sql (or params []) (native-questions details cube-meta))
           (check-native-rollup! details cube-meta sql params)
           (check-native-count-of-null-key! details cube-meta sql))
         (cube.native/check-paths! cube-meta sql)))))
 
-(defn- with-count-on-no-rows
-  "See cube.native/count-on-no-rows."
-  [{{sql :query} :native, :as query}]
+(defn- with-native-rewrites
+  "See cube.native/count-on-no-rows and cube.native/exact-fractions."
+  [{{sql :query, params :params} :native, :as query}]
   (if (and (string? sql) (not (sync-query? query)) (native-only? query))
     (if-let [cube-meta (current-meta)]
-      (assoc-in query [:native :query] (cube.native/count-on-no-rows cube-meta sql))
+      (assoc-in query [:native :query] (cube.native/exact-fractions cube-meta (cube.native/count-on-no-rows cube-meta sql) params))
       query)
     query))
 
@@ -2859,7 +2976,7 @@
   (try
     (binding [*stop-big-numbers* (not (sync-query? query))
               *time-measure-columns* (set (get-in query [:native :cube/time-measure-columns]))]
-      (sql-jdbc.execute/execute-reducible-query driver (with-count-on-no-rows query) context respond))
+      (sql-jdbc.execute/execute-reducible-query driver (with-native-rewrites query) context respond))
     (catch Exception e
       (if-let [text (clear-error (exception-text e))]
         (throw (ex-info text {:type :invalid-query}))

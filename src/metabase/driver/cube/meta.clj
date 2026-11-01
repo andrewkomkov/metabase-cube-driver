@@ -729,6 +729,25 @@
                                  join-name)]
                 (recur (into seen next-cubes) (vec (distinct next-cubes))))))))
 
+(defn shared-by-many-rows?
+  "True if the joins of the data model reach cube `to` from cube `from` with a many to one join on the way, so many rows of `from` can read one row of `to`. A one to one join
+  alone keeps each row once."
+  [cube-meta from to]
+  (let [name->cube (into {} (map (juxt :name identity)) (:cubes cube-meta))
+        many?      #{"belongsTo" "many_to_one"}
+        one?       #{"hasOne" "one_to_one"}]
+    (loop [seen #{[from false]}, front [[from false]]]
+      (if (empty? front)
+        (contains? seen [to true])
+        (let [steps (distinct
+                     (for [[cube-name shared?] front
+                           {:keys [relationship], join-name :name} (own-and-inherited-joins name->cube (name->cube cube-name))
+                           :when (or (many? relationship) (one? relationship))
+                           :let  [state [join-name (or shared? (boolean (many? relationship)))]]
+                           :when (not (seen state))]
+                       state))]
+          (recur (into seen steps) (vec steps)))))))
+
 (defn row-count-measure
   "The short name of a measure of this table that counts one row of the first cube of the table with no filter, and the name of that cube, or nil."
   [cube-meta table-name]

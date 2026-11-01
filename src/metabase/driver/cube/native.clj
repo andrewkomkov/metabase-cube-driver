@@ -1,7 +1,7 @@
 (ns metabase.driver.cube.native
-  "A cheap scan of SQL text, for shapes where Cube gives a wrong number with no error. It splits the text into tokens, removes
-  parentheses and casts around a column or a literal, and reads `column op literal` on either side, BETWEEN and DATE_TRUNC.
-  It is not a SQL parser. docs/query-compilation.md lists the shapes that it does not read in \"Known wrong numbers\"."
+  "A cheap scan of SQL text, for shapes where Cube gives a wrong number with no error, and for private members. It splits the text into tokens with a lexer that follows
+  the rules of PostgreSQL, removes parentheses and casts around a column or a literal, and reads `column op literal` on either side, BETWEEN and DATE_TRUNC.
+  It is not a SQL parser. docs/query-compilation.md lists the shapes that it does not read in \"Known wrong numbers\", and docs/security.md says what the scan of private members is."
   (:require
    [clojure.string :as str]
    [metabase.driver.cube.meta :as cube.meta]
@@ -12,34 +12,151 @@
 
 (set! *warn-on-reflection* true)
 
-(def ^:private token-pattern
-  #"(?s)--[^\n]*|/\*.*?\*/|'(?:[^']|'')*'|\"(?:[^\"]|\"\")*\"|[A-Za-z_][A-Za-z0-9_$]*|\d[\d.]*|<=|>=|<>|!=|\S")
+;;; The lexer. It reads the text as the parser of Cube does, which has the rules of PostgreSQL: a string with '' or, with the prefix E, also a backslash; a quoted name with "";
+;;; a string in dollar quotes; a comment with -- or /* */, and these comments nest. A text that the lexer cannot read has a reason in :unreadable. See check-native-private-member!.
 
-(defn- token
-  [text]
-  (let [c (first text)]
+(defn- word-start?
+  [c]
+  (or (Character/isLetter (char c)) (= c \_)))
+
+(defn- word-char?
+  [c]
+  (or (Character/isLetterOrDigit (char c)) (= c \_) (= c \$)))
+
+(defn- quoted-end
+  "The index after the quote that closes the text that opens at `start`, with a doubled quote inside it, or nil. With `backslash?`, a backslash also keeps the next character."
+  [^String sql start quote-char backslash?]
+  (let [size  (count sql)
+        quote (char quote-char)]
+    (loop [i (inc (long start))]
+      (when (< i size)
+        (let [c (.charAt sql i)]
+          (cond
+            (and backslash? (= c \\))                                   (recur (+ i 2))
+            (and (= c quote) (< (inc i) size) (= quote (.charAt sql (inc i)))) (recur (+ i 2))
+            (= c quote)                                                 (inc i)
+            :else                                                       (recur (inc i))))))))
+
+(defn- comment-end
+  "The index after the comment that opens at `start`. /* */ nests. Nil if it has no end."
+  [^String sql start]
+  (loop [i (+ (long start) 2), depth 1]
     (cond
-      (= c \') {:kind :string, :text (str/replace (subs text 1 (dec (count text))) "''" "'")}
-      (= c \") {:kind :ident, :text (str/lower-case (str/replace (subs text 1 (dec (count text))) "\"\"" "\""))}
-      (or (Character/isLetter (char c)) (= c \_)) {:kind :word, :text (str/lower-case text)}
-      :else {:kind :other, :text text})))
+      (zero? depth)            i
+      (>= i (count sql))       nil
+      (.startsWith sql "/*" i) (recur (+ i 2) (inc depth))
+      (.startsWith sql "*/" i) (recur (+ i 2) (dec depth))
+      :else                    (recur (inc i) depth))))
 
-(defn- comment-text?
-  [^String text]
-  (or (str/starts-with? text "--") (str/starts-with? text "/*")))
+(defn- dollar-tag
+  "The opening `$tag$` at `start`, or nil."
+  [^String sql start]
+  (let [matcher (re-matcher #"\$(?:[\p{L}_][\p{L}\p{N}_]*)?\$" sql)]
+    (.region matcher (int start) (count sql))
+    (when (.lookingAt matcher) (.group matcher))))
+
+(defn- string-of
+  [^String sql start end kind]
+  (let [inner (subs sql start end)]
+    {:kind  :string
+     :text  (case kind
+              :plain  (str/replace (subs inner 1 (dec (count inner))) "''" "'")
+              :escape (-> (subs inner 2 (dec (count inner)))
+                          (str/replace "''" "'")
+                          (str/replace #"\\(.)" "$1")))}))
+
+(defn- lex
+  "{:tokens the tokens of `sql` with their positions, and no comments, :unreadable the reason if the text is not one that the scan can read}."
+  [^String sql]
+  (let [size (count sql)]
+    (loop [i 0, out [], unreadable nil]
+      (if (>= i size)
+        {:tokens out, :unreadable unreadable}
+        (let [c    (.charAt sql i)
+              next-c (when (< (inc i) size) (.charAt sql (inc i)))]
+          (cond
+            (Character/isWhitespace c)
+            (recur (inc i) out unreadable)
+
+            (.startsWith sql "--" i)
+            (let [end (let [at (.indexOf sql "\n" i)] (if (neg? at) size at))]
+              (recur (long end) out (or unreadable
+                                        ;; PostgreSQL ends this comment at a carriage return, and the parser of Cube does not.
+                                        (when (re-find #"\r(?!\n)" (subs sql i (min size (inc end)))) "a carriage return in a comment"))))
+
+            (.startsWith sql "/*" i)
+            (if-let [end (comment-end sql i)]
+              (recur (long end) out unreadable)
+              {:tokens out, :unreadable (or unreadable "a comment with no end")})
+
+            (and (#{\E \e} c) (= next-c \'))
+            (if-let [end (quoted-end sql (inc i) \' true)]
+              (recur (long end) (conj out (assoc (string-of sql i end :escape) :start i :end end)) unreadable)
+              {:tokens out, :unreadable (or unreadable "a string with no end")})
+
+            (and (#{\U \u} c) (= next-c \&) (< (+ i 2) size) (#{\' \"} (.charAt sql (+ i 2))))
+            (let [end (quoted-end sql (+ i 2) (.charAt sql (+ i 2)) false)]
+              {:tokens out, :unreadable (or unreadable (if end "a name or a string with Unicode escapes" "a string with no end"))})
+
+            (= c \')
+            (if-let [end (quoted-end sql i \' false)]
+              (recur (long end)
+                     (conj out (assoc (string-of sql i end :plain) :start i :end end))
+                     ;; Standard SQL reads a backslash as a character, and other dialects read the quote after it as a part of the string.
+                     (or unreadable (when (str/includes? (subs sql i end) "\\'") "a backslash before a quote in a string")))
+              {:tokens out, :unreadable (or unreadable "a string with no end")})
+
+            (= c \")
+            (if-let [end (quoted-end sql i \" false)]
+              (recur (long end)
+                     (conj out {:kind  :ident
+                                :text  (str/lower-case (str/replace (subs sql (inc i) (dec end)) "\"\"" "\""))
+                                :start i
+                                :end   end})
+                     unreadable)
+              {:tokens out, :unreadable (or unreadable "a name with no end")})
+
+            (= c \$)
+            (if-let [tag (dollar-tag sql i)]
+              (let [at (.indexOf sql ^String tag (int (+ i (count tag))))]
+                (if (neg? at)
+                  {:tokens out, :unreadable (or unreadable "a string in dollar quotes with no end")}
+                  (let [end (+ at (count tag))]
+                    (recur (long end)
+                           (conj out {:kind :string, :text (subs sql (+ i (count tag)) at), :start i, :end end})
+                           unreadable))))
+              (let [end (loop [j (inc i)] (if (and (< j size) (Character/isDigit (.charAt sql j))) (recur (inc j)) j))]
+                (recur (long end) (conj out {:kind :other, :text (subs sql i end), :start i, :end end}) unreadable)))
+
+            (word-start? c)
+            (let [end (loop [j (inc i)] (if (and (< j size) (word-char? (.charAt sql j))) (recur (inc j)) j))]
+              (recur (long end) (conj out {:kind :word, :text (str/lower-case (subs sql i end)), :start i, :end end}) unreadable))
+
+            (or (Character/isDigit c)
+                (and (= c \.) next-c (Character/isDigit (char next-c))
+                     (not (contains? #{:word :ident} (:kind (peek out))))))
+            (let [matcher (re-matcher #"\d*\.?\d*(?:[eE][+-]?\d+)?" sql)]
+              (.region matcher (int i) size)
+              (.lookingAt matcher)
+              (let [end (.end matcher)]
+                (recur (long end) (conj out {:kind :other, :number? true, :text (.group matcher), :start i, :end end}) unreadable)))
+
+            (some #(.startsWith sql ^String % i) ["<=" ">=" "<>" "!="])
+            (recur (+ i 2) (conj out {:kind :other, :text (subs sql i (+ i 2)), :start i, :end (+ i 2)}) unreadable)
+
+            :else
+            (recur (inc i) (conj out {:kind :other, :text (str c), :start i, :end (inc i)}) unreadable)))))))
 
 (defn- tokens
   "The tokens of `sql` as a vector, with no comments. Each `?` has the number of its query parameter."
   [sql]
   (first
-   (reduce (fn [[out params] text]
-             (if (comment-text? text)
-               [out params]
-               (if (= text "?")
-                 [(conj out {:kind :param, :text "?", :param params}) (inc params)]
-                 [(conj out (token text)) params])))
+   (reduce (fn [[out params] {:keys [text kind] :as tok}]
+             (if (and (= :other kind) (= text "?"))
+               [(conj out (assoc tok :kind :param, :param params)) (inc params)]
+               [(conj out tok) params]))
            [[] 0]
-           (re-seq token-pattern sql))))
+           (:tokens (lex sql)))))
 
 ;;; Parentheses and casts around one value do not change it. The scan reads the value.
 
@@ -173,6 +290,7 @@
                                              (map (comp short-name :name)))
                                        measures)
                  :dimensions (into #{} (map (comp short-name :name)) dimensions)
+                 :numbers (into #{} (comp (filter #(= "number" (:type %))) (map (comp short-name :name))) dimensions)
                  :switches (cube.meta/switch-dimension-names cube-meta cube-name)
                  :date-only (into #{}
                                   (comp (filter #(cube.probe/date-only? cube-meta (:name %))) (map (comp short-name :name)))
@@ -582,7 +700,7 @@
                                 "would be wrong. Group by it with a measure, or leave out this column.")
                            switch table)))))))
 
-;;; A sum of a dimension of a joined cube.
+;;; An aggregation of a dimension of a joined cube.
 
 (defn- table-aliases
   "A map from each name that can stand before a column to its table, and the first table of the text under :first."
@@ -598,25 +716,50 @@
           {}
           (range (count toks))))
 
+(def ^:private row-aggregations
+  "The aggregations that give another number if a row counts once and not for each row of the query."
+  #{"sum" "avg" "count" "stddev" "stddev_pop" "stddev_samp" "variance" "var_pop" "var_samp"})
+
+(defn- argument-column
+  "[qualifier column] of the plain column that the call at `i` reads, as in SUM(a.b), SUM(b) or COUNT(DISTINCT b), or nil. DISTINCT does not depend on how often a row counts."
+  [toks i]
+  (when (and (= :word (:kind (get toks i)))
+             (contains? row-aggregations (:text (get toks i)))
+             (= "(" (:text (get toks (inc i)))))
+    (let [at (if (word? (get toks (+ i 2)) "all") (+ i 3) (+ i 2))]
+      (cond
+        (and (name-token? (get toks at)) (= "." (:text (get toks (inc at)))) (name-token? (get toks (+ at 2))) (= ")" (:text (get toks (+ at 3)))))
+        [(:text (get toks at)) (:text (get toks (+ at 2)))]
+
+        (and (name-token? (get toks at)) (= ")" (:text (get toks (inc at)))))
+        [nil (:text (get toks at))]))))
+
 (defn- check-total-through-join!
-  "Cube adds each row of a joined cube once. See compile.join.total_of_dimension_refused."
-  [index toks]
+  "Cube reads each row of a joined cube once. See compile.join.total_of_dimension_refused."
+  [index toks joined-member-of-view?]
   (let [aliases (table-aliases toks)
-        start   (:first aliases)]
-    (when (next (tables toks))
-      (doseq [i (range (count toks))
-              :when (and (or (word? (get toks i) "sum") (word? (get toks i) "avg"))
-                         (= "(" (:text (get toks (inc i))))
-                         (= "." (:text (get toks (+ i 3))))
-                         (= ")" (:text (get toks (+ i 5)))))
-              :let [table  (get aliases (:text (get toks (+ i 2))))
-                    column (:text (get toks (+ i 4)))]
-              :when (and table
-                         (not= table start)
-                         (contains? (:dimensions (get index table)) column))]
-        (refuse! (format (str "Cube cannot add up the dimension %s of %s over the rows of %s. It adds each row of the joined cube once, so "
-                              "the number would be wrong. Add a measure to the data model, or start from %s.")
-                         column table start table))))))
+        start   (:first aliases)
+        read    (tables toks)]
+    (doseq [i     (range (count toks))
+            :let  [[qualifier column] (argument-column toks i)]
+            :when column]
+      (let [table (cond
+                    qualifier                                   (get aliases qualifier)
+                    (contains? (:dimensions (get index start)) column) start
+                    :else                                       (first (filter #(contains? (:dimensions (get index %)) column) read)))]
+        (when (and table
+                   (not= table start)
+                   (next read)
+                   (contains? (:dimensions (get index table)) column))
+          (refuse! (format (str "Cube cannot add up the dimension %s of %s over the rows of %s. It reads each row of the joined cube once, so "
+                                "the number would be wrong. Add a measure to the data model, or start from %s.")
+                           column table start table)))
+        (when (and (= table start)
+                   joined-member-of-view?
+                   (joined-member-of-view? (:cube-name (get index table)) column))
+          (refuse! (format (str "Cube cannot add up the column %s of the view %s over the rows of the view, because this column comes from a joined cube, and Cube reads each of "
+                                "its rows once. So the number would be wrong. Add a measure to the data model, or start from the cube of this column.")
+                           column table)))))))
 
 ;;; A report time zone.
 
@@ -829,7 +972,9 @@
                 alias-at     (if as? (inc after) after)
                 alias-tok    (get toks alias-at)
                 alias-name   (when (and (part-of-name? alias-tok)
-                                        (or as? (not (not-an-alias (:text alias-tok)))))
+                                        (or as?
+                                            (= :ident (:kind alias-tok))
+                                            (not (not-an-alias (:text alias-tok)))))
                                (:text alias-tok))]
             (recur (if alias-name (inc alias-at) after)
                    (cond-> (assoc out table table) alias-name (assoc alias-name table))
@@ -847,7 +992,7 @@
        (let [before (get toks (dec i))]
          (or (= "." (:text before))
              (= "," (:text before))
-             (and (= :word (:kind before)) (#{"select" "distinct"} (:text before)))))))
+             (and (= :word (:kind before)) (#{"select" "distinct" "all"} (:text before)))))))
 
 (defn- tables-of-star
   "The tables that the `*` at `i` reads directly: those of the FROM of its own SELECT, with no subquery. A subquery lists its own columns, and the scan reads them there. `alias.*`
@@ -929,6 +1074,278 @@
               (when-let [table (first (filter #(contains? (get private %) text) read-from))]
                 (refuse-member! text table)))))))))
 
+;;; The scan of a text that a person or an agent wrote. A wrong guess here must refuse, and never let a name through:
+;;;
+;;; - A table counts as read if the text names it anywhere, so no form of FROM can hide it.
+;;; - `a.x` reads x of the tables that `a` can mean, and `a` can mean each table of each FROM with that alias. If the scan does not know `a`, it can mean each table of the text.
+;;; - A name with no table can mean each table of the text.
+;;; - `NULL AS id` over a table with a private `id` is a refusal, because Cube reads a filter on that column of a subquery as a filter on the member.
+
+(defn- refuse-unreadable!
+  [reason]
+  (refuse! (str "This Cube has private members, and the scan that keeps them private cannot read this SQL: " reason ". Write it in plain SQL. "
+                "A Cube in dev mode reads private members, so do not run dev mode in production.")))
+
+(defn- balanced-parens?
+  [toks]
+  (loop [[tok & more] toks, depth 0]
+    (cond
+      (nil? tok)  (zero? depth)
+      (neg? depth) false
+      (= :other (:kind tok)) (recur more (case (:text tok) "(" (inc depth) ")" (dec depth) depth))
+      :else (recur more depth))))
+
+(def ^:private subquery-start
+  #{"select" "with" "values"})
+
+(defn- mentioned-tables
+  "The lower case names of the cubes in `toks` as names, with no call. A column with the name of a cube also counts, so this is more than the tables of the text."
+  [known toks]
+  (into #{}
+        (keep-indexed (fn [i {:keys [text] :as tok}]
+                        (when (and (name-token? tok)
+                                   (contains? known text)
+                                   (not= "(" (:text (get toks (inc i)))))
+                          text)))
+        toks))
+
+(defn- subquery-aliases
+  "A map from the alias of each subquery to the tables that its text names. The tokens of an alias stand after the parenthesis that closes it."
+  [known toks]
+  (reduce (fn [found i]
+            (if (and (= "(" (:text (get toks i)))
+                     (= :other (:kind (get toks i)))
+                     (contains? subquery-start (:text (get toks (inc i)))))
+              (if-let [close (closing-paren toks i)]
+                (let [at        (if (word? (get toks (inc close)) "as") (+ close 2) (inc close))
+                      alias-tok (get toks at)]
+                  (if (and (name-token? alias-tok)
+                           (or (= :ident (:kind alias-tok)) (not (not-an-alias (:text alias-tok)))))
+                    (update found (:text alias-tok) (fnil into #{}) (mentioned-tables known (subvec toks i close)))
+                    found))
+                found)
+              found))
+          {}
+          (range (count toks))))
+
+(defn- table-aliases-of-from
+  "A map from each table and alias of each FROM and JOIN to the tables that it can mean. A name that two FROM lists use means both."
+  [toks]
+  (reduce (fn [found i]
+            (let [tok (get toks i)]
+              (if (or (word? tok "from") (word? tok "join"))
+                (loop [found found, at (inc i)]
+                  (let [at (if (or (word? (get toks at) "only") (word? (get toks at) "lateral")) (inc at) at)]
+                    (if-let [[table after] (table-at toks at)]
+                      (let [as?       (word? (get toks after) "as")
+                            alias-at  (if as? (inc after) after)
+                            alias-tok (get toks alias-at)
+                            aliased?  (and (name-token? alias-tok)
+                                           (or as? (= :ident (:kind alias-tok)) (not (not-an-alias (:text alias-tok)))))
+                            found     (cond-> (update found table (fnil conj #{}) table)
+                                        aliased? (update (:text alias-tok) (fnil conj #{}) table))
+                            next-at   (if aliased? (inc alias-at) after)]
+                        (if (= "," (:text (get toks next-at)))
+                          (recur found (inc next-at))
+                          found))
+                      found)))
+                found)))
+          {}
+          (range (count toks))))
+
+(defn- select-star?
+  "True if the `*` at `i` selects columns. It is not an operator or the argument of COUNT(*)."
+  [toks i]
+  (and (= "*" (:text (get toks i)))
+       (let [before (get toks (dec i))
+             after  (get toks (inc i))]
+         (or (= "." (:text before))
+             (and (= :word (:kind before)) (#{"select" "distinct" "all"} (:text before)))
+             (and (not= "(" (:text before))
+                  (or (nil? after)
+                      (contains? #{"," ";"} (:text after))
+                      (word? after "from")
+                      (word? after "except")
+                      (word? after "exclude")
+                      (word? after "replace")))))))
+
+(defn- star-tables
+  "The tables that the `*` at `i` reads directly: `a.*` gives each table of `a`, and `*` each table of the FROM of its own SELECT. A subquery lists its own columns, and the scan reads them there."
+  [toks aliases i]
+  (if (= "." (:text (get toks (dec i))))
+    (get aliases (:text (get toks (- i 2))) #{(:text (get toks (- i 2)))})
+    (loop [j (inc i), in-from? false, out #{}]
+      (let [{:keys [kind text] :as tok} (get toks j)]
+        (cond
+          (nil? tok) out
+          (and (= "(" text) (= :other kind))
+          (let [close (closing-paren toks j)]
+            (cond
+              (nil? close)                                       out
+              ;; A subquery, or the arguments of a function: its FROM is not a FROM of this SELECT, as in SUBSTRING(x FROM 1).
+              (or (contains? subquery-start (:text (get toks (inc j))))
+                  (name-token? (get toks (dec j))))              (recur (inc (long close)) in-from? out)
+              :else                                              (recur (inc j) in-from? out)))
+          (and (= ")" text) (= :other kind)) (recur (inc j) in-from? out)
+          (and (= :word kind) (#{"from" "join"} text))
+          (let [at (if (or (word? (get toks (inc j)) "only") (word? (get toks (inc j)) "lateral")) (+ j 2) (inc j))]
+            (if-let [[table after] (table-at toks at)]
+              (recur (long after) true (conj out table))
+              (recur (inc j) true out)))
+          (and in-from? (= "," text))
+          (if-let [[table after] (table-at toks (inc j))]
+            (recur (long after) true (conj out table))
+            (recur (inc j) true out))
+          (and (= :word kind) (#{"where" "group" "order" "having" "limit" "union" "except" "intersect" "offset" "fetch" "window"} text)) out
+          (and (= ";" text) (= :other kind)) out
+          :else (recur (inc j) in-from? out))))))
+
+(defn check-native-private-member!
+  "The scan of the private members for native SQL. It reads each name of the text and it refuses if it cannot read the text. See the note above, and docs/security.md, which says
+  what this scan is: dev mode off is the real boundary, and this is a defence on top. Compiled SQL has a known form, so it goes through check-no-private-member! only."
+  [cube-meta sql]
+  (let [private      (cube.meta/private-members cube-meta)
+        hidden       (cube.meta/private-cubes cube-meta)
+        with-columns (cube.meta/private-members cube-meta :in-cube-only? true)]
+    (when (or (seq private) (seq hidden))
+      (let [{:keys [unreadable]} (lex sql)
+            toks      (tokens sql)
+            known     (into #{} (map (comp str/lower-case :name)) (:cubes cube-meta))
+            read-from (mentioned-tables known toks)
+            of-from   (table-aliases-of-from toks)
+            aliases   (merge-with into of-from (subquery-aliases known toks))
+            private?  (fn [tables text] (first (filter #(contains? (get private %) text) tables)))
+            refuse-member! (fn [member table]
+                             (refuse! (format (str "%s is a private member of %s in the Cube data model, so it has no values here. Use another column, or make it public in the "
+                                                   "model. A Cube in dev mode reads private members, so do not run dev mode in production.")
+                                              member table)))]
+        ;; The lexer can stop at this point, so the text can hide each table after it.
+        (when unreadable
+          (refuse-unreadable! unreadable))
+        (when (some #(or (hidden %) (seq (get private %))) read-from)
+          (when-not (balanced-parens? toks)
+            (refuse-unreadable! "its parentheses do not match"))
+          (let [first-tok (first toks)]
+            (when-not (or (word? first-tok "select") (word? first-tok "with") (= "(" (:text first-tok)))
+              (refuse-unreadable! "it does not start with SELECT or WITH"))))
+        (doseq [table read-from
+                :when (hidden table)]
+          (refuse! (format "%s is private in the Cube data model, so it has no values here. A Cube in dev mode reads private cubes, so do not run dev mode in production."
+                           table)))
+        (doseq [i     (range (count toks))
+                :when (select-star? toks i)
+                table (star-tables toks of-from i)
+                :when (seq (get with-columns table))]
+          (refuse! (format "%s has private members in the Cube data model, and a Cube in dev mode gives them for *. List the columns." table)))
+        (doseq [i     (range (count toks))
+                :let  [{:keys [kind text] :as tok} (get toks i)]
+                :when (contains? #{:word :ident} kind)]
+          (let [before (get toks (dec i))]
+            (cond
+              ;; A type in `x::type`.
+              (and (= ":" (:text before)) (= ":" (:text (get toks (- i 2))))) nil
+
+              (= "." (:text before))
+              (let [prefix (:text (get toks (- i 2)))]
+                (when-let [table (private? (get aliases prefix read-from) text)]
+                  (refuse-member! text table)))
+
+              (word? before "as")
+              (when-let [table (private? read-from text)]
+                ;; `a.id AS id` of a table with a public `id` is that column. The check of `a.id` read it.
+                (when-not (and (= "." (:text (get toks (- i 2 1))))
+                               (= text (:text (get toks (- i 2)))))
+                  (refuse! (format (str "%s is a private member of %s in the Cube data model, and Cube reads a filter on a column of a subquery with this name as a filter on the member. "
+                                        "Use another name for this column.")
+                                   text table))))
+
+              (= "(" (:text (get toks (inc i)))) nil
+              (= "." (:text (get toks (inc i)))) nil
+
+              :else
+              (when-let [table (private? read-from text)]
+                (when (name-token? tok)
+                  (refuse-member! text table))))))))))
+
+(defn- fraction-text?
+  "True if this number text has a part after the point that is not zero."
+  [text]
+  (try
+    (pos? (.scale (.stripTrailingZeros (BigDecimal. ^String text))))
+    (catch NumberFormatException _ false)))
+
+(defn- fraction-at
+  "The index after the number at `i`, with a sign, if it has a fraction, or nil."
+  [toks params i]
+  (let [at  (if (contains? #{"-" "+"} (:text (get toks i))) (inc i) i)
+        tok (get toks at)]
+    (cond
+      (and (:number? tok) (fraction-text? (:text tok))) (inc at)
+      (= :param (:kind tok))
+      (let [value (nth params (:param tok) nil)]
+        (when (and (number? value) (not= (double value) (Math/rint (double value))))
+          (inc at))))))
+
+(defn- list-has-fraction?
+  "True if the list that opens at `open` has a number with a fraction."
+  [toks params open]
+  (when-let [close (when (= "(" (:text (get toks open))) (closing-paren toks open))]
+    (some #(fraction-at toks params %) (range (inc open) close))))
+
+(defn- number-end
+  "The index after the number or the parameter at `i`, with a sign, or nil."
+  [toks i]
+  (let [at  (if (contains? #{"-" "+"} (:text (get toks i))) (inc i) i)
+        tok (get toks at)]
+    (when (or (:number? tok) (= :param (:kind tok)))
+      (inc at))))
+
+(defn- compares-with-fraction?
+  "True if the column at `i` compares with a number that has a fraction: with an operator on either side, IN or BETWEEN."
+  [toks params i]
+  (let [comparison #{"=" "<>" "!=" "<" "<=" ">" ">="}
+        at         (if (word? (get toks (inc i)) "not") (+ i 2) (inc i))
+        op         (get toks at)
+        start      (if (= "." (:text (get toks (dec i)))) (- i 3) (dec i))
+        before     (get toks start)]
+    (or (and (word? op "in")
+             (list-has-fraction? toks params (inc at)))
+        (and (word? op "between")
+             (or (fraction-at toks params (inc at))
+                 (when-let [low-end (number-end toks (inc at))]
+                   (and (word? (get toks low-end) "and")
+                        (fraction-at toks params (inc low-end))))))
+        (and (= :other (:kind op))
+             (contains? comparison (:text op))
+             (fraction-at toks params (inc at)))
+        (and (= :other (:kind before))
+             (contains? comparison (:text before))
+             (fraction-at toks params (dec start))))))
+
+(defn exact-fractions
+  "Cube sends a number in a filter to ClickHouse as text, and ClickHouse cuts text to the scale of a Decimal column, and it stops on a fraction for an integer column. So `amount = 44.001` reads
+  as `amount = 44`. A column in an expression makes Cube write the number as it is, and it compares two doubles, as the compiled form does. This writes that form next to a number dimension
+  that compares with a number with a fraction."
+  [cube-meta ^String sql params]
+  (let [toks    (tokens sql)
+        index   (cube-index cube-meta)
+        numbers (into #{} (mapcat #(:numbers (get index %))) (tables toks))]
+    (if (empty? numbers)
+      sql
+      (let [ends (for [i     (range (count toks))
+                       :let  [tok (get toks i)]
+                       :when (and (name-token? tok)
+                                  (contains? numbers (:text tok))
+                                  (not (word? (get toks (dec i)) "as"))
+                                  (not= "(" (:text (get toks (inc i))))
+                                  (not= "." (:text (get toks (inc i))))
+                                  (compares-with-fraction? toks (or params []) i))]
+                   (:end tok))]
+        (reduce (fn [^String text end]
+                  (str (subs text 0 end) " * CAST('1.0' AS double precision)" (subs text end)))
+                sql
+                (reverse ends))))))
+
 (defn check-paths!
   "For each query, also a compiled one."
   [cube-meta sql]
@@ -938,7 +1355,7 @@
   "For the text that a person or an agent wrote. `questions` has the answers that need Cube: :keeps-fractions? a boolean,
   :time-shift? a function of the cube and the full name of a measure, :wrong-bin-reason a function of the cube, the time
   member, the granularity and the full names of the measures, :rolling-reason a function of the full names of a measure and a time
-  member and the unit, :value-read a function of a cube that gives `cube.probe/value-read-members`, and :report-zone? a boolean."
+  member and the unit, :value-read a function of a cube that gives `cube.probe/value-read-members`, :joined-member-of-view? a function of a view and a column, and :report-zone? a boolean."
   [cube-meta sql params {:keys [keeps-fractions? time-shift? value-read wrong-bin-reason report-zone?] :as questions}]
   (let [index (cond->> (cube-index cube-meta)
                 keeps-fractions? (into {} (map (fn [[k v]] [k (dissoc v :date-only)]))))
@@ -950,7 +1367,7 @@
     (check-equal-time-in-bucket! index toks params)
     (check-text-case! toks)
     (check-raw-select! index toks)
-    (check-total-through-join! index toks)
+    (check-total-through-join! index toks (:joined-member-of-view? questions))
     (when value-read
       (check-value-read! index toks params value-read))
     (when report-zone?
@@ -968,14 +1385,7 @@
 (defn- located-tokens
   "The tokens of `sql` with their positions in the text, with no comments."
   [^String sql]
-  (let [matcher (re-matcher token-pattern sql)]
-    (loop [out []]
-      (if (.find matcher)
-        (let [text (.group matcher)]
-          (recur (if (comment-text? text)
-                   out
-                   (conj out (assoc (token text) :start (.start matcher) :end (.end matcher))))))
-        out))))
+  (tokens sql))
 
 (defn- count-call?
   "True if the call that opens at `open` is a count: COUNT(...), or MEASURE() of a measure that counts."
