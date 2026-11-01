@@ -631,8 +631,9 @@
 
           :else
           (when-let [gap (first-gap periods lower (if open-end?
-                                                    (let [^LocalDateTime end (second (last periods))]
-                                                      (if (.isAfter end upper) upper end))
+                                                    ;; An end is the first time after a period. The source holds that time.
+                                                    (let [^LocalDateTime last-held (.minusNanos ^LocalDateTime (second (last periods)) 1000000)]
+                                                      (if (.isAfter last-held upper) upper last-held))
                                                     upper))]
             (format "The rollup %s of %s has no rows at %s." rollup-name cube-name gap)))))))
 

@@ -1290,7 +1290,9 @@ def expect_sync(table, dims=(), measures=(), segments=(), absent=(), display=Non
             if not mb.entity(mb.segments, table, name) and str(mb.field(table, name).get("database_type")) != "cube.segment":
                 raise Fail("%s.%s did not sync as a segment" % (table, name))
         for name in absent:
-            if mb.has_field(table, name):
+            # A private primary key stays as a hidden field with no values, for its foreign key.
+            kept = mb.has_field(table, name) and str(mb.field(table, name).get("database_type")).endswith("private-key")
+            if mb.has_field(table, name) and not (kept and mb.field(table, name).get("visibility_type") == "hidden"):
                 raise Fail("%s.%s must not sync" % (table, name))
         for name in no_tables:
             if name in mb.tables:
@@ -1662,10 +1664,11 @@ def _(ctx):
 
 @check("meta.semantic_types")
 def _(ctx):
-    for field, sem in [("name", "type/Name"), ("email", "type/Email"), ("city", "type/City"), ("state", "type/State")]:
-        got = ctx.mb.field("users", field).get("semantic_type")
+    # users.state joins the private key of regions. Metabase on Postgres gives type/FK to a text column with a foreign key.
+    for table, field, sem in [("users", "name", "type/Name"), ("users", "email", "type/Email"), ("users", "city", "type/City"), ("users", "state", "type/FK"), ("join_customers", "state", "type/State")]:
+        got = ctx.mb.field(table, field).get("semantic_type")
         if got != sem:
-            raise Fail("users.%s semantic_type %s, want %s" % (field, got, sem))
+            raise Fail("%s.%s semantic_type %s, want %s" % (table, field, got, sem))
     assert_rows(ctx.mb.mbql("users", fields=["d:users.email"], where=[["=", "d:users.id", 1]])["rows"], ch("SELECT email FROM users WHERE id = 1"))
 
 
