@@ -1709,10 +1709,18 @@
   (let [now (.truncatedTo (LocalDateTime/now (session-zone)) ChronoUnit/SECONDS)]
     (plus-units (if (bucket-rank unit) (bucket-start unit now) now) unit amount)))
 
+;; ClickHouse clips a time before 1900, with no error. So a relative date before that year compares with another date.
+(defn- check-relative-in-range!
+  [[_ _ amount unit]]
+  (when (and (number? amount) (< (.getYear (relative-time amount unit)) 1900))
+    (throw (ex-info "This relative date is before the year 1900, and ClickHouse has no such date. Use a shorter relative date, or a fixed date."
+                    {:type :invalid-query}))))
+
 ;; A relative date in weeks has no column, so it cannot use a custom granularity, and a week number is not a time. The time
 ;; of its first day is a plain literal on each first day of the week.
 (defmethod sql.qp/->honeysql [:cube :relative-datetime]
   [driver [_ _opts amount unit :as clause]]
+  (check-relative-in-range! clause)
   (if (and (= :week unit) (not= 1 (start-of-week-index)))
     (time-literal (relative-time amount unit))
     ((get-method sql.qp/->honeysql [:postgres :relative-datetime]) driver clause)))

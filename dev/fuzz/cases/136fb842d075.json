@@ -1,0 +1,28 @@
+{
+ "found": {
+  "diff": "row 0: got [0.0], truth ['5000']",
+  "error": null,
+  "index": 202,
+  "seed": "7803",
+  "truth_sql": "SELECT sumOrNull(if((toStartOfYear(toTimeZone(o.created_at, 'UTC')) >= addYears(toStartOfYear(now('UTC')), -400) AND toStartOfYear(toTimeZone(o.created_at, 'UTC')) < toStartOfYear(now('UTC'))), 1, 0)) AS c0 FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE 1 SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "f": "count-where",
+    "p": {
+     "c": "created_at",
+     "n": -400,
+     "op": "time-interval",
+     "unit": "year"
+    }
+   }
+  ],
+  "by": [],
+  "source": "metric_types",
+  "week": null,
+  "where": [],
+  "zone": null
+ }
+}

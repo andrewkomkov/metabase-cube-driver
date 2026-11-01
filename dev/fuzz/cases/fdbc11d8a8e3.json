@@ -1,0 +1,54 @@
+{
+ "found": {
+  "diff": "row 0: got [66665.75], truth ['54367.75']",
+  "error": null,
+  "index": 1083,
+  "seed": "7803",
+  "truth_sql": "SELECT sumOrNull(t.n_dec) AS c0 FROM shop.typed_events t WHERE (NOT (startsWith(t.n_str, 'bet') OR (toStartOfMonth(toTimeZone(t.ts_utc, 'America/New_York')) >= addMonths(toStartOfMonth(now('America/New_York')), -2) AND toStartOfMonth(toTimeZone(t.ts_utc, 'America/New_York')) < toStartOfMonth(now('America/New_York'))) OR ((((toDayOfWeek(toTimeZone(t.n_ts, 'America/New_York')) - 0 + 7) % 7) + 1) = 1))) SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "m": "sum_n_dec"
+   }
+  ],
+  "by": [],
+  "source": "typed_events",
+  "week": null,
+  "where": [
+   {
+    "a": [
+     {
+      "a": [
+       {
+        "c": "n_str",
+        "op": "starts-with",
+        "v": [
+         "bet"
+        ]
+       },
+       {
+        "c": "ts_utc",
+        "n": -2,
+        "op": "time-interval",
+        "unit": "month"
+       },
+       {
+        "c": "n_ts",
+        "op": "=",
+        "unit": "day-of-week",
+        "v": [
+         1
+        ]
+       }
+      ],
+      "op": "or"
+     }
+    ],
+    "op": "not"
+   }
+  ],
+  "zone": "America/New_York"
+ }
+}

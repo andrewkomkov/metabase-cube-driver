@@ -54,7 +54,7 @@ These are the rules of Metabase on Postgres and of the SQL standard, in ClickHou
 
 - An aggregate of no rows is `NULL`, except `count` and `distinct`.
 - `count-where` is `SUM(CASE WHEN p THEN 1 ELSE 0.0 END)`, and `share` divides it by `COUNT(*)`. On no rows, both are `NULL`.
-- `x != v`, `does-not-contain` and `NOT` of `contains`, `starts-with` or `ends-with` also keep `NULL`, as `correct-null-behaviour` in `metabase.driver.sql.query-processor` does. `NOT` of another clause has three values.
+- `x != v`, `does-not-contain` and `NOT` of `contains`, `starts-with` or `ends-with` also keep `NULL`, as `correct-null-behaviour` in `metabase.driver.sql.query-processor` does. `NOT` of another clause has three values. Metabase core moves `NOT` inside `and` and `or` before it writes SQL, so each part has its own rule.
 - A date with no time on a time column compares days, because Metabase core adds the unit `day`. A time with no offset is a time in the report time zone.
 - In a filter, `!=` with a unit or a date has no `NULL`, because Metabase core writes the opposite of a range.
 - In the condition of `count-where`, `sum-where` and `share`, Metabase core adds no unit, so a date is midnight of that day. Metabase on Postgres gives this number.

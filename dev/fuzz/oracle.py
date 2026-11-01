@@ -91,6 +91,12 @@ class Query:
             return "(%s)" % (" %s " % op.upper()).join(self.filter(a) for a in f["a"])
         if op == "not":
             child = f["a"][0]
+            # Metabase core moves NOT inside a group before it writes SQL, so each part has its own rule for NULL.
+            if child["op"] in ("and", "or"):
+                other = "or" if child["op"] == "and" else "and"
+                return self.filter({"op": other, "a": [{"op": "not", "a": [c]} for c in child["a"]]})
+            if child["op"] == "not":
+                return self.filter(child["a"][0])
             if child["op"] in ("contains", "starts-with", "ends-with"):
                 return "(NOT %s OR %s IS NULL)" % (self.filter(child), self.column(child)[0])
             return "(NOT %s)" % self.filter(child)
