@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1313/1350 pass on Cube with the ClickHouse dialect** (1313 pass, 24 partial, 1 blocked, 12 unsupported, 0 fail of 1350)
+**coverage: 1313/1368 pass on Cube with the ClickHouse dialect** (1313 pass, 24 partial, 1 blocked, 12 unsupported, 18 fail of 1368)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e725ba2b3dd9`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41318559608), 2026-11-01.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `12c56531c40b`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41322594772), 2026-11-01.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -156,7 +156,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e725b
 | `hierarchy.levels` | pass |  |
 | `hierarchy.public_false` | pass |  |
 | `preagg.indexes` | pass |  |
-| `preagg.original_sql` | pass |  |
+| `preagg.original_sql` | fail | SELECT status, MEASURE(revenue) FROM original_sql_orders GROUP BY 1: query failed: original_sql_orders is private in the Cube data model, so it has no values here. A Cube in dev mode reads private cubes, so do not run dev mode in production. |
 | `preagg.partitioned` | pass |  |
 | `preagg.rollup` | pass |  |
 | `preagg.rollup_join` | pass |  |
@@ -324,7 +324,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e725b
 | `mb.field_values.search` | pass |  |
 | `mb.search.by_description` | pass |  |
 | `mb.search.measure` | pass |  |
-| `mb.search.segment` | pass |  |
+| `mb.search.segment` | fail | truth SQL failed: SELECT count() FROM orders WHERE orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed': Code: 62. DB::Exception: Syntax error: failed at position 41 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'. Expected one of: token sequence, Dot, token, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UNKNOWN, IS UNKNOWN, IS NOT FALSE, IS FALSE, IS NOT TRUE, IS TRUE, I |
 | `mb.search.table` | pass |  |
 | `mb.xray.candidates` | pass |  |
 | `mb.xray.table` | pass |  |
@@ -340,7 +340,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e725b
 | `mcp.browse.descriptions_in_get_fields` | pass |  |
 | `mcp.browse.get_fields_dimensions` | pass |  |
 | `mcp.browse.get_fields_measures` | pass |  |
-| `mcp.browse.get_fields_segments` | pass |  |
+| `mcp.browse.get_fields_segments` | fail | truth SQL failed: SELECT count() FROM orders WHERE orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed': Code: 62. DB::Exception: Syntax error: failed at position 41 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'. Expected one of: token sequence, Dot, token, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UNKNOWN, IS UNKNOWN, IS NOT FALSE, IS FALSE, IS NOT TRUE, IS TRUE, I |
 | `mcp.browse.list_databases` | pass |  |
 | `mcp.browse.list_tables` | pass |  |
 | `mcp.collection_write` | pass |  |
@@ -356,7 +356,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e725b
 | `mcp.execute_query.implicit_join` | pass |  |
 | `mcp.execute_query.measure` | pass |  |
 | `mcp.execute_query.paging` | pass |  |
-| `mcp.execute_query.segment` | pass |  |
+| `mcp.execute_query.segment` | fail | truth SQL failed: SELECT count() FROM orders WHERE orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed': Code: 62. DB::Exception: Syntax error: failed at position 41 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'. Expected one of: token sequence, Dot, token, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UNKNOWN, IS UNKNOWN, IS NOT FALSE, IS FALSE, IS NOT TRUE, IS TRUE, I |
 | `mcp.execute_query.view` | pass |  |
 | `mcp.execute_sql` | pass |  |
 | `mcp.get_content` | pass |  |
@@ -377,7 +377,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e725b
 | `mcp.run_saved_question` | pass |  |
 | `mcp.search` | pass |  |
 | `mcp.search.measure` | pass |  |
-| `mcp.search.segment` | pass |  |
+| `mcp.search.segment` | fail | truth SQL failed: SELECT count() FROM orders WHERE orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed': Code: 62. DB::Exception: Syntax error: failed at position 41 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'. Expected one of: token sequence, Dot, token, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UNKNOWN, IS UNKNOWN, IS NOT FALSE, IS FALSE, IS NOT TRUE, IS TRUE, I |
 | `mcp.search.table_by_description` | pass |  |
 | `mcp.search.view_description` | pass |  |
 | `mcp.segment_write` | pass |  |
@@ -419,11 +419,11 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e725b
 | `cube.generated_async_second` | pass |  |
 | `semantic.measure.every_member` | pass |  |
 | `semantic.measure.in_summarize` | pass |  |
-| `semantic.measure.type_number` | pass |  |
+| `semantic.measure.type_number` | fail | truth SQL failed: SELECT sumIf(toFloat64(amount), orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed') / sum(toFloat64(amount)) FROM orders: Code: 62. DB::Exception: Syntax error: failed at position 40 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed') / sum(toFloat64(amount)) FROM orders. Expected one of: token sequence, Dot, token, Comma, ClosingRoundBracket, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UN |
 | `semantic.measure.type_string` | pass |  |
 | `semantic.measure.type_time` | pass |  |
 | `semantic.measure.type_boolean` | pass |  |
-| `semantic.segment.every_member` | pass |  |
+| `semantic.segment.every_member` | fail | truth SQL failed: SELECT count() FROM orders WHERE orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed': Code: 62. DB::Exception: Syntax error: failed at position 41 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'. Expected one of: token sequence, Dot, token, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UNKNOWN, IS UNKNOWN, IS NOT FALSE, IS FALSE, IS NOT TRUE, IS TRUE, I |
 | `semantic.display_names` | pass |  |
 | `semantic.descriptions` | pass |  |
 | `semantic.format.currency` | pass |  |
@@ -573,12 +573,12 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e725b
 | `compile.native.error_keeps_cube_text` | pass |  |
 | `compile.native.explain_regular_with_parameter` | pass |  |
 | `compile.native.field_filter_empty_is_all_rows` | pass |  |
-| `compile.native.field_filter_multi` | pass |  |
+| `compile.native.field_filter_multi` | fail | truth SQL failed: SELECT count() FROM orders WHERE orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed': Code: 62. DB::Exception: Syntax error: failed at position 41 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'. Expected one of: token sequence, Dot, token, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UNKNOWN, IS UNKNOWN, IS NOT FALSE, IS FALSE, IS NOT TRUE, IS TRUE, I |
 | `compile.native.field_filter_number_range` | pass |  |
 | `compile.native.field_filter_relative_date` | pass |  |
 | `compile.nested.aggregate_of_grouped_rows` | pass |  |
 | `compile.nested.custom_column_on_question` | pass |  |
-| `compile.nested.model_of_a_native_query` | pass |  |
+| `compile.nested.model_of_a_native_query` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-01T15:53:58.502643549Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"lib/type":"mbql/query","stages":[{"lib/type":"mbql.stage/mbql","aggregation":[["sum",{"lib/uuid":"e9ae4479-e35 |
 | `compile.nested.model_raw_rows_then_group` | pass |  |
 | `compile.nested.model_with_measure_then_filter` | pass |  |
 | `compile.nested.more_than_the_default_row_limit` | pass |  |
@@ -651,7 +651,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e725b
 | `mcp.agent.list_tables_without_schema` | pass |  |
 | `mcp.agent.find_revenue_by_city` | pass |  |
 | `mcp.agent.search_names_owner_of_measure` | pass |  |
-| `mcp.agent.find_segment_owner` | pass |  |
+| `mcp.agent.find_segment_owner` | fail | truth SQL failed: SELECT count() FROM orders WHERE orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed': Code: 62. DB::Exception: Syntax error: failed at position 41 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'. Expected one of: token sequence, Dot, token, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UNKNOWN, IS UNKNOWN, IS NOT FALSE, IS FALSE, IS NOT TRUE, IS TRUE, I |
 | `mcp.agent.table_description_lists_members` | pass |  |
 | `mcp.agent.database_guidance_works` | pass |  |
 | `mcp.agent.question_from_measure` | pass |  |
@@ -684,7 +684,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e725b
 | `nested.outer_date_filter.grid` | pass |  |
 | `nested.outer_filter.multi_stage_measure` | pass |  |
 | `nested.outer_stage.grid_breakout_and_aggregation` | pass |  |
-| `nested.outer_date_filter.native_source` | pass |  |
+| `nested.outer_date_filter.native_source` | fail | native source: query failed: A table of this query has private members in the Cube data model, and a Cube in dev mode gives them for *. List the columns. |
 | `nested.outer_date_filter.week_numbers` | pass |  |
 | `mb.dashboard.date_filter_on_question` | pass |  |
 | `measure.rolling.through_model` | pass |  |
@@ -735,13 +735,13 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e725b
 | `isolation.other_driver_mcp_between` | pass |  |
 | `isolation.other_driver_cache` | pass |  |
 | `isolation.other_driver_sync` | pass |  |
-| `compile.join.total_of_dimension_refused` | pass |  |
+| `compile.join.total_of_dimension_refused` | fail | sum by status: the error has no 'Cube cannot add up the dimension':  |
 | `compile.expr.measure_with_expression_breakout` | pass |  |
 | `dialect.variant` | pass |  |
 | `dialect.b1_strict_lower_bound` | pass |  |
 | `dialect.interval_in_native_sql` | pass |  |
 | `dialect.n2_legacy_planner` | pass |  |
-| `native.subquery_filter_refused` | pass |  |
+| `native.subquery_filter_refused` | fail | the error for SELECT * FROM (SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS r FROM orders GROUP BY 1) AS s WHERE m < has no 'LIMIT 2147483647': A table of this query has private members in the Cube data model, and a Cube in dev mode gives them for *. List the columns. |
 | `native.bound.alias_in_a_subquery` | pass |  |
 | `native.bound.datetime64_last_second_limit` | pass |  |
 | `compile.raw.switch_dimension_keeps_one_row` | pass |  |
@@ -752,7 +752,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e725b
 | `clickhouse.aggregate_on_no_rows` | pass |  |
 | `filter.case_dimension_on_raw_rows` | pass |  |
 | `filter.fraction_beyond_the_scale_of_a_decimal` | pass |  |
-| `filter.aggregation_on_a_join_of_a_view_refused` | pass |  |
+| `filter.aggregation_on_a_join_of_a_view_refused` | fail | the query gave a number |
 | `measure.time_type_in_a_report_zone` | pass |  |
 | `grid.compact.mcp` | pass |  |
 | `grid.compact.report_zone` | pass |  |
@@ -1297,12 +1297,12 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e725b
 | `zone.kol.rollup.stored_day` | pass |  |
 | `zone.kol.rollup.text_day` | pass |  |
 | `zone.ny.stored_day_other_zone` | pass |  |
-| `zone.ny.time_measure` | pass |  |
+| `zone.ny.time_measure` | fail | a Metabase m_last_local: ('2024-11-24',) is 2024-11-24T23:59:59-05:00, truth 2024-11-24 23:59:59 |
 | `zone.ny.native` | pass |  |
 | `zone.ny.mcp` | pass |  |
 | `zone.ny.catalog` | pass |  |
 | `zone.kol.stored_day_other_zone` | pass |  |
-| `zone.kol.time_measure` | pass |  |
+| `zone.kol.time_measure` | fail | a Metabase m_last_local: ('2024-11-24',) is 2024-11-24T23:59:59+05:30, truth 2024-11-24 23:59:59 |
 | `zone.kol.native` | pass |  |
 | `zone.kol.mcp` | pass |  |
 | `zone.kol.catalog` | pass |  |
@@ -1334,6 +1334,22 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e725b
 | `preagg.option.non_strict_metabase_gives_a_range_inside_a_bucket` | pass |  |
 | `preagg.type.rollup_lambda_gap_metabase_gives_the_last_partition` | pass |  |
 | `sync.private_primary_key_keeps_the_foreign_key` | pass |  |
+| `preagg.rollup_lambda_under_a_report_zone` | fail | 1 of 2 differ. America/New_York by month: got ['2024-12-01T05:00:00', 155.0], truth ['2024-12-01T00:00:00', 155.0] |
+| `compile.two_stages.default_filters_month_of_year` | pass |  |
+| `compile.two_stages.default_filters_day_of_week` | pass |  |
+| `compile.two_stages.default_filters_text_filter` | pass |  |
+| `compile.two_stages.default_filters_distinct_next_to_a_measure` | pass |  |
+| `compile.two_stages.count_where_on_a_joined_column` | pass |  |
+| `compile.two_stages.count_where_on_a_view_of_a_join` | pass |  |
+| `compile.two_stages.share_on_a_view_of_a_join` | pass |  |
+| `compile.two_stages.case_with_two_branches` | pass |  |
+| `compile.two_stages.case_next_to_a_measure` | pass |  |
+| `compile.expr.datetime_diff_from_a_literal` | pass |  |
+| `compile.expr.substring_in_a_breakout` | pass |  |
+| `compile.filter.long_list_of_values` | pass |  |
+| `compile.expr.function_of_no_plan_gets_a_clear_message` | pass |  |
+| `zone.distinct_time_with_no_repeated_hour` | pass |  |
+| `zone.time_measure_has_an_offset` | pass |  |
 | `context.compile_context` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |
@@ -1358,3 +1374,5 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `e725b
 | `security.metabase_cache` | pass |  |
 | `security.dev_mode_warning_for_hidden_members` | partial | Limit of Cube: with CUBEJS_DEV_MODE=true the SQL API reads hidden cubes and members (m6). A Cube with dev mode off refuses this query. docs/security.md warns about it. |
 | `security.validate_echoes_the_request_limit` | partial | Limit of Metabase: this admin endpoint repeats the request body with the secret that the admin sent, for each driver (m7). No driver hook applies. Each read of a stored database gives the mask. |
+| `security.private_member_gives_no_value` | pass |  |
+| `security.attribute_added_later_clears_the_lists` | fail | the list stays after the attribute: [['Austin'], ['Boston'], ['Chicago']] |
