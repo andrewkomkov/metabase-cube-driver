@@ -2239,7 +2239,9 @@
   (let [[tag opts & [arg second-arg :as args]] (when (vector? clause) clause)
         u      (fn [] {:lib/uuid (new-uuid)})
         times  (fn [x] [:* (u) (outer-form x) (count-column ctx)])
-        rows   (fn [] (count-column ctx))]
+        rows   (fn [] (count-column ctx))
+        ;; Metabase core writes :not-null as this form before a driver gets a query.
+        not-null (fn [x] [:!= (u) (outer-form x) [:value (assoc (u) :base-type :type/*) nil]])]
     (cond
       (not (vector? clause))                                   clause
       (= :value tag)                                           clause
@@ -2247,14 +2249,14 @@
       (and (#{:sum :avg :min :max :count :distinct} tag) (= :measure (member-kind arg))) (outer-measure ctx tag opts arg)
       (= :count tag)                                           [:coalesce (named opts tag ctx)
                                                                 (if arg
-                                                                  [:sum-where (u) (rows) [:not-null (u) (outer-form arg)]]
+                                                                  [:sum-where (u) (rows) (not-null arg)]
                                                                   [:sum (u) (rows)])
                                                                 0]
       (#{:min :max :distinct} tag)                             [tag opts (outer-form arg)]
       (= :sum tag)                                             [:sum opts (times arg)]
       (= :avg tag)                                             [:/ (named opts tag ctx)
                                                                 [:sum (u) (times arg)]
-                                                                [:sum-where (u) (rows) [:not-null (u) (outer-form arg)]]]
+                                                                [:sum-where (u) (rows) (not-null arg)]]
       (= :count-where tag)                                     [:sum-where (named opts tag ctx) (rows) (outer-form arg)]
       (= :sum-where tag)                                       [:sum-where opts (times arg) (outer-form second-arg)]
       (= :share tag)                                           [:/ (named opts tag ctx)
