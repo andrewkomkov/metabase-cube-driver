@@ -66,6 +66,7 @@ These are the rules of Metabase on Postgres and of the SQL standard, in ClickHou
 | Form | Reason |
 | --- | --- |
 | `x != n` on a part of a date | Metabase core changes the number before a driver gets the query, so `x != 5` on a month of the year becomes `x <> 1`. Metabase on Postgres writes the same SQL. The UI does not write this form. |
+| `stddev` and `var` of a `Float32` | ClickHouse adds them up in single precision, so direct SQL on the column gives 2.0789 where the exact value is 2.078125. Neither the driver nor the dialect reaches this. |
 | `contains` with `%` or `_` | Metabase on Postgres reads these as wildcards, and the driver reads them as text, which is what a person means. |
 | `Decimal(38, 8)` and numbers above 2^53 | See `dev/review/known_limits.py`. |
 | A literal with an offset | See `dev/review/known_limits.py`. |

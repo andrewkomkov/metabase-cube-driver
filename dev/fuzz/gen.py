@@ -156,7 +156,9 @@ def gen_agg(rng, src):
     name = rng.choice(sorted(src["cols"]))
     k = src["cols"][name]["kind"]
     if k in ("int", "num"):
-        return {"f": rng.choice(["sum", "avg", "min", "max", "distinct", "stddev", "var"]), "c": name}
+        # ClickHouse adds up stddev and var of a Float32 in single precision, so the last digits differ. See README.md.
+        spread = [] if name == "f32" else ["stddev", "var"]
+        return {"f": rng.choice(["sum", "avg", "min", "max", "distinct"] + spread), "c": name}
     if k in ("time", "date"):
         return {"f": rng.choice(["min", "max", "distinct"]), "c": name}
     return {"f": "distinct", "c": name}
