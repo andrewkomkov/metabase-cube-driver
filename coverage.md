@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1331/1368 pass on Cube with the ClickHouse dialect** (1331 pass, 24 partial, 1 blocked, 12 unsupported, 0 fail of 1368)
+**coverage: 1339/1377 pass on Cube with the ClickHouse dialect** (1339 pass, 25 partial, 1 blocked, 12 unsupported, 0 fail of 1377)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `8f60bcba3ea6`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41337202592), 2026-11-01.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `7795c0b6f0e6`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41350730270), 2026-11-01.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -1350,6 +1350,14 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `8f60b
 | `compile.expr.function_of_no_plan_gets_a_clear_message` | pass |  |
 | `zone.distinct_time_with_no_repeated_hour` | pass |  |
 | `zone.time_measure_has_an_offset` | pass |  |
+| `compile.filter.fraction_list_keeps_digits` | pass |  |
+| `mcp.query.fraction_list_keeps_digits` | pass |  |
+| `mb.dashboard.fraction_list_parameter_keeps_digits` | pass |  |
+| `compile.join.each_aggregation_of_a_joined_column` | pass |  |
+| `mcp.query.count_of_a_joined_column` | pass |  |
+| `compile.join.no_join_path_has_a_clear_message` | pass |  |
+| `native.scan.adversarial_private_member` | pass |  |
+| `zone.time_measure_repeated_hour_limit` | partial | The SQL API gives a time as text with no offset, so a value in the repeated hour reads as the first pass: 01:00-04:00 where the truth is 01:00-05:00 in New York. README lists this under Known wrong numbers. |
 | `context.compile_context` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |
@@ -1376,3 +1384,4 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `8f60b
 | `security.validate_echoes_the_request_limit` | partial | Limit of Metabase: this admin endpoint repeats the request body with the secret that the admin sent, for each driver (m7). No driver hook applies. Each read of a stored database gives the mask. |
 | `security.private_member_gives_no_value` | pass |  |
 | `security.attribute_added_later_clears_the_lists` | pass |  |
+| `security.saved_native_question_infers_no_private_member` | pass |  |

@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 1331,
-    "partial": 24,
+    "pass": 1339,
+    "partial": 25,
     "blocked": 1,
     "unsupported": 12,
     "fail": 0,
-    "total": 1368
+    "total": 1377
   },
-  "coverage": "coverage: 1331/1368 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1339/1377 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -6721,6 +6721,46 @@
       "reason": ""
     },
     {
+      "id": "compile.filter.fraction_list_keeps_digits",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.query.fraction_list_keeps_digits",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.fraction_list_parameter_keeps_digits",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.join.each_aggregation_of_a_joined_column",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.query.count_of_a_joined_column",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.join.no_join_path_has_a_clear_message",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.scan.adversarial_private_member",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "zone.time_measure_repeated_hour_limit",
+      "status": "partial",
+      "reason": "The SQL API gives a time as text with no offset, so a value in the repeated hour reads as the first pass: 01:00-04:00 where the truth is 01:00-05:00 in New York. README lists this under Known wrong numbers."
+    },
+    {
       "id": "context.compile_context",
       "status": "pass",
       "reason": ""
@@ -6847,6 +6887,11 @@
     },
     {
       "id": "security.attribute_added_later_clears_the_lists",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "security.saved_native_question_infers_no_private_member",
       "status": "pass",
       "reason": ""
     }
