@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1303/1342 pass on Cube with the ClickHouse dialect** (1303 pass, 23 partial, 1 blocked, 12 unsupported, 3 fail of 1342)
+**coverage: 1303/1343 pass on Cube with the ClickHouse dialect** (1303 pass, 23 partial, 2 blocked, 12 unsupported, 3 fail of 1343)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `ebcf391e7ac2`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41253312500), 2026-11-01.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `502f8bc85273`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41264261089), 2026-11-01.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -1297,12 +1297,12 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `ebcf3
 | `zone.kol.rollup.stored_day` | pass |  |
 | `zone.kol.rollup.text_day` | pass |  |
 | `zone.ny.stored_day_other_zone` | pass |  |
-| `zone.ny.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-01T00:23:45.349621201Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr |
+| `zone.ny.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-01T02:46:43.546280672Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr |
 | `zone.ny.native` | pass |  |
 | `zone.ny.mcp` | pass |  |
 | `zone.ny.catalog` | pass |  |
 | `zone.kol.stored_day_other_zone` | pass |  |
-| `zone.kol.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-01T00:23:56.635983983Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr |
+| `zone.kol.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-01T02:46:54.363403047Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr |
 | `zone.kol.native` | pass |  |
 | `zone.kol.mcp` | pass |  |
 | `zone.kol.catalog` | pass |  |
@@ -1326,6 +1326,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `ebcf3
 | `filter_params.value.one_text_value` | pass |  |
 | `filter_params.value.other_text_filter_refused` | pass |  |
 | `filter_params.condition.other_operator` | pass |  |
+| `preagg.empty_text_stays_apart_from_null` | blocked | Cube loads a rollup as CSV, and Cube Store reads an empty value as NULL, also a quoted one. So a group of empty text joins the group of NULL, and a filter on an empty text finds no rows, with no error. The driver cannot see this, and the dialect cannot change the parser of Cube Store. It needs a change in Cube Store. |
 | `context.compile_context` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |

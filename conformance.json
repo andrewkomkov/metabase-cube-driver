@@ -3,12 +3,12 @@
   "counts": {
     "pass": 1303,
     "partial": 23,
-    "blocked": 1,
+    "blocked": 2,
     "unsupported": 12,
     "fail": 3,
-    "total": 1342
+    "total": 1343
   },
-  "coverage": "coverage: 1303/1342 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1303/1343 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -6458,7 +6458,7 @@
     {
       "id": "zone.ny.time_measure",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-01T00:23:45.349621201Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-01T02:46:43.546280672Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr"
     },
     {
       "id": "zone.ny.native",
@@ -6483,7 +6483,7 @@
     {
       "id": "zone.kol.time_measure",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-01T00:23:56.635983983Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-01T02:46:54.363403047Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr"
     },
     {
       "id": "zone.kol.native",
@@ -6599,6 +6599,11 @@
       "id": "filter_params.condition.other_operator",
       "status": "pass",
       "reason": ""
+    },
+    {
+      "id": "preagg.empty_text_stays_apart_from_null",
+      "status": "blocked",
+      "reason": "Cube loads a rollup as CSV, and Cube Store reads an empty value as NULL, also a quoted one. So a group of empty text joins the group of NULL, and a filter on an empty text finds no rows, with no error. The driver cannot see this, and the dialect cannot change the parser of Cube Store. It needs a change in Cube Store."
     },
     {
       "id": "context.compile_context",
