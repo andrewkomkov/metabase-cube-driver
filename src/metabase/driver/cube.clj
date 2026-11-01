@@ -2725,7 +2725,12 @@
     (str "Cube cannot compute this text function. Add a dimension with that SQL to the data model.")]
    ["Date range is required for time series"
     (str "Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the "
-         "same time column. Add a date filter.")]])
+         "same time column. Add a date filter.")]
+   ;; The last entries: each other error of the planner of Cube.
+   ["Planning Error"
+    "Cube cannot plan this query. A column or a function of it is not on this table for the SQL API. Use another column, or add a dimension with that SQL to the data model."]
+   ["Rewrite Error"
+    "Cube cannot plan this query. Use a simpler form, or add a measure or a dimension with that SQL to the data model."]])
 
 (defn- exception-text
   "The messages of an exception and its causes."
