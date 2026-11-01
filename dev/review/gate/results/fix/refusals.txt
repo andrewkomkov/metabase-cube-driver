@@ -1,0 +1,114 @@
+0 refused inner: Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+30 refused revenue_mtd is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by a time bucket, for example by month, and add a date filter.
+40 refused inner: Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+45 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+48 refused Illegal embedded sign character
+82 refused revenue_leading_7d is a rolling window measure with a window of 7 day, which is shorter than a year. Cube does not show one number that this can mean for a year: it can add the windows of the whole bu
+106 refused m_rev_mtd is a rolling window measure with a window of month to date, which is shorter than a quarter. Cube does not show one number that this can mean for a quarter: it can add the windows of the who
+108 refused Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function that the SQL API does not know, and a JOIN with an ON condition are the common cause. On a view with default_filt
+111 refused Cube cannot join a segment to another filter with OR. Use one segment, or add a segment with both conditions to the data model. Cube said: Error executing query: ERROR: Rewrite Error: Can't use OR ope
+132 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+165 refused Cube wrote SQL that ClickHouse cannot run for this cube, with a filter inside the first stage and an aggregation in the next. Put the filter in the last stage, or use one stage. Cube said: Error execu
+181 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+187 refused This filter reads the time column ts_ny of a question with an aggregation. With a report time zone that is not UTC, Cube can read the filter value in UTC or in the zone, so it can pick another bucket.
+189 refused Cube counts the clock of created_label in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+196 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+202 refused cumulative_count is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by a time bucket, for example by month, and add a date filter.
+205 refused revenue_prior_month has a time shift, and Cube reads it only with a date range. This filter has one bound, so Cube would return periods outside the filter. Give the filter a lower and an upper bound.
+207 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+213 refused revenue_trailing_30d is a rolling window measure with a window of 30 day, which is shorter than a quarter. Cube does not show one number that this can mean for a quarter: it can add the windows of the
+222 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+231 refused Cube counts the clock of created_at in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+235 refused Cube cannot add up the dimension price over the rows of this query. It adds each row of the joined cube once, so the number would be wrong. Add a measure to the data model, or start from the cube of t
+255 refused revenue_mtd is a rolling window measure with a window of month to date, which is shorter than a year. Cube does not show one number that this can mean for a year: it can add the windows of the whole b
+258 refused revenue_leading_7d is a rolling window measure with a window of 7 day, which is shorter than a year. Cube does not show one number that this can mean for a year: it can add the windows of the whole bu
+269 refused Cube cannot join a segment to another filter with OR. Use one segment, or add a segment with both conditions to the data model. Cube said: Error executing query: ERROR: Rewrite Error: Can't use OR ope
+273 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+302 refused Cube cannot join a segment to another filter with OR. Use one segment, or add a segment with both conditions to the data model. Cube said: Error executing query: ERROR: Rewrite Error: Can't use OR ope
+306 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+312 refused This filter reads the time column day32 of a question with an aggregation. With a report time zone that is not UTC, Cube can read the filter value in UTC or in the zone, so it can pick another bucket.
+315 refused Cube counts the clock of day in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+317 refused revenue_trailing_30d is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by a time bucket, for example by month, and add a date filter.
+340 refused Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the same time column. Add a date filter. Cube said: Error executing query: ERROR: Database Exec
+368 refused inner: Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+389 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+400 refused m_rev_mtd is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by a time bucket, for example by month, and add a date filter.
+417 refused Cube cannot aggregate a dimension of a view next to a measure, or a dimension that comes from another cube. Add a measure to the data model, or start from the cube of this dimension. Cube said: Error 
+420 refused revenue_trailing_30d is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by a time bucket, for example by month, and add a date filter.
+428 refused Cube cannot join a segment to another filter with OR. Use one segment, or add a segment with both conditions to the data model. Cube said: Error executing query: ERROR: Rewrite Error: Can't use OR ope
+432 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+438 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+441 refused Cube counts the clock of created_at in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+444 skip None
+457 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+483 refused m_rev_mtd is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by a time bucket, for example by month, and add a date filter.
+499 refused revenue_mtd is a rolling window measure with a window of month to date, which is shorter than a quarter. Cube does not show one number that this can mean for a quarter: it can add the windows of the w
+501 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+503 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+510 refused revenue_mtd is a rolling window measure with a window of month to date, which is shorter than a year. Cube does not show one number that this can mean for a year: it can add the windows of the whole b
+517 refused cumulative_count is a rolling window measure, and Cube computes it for each whole month. This date filter starts or ends inside a month, and Cube does not apply that part, so the number would count ro
+526 refused m_rev_mtd is a rolling window measure with a window of month to date, which is shorter than a year. Cube does not show one number that this can mean for a year: it can add the windows of the whole buc
+528 refused Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function that the SQL API does not know, and a JOIN with an ON condition are the common cause. On a view with default_filt
+554 refused Cube cannot aggregate a dimension of a view next to a measure, or a dimension that comes from another cube. Add a measure to the data model, or start from the cube of this dimension. Cube said: Error 
+557 refused Cube cannot join a segment to another filter with OR. Use one segment, or add a segment with both conditions to the data model. Cube said: Error executing query: ERROR: Rewrite Error: Can't use OR ope
+572 refused m_rev_mtd is a rolling window measure with a window of month to date, which is shorter than a year. Cube does not show one number that this can mean for a year: it can add the windows of the whole buc
+582 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+587 refused inner: Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function that the SQL API does not know, and a JOIN with an ON condition are the common cause. On a view with defau
+595 refused Cube cannot run this query, because it needs MEASURE() and post-processing at the same time. Use a plain aggregation in the first stage, or add a measure to the data model. Cube said: Error executing 
+624 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+629 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+631 refused Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function that the SQL API does not know, and a JOIN with an ON condition are the common cause. On a view with default_filt
+632 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+636 refused Cube counts the clock of created_at in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+643 refused Cube counts the clock of ts_utc in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+644 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+658 refused inner: Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+659 refused m_rev_mtd is a rolling window measure with a window of month to date, which is shorter than a quarter. Cube does not show one number that this can mean for a quarter: it can add the windows of the who
+692 refused Cube cannot add up the dimension price over the rows of this query. It adds each row of the joined cube once, so the number would be wrong. Add a measure to the data model, or start from the cube of t
+697 refused m_rev_mtd is a rolling window measure with a window of month to date, which is shorter than a quarter. Cube does not show one number that this can mean for a quarter: it can add the windows of the who
+703 refused Cube counts the clock of day in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+714 skip None
+740 refused m_rev_mtd is a rolling window measure with a window of month to date, which is shorter than a year. Cube does not show one number that this can mean for a year: it can add the windows of the whole buc
+746 refused inner: Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+753 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+780 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+782 refused m_rev_prior_month has a time shift. Under a report time zone, Cube moves the rows of other periods when the date range starts or ends inside a bucket, or when a text filter sends the query to the data
+785 refused Cube counts the clock of created_label in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+790 refused revenue_ytd is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by a time bucket, for example by month, and add a date filter.
+792 refused Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the same time column. Add a date filter. Cube said: Error executing query: ERROR: Database Exec
+794 refused Cube counts the clock of day in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+795 refused Cube counts the clock of created_at in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+805 refused Cube counts the clock of day in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+808 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+811 refused revenue_leading_7d is a rolling window measure with a window of 7 day, which is shorter than a quarter. Cube does not show one number that this can mean for a quarter: it can add the windows of the wh
+815 refused Cube counts the clock of day in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+861 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+872 refused inner: Cube cannot join a segment to another filter with OR. Use one segment, or add a segment with both conditions to the data model. Cube said: Error executing query: ERROR: Rewrite Error: Can't use
+885 refused revenue_trailing_30d is a rolling window measure, and Cube computes it for each whole month. This date filter starts or ends inside a month, and Cube does not apply that part, so the number would coun
+889 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+891 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+905 refused Cube counts the clock of created_at in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+914 refused Cube counts the clock of ts_ny in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+917 refused Cube counts the clock of created_at in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+931 refused Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the same time column. Add a date filter. Cube said: Error executing query: ERROR: Internal Erro
+936 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+941 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+956 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+980 refused revenue_mtd is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by a time bucket, for example by month, and add a date filter.
+998 refused revenue_mtd is a rolling window measure with a window of month to date, which is shorter than a quarter. Cube does not show one number that this can mean for a quarter: it can add the windows of the w
+1006 refused inner: Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+1013 refused This filter reads the time column created_at of a question with an aggregation. With a report time zone that is not UTC, Cube can read the filter value in UTC or in the zone, so it can pick another bu
+1017 refused Cube counts the clock of created_at in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.
+1027 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+1031 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+1035 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+1062 refused inner: Cube cannot join a segment to another filter with OR. Use one segment, or add a segment with both conditions to the data model. Cube said: Error executing query: ERROR: Rewrite Error: Can't use
+1105 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+1135 refused Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function that the SQL API does not know, and a JOIN with an ON condition are the common cause. On a view with default_filt
+1144 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+1147 refused Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function that the SQL API does not know, and a JOIN with an ON condition are the common cause. On a view with default_filt
+1154 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+1159 refused cumulative_count is a rolling window measure, and Cube computes it for each whole quarter. This date filter starts or ends inside a quarter, and Cube does not apply that part, so the number would coun
+1179 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+1184 refused Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+1198 refused Cube counts the clock of created_at in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.

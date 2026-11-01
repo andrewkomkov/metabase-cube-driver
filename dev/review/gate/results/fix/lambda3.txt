@@ -1,0 +1,11 @@
+None diff {} total got 319790.0 truth 319790.0
+America/New_York diff {} total got 319790.0 truth 319790.0
+America/Los_Angeles diff {} total got 319790.0 truth 319790.0
+Europe/Berlin diff {} total got 319790.0 truth 319790.0
+Asia/Kolkata diff {} total got 319790.0 truth 319790.0
+rows in the last hours of the batch [['processing', '2', '104']]
+Traceback (most recent call last):
+  File "/home/andrewkomkov/mcd-review/lambda_stock.py", line 20, in <module>
+    pg = [d for d in mb.api("GET", "/api/database")["data"] if d["name"] == "PG"][0]["id"]
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+IndexError: list index out of range

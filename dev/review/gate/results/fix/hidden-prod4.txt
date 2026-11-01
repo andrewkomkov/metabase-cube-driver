@@ -1,0 +1,92 @@
+field-in-metadata                  payments    no hidden field
+field-json                         warehouses  {"visibility_type": "hidden", "semantic_type": "type/PK", "database_type": "cube.dimension/private-key", "fingerprint": null, "has_field_values": "none"}
+raw-all-fields                     warehouses  ROWS 3 cols=['code', 'id', 'count'] first=[["W1", null, null], ["W2", null, null], ["W3", null, null]]
+raw-fields-id                      warehouses  ROWS 3 cols=['id'] first=[[null], [null], [null]]
+raw-by-name                        warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+breakout                           warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+breakout-by-name                   warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-eq                          warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-gt                          warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-is-null                     warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-by-name                     warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-min                            warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-max                            warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-sum                            warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-avg                            warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-distinct                       warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-by-name                        warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+count-where                        warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+sum-where                          warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+share                              warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-plus                    warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-case                    warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-concat                  warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-coalesce                warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+binning                            warehouses  ERR Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+order-by-key                       warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+order-by-key-agg                   warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+cum-sum                            warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+stage-raw-then-field               warehouses  ROWS 3 cols=['id'] first=[[null], [null], [null]]
+stage-raw-then-max                 warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+stage-raw-then-filter              warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+stage-fields-id-then-max           warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+model-columns                      warehouses  ['code', 'id', 'count']
+model-then-id                      warehouses  ROWS 3 cols=['id'] first=[[null], [null], [null]]
+model-then-max                     warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+model-then-filter                  warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+pivot                              warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+csv                                warehouses  200 ID |  |  |  | 
+field-values                       warehouses  200 {"values":[],"field_id":4487,"has_more_values":false}
+field-search                       warehouses  200 []
+field-summary                      warehouses  500 {"via":[{"type":"clojure.lang.ExceptionInfo","message":"Error compiling query: id is a private primary key of the cube, so it has no values here. Use another column, or m
+field-related                      warehouses  200 {"table":{"description":"A cube with a private primary key. Each stock item points to it.\n\nMeasures: Count.\n\nDimensions: Code.","entity_type":"entity/GenericTable","v
+field-remapping                    warehouses  204 
+field-rescan                       warehouses  200 {"status":"success"}
+field-values-after-rescan          warehouses  200 {"values":[],"field_id":4487,"has_more_values":false}
+parameter-values                   warehouses  200 {"has_more_values":false,"values":[]}
+parameter-search                   warehouses  200 {"has_more_values":true,"values":[]}
+parameter-on-key                   warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+native-field-filter                warehouses  ERR id is a private member of warehouses in the Cube data model, so it has no values here. Use another column, or make it public in the model. A Cube in d
+native-select                      warehouses  ERR id is a private member of warehouses in the Cube data model, so it has no values here. Use another column, or make it public in the model. A Cube in d
+native-star                        warehouses  ROWS 3 cols=['count', 'code', '__user', '__cubeJoinField'] first=[[1, "W1", null, null], [1, "W2", null, null], [1, "W3", null, null]]
+native-max                         warehouses  ERR id is a private member of warehouses in the Cube data model, so it has no values here. Use another column, or make it public in the model. A Cube in d
+native-where                       warehouses  ERR id is a private member of warehouses in the Cube data model, so it has no values here. Use another column, or make it public in the model. A Cube in d
+native-order                       warehouses  ERR id is a private member of warehouses in the Cube data model, so it has no values here. Use another column, or make it public in the model. A Cube in d
+native-sub                         warehouses  ERR id is a private member of warehouses in the Cube data model, so it has no values here. Use another column, or make it public in the model. A Cube in d
+native-cte                         warehouses  ERR id is a private member of warehouses in the Cube data model, so it has no values here. Use another column, or make it public in the model. A Cube in d
+native-quoted                      warehouses  ERR id is a private member of warehouses in the Cube data model, so it has no values here. Use another column, or make it public in the model. A Cube in d
+native-upper                       warehouses  ERR id is a private member of warehouses in the Cube data model, so it has no values here. Use another column, or make it public in the model. A Cube in d
+native-alias-dot                   warehouses  ERR id is a private member of warehouses in the Cube data model, so it has no values here. Use another column, or make it public in the model. A Cube in d
+native-group                       warehouses  ERR id is a private member of warehouses in the Cube data model, so it has no values here. Use another column, or make it public in the model. A Cube in d
+native-join-field                  warehouses  ROWS 3 cols=['__cubeJoinField'] first=[[null], [null], [null]]
+native-comment                     warehouses  ERR id is a private member of warehouses in the Cube data model, so it has no values here. Use another column, or make it public in the model. A Cube in d
+native-cast                        warehouses  ERR id is a private member of warehouses in the Cube data model, so it has no values here. Use another column, or make it public in the model. A Cube in d
+native-info-schema                 warehouses  ROWS 3 cols=['table_catalog', 'table_schema', 'table_name', 'column_name', 'ordinal_position'] first=[["cube", "public", "warehouses", "count", 1, "", "NO", "bigint", null, null, 64, 2, 0, null, "", "", "", "", "", "", "", "", null
+mcp-raw                            warehouses  ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-fields                         warehouses  ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-breakout                       warehouses  ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-max                            warehouses  ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-filter                         warehouses  ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-execute-sql                    warehouses  ERR Query failed: "id is a private member of warehouses in the Cube data model, so it has no values here. Use another column, or make it public in the model. A Cube in dev mo
+mcp-get-fields-hidden              warehouses  names key values:False
+mcp-get-fields                     warehouses  names key
+mcp-search                         warehouses  ok, 100001 in text: False
+xray-table                         warehouses  200 len=7978
+xray-cards                         warehouses  cards=2 on key=0
+xray-field                         warehouses  200 len=11118
+xray-field-card                    warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    warehouses  ROWS 1 cols=['count'] first=[[3]]
+xray-field-card                    warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+field-in-metadata                  promos      no hidden field
+field-in-metadata                  shipments   no hidden field
+fk                                 stock_items fk to 4487
+implicit-breakout                  stock_items ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+implicit-max                       stock_items ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+implicit-filter                    stock_items ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+explicit-join-all                  stock_items ROWS 3 cols=['id', 'warehouse_id', 'quantity', 'code', 'id_2'] first=[[1.0, 1.0, null, "W1", null, null], [2.0, 2.0, null, "W2", null, null], [3.0, 3.0, null, "W3", null, null]]
+explicit-join-key                  stock_items ROWS 3 cols=['id', 'warehouse_id', 'quantity', 'id_2'] first=[[1.0, 1.0, null, null], [2.0, 2.0, null, null], [3.0, 3.0, null, null]]
+explicit-join-max                  stock_items ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+explicit-join-on-other             warehouses  ERR ERROR: Internal Error: Can't find join path to join 'warehouses,stock_items'
+QUERY: SELECT COALESCE(COUNT(*), 0) AS "count" FROM "warehouses" LEFT JOI
