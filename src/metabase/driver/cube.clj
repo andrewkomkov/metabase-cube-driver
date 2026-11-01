@@ -1998,7 +1998,8 @@
 
 (defmethod sql.qp/date [:cube :week-of-year]
   [_driver _unit expr]
-  (week-of-year-of-week-start (start-of-week-index) expr))
+  ;; The ELSE of this CASE would give a row with no time a week.
+  [:case [:not= expr nil] (week-of-year-of-week-start (start-of-week-index) expr)])
 
 (defmethod sql.qp/date [:cube :week-of-year-instance]
   [_driver _unit expr]

@@ -212,8 +212,10 @@ class Query:
         if "f32" in sql:
             self.tol = max(self.tol, 1e-5)
         if f == "sum" and self.column(ref)[1] == "count":
-            # The driver reads the sum of a count column as the measure, so no rows give 0. See docs/query-compilation.md.
-            return "count()"
+            # The driver reads the sum of a count column as the measure, so no rows give 0. A filter on a measure column makes it a sum of rows. See docs/query-compilation.md.
+            n = len(self.spec.get("fields", []))
+            on_measure = any(f.get("i", -1) >= n for f in self.spec["stage"].get("where", []))
+            return "sumOrNull(%s)" % self.column(ref)[0] if on_measure else "count()"
         if f == "sum-where":
             return "sumOrNull(if(%s, toFloat64(%s), 0))" % (self.predicate(a["p"]), sql)
         return {"sum": "sumOrNull(%s)", "avg": "avgOrNull(toFloat64(%s))", "min": "minOrNull(%s)", "max": "maxOrNull(%s)", "distinct": "uniqExact(%s)",

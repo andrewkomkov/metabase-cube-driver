@@ -1,0 +1,27 @@
+{
+ "found": {
+  "diff": "row 0: got [10.0, 20753.0], truth [None, '16584']",
+  "error": null,
+  "index": 79,
+  "seed": "7502",
+  "truth_sql": "SELECT ceil(toDayOfYear((toDate(toTimeZone(t.n_ts, 'UTC')) - toIntervalDay(((toDayOfWeek(toTimeZone(t.n_ts, 'UTC')) - 0 + 7) % 7)))) / 7) AS c0, sumOrNull(t.n_dec) AS c1 FROM shop.typed_events t WHERE 1 GROUP BY c0 SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "m": "sum_n_dec"
+   }
+  ],
+  "by": [
+   {
+    "c": "n_ts",
+    "unit": "week-of-year"
+   }
+  ],
+  "source": "typed_events",
+  "week": null,
+  "where": [],
+  "zone": null
+ }
+}

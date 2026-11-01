@@ -1,0 +1,46 @@
+{
+ "found": {
+  "diff": "row 0: got [None], truth ['0']",
+  "error": null,
+  "index": 493,
+  "seed": "7502",
+  "truth_sql": "SELECT count() AS o0 FROM (SELECT o.id AS c0, if(o.quantity >= 3, 'large', 'small') AS c1, toString(o.status) AS c2, nullIf(toString(o.status), 'completed') AS c3, o.user_id AS c4, 1 AS c5, o.amount AS c6 FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE 1) WHERE (toFloat64(c6) < 1) SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "fields": [
+   "id",
+   "size",
+   "status_sorted",
+   "cancel_status",
+   "user_id"
+  ],
+  "measure_fields": [
+   "count",
+   "revenue"
+  ],
+  "source": "orders",
+  "stage": {
+   "agg": [
+    {
+     "f": "sum",
+     "i": 5
+    }
+   ],
+   "by": [],
+   "via": "inline",
+   "where": [
+    {
+     "i": 6,
+     "op": "<",
+     "v": [
+      1
+     ]
+    }
+   ]
+  },
+  "week": null,
+  "where": [],
+  "zone": null
+ }
+}
