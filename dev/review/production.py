@@ -9,6 +9,7 @@ import argparse
 import collections
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -20,6 +21,15 @@ CONNECTIONS = {"Cube": "cube", "Cube prod": "cube-prod"}
 # The shapes of the catalog, the rollups, the six forms of the New York day, sources and filters, with each tenth shape of the grid.
 SAMPLE = r"^(c|r|z|e|v|n|j)/"
 PRIVATE = {"payments": "id", "warehouses": "id", "promos": "id", "shipments": "order_id"}
+
+
+def settled(r):
+    """Two groups that Metabase on Postgres settled, see docs/review/0.1.0-gate.md: Postgres has two rows for the repeated hour of a clock change, as Cube has, and the ClickHouse truth
+    has one. And `x/num/round`, where the ClickHouse truth rounds half away from zero."""
+    if r["id"] == "x/num/round":
+        return True
+    found = re.search(r"rows: got (\d+), truth (\d+)", r.get("diff") or "")
+    return bool(re.search(r"^grid/.*/hour/", r["id"]) and found and int(found.group(1)) == int(found.group(2)) + 1)
 
 
 def connect(mb):
@@ -111,7 +121,7 @@ def main():
         for line in open(path):
             r = json.loads(line)
             verdicts[r["verdict"]] += 1
-            if r["verdict"] in ("wrong", "raw_error", "harness"):
+            if r["verdict"] in ("wrong", "raw_error", "harness") and not settled(r):
                 bad.append(r)
     print("shapes", dict(verdicts))
     for r in bad[:40]:
