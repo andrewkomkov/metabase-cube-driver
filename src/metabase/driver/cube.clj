@@ -390,7 +390,7 @@
 ;;; `(x > t OR x IS NULL) AND x IS NOT NULL` has the same rows as `x > t`. A dialect that keeps the fraction needs none of this,
 ;;; so the driver asks Cube. See cube.probe/keeps-fractions?.
 
-(declare bucket-rank bucket-start relative-time current-meta report-zone? table-name-of-field utc-time)
+(declare bucket-rank bucket-start relative-time report-zone? table-name-of-field utc-time)
 
 (def ^:private ^:dynamic *keep-date-ranges*
   "Not nil if a measure of this query needs a date range, because it reads no other filter as a range: :rolling for a rolling

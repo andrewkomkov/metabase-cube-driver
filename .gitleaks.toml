@@ -5,3 +5,8 @@ useDefault = true
 [[allowlists]]
 description = "Throwaway credentials of the demo stack"
 regexes = ['''[A-Za-z0-9-]*dev-only[A-Za-z0-9-]*''']
+
+# The gate review signs in fixed fake people on a temporary stack with fake data. Nothing else reads these passwords.
+[[allowlists]]
+description = "Throwaway people of the gate review"
+paths = ['''dev/review/gate/(security_gate2?|secure_values)\.py''']
