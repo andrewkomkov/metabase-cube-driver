@@ -4,6 +4,7 @@
 Run: METABASE_ADMIN_PASSWORD=... python3 conformance/run.py [--only REGEX] [--no-write] [--json PATH]
 """
 import argparse
+import contextlib
 import base64
 import datetime as dt
 import hashlib
@@ -6001,9 +6002,15 @@ def _(ctx):
         text = f.read()
     if not re.search(r"(?s)CUBEJS_DEV_MODE.*hidden|hidden.*CUBEJS_DEV_MODE", text):
         raise Fail("docs/security.md has no warning about hidden members in dev mode")
+    if not re.search(r"(?i)unsafe for production", text):
+        raise Fail("docs/security.md does not name dev mode as unsafe for production")
+    # The direct proof that dev mode reads it: the SQL API with no driver. The driver stops this name, see security.private_member_gives_no_value.
+    status, reply, _h = http("POST", CUBE + "/cubejs-api/v1/cubesql", {"query": "SELECT COUNT(*) FROM secret_audit"})
+    if status != 200 or '"error"' in reply:
+        raise Fail("the demo Cube has dev mode on, and its SQL API must read the hidden cube: %s %s" % (status, reply[:200]))
     rows, error = native_outcome(ctx, "SELECT COUNT(*) FROM secret_audit")
-    if error or not rows:
-        raise Fail("the demo Cube has dev mode on, and the query must read the hidden cube: %s" % error)
+    if not error or "private" not in error:
+        raise Fail("the driver reads the hidden cube: %s" % (rows or error))
 
 
 @check("security.validate_echoes_the_request_limit")
@@ -8665,6 +8672,200 @@ def _(ctx):
     table_id = ctx.mb.table("warehouses")["id"]
     for query in ({"source-table": table_id, "breakout": [key_ref], "aggregation": [["count"]]}, {"source-table": table_id, "filter": ["=", key_ref, 1]}):
         expect_clear_error(ctx, query, "is a private primary key")
+
+
+@contextlib.contextmanager
+def report_zone(ctx, zone):
+    prev = ctx.mb.api("GET", "/api/setting/report-timezone")
+    ctx.mb.api("PUT", "/api/setting/report-timezone", {"value": zone})
+    try:
+        yield
+    finally:
+        ctx.mb.api("PUT", "/api/setting/report-timezone", {"value": prev if isinstance(prev, str) and prev else None})
+
+
+PRIVATE_KEYS = {"payments": "id", "warehouses": "id", "promos": "id", "shipments": "order_id"}
+
+
+def private_doors(ctx, table, name):
+    """Each form of MBQL that names a private member. By name there is no stored field, so these are the forms that a check of the field id does not see."""
+    by_name = ["field", name, {"base-type": "type/Integer"}]
+    upper = ["field", name.upper(), {"base-type": "type/Integer"}]
+    tid = ctx.mb.table(table)["id"]
+    yield "raw", {"source-table": tid, "fields": [by_name], "limit": 3}
+    yield "upper case", {"source-table": tid, "fields": [upper], "limit": 3}
+    yield "breakout", {"source-table": tid, "breakout": [by_name], "aggregation": [["count"]], "limit": 3}
+    for agg in ("min", "max", "sum", "avg", "distinct"):
+        yield agg, {"source-table": tid, "aggregation": [[agg, by_name]]}
+    yield "filter probe", {"source-table": tid, "filter": [">", by_name, 100000], "aggregation": [["count"]]}
+    yield "is null probe", {"source-table": tid, "filter": ["is-null", by_name], "aggregation": [["count"]]}
+    yield "order", {"source-table": tid, "order-by": [["desc", by_name]], "limit": 3}
+    yield "expression", {"source-table": tid, "expressions": {"x": ["+", by_name, 0]}, "fields": [["expression", "x"]], "limit": 3}
+    yield "count where", {"source-table": tid, "aggregation": [["count-where", [">", by_name, 100000]]]}
+    yield "second stage", {"source-query": {"source-table": tid}, "aggregation": [["max", by_name]]}
+    yield "second stage filter", {"source-query": {"source-table": tid}, "filter": [">", by_name, 100000], "aggregation": [["count"]]}
+
+
+@check("security.private_member_gives_no_value")
+def _(ctx):
+    """A member that Cube marks private gives no value through MBQL, MCP or native SQL, also on a Cube in dev mode, which reads it. A reference by name has no stored field."""
+    leaks = []
+    for table, name in PRIVATE_KEYS.items():
+        ensure_table(ctx, table)
+        for door, query in private_doors(ctx, table, name):
+            rows, error = outcome(ctx, query)
+            if not error:
+                values = [v for row in rows for v in row if v not in (None, 0)]
+                if values:
+                    leaks.append("%s %s: %s" % (table, door, rows[:2]))
+        sql_rows, sql_error = native_outcome(ctx, "SELECT MAX(%s) FROM %s" % (name, table))
+        if not sql_error:
+            leaks.append("%s native: %s" % (table, sql_rows[:2]))
+        star_rows, star_error = native_outcome(ctx, "SELECT * FROM %s LIMIT 1" % table)
+        if not star_error:
+            leaks.append("%s native star: %s" % (table, star_rows[:1]))
+        for form in ('SELECT p."%s" FROM %s p LIMIT 1', "WITH c AS (SELECT %s AS v FROM %s) SELECT MAX(v) FROM c"):
+            rows2, error2 = native_outcome(ctx, form % (name, table))
+            if not error2:
+                leaks.append("%s native %s: %s" % (table, form, rows2[:1]))
+        name_ref = ["field", {"base-type": "type/Integer"}, name]
+        tid = ctx.mb.table(table)["id"]
+        for tool, arguments in (("execute_query", {"query": dict(mcp_stage(tid, aggregation=[["max", {}, name_ref]]), database=ctx.mb.need_db())}),
+                                ("execute_sql", {"database_id": ctx.mb.need_db(), "sql": "SELECT MAX(%s) FROM %s" % (name, table)})):
+            try:
+                reply = ctx.mcp.call(tool, **arguments)
+            except Fail:
+                continue
+            if isinstance(reply, dict) and any(v is not None for row in (reply.get("rows") or []) for v in row):
+                leaks.append("%s MCP %s: %s" % (table, tool, reply.get("rows")))
+    # A private measure and a hidden cube, by name.
+    ensure_table(ctx, ORD)
+    rows, error = outcome(ctx, {"source-table": ctx.mb.table(ORD)["id"], "aggregation": [["max", ["field", "public_false_measure", {"base-type": "type/Decimal"}]]]})
+    if not error and rows and rows[0][0] is not None:
+        leaks.append("private measure by name: %s" % rows)
+    rows, error = native_outcome(ctx, "SELECT COUNT(*) FROM secret_audit")
+    if not error:
+        leaks.append("native hidden cube: %s" % rows)
+    if leaks:
+        raise Fail("; ".join(leaks[:6]))
+    # The foreign key stays useful, and it needs no value of the key.
+    truth = "SELECT concat('W', toString(number % 3 + 1)), sum(number + 1) FROM numbers(30) GROUP BY 1"
+    ensure_table(ctx, "stock_items")
+    assert_rows(ctx.mb.mbql("stock_items", agg=["m:stock_items.quantity"], by=["d:stock_items>warehouses.code"])["rows"], ch(truth), label="join through the key")
+
+
+@check("preagg.rollup_lambda_under_a_report_zone")
+def _(ctx):
+    """Stock Cube double counts or loses rows where the rollup of a rollup_lambda meets its source in a report time zone: New York 319894, Kolkata 319607, truth 319790. The driver reads the source."""
+    ensure_table(ctx, "lambda_sales")
+    for zone in ("America/New_York", "America/Los_Angeles", "Asia/Kolkata", "Europe/Berlin"):
+        with report_zone(ctx, zone):
+            grid = Grid(ctx, refusal="rollup_lambda")
+            grid.add("%s by month" % zone, ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.created_at@month"]),
+                     "SELECT toStartOfMonth(toTimeZone(created_at, '%s')), sum(amount) FROM orders GROUP BY 1" % zone)
+            grid.add("%s total" % zone, ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"]), "SELECT sum(amount) FROM orders")
+            grid.done()
+            if grid.refused:
+                raise Fail("the driver can read the source here, and it refused in %s" % zone)
+
+
+PAID = "orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'"
+JOINED = "orders o JOIN users u ON o.user_id = u.id"
+Q("compile.two_stages.default_filters_month_of_year", "paid_sales", "SELECT toMonth(o.created_at), sum(o.amount) FROM %s GROUP BY 1" % PAID,
+  agg=["m:paid_sales.net_sales"], by=["d:paid_sales.created_at@month-of-year"])
+Q("compile.two_stages.default_filters_day_of_week", "paid_sales", "SELECT toDayOfWeek(o.created_at) % 7 + 1, sum(o.amount) FROM " + PAID + " GROUP BY 1",
+  agg=["m:paid_sales.net_sales"], by=["d:paid_sales.created_at@day-of-week"])
+Q("compile.two_stages.default_filters_text_filter", "paid_sales", "SELECT u.city, sum(o.amount) FROM %s AND u.city = 'Chicago' GROUP BY 1" % PAID,
+  agg=["m:paid_sales.net_sales"], by=["d:paid_sales.users_city"], where=[["starts-with", "d:paid_sales.users_city", "Chi"]])
+Q("compile.two_stages.default_filters_distinct_next_to_a_measure", "paid_sales", "SELECT u.city, uniqExact(o.status), sum(o.amount) FROM %s GROUP BY 1" % PAID,
+  agg=[["distinct", "d:paid_sales.status"], "m:paid_sales.net_sales"], by=["d:paid_sales.users_city"])
+Q("compile.two_stages.count_where_on_a_joined_column", "orders", "SELECT toString(o.status), countIf(u.is_vip) FROM %s GROUP BY 1" % JOINED,
+  agg=[["count-where", ["=", "d:orders>users.is_vip", True]]], by=["d:orders.status"])
+Q("compile.two_stages.count_where_on_a_view_of_a_join", "sales", "SELECT toString(o.status), countIf(u.city = 'Austin') FROM %s GROUP BY 1" % JOINED,
+  agg=[["count-where", ["=", "d:sales.users_city", "Austin"]]], by=["d:sales.status"])
+Q("compile.two_stages.share_on_a_view_of_a_join", "sales", "SELECT toString(o.status), countIf(u.city = 'Austin') / count() FROM %s GROUP BY 1" % JOINED, tol=1e-9,
+  agg=[["share", ["=", "d:sales.users_city", "Austin"]]], by=["d:sales.status"])
+Q("compile.two_stages.case_with_two_branches", ORD, "SELECT multiIf(amount > 500, 'big', amount > 100, 'mid', 'low') AS k, count() FROM orders GROUP BY k",
+  agg=[["count"]], exprs={"k": ["case", [[[">", "d:orders.amount_dim", 500], "big"], [[">", "d:orders.amount_dim", 100], "mid"]], {"default": "low"}]}, by=[["expression", "k"]])
+Q("compile.two_stages.case_next_to_a_measure", ORD, "SELECT multiIf(amount > 500, 'big', amount > 100, 'mid', 'low') AS k, sum(amount) FROM orders GROUP BY k",
+  agg=["m:orders.revenue"], exprs={"k": ["case", [[[">", "d:orders.amount_dim", 500], "big"], [[">", "d:orders.amount_dim", 100], "mid"]], {"default": "low"}]}, by=[["expression", "k"]])
+Q("compile.expr.datetime_diff_from_a_literal", ORD, "SELECT k, c FROM (SELECT dateDiff('day', toDateTime('2025-01-01 00:00:00', 'UTC'), created_at) AS k, count() AS c FROM orders GROUP BY k) ORDER BY k LIMIT 5", ordered=True,
+  agg=[["count"]], exprs={"k": ["datetime-diff", "2025-01-01T00:00:00", "d:orders.created_at", "day"]}, by=[["expression", "k"]], order=[["asc", ["expression", "k"]]], limit=5)
+Q("compile.expr.substring_in_a_breakout", ORD, "SELECT substring(toString(status), 2, 3) AS k, count() FROM orders GROUP BY k",
+  agg=[["count"]], exprs={"k": ["substring", "d:orders.status", 2, 3]}, by=[["expression", "k"]])
+
+
+@check("compile.filter.long_list_of_values")
+def _(ctx):
+    """A list of values stops Cube with an AST node limit as OR. As IN, it goes up to about 1000 values, and a longer list gets a clear message."""
+    ids = list(range(1, 301))
+    assert_rows(ctx.mb.mbql(ORD, agg=[["count"]], where=[["=", "d:orders.id"] + ids])["rows"], ch("SELECT count() FROM orders WHERE id <= 300"))
+    assert_rows(ctx.mb.mbql(ORD, agg=[["count"]], where=[["=", "d:orders.id"] + list(range(1, 1001))])["rows"], ch("SELECT count() FROM orders WHERE id <= 1000"))
+    rows, error = outcome(ctx, ctx.mb.inner(ORD, agg=[["count"]], where=[["=", "d:orders.id"] + list(range(1, 6001))]))
+    if error and "too long for the planner" not in error:
+        raise Fail("a list of 6000 values gives: %s" % error[:300])
+    if not error:
+        assert_rows(rows, ch("SELECT count() FROM orders WHERE id <= 6000"))
+
+
+@check("compile.expr.function_of_no_plan_gets_a_clear_message")
+def _(ctx):
+    """regex-match-first and convert-timezone have no form on the SQL API, so the message says what to do."""
+    for label, expr in (("regex", ["regex-match-first", "d:orders.status", "c.m"]),
+                        ("zone", ["get-hour", ["convert-timezone", "d:orders.created_at", "Asia/Kathmandu", "UTC"]])):
+        rows, error = outcome(ctx, ctx.mb.inner(ORD, agg=[["count"]], exprs={"k": expr}, by=[["expression", "k"]]))
+        if not error or "Add a dimension" not in error:
+            raise Fail("%s: %s" % (label, (error or rows)))
+
+
+@check("zone.distinct_time_with_no_repeated_hour")
+def _(ctx):
+    """A distinct count of a time counts the clock, so it stops where a clock hour can repeat. A zone with no clock change has no such hour."""
+    with report_zone(ctx, "Asia/Kathmandu"):
+        assert_rows(ctx.mb.mbql(ORD, agg=[["distinct", "d:orders.created_at"]])["rows"], ch("SELECT uniqExact(created_at) FROM orders"))
+    with report_zone(ctx, "America/New_York"):
+        expect_clear_error(ctx, ctx.mb.inner(ORD, agg=[["distinct", "d:orders.created_at"]]), "repeated hour")
+
+
+@check("zone.time_measure_has_an_offset")
+def _(ctx):
+    """A time measure comes from Cube as text. It must have the offset that a time dimension has, or a client that parses it reads another instant."""
+    ensure_table(ctx, "ny_a")
+    with report_zone(ctx, "America/New_York"):
+        value = ctx.mb.mbql("ny_a", agg=["m:ny_a.m_last_at"])["rows"][0][0]
+    if not str(value).endswith("-05:00"):
+        raise Fail("a time measure in New York in January has the value %s" % value)
+    if ch("SELECT toString(max(ts)) FROM zone_events")[0][0].replace(" ", "T")[:19] != "2026-01-10T17:06:51":
+        raise Fail("the seed changed")
+
+
+@check("security.attribute_added_later_clears_the_lists")
+def _(ctx):
+    """A connection that gets the attribute after its first sync has a list of values for all rows. The list goes when the connection changes."""
+    sec = secure(ctx)
+    name = "Cube attribute later"
+    db = sec.ensure_db(name, dict(SECURE_DETAILS))
+    db_id = db["id"] if isinstance(db, dict) else db
+    admin = sec._admin(name)
+    field = admin.field("users", "city")
+    admin.api("PUT", "/api/field/%d" % field["id"], {"has_field_values": "list"})
+    admin.api("POST", "/api/field/%d/rescan_values" % field["id"])
+    for _i in range(30):
+        values = admin.api("GET", "/api/field/%d/values" % field["id"]).get("values")
+        if values:
+            break
+        time.sleep(1)
+    if not values:
+        raise Fail("the list has no values before the change, so this shows nothing")
+    current = admin.api("GET", "/api/database/%d" % db_id)
+    admin.api("PUT", "/api/database/%d" % db_id, {"details": dict(current["details"], **{"cube-user-attribute": "email"})})
+    after = admin.api("GET", "/api/field/%d/values" % field["id"]).get("values")
+    if after:
+        raise Fail("the list stays after the attribute: %s" % after[:3])
+    reread = admin.api("GET", "/api/field/%d" % field["id"])
+    if reread.get("has_field_values") != "search":
+        raise Fail("the field has %s" % reread.get("has_field_values"))
+    admin.api("DELETE", "/api/database/%d" % db_id)
 
 
 zone_day.register(sys.modules[__name__])

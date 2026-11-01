@@ -77,7 +77,7 @@
       (throw (ex-info (str error) {})))
     (into [] (mapcat :data) lines)))
 
-(declare mark-geo-views)
+(declare mark-geo-views with-join-target-keys)
 
 (defn- last-name-part
   [member-name]
@@ -108,9 +108,10 @@
 
 (defn fetch-meta
   "GET /cubejs-api/v1/meta?extended=true. Returns the decoded body, with the definitions that a child cube inherits, and with
-  `:geo-readable?` on each view if Cube can read a geo dimension of a view."
+  `:geo-readable?` on each view if Cube can read a geo dimension of a view. A key that a join targets and that Cube hides is there too, see
+  [[with-join-target-keys]]."
   [details]
-  (mark-geo-views details (with-inherited-definitions (api-get details "/v1/meta" {"extended" "true"}))))
+  (mark-geo-views details (with-join-target-keys (with-inherited-definitions (api-get details "/v1/meta" {"extended" "true"})))))
 
 (defn rest-get
   "GET a path of the Cube REST API with a query."
@@ -139,7 +140,11 @@
         {:keys [at value]} (get @meta-cache cache-key)]
     (if (and value (< (- now at) cached-meta-ttl-ms))
       value
-      (let [fresh (fetch-meta details)]
+      ;; A check of private members reads this, so an old model is better than none while the REST API is down.
+      (let [fresh (try
+                    (fetch-meta details)
+                    (catch Exception e
+                      (or value (throw e))))]
         (swap! meta-cache assoc cache-key {:at now, :value fresh})
         fresh))))
 
@@ -514,6 +519,61 @@
     (or (when (= kind :sql) (first (filter by-sql dimensions)))
         (first (filter by-name dimensions)))))
 
+(defn- with-join-target-keys
+  "With dev mode off, /v1/meta has no private member, also not a private primary key that a join targets. A foreign key needs its target field, and the join SQL names it, so
+  the target cube gets that key as a private dimension. The model of a Cube is then the same with dev mode on and off. This adds nothing that Cube can read: the driver reads
+  no value of a private member, and a Cube with dev mode off refuses it."
+  [cube-meta]
+  (let [name->cube (into {} (map (juxt :name identity)) (:cubes cube-meta))
+        wanted     (for [cube  (:cubes cube-meta)
+                         {:keys [relationship sql], join-name :name, join-alias :alias} (:joins cube)
+                         :let  [[left right] (parse-join-sql sql)
+                                side          (fn [[reference column kind]]
+                                                (cond
+                                                  (#{"CUBE" (:name cube)} reference)  [cube column kind]
+                                                  (#{join-name join-alias} reference) [(name->cube join-name) column kind]))
+                                a             (when left (side left))
+                                b             (when right (side right))
+                                [local remote] (if (= (:name (first a)) (:name cube)) [a b] [b a])
+                                [from to]     (if (#{"belongsTo" "many_to_one"} relationship) [local remote] [remote local])]
+                         :when (and (first from) (first to)
+                                    (not (apply find-dimension to))
+                                    (not-any? :primaryKey (:dimensions (first to))))
+                         :let  [from-dimension (apply find-dimension from)]
+                         :when from-dimension]
+                     {:cube (:name (first to)), :column (second to), :type (:type from-dimension)})
+        new-keys   (group-by :cube (distinct wanted))]
+    (update cube-meta :cubes
+            (partial mapv (fn [cube]
+                            (reduce (fn [cube {:keys [column], member-type :type}]
+                                      (update cube :dimensions (fnil conj [])
+                                              {:name            (str (:name cube) "." column)
+                                               :type            member-type
+                                               :sql             column
+                                               :public          false
+                                               :primaryKey      true
+                                               ::join-target-key true}))
+                                    cube
+                                    (new-keys (:name cube))))))))
+
+(defn private-members
+  "A map from the lower case name of a cube to the lower case short names of the members that Cube marks private. With `:with-join-targets? false`, this has no key that
+  only [[with-join-target-keys]] adds, because Cube has no column for it in `SELECT *`."
+  [cube-meta & {:keys [with-join-targets?] :or {with-join-targets? true}}]
+  (into {}
+        (keep (fn [{cube-name :name, :keys [dimensions measures segments]}]
+                (when-let [members (seq (for [member (concat dimensions measures segments)
+                                              :when  (and (not (public? member))
+                                                          (or with-join-targets? (not (::join-target-key member))))]
+                                          (str/lower-case (short-name (:name member)))))]
+                  [(str/lower-case cube-name) (set members)])))
+        (:cubes cube-meta)))
+
+(defn private-cubes
+  "The lower case names of the cubes and views that Cube marks private. /v1/meta shows them only in dev mode."
+  [cube-meta]
+  (into #{} (comp (remove public?) (map (comp str/lower-case :name))) (:cubes cube-meta)))
+
 (defn- own-and-inherited-joins
   "Cube returns the joins of a parent only on the parent, and `extends` names it."
   [name->cube cube]
@@ -604,6 +664,74 @@
         root       (cube-of (first dimensions))
         dimension  (first (filter #(= (str/lower-case member-name) (str/lower-case (short-name (:name %)))) dimensions))]
     (boolean (and root (cube-of dimension) (not= root (cube-of dimension))))))
+
+(defn- cube-entry
+  [cube-meta cube-name]
+  (first (filter #(= cube-name (:name %)) (:cubes cube-meta))))
+
+(defn view?
+  "True if this table is a view of Cube."
+  [cube-meta table-name]
+  (= "view" (:type (cube-entry cube-meta table-name))))
+
+(defn- source-member
+  "The member of a cube behind a short name of a table: `kind` is :measures or :dimensions. A view reads the member of its alias."
+  [cube-meta table-name member-name kind]
+  (let [own     (first (filter #(= (str/lower-case member-name) (str/lower-case (short-name (:name %))))
+                               (kind (cube-entry cube-meta table-name))))
+        members (into {} (comp (mapcat kind) (map (juxt :name identity))) (:cubes cube-meta))]
+    (or (members (:aliasMember own)) own)))
+
+(defn cube-of-member
+  "The name of the cube that a member of a table reads."
+  [cube-meta table-name member-name kind]
+  (some-> (source-member cube-meta table-name member-name kind) :name (str/split #"\.") first))
+
+(defn roll-up-of-measure
+  "The aggregation that gives this measure from its values on smaller groups, or nil if no aggregation can. A measure that reads another measure can change with the groups."
+  [cube-meta table-name member-name]
+  (let [{:keys [aggType cumulative sql]} (source-member cube-meta table-name member-name :measures)]
+    (when-not (or cumulative (str/includes? (str sql) "${"))
+      ({"sum" :sum, "count" :sum, "min" :min, "max" :max} aggType))))
+
+(defn count-measure?
+  "True if this measure counts."
+  [cube-meta table-name member-name]
+  (= "count" (:aggType (source-member cube-meta table-name member-name :measures))))
+
+(defn many-to-one-path?
+  "True if each row of cube `from` has at most one row of cube `to`, through the joins of the data model."
+  [cube-meta from to]
+  (let [name->cube (into {} (map (juxt :name identity)) (:cubes cube-meta))]
+    (loop [seen #{from}, front [from]]
+      (cond
+        (contains? seen to) true
+        (empty? front)      false
+        :else (let [next-cubes (for [cube-name front
+                                     {:keys [relationship], join-name :name} (own-and-inherited-joins name->cube (name->cube cube-name))
+                                     :when (and (#{"belongsTo" "many_to_one" "hasOne" "one_to_one"} relationship)
+                                                (not (seen join-name)))]
+                                 join-name)]
+                (recur (into seen next-cubes) (vec (distinct next-cubes))))))))
+
+(defn row-count-measure
+  "The short name of a measure of this table that counts one row of the first cube of the table with no filter, and the name of that cube, or nil."
+  [cube-meta table-name]
+  (let [entry     (cube-entry cube-meta table-name)
+        cube-of   #(some-> % (str/split #"\.") first)
+        root      (if (= "view" (:type entry))
+                    (cube-of (:aliasMember (first (:dimensions entry))))
+                    table-name)
+        plain?    (fn [{:keys [aggType sql filters]}]
+                    (and (= "count" aggType) (nil? sql) (empty? filters)))
+        measure   (first (filter (fn [measure]
+                                   (let [source (source-member cube-meta table-name (short-name (:name measure)) :measures)]
+                                     (and (public? measure)
+                                          (plain? source)
+                                          (= root (cube-of (:name source))))))
+                                 (:measures entry)))]
+    (when (and root measure)
+      [(short-name (:name measure)) root])))
 
 (defn rollup-can-read-other-rows?
   "True if a query can read a part of the rows from this rollup: it has a build range, it is a rollup_lambda, or it allows a range that does

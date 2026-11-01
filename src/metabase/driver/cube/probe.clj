@@ -646,6 +646,17 @@
            (format "The rollup %s has allow_non_strict_date_range_match, and the range of the query does not fit its buckets of one %s."
                    preAggregationId granularity))))
 
+(defn- lambda-zone-reason
+  "A text if a rollup_lambda of this request joins a rollup to its source under a report time zone. Stock Cube ends the rollup and starts the source at times that do not meet
+  in such a zone, so it reads some rows twice or not at all, with no error: `lambda_sales` by month in New York gives 319894, and the truth is 319790. Cube with the dialect
+  can stop such a query on ClickHouse. The source has all rows, in each zone."
+  [pre-aggregations ^String zone]
+  (when (and (some :unionWithSourceData pre-aggregations)
+             (let [rules (.getRules (ZoneId/of zone))]
+               (not (and (.isFixedOffset rules) (zero? (.getTotalSeconds (.getOffset rules java.time.Instant/EPOCH)))))))
+    (format "The rollup_lambda %s joins a rollup to its source, and under the report time zone %s these two parts do not meet, so Cube can read a row twice or not at all."
+            (:preAggregationId (first pre-aggregations)) zone)))
+
 (defn- requests-of-plan
   "The requests of Cube in the rows of EXPLAIN."
   [rows]
@@ -682,7 +693,8 @@
                                    :let  [{:keys [pre-aggregations match-results]} (sql-of details (assoc request :timezone zone, :limit 1))
                                           bounds (request-bounds request)
                                           reason (when (seq pre-aggregations)
-                                                   (or (non-strict-reason pre-aggregations match-results bounds)
+                                                   (or (lambda-zone-reason pre-aggregations zone)
+                                                       (non-strict-reason pre-aggregations match-results bounds)
                                                        (used-partition-gap details cube-meta request zone pre-aggregations bounds)))]
                                    :when reason]
                                {:reason reason, :rollups pre-aggregations, :match-results match-results}))))
@@ -712,10 +724,33 @@
                          (same-cube dimension)
                          (not (held (or aliasMember member)))))
         options   (filter usable (:dimensions cube))]
-    (some-> (or (first (filter :primaryKey options)) (first options))
+    (some-> (or (first (filter :primaryKey options))
+                (first options)
+                ;; A rollup holds a time as its time dimension. A filter on it that is not a date range also makes Cube read the source.
+                (first (filter #(and (not (false? (:public %)))
+                                     (not (false? (:isVisible %)))
+                                     (= "time" (:type %))
+                                     (same-cube %))
+                               (:dimensions cube))))
             :name
             (str/split #"\.")
             last)))
+
+(def ^:private cannot-plan-texts
+  ["Can't detect Cube query" "was used with the aggregate function" "duplicate qualified field name"])
+
+(defn planning-error
+  "The text of the error if Cube cannot plan this SQL in a way that another form of the query can avoid, or nil. The answer is at most one minute old. With no answer this is nil."
+  [details sql zone]
+  (cached details [:planning-error sql zone]
+          (fn []
+            (try
+              (cube.meta/rest-sql details (str "EXPLAIN " sql) zone)
+              nil
+              (catch Exception e
+                (let [text (str (ex-message e))]
+                  (when (some #(str/includes? text %) cannot-plan-texts)
+                    text)))))))
 
 ;;; A count measure counts the primary key. Cube writes `count(pk)`, so a row with a NULL key does not count. The primary key can be private, so the driver compares the
 ;;; measure with COUNT(*) on the rows.

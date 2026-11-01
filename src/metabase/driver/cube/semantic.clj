@@ -75,6 +75,17 @@
   (when (and (cube.identity/attribute (:details database)) (seq field-ids))
     (t2/delete! :model/FieldValues :field_id [:in field-ids])))
 
+(defn clear-values-of-person-data!
+  "A connection that gets `cube-user-attribute` after its first sync has lists of values that show all rows. /api/field/:id/values reads these from the application database,
+  with no query, so they go when the connection changes, and not only at the next sync."
+  [database]
+  (when (cube.identity/attribute (:details database))
+    (let [table-ids (t2/select-pks-set :model/Table :db_id (:id database))
+          field-ids (when (seq table-ids) (t2/select-pks-set :model/Field :table_id [:in table-ids]))]
+      (when (seq field-ids)
+        (t2/delete! :model/FieldValues :field_id [:in field-ids])
+        (t2/update! :model/Field {:id [:in field-ids], :has_field_values [:not= "none"]} {:has_field_values "search"})))))
+
 (defn- clear-stale-foreign-keys!
   "Metabase sync only adds foreign keys. This removes those whose Cube join went away."
   [database field-ids]

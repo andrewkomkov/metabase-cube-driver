@@ -8349,3 +8349,111 @@
   status: pass
   status_stock: pass
   check: sync.private_primary_key_keeps_the_foreign_key
+- id: security.private_member_gives_no_value
+  area: cube.security
+  title: "a private member gives no value through MBQL, MCP or native SQL, also in dev mode"
+  status: pass
+  status_stock: pass
+  check: security.private_member_gives_no_value
+- id: preagg.rollup_lambda_under_a_report_zone
+  area: cube.pre_aggregations
+  title: "a rollup_lambda under a report time zone gives the truth, also on stock Cube"
+  status: pass
+  status_stock: pass
+  check: preagg.rollup_lambda_under_a_report_zone
+- id: compile.two_stages.default_filters_month_of_year
+  area: mb.compile.expr
+  title: "a view with default_filters gives a measure by month of year"
+  status: pass
+  status_stock: pass
+  check: compile.two_stages.default_filters_month_of_year
+- id: compile.two_stages.default_filters_day_of_week
+  area: mb.compile.expr
+  title: "a view with default_filters gives a measure by day of week"
+  status: pass
+  status_stock: pass
+  check: compile.two_stages.default_filters_day_of_week
+- id: compile.two_stages.default_filters_text_filter
+  area: mb.compile.expr
+  title: "a view with default_filters gives a measure with a text filter that needs push-down"
+  status: pass
+  status_stock: pass
+  check: compile.two_stages.default_filters_text_filter
+- id: compile.two_stages.default_filters_distinct_next_to_a_measure
+  area: mb.compile.expr
+  title: "a view with default_filters gives a distinct count next to a measure"
+  status: pass
+  status_stock: pass
+  check: compile.two_stages.default_filters_distinct_next_to_a_measure
+- id: compile.two_stages.count_where_on_a_joined_column
+  area: mb.compile.expr
+  title: "count-where on a column of a joined cube"
+  status: pass
+  status_stock: pass
+  check: compile.two_stages.count_where_on_a_joined_column
+- id: compile.two_stages.count_where_on_a_view_of_a_join
+  area: mb.compile.expr
+  title: "count-where on a joined column of a view"
+  status: pass
+  status_stock: pass
+  check: compile.two_stages.count_where_on_a_view_of_a_join
+- id: compile.two_stages.share_on_a_view_of_a_join
+  area: mb.compile.expr
+  title: "share on a joined column of a view"
+  status: pass
+  status_stock: pass
+  check: compile.two_stages.share_on_a_view_of_a_join
+- id: compile.two_stages.case_with_two_branches
+  area: mb.compile.expr
+  title: "a case with two branches that reads one column twice, next to count"
+  status: pass
+  status_stock: pass
+  check: compile.two_stages.case_with_two_branches
+- id: compile.two_stages.case_next_to_a_measure
+  area: mb.compile.expr
+  title: "a case with two branches next to a measure"
+  status: pass
+  status_stock: pass
+  check: compile.two_stages.case_next_to_a_measure
+- id: compile.expr.datetime_diff_from_a_literal
+  area: mb.compile.expr
+  title: "datetime-diff from a literal"
+  status: pass
+  status_stock: pass
+  check: compile.expr.datetime_diff_from_a_literal
+- id: compile.expr.substring_in_a_breakout
+  area: mb.compile.expr
+  title: "substring in a breakout"
+  status: pass
+  status_stock: pass
+  check: compile.expr.substring_in_a_breakout
+- id: compile.filter.long_list_of_values
+  area: mb.compile.expr
+  title: "a filter with a long list of values"
+  status: pass
+  status_stock: pass
+  check: compile.filter.long_list_of_values
+- id: compile.expr.function_of_no_plan_gets_a_clear_message
+  area: mb.compile.expr
+  title: "a function with no form on the SQL API gets a clear message"
+  status: pass
+  status_stock: pass
+  check: compile.expr.function_of_no_plan_gets_a_clear_message
+- id: zone.distinct_time_with_no_repeated_hour
+  area: cube.zone_day
+  title: "a distinct count of a time works in a zone with no repeated hour"
+  status: pass
+  status_stock: pass
+  check: zone.distinct_time_with_no_repeated_hour
+- id: zone.time_measure_has_an_offset
+  area: cube.zone_day
+  title: "a time measure has the offset of a time dimension"
+  status: pass
+  status_stock: pass
+  check: zone.time_measure_has_an_offset
+- id: security.attribute_added_later_clears_the_lists
+  area: cube.security
+  title: "a connection that gets the person attribute later has no old list of values"
+  status: pass
+  status_stock: pass
+  check: security.attribute_added_later_clears_the_lists

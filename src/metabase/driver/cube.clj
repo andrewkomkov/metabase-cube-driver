@@ -10,13 +10,14 @@
    [metabase.driver.cube.meta :as cube.meta]
    [metabase.driver.cube.native :as cube.native]
    [metabase.driver.cube.probe :as cube.probe]
-   [metabase.driver.cube.semantic]
+   [metabase.driver.cube.semantic :as cube.semantic]
    [metabase.driver.postgres]
    [metabase.driver.sql-jdbc.connection :as sql-jdbc.conn]
    [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
    [metabase.driver.sql.query-processor :as sql.qp]
    [metabase.query-processor.middleware.cache :as qp.middleware.cache]
    [metabase.util.honey-sql-2 :as h2x]
+   [metabase.util.log :as log]
    [toucan2.core :as t2])
   (:import
    (java.sql ResultSet ResultSetMetaData Types)
@@ -157,6 +158,15 @@
           (catch Exception _ nil))
     (alter-var-root (requiring-resolve 'metabase.agent-lib.representations.repair/repair) keep-time-on-cube)
     true))
+
+;; A connection that gets the attribute of a person has lists of values for all rows. See cube.semantic/clear-values-of-person-data!.
+(defmethod driver/notify-database-updated :cube
+  [driver database]
+  ((get-method driver/notify-database-updated :postgres) driver database)
+  (try
+    (cube.semantic/clear-values-of-person-data! database)
+    (catch Exception e
+      (log/warnf e "Could not clear the lists of values of database %s" (:id database)))))
 
 (defmethod sql-jdbc.execute/set-timezone-sql :cube [_] "SET TIME ZONE %s")
 
@@ -301,6 +311,44 @@
   [driver clause]
   (binding [*inside-case* true]
     ((get-method sql.qp/->honeysql [:postgres :case]) driver clause)))
+
+;; Metabase writes `= a b c` as OR of each value. A list of 100 values stops the planner of Cube with "AST node limit reached", and IN goes up to about 1000. A time or a true or false
+;; value has its own form of `=`.
+(def ^:private shortest-in-list 8)
+
+(defn- equal-list
+  "The field and the values if each clause of an OR is `field = value` on one number or text field, and the list is long, or nil."
+  [clauses]
+  (when (>= (count clauses) shortest-in-list)
+    (let [plain? (fn [clause]
+                   (and (vector? clause)
+                        (= := (first clause))
+                        (= 4 (count clause))
+                        (vector? (nth clause 3))
+                        (= :value (first (nth clause 3)))
+                        (let [v (nth (nth clause 3) 2)] (or (number? v) (string? v)))
+                        (let [lhs (nth clause 2)]
+                          (and (vector? lhs) (= :field (first lhs)) (integer? (nth lhs 2 nil))
+                               (let [{:keys [base-type]} (stored-field lhs)]
+                                 (or (isa? base-type :type/Number) (isa? base-type :type/Text)))))))
+          field-of (fn [clause] (let [[_ opts id] (nth clause 2)] [id (:join-alias opts) (:temporal-unit opts)]))]
+      (when (and (every? plain? clauses) (apply = (map field-of clauses)))
+        [(nth (first clauses) 2) (map #(nth % 3) clauses)]))))
+
+(defmethod sql.qp/->honeysql [:cube :or]
+  [driver [_ _opts & clauses :as clause]]
+  (if-let [[field values] (equal-list clauses)]
+    [:in (sql.qp/->honeysql driver field) (mapv #(sql.qp/->honeysql driver %) values)]
+    ((get-method sql.qp/->honeysql [:postgres :or]) driver clause)))
+
+;; SUBSTRING x FROM a FOR b stops Cube above a subquery with "unsupported type Utf8View". SUBSTR goes to the database.
+(defmethod sql.qp/->honeysql [:cube :substring]
+  [driver [_ _opts arg start length]]
+  (let [text  (sql.qp/->honeysql driver arg)
+        start (sql.qp/->honeysql driver start)]
+    (if (some? length)
+      [:substr text start (sql.qp/->honeysql driver length)]
+      [:substr text start])))
 
 ;; With a query parameter for a string, Cube names each column of its plan after the placeholder. Two of them in one
 ;; expression make it fail with "duplicate unqualified field name 'Utf8("replaced_placeholder")'".
@@ -1033,6 +1081,16 @@
 
 (declare time-field?)
 
+(defn- zone-repeats-the-clock?
+  "True if this zone has an hour twice, now or since 1970. A zone that has only moved its clock forward, as Asia/Kathmandu did in 1986, has no such hour."
+  [^ZoneId zone]
+  (let [rules (.getRules zone)]
+    (boolean (or (seq (.getTransitionRules rules))
+                 (some (fn [^java.time.zone.ZoneOffsetTransition transition]
+                         (and (.isOverlap transition)
+                              (>= (.getYear (.getDateTimeBefore transition)) 1970)))
+                       (.getTransitions rules))))))
+
 (defn- check-no-time-measure-in-zone!
   "Cube makes each time dimension local to the report time zone, and it leaves the value of a measure with `type: time` in UTC, unless the SQL of the
   measure reads SQL_UTILS.convertTz. A distinct count of a time counts the clock, so two rows in the repeated hour of a clock change count once."
@@ -1052,7 +1110,7 @@
                         {:type :invalid-query})))
       (when (and (= :distinct agg-type)
                  (time-field? field)
-                 (not (.isFixedOffset (.getRules (session-zone)))))
+                 (zone-repeats-the-clock? (session-zone)))
         (throw (ex-info (format (str "Cube counts the clock of %s in the report time zone, so two rows in the repeated hour of a clock change "
                                      "count once. Remove the report time zone, or count a dimension with another type.")
                                 (:name field))
@@ -1311,7 +1369,7 @@
                                    "joined cube once, so the number would be wrong. Add a measure to the data model, or start "
                                    "from the cube of this dimension.")
                               (:name field))
-                      {:type :invalid-query})))))
+                      {:type :invalid-query, ::adds-up-a-joined-column true})))))
 
 (defn- date-range-clauses?
   "True if these clauses on one time column are a date range for Cube: one `between`, or one `>=` next to one `<` or `<=`, with time literals."
@@ -1361,14 +1419,28 @@
                                   member member)
                           {:type :invalid-query})))))))
 
+(defn- private-key-of-name
+  "The private primary key of `table-id` that `column-name` names, or nil. Metabase also takes a reference by name, which has no stored field."
+  [table-id column-name]
+  (when (and (pos-int? table-id) (string? column-name))
+    (first (filter #(and (= cube.meta/private-key-type (:database-type %))
+                         (= (str/lower-case column-name) (str/lower-case (:name %))))
+                   (driver-api/fields (driver-api/metadata-provider) table-id)))))
+
 (defn- check-no-private-key!
-  "A private primary key is a field only as the target of a foreign key. Cube does not read it, or it reads it only in dev mode, so a stage must not read its values."
-  [stage]
-  (doseq [form  (tree-seq coll? seq (select-keys stage [:breakout :filters :aggregation :order-by :expressions]))
+  "A private primary key is a field only as the target of a foreign key. Cube does not read it, or it reads it only in dev mode, so a stage must not read its values. A raw row
+  has NULL for a field by id, see raw-select-item. A reference by name has no such step, so `:fields` counts for it. cube.native/check-no-private-member! also reads the SQL
+  of each query, for the other private members and for the forms that this misses."
+  [{:keys [source-table] :as stage}]
+  (doseq [form  (tree-seq coll? seq (select-keys stage [:breakout :filters :aggregation :order-by :expressions :fields]))
           :when (and (vector? form) (= :field (first form)))
-          :let  [field (stored-field form)]
-          :when (= cube.meta/private-key-type (:database-type field))]
-    (throw (ex-info (format "%s is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model." (:name field))
+          :let  [field (stored-field form)
+                 key-of-name (when-not (:join-alias (second form)) (private-key-of-name source-table (nth form 2 nil)))]
+          :when (or key-of-name
+                    (and (= cube.meta/private-key-type (:database-type field))
+                         (not (some #(identical? form %) (:fields stage)))))]
+    (throw (ex-info (format "%s is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+                            (:name (or key-of-name field)))
                     {:type :invalid-query}))))
 
 (defn- check-stages!
@@ -1704,9 +1776,16 @@
   ^long [^long start]
   (+ 3 start))
 
+(defn- time-argument
+  "A text of a time goes to ClickHouse as it is, and dateDiff stops on a text, so the driver casts it."
+  [x]
+  (if (and (vector? x) (= :inline (first x)) (string? (second x)))
+    (h2x/cast "timestamp" x)
+    x))
+
 (defn- datediff
   [unit x y]
-  [:datediff (h2x/literal (name unit)) x y])
+  [:datediff (h2x/literal (name unit)) (time-argument x) (time-argument y)])
 
 (defn- week-number
   [start expr]
@@ -2052,7 +2131,290 @@
                             {:type :invalid-query}))))
         [new-sql new-args]))))
 
+;;; Two stages. Cube plans a query in two ways: it reads members with a CubeScan, or it writes SQL of its own, push-down. A view with default_filters has no push-down for a query that
+;;; reads a member inside a function. Cube adds up each row of a joined cube once in a SQL aggregation, and it cannot plan an expression that reads one column twice next to COUNT(*).
+;;; In each case, an inner stage that reads the plain members with GROUP BY works, and an outer stage computes the rest from it. Cube writes both stages as one SQL query of the
+;;; database, so CUBEJS_DB_QUERY_LIMIT does not cut the inner one, and it applies the default_filters. An aggregation of the outer stage then needs the rows of each group:
+;;;
+;;; - The inner stage has the measure that counts the rows of the first cube of the table, and a conditional aggregation adds up that count.
+;;; - A measure comes from its values on smaller groups, with [[cube.meta/roll-up-of-measure]]. A distinct count has no such form, so it keeps its refusal.
+;;; - Smaller groups add up only if each row of the cube of the measure is in one group, so the extra columns come from that cube or from a many to one join of it.
+
+(def ^:private row-count-column "mb_row_count")
+
+(defn- no-split!
+  []
+  (throw (ex-info "no split" {::no-split true})))
+
+(defn- new-uuid [] (str (random-uuid)))
+
+(defn- integer-field?
+  [form]
+  (and (vector? form) (= :field (first form)) (integer? (nth form 2 nil))))
+
+(defn- inner-column-name
+  [[_ {:keys [join-alias]} :as clause]]
+  (let [column (:name (stored-field clause))]
+    (if join-alias (str join-alias "__" column) column)))
+
+(defn- outer-ref
+  "The column of the inner stage for a field of the first stage. It keeps the bucket or the bin, which the outer stage makes."
+  [[_ opts :as clause]]
+  [:field
+   (-> (select-keys opts [:temporal-unit :binning :effective-type])
+       (assoc :lib/uuid (new-uuid), :base-type (or (:base-type opts) (:base-type (stored-field clause)))))
+   (inner-column-name clause)])
+
+(defn- outer-form
+  "`form` with each field as a column of the inner stage. A reference by name is a form that the driver cannot follow here."
+  [form]
+  (cond
+    (integer-field? form)                              (outer-ref form)
+    (and (vector? form) (= :field (first form)))       (no-split!)
+    (and (vector? form) (= :measure (first form)))     (no-split!)
+    (vector? form)                                     (mapv outer-form form)
+    :else                                              form))
+
+(defn- count-column
+  [ctx]
+  (reset! (:needs-count ctx) true)
+  [:field {:lib/uuid (new-uuid), :base-type :type/BigInteger} row-count-column])
+
+(defn- named
+  "`opts` with a name for a clause that has another tag than the clause of the first stage, because a later stage reads a column by its name."
+  [opts tag {:keys [later-stages?]}]
+  (cond
+    (:name opts)    opts
+    later-stages?   (no-split!)
+    :else           (assoc opts :name (name tag))))
+
+(defn- outer-measure
+  "The aggregation of a measure from its values on smaller groups."
+  [{:keys [measures table-name cube-meta] :as ctx} tag opts arg]
+  (let [field (stored-field arg)
+        roll  (cube.meta/roll-up-of-measure cube-meta table-name (:name field))]
+    (when-not (and roll (own-aggregation? tag field))
+      (no-split!))
+    (swap! measures assoc (:name field) arg)
+    (let [column [:field {:lib/uuid (new-uuid), :base-type (:base-type field)} (:name field)]]
+      (if (cube.meta/count-measure? cube-meta table-name (:name field))
+        [:coalesce (named opts tag ctx) [roll {:lib/uuid (new-uuid)} column] 0]
+        [roll opts column]))))
+
+(defn- outer-aggregation
+  [ctx clause]
+  (let [[tag opts & [arg second-arg :as args]] (when (vector? clause) clause)
+        u      (fn [] {:lib/uuid (new-uuid)})
+        times  (fn [x] [:* (u) (outer-form x) (count-column ctx)])
+        rows   (fn [] (count-column ctx))]
+    (cond
+      (not (vector? clause))                                   clause
+      (= :value tag)                                           clause
+      (#{:+ :- :* :/} tag)                                     (into [tag opts] (map #(outer-aggregation ctx %)) args)
+      (and (#{:sum :avg :min :max :count :distinct} tag) (= :measure (member-kind arg))) (outer-measure ctx tag opts arg)
+      (= :count tag)                                           [:coalesce (named opts tag ctx)
+                                                                (if arg
+                                                                  [:sum-where (u) (rows) [:not-null (u) (outer-form arg)]]
+                                                                  [:sum (u) (rows)])
+                                                                0]
+      (#{:min :max :distinct} tag)                             [tag opts (outer-form arg)]
+      (= :sum tag)                                             [:sum opts (times arg)]
+      (= :avg tag)                                             [:/ (named opts tag ctx)
+                                                                [:sum (u) (times arg)]
+                                                                [:sum-where (u) (rows) [:not-null (u) (outer-form arg)]]]
+      (= :count-where tag)                                     [:coalesce (named opts tag ctx) [:sum-where (u) (rows) (outer-form arg)] 0]
+      (= :sum-where tag)                                       [:sum-where opts (times arg) (outer-form second-arg)]
+      (= :share tag)                                           [:/ (named opts tag ctx)
+                                                                [:sum-where (u) (rows) (outer-form arg)]
+                                                                [:sum (u) (rows)]]
+      :else                                                    (no-split!))))
+
+(defn- has-segment?
+  [clause]
+  (some #(= :segment (member-kind %)) (field-clauses [clause])))
+
+(defn- has-time?
+  [clause]
+  (some #(time-field? (stored-field %)) (filter integer-field? (field-clauses [clause]))))
+
+(defn- filter-stays-inside?
+  "`strategy` says which filters of the query the inner stage reads. A segment has no column in a later stage."
+  [strategy clause]
+  (or (has-segment? clause)
+      (case strategy
+        :all  true
+        :time (has-time? clause)
+        :none false)))
+
+(defn- check-folded-columns!
+  "See the note on two stages: the groups of the inner stage add up only if each row of the cube of a measure is in one group. A column that the outer stage reads as it is
+  folds nothing."
+  [{:keys [cube-meta table-name] :as _ctx} dimension-clauses breakout measure-names count?]
+  (let [plain     (into #{}
+                        (comp (filter integer-field?)
+                              (remove #(or (not (contains? #{nil :default} (:temporal-unit (second %))))
+                                           (:binning (second %))))
+                              (map (juxt #(nth % 2) (comp :join-alias second))))
+                        breakout)
+        provider  (driver-api/metadata-provider)
+        switches  (cube.meta/switch-dimension-names cube-meta table-name)
+        cube-of-field (fn [clause]
+                        (let [field (stored-field clause)
+                              table (:name (driver-api/table provider (:table-id field)))]
+                          (cube.meta/cube-of-member cube-meta table (:name field) :dimensions)))
+        folded    (remove #(contains? plain ((juxt (fn [c] (nth c 2)) (comp :join-alias second)) %)) dimension-clauses)
+        measure-cubes (cond-> (map #(cube.meta/cube-of-member cube-meta table-name % :measures) measure-names)
+                        count? (conj (second (cube.meta/row-count-measure cube-meta table-name))))]
+    (doseq [clause folded
+            :let [dimension (cube-of-field clause)
+                  column    (str/lower-case (:name (stored-field clause)))]]
+      (when (contains? switches column)
+        (no-split!))
+      (doseq [measure-cube measure-cubes]
+        (when-not (and measure-cube dimension
+                       (or (= measure-cube dimension)
+                           (cube.meta/many-to-one-path? cube-meta measure-cube dimension)))
+          (no-split!))))))
+
+(defn- split-first-stage
+  "`stages` with the first stage as two stages, or nil. See the note on two stages."
+  [cube-meta stages strategy]
+  (try
+    (let [{:keys [source-table aggregation breakout filters expressions order-by fields joins] :as stage} (first stages)
+          provider   (driver-api/metadata-provider)
+          table-name (when (pos-int? source-table) (:name (driver-api/table provider source-table)))]
+      (when (and table-name cube-meta (seq aggregation) (empty? fields) (= :mbql.stage/mbql (:lib/type stage)))
+        (let [ctx           {:cube-meta     cube-meta
+                             :table-name    table-name
+                             :measures      (atom {})
+                             :needs-count   (atom false)
+                             :later-stages? (some? (next stages))}
+              aggregation'  (mapv #(outer-aggregation ctx %) aggregation)
+              inside        (filterv #(filter-stays-inside? strategy %) filters)
+              outside       (filterv #(not (filter-stays-inside? strategy %)) filters)
+              dimensions    (->> (field-clauses (concat breakout outside expressions order-by aggregation))
+                                 (filter integer-field?)
+                                 (remove #(= :measure (member-kind %)))
+                                 (remove has-segment?)
+                                 (reduce (fn [found clause]
+                                           (let [k [(nth clause 2) (:join-alias (second clause))]]
+                                             (if (contains? found k) found (assoc found k clause))))
+                                         {})
+                                 vals)
+              _             (check-folded-columns! ctx dimensions breakout (keys @(:measures ctx)) @(:needs-count ctx))
+              [count-name]  (when @(:needs-count ctx) (cube.meta/row-count-measure cube-meta table-name))
+              _             (when (and @(:needs-count ctx) (not count-name)) (no-split!))
+              count-field   (when count-name
+                              (first (filter #(= count-name (:name %)) (driver-api/fields provider source-table))))
+              _             (when (and @(:needs-count ctx) (not count-field)) (no-split!))
+              details       (:details (driver-api/database provider))
+              _             (when (and count-name
+                                       (when-let [[cube plain] (cube.meta/key-count-measure cube-meta (str table-name "." count-name))]
+                                         (cube.probe/null-key-rows? details cube plain)))
+                              (no-split!))
+              inner         (cond-> {:lib/type    :mbql.stage/mbql
+                                     :source-table source-table
+                                     :breakout    (mapv (fn [[_ {:keys [join-alias base-type]} id :as clause]]
+                                                          [:field (cond-> {:lib/uuid (new-uuid), :base-type (or base-type (:base-type (stored-field clause)))}
+                                                                    join-alias (assoc :join-alias join-alias))
+                                                           id])
+                                                        dimensions)
+                                     :aggregation (cond-> (mapv (fn [[column-name arg]]
+                                                                  (let [field (stored-field arg)]
+                                                                    [(cube.meta/aggregation-of-measure (str/replace-first (str (:database-type field)) "cube.measure/" "") :max)
+                                                                     {:lib/uuid (new-uuid), :name column-name}
+                                                                     [:field {:lib/uuid (new-uuid), :base-type (:base-type field)} (:id field)]]))
+                                                                @(:measures ctx))
+                                                    count-field (conj [:sum {:lib/uuid (new-uuid), :name row-count-column}
+                                                                       [:field {:lib/uuid (new-uuid), :base-type (:base-type count-field)} (:id count-field)]]))}
+                              (seq joins)  (assoc :joins joins)
+                              (seq inside) (assoc :filters inside))
+              outer         (cond-> (-> (dissoc stage :source-table :joins :filters :expressions :order-by :breakout)
+                                        (assoc :aggregation aggregation'))
+                              (seq breakout)    (assoc :breakout (outer-form breakout))
+                              (seq outside)     (assoc :filters (outer-form outside))
+                              (seq expressions) (assoc :expressions (outer-form expressions))
+                              (seq order-by)    (assoc :order-by (outer-form order-by)))]
+          (when (or (seq (:breakout inner)) (seq (:aggregation inner)))
+            (into [inner outer] (rest stages))))))
+    (catch clojure.lang.ExceptionInfo e
+      (if (::no-split (ex-data e))
+        nil
+        (throw e)))))
+
+(declare compile-stages)
+
+(defn- compile-two-stages
+  "The first SQL of the two stage forms of `query` that Cube can plan, or nil."
+  [driver {:keys [stages] :as query} cube-meta]
+  (let [details (:details (driver-api/database (driver-api/metadata-provider)))
+        zone    (str (session-zone))]
+    (some (fn [strategy]
+            (when-let [split (split-first-stage cube-meta (vec stages) strategy)]
+              (try
+                (let [{sql :query, params :params, :as compiled} (compile-stages driver (assoc query :stages split))
+                      text (inline-params sql params)]
+                  (when (and text (not (cube.probe/planning-error details text zone)))
+                    compiled))
+                (catch Exception e
+                  (log/debugf e "Cube cannot compile the two stage form of a query")
+                  nil))))
+          ;; A filter of an outer stage on a time reads its literal in another zone than the column under a report time zone. See check-no-time-filter-over-aggregation-in-zone!.
+          (if (report-zone?) [:all :time] [:all :time :none]))))
+
+(defn- may-fail-to-plan?
+  "True if Cube may fail to plan this first stage, so the driver asks it. See the note on two stages."
+  [cube-meta {:keys [source-table aggregation expressions breakout filters]}]
+  (and cube-meta
+       (pos-int? source-table)
+       (seq aggregation)
+       (or (seq expressions)
+           (some (fn [[_ {:keys [temporal-unit]}]]
+                   (and temporal-unit (not= :default temporal-unit) (not (bucket-rank temporal-unit))))
+                 (filter integer-field? breakout))
+           (and (cube.meta/view? cube-meta (:name (driver-api/table (driver-api/metadata-provider) source-table)))
+                (or (seq filters)
+                    (some (fn [[_ _ arg]] (not= :measure (member-kind arg))) aggregation))))))
+
 (defmethod driver/mbql->native :cube
+  [driver query]
+  (if-not (and (:lib/type query) (seq (:stages query)))
+    (compile-stages driver query)
+    (let [cube-meta (current-meta)
+          stage     (first (:stages query))
+          details   (:details (driver-api/database (driver-api/metadata-provider)))]
+      (try
+        (let [{sql :query, params :params, :as compiled} (compile-stages driver query)
+              text (when (may-fail-to-plan? cube-meta stage) (inline-params sql params))]
+          (or (when (and text (cube.probe/planning-error details text (str (session-zone))))
+                (compile-two-stages driver query cube-meta))
+              compiled))
+        (catch clojure.lang.ExceptionInfo e
+          (or (when (::adds-up-a-joined-column (ex-data e))
+                (compile-two-stages driver query cube-meta))
+              (throw e)))))))
+
+(defn- time-measure-columns
+  "The names of the columns of `form` with MEASURE() of a time measure of the first stage. Cube gives such a value as text, with no type of a time. See read-column-thunk for text."
+  [form stages]
+  (let [table-id (:source-table (first stages))
+        times    (when (pos-int? table-id)
+                   (into #{}
+                         (comp (filter #(and (= :measure (field-kind %)) (isa? (:base-type %) :type/Temporal)))
+                               (map :name))
+                         (driver-api/fields (driver-api/metadata-provider) table-id)))]
+    (when (seq times)
+      (into #{}
+            (keep (fn [item]
+                    (when (and (vector? item) (= 2 (count item)))
+                      (let [[compiled alias-form] item
+                            compiled (h2x/unwrap-typed-honeysql-form compiled)]
+                        (when (and (vector? compiled) (= :measure (first compiled))
+                                   (some times (identifier-names compiled)))
+                          (first (identifier-names alias-form)))))))
+            (:select form)))))
+
+(defn- compile-stages
   [driver query]
   (binding [*week-numbers* (atom [])
             *raw-measures* (atom {})
@@ -2071,8 +2433,10 @@
           honeysql-form (if (and (map? honeysql-form) (seq @*week-numbers*))
                           (nest-all-week-numbers driver honeysql-form @*week-numbers*)
                           honeysql-form)
-          [sql args]    (format-past-wrong-rollup driver honeysql-form)]
-      {:query sql, :params args})))
+          [sql args]    (format-past-wrong-rollup driver honeysql-form)
+          times         (when (map? honeysql-form) (time-measure-columns honeysql-form (:stages query)))]
+      (cond-> {:query sql, :params args}
+        (seq times) (assoc :cube/time-measure-columns times)))))
 
 ;;; Parts of a date. Cube runs EXTRACT over a CubeScan as post-processing, which reads at most CUBEJS_DB_QUERY_LIMIT rows
 ;;; of a smaller grain, and which fails in a filter or with a measure that is not additive. DATEDIFF goes to the
@@ -2239,7 +2603,8 @@
          "FROM a CROSS JOIN b WHERE a.__cubeJoinField = b.__cubeJoinField and read a.column and b.column.")]
    ["Can't detect Cube query"
     (str "Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function that the SQL API does "
-         "not know, and a JOIN with an ON condition are the common cause. Use a time bucket, or add a dimension for it "
+         "not know, and a JOIN with an ON condition are the common cause. On a view with default_filters, each such query also needs measures that add up over groups, "
+         "such as sum, count, min or max, and not a distinct count or an average. Use a time bucket, or add a dimension for it "
          "to the data model. For a join, write FROM a CROSS JOIN b WHERE a.__cubeJoinField = b.__cubeJoinField.")]
    ["You cannot change security context"
     "This connection gives data per person, so a query cannot read as another person."]
@@ -2304,6 +2669,18 @@
          "with toString(column) to the data model, or use a filter that keeps the case.")]
    ["not found in provided schemas"
     (str "Cube cannot plan this expression in an aggregation. Add a measure to the data model, or use a plain filter.")]
+   ["AST node limit"
+    (str "This query is too long for the planner of Cube, which stops at about 10000 nodes. A list of up to about 1000 values works. Use a shorter list, a range, or add a "
+         "segment to the data model.")]
+   ["duplicate qualified field name"
+    (str "Cube cannot plan a custom column that reads one column twice next to this aggregation. Use a measure of the data model that adds up, such as sum or count, or add a "
+         "dimension for the custom column to the data model.")]
+   ["Invalid function"
+    (str "The SQL API of Cube does not know a function of this query. Add a dimension with that SQL to the data model.")]
+   ["unsupported type Utf8View"
+    (str "Cube cannot compute this text function. Add a dimension with that SQL to the data model.")]
+   ["user-defined coercion failed"
+    (str "Cube cannot compute this text function. Add a dimension with that SQL to the data model.")]
    ["Date range is required for time series"
     (str "Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the "
          "same time column. Add a date filter.")]])
@@ -2362,6 +2739,7 @@
   [{{sql :query, params :params} :native, :as query}]
   (when-not (sync-query? query)
     (when-let [cube-meta (current-meta)]
+      (cube.native/check-no-private-member! cube-meta sql)
       (if (native-only? query)
         (let [details (:details (driver-api/database (driver-api/metadata-provider)))]
           (cube.native/check-native! cube-meta sql (or params []) (native-questions details cube-meta))
@@ -2403,12 +2781,32 @@
                             {:type :invalid-query})))
           value)))))
 
+;;; The value of a time measure. The SQL API gives a measure with `type: time` as text, and a time dimension as a timestamp. So Metabase gives a dimension an offset and a measure none,
+;;; and a client that parses the measure can read another instant.
+
+(def ^:private ^:dynamic *time-measure-columns*
+  "The names of the columns of this result that hold the text of a time."
+  nil)
+
+(doseq [jdbc-type [Types/VARCHAR Types/LONGVARCHAR]]
+  (defmethod sql-jdbc.execute/read-column-thunk [:cube jdbc-type]
+    [driver ^ResultSet rs ^ResultSetMetaData rsmeta ^Integer i]
+    (let [thunk ((get-method sql-jdbc.execute/read-column-thunk [:postgres jdbc-type]) driver rs rsmeta i)]
+      (if (contains? *time-measure-columns* (.getColumnLabel rsmeta i))
+        (fn []
+          (let [value (thunk)]
+            (try
+              (if (string? value) (LocalDateTime/parse value) value)
+              (catch java.time.format.DateTimeParseException _ value))))
+        thunk))))
+
 (defmethod driver/execute-reducible-query :cube
   [driver query context respond]
   (cube.identity/assert-person! (:details (driver-api/database (driver-api/metadata-provider))))
   (check-sql! query)
   (try
-    (binding [*stop-big-numbers* (not (sync-query? query))]
+    (binding [*stop-big-numbers* (not (sync-query? query))
+              *time-measure-columns* (set (get-in query [:native :cube/time-measure-columns]))]
       (sql-jdbc.execute/execute-reducible-query driver (with-count-on-no-rows query) context respond))
     (catch Exception e
       (if-let [text (clear-error (exception-text e))]

@@ -43,7 +43,7 @@ The `security.*` entries in `conformance/features.yaml` test this against `dev/c
 - **The shared password.** Each client that has it can sign in as any person on the Cube SQL API. Keep that port on a private network. Metabase has no separate password for each person, so Cube trusts the name.
 - **Public links and static embeds fail.** They have no person, and the account of the connection would show all rows.
 - **The Metabase result cache is off for this connection.** The cache key has no person, and a live test showed the rows of one person to another. Metabase gives a driver no hook for this, so the driver wraps the internal var `maybe-return-cached-results`. The check `security.metabase_cache` guards it on the pinned version.
-- **Filter lists are search boxes.** Metabase keeps one list of values per field, so the driver sets each dimension to `search`, and the person's own query gives the values.
+- **Filter lists are search boxes.** Metabase keeps one list of values per field, so the driver sets each dimension to `search`, and the person's own query gives the values. A connection that gets **Cube SQL user for each person** after its first sync loses its stored lists when you save the connection. See `security.attribute_added_later_clears_the_lists`.
 - **Sync reads no rows, so the fingerprint of a field is empty.** Metabase keeps one fingerprint per field. Automatic numeric binning has less data. The tests do not cover this.
 - **All people see one model.** Metabase keeps one set of tables, fields and measures per database. It comes from the connection user. A member that `access_policy` hides from a person stays visible in Metabase. A query on it gives an error, or an empty result. `COMPILE_CONTEXT` changes values for each person. The list of members stays the same.
 - **Scheduled deliveries run as their creator.** This is how Metabase works. Recipients get the rows of the creator. The tests do not cover this, because the demo has no email or Slack channel.
@@ -62,6 +62,32 @@ A plugin runs in the Metabase process. Each item below changes something that is
 
 The sync of a Cube database writes to `metabase_table`, `metabase_field`, `metabase_database.description`, Measures and Segments. It writes only to the objects of that database.
 
+## Private members and dev mode
+
+**A Cube with `CUBEJS_DEV_MODE=true` is unsafe for production.** It accepts each JWT, also one with a wrong signature, and its SQL API and REST API read each cube and member that the model marks `public: false`. Only the demo stack runs in dev mode. A production Cube runs with `CUBEJS_DEV_MODE=false` and Cube Store. See `dev/docker-compose.production.yml`.
+
+What gives a value of a private member, on Cube `v1.8.15`:
+
+| Door | Dev mode off | Dev mode on |
+| --- | --- | --- |
+| The query builder, `/api/dataset`, a dashboard, a field list, a parameter value, an x-ray and MCP `execute_query`: by field id, by name in each clause and each stage | No. Cube has no such member, and the driver stops the name of a key first. | No. The driver stops it. |
+| Raw rows of a table with a private primary key | No. | No. The column is `NULL`. |
+| Native SQL and MCP `execute_sql`, for a person with native permission | No. Cube answers `not found`. | The driver scans the text and stops it, with a clear message. The scan knows a private member by its name in a table of the query, it stops `SELECT *` on a table with a private member, and it stops a hidden cube. |
+| A saved native question that reads a private member | No. | The same scan stops it, also as the source of a query builder question. |
+| The SQL API or the REST API of Cube, past Metabase | No. | **Yes.** Each client that reaches the port reads each member. The driver cannot stop this. |
+
+The scan of native SQL is not a SQL parser and not a security boundary, so do not rely on it. On a Cube in dev mode, a person with native permission can try forms that the scan does not read. The only real stop is `CUBEJS_DEV_MODE=false`. Metabase refuses native SQL to a person with the query builder only, on both modes.
+
+`cube.native/check-no-private-member!` reads the SQL of each query, also a compiled one, so a form of MBQL that a check of the clauses does not see stops there. It reads the model from `/v1/meta`, at most one minute old. If a member becomes private, a Cube in dev mode can read it in that minute.
+
+### A private primary key as the target of a foreign key
+
+A join needs no value of the key, because Cube takes the join from the data model. So sync keeps a private primary key as a hidden field of type `cube.dimension/private-key`: `stock_items.warehouse_id` stays a foreign key to `warehouses.id`, with an implicit join to `warehouses.code`.
+
+With dev mode off, `/v1/meta` has no private member, but its joins name the key, so the driver adds the same hidden field from the join. The model has the same fields and foreign keys on both modes. The checks are `security.private_member_gives_no_value` and `sync.private_primary_key_keeps_the_foreign_key`. `make production` reads the same doors with dev mode off.
+
+A foreign key column is a public member of its own cube, so `stock_items.warehouse_id` shows its values, which are the values of the key. To hide them, make that column private in the model. The foreign key then goes.
+
 ## Delete a Cube database
 
 Metabase v0.64.3 has a defect, and a live test shows it. After you delete a database that has Measures, each search for a Measure gives HTTP 500, in the
@@ -75,5 +101,5 @@ database, wait some seconds for the search index, and then delete the database.
 - Cube writes the JWT of a request that it refuses to its own log, as `{"message":"invalid signature","token":"..."}`. The driver cannot change this. The same check reads the log of `cube-secure`: it finds no secret and no token with a valid signature. A refused token shows the user name of the connection, so keep the Cube log private.
 - Post the API secret as `cube-api-secret-value`, as the Metabase UI does. The driver does not read a value in the key `cube-api-secret`. A live test shows that Cube then refuses the connection with HTTP 403, if dev mode is off.
 - Dev mode of Cube accepts each JWT, also one with a wrong signature. A live test confirmed this. To protect the REST API with the API secret, run Cube with `CUBEJS_DEV_MODE=false`.
-- With `CUBEJS_DEV_MODE=true`, native SQL also reads hidden cubes and members. `SELECT COUNT(*) FROM secret_audit` gives a number on the demo Cube. A Cube with `CUBEJS_DEV_MODE=false` refuses it with `Table or CTE with name 'secret_audit' not found`. Do not rely on `public: false` on a Cube in dev mode. See `security.dev_mode_warning_for_hidden_members`.
+- See [Private members and dev mode](#private-members-and-dev-mode) for hidden cubes and members (`CUBEJS_DEV_MODE`, hidden).
 - `POST /api/database/validate` repeats the request body, also the secret that the admin sent. Metabase does this for each driver, and only an admin can call it. It shows no stored value. See `security.validate_echoes_the_request_limit`.

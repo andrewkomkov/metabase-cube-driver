@@ -797,6 +797,102 @@
 
 ;;; --------------------------------------------------- entry points ------------------------------------------------
 
+;;; ---------------------------------------------- private members ----------------------------------------------
+
+(def ^:private not-an-alias
+  #{"where" "group" "order" "having" "limit" "on" "join" "cross" "left" "right" "inner" "full" "outer" "union" "using" "offset" "select" "from" "as"})
+
+(defn- part-of-name?
+  [tok]
+  (contains? #{:word :ident} (:kind tok)))
+
+(defn- table-at
+  "The last part of the name of a table at index `i`, and the index after it. `a.b.c` gives `c`."
+  [toks i]
+  (when (part-of-name? (get toks i))
+    (loop [i i]
+      (if (and (= "." (:text (get toks (inc i)))) (part-of-name? (get toks (+ i 2))))
+        (recur (+ i 2))
+        [(:text (get toks i)) (inc i)]))))
+
+(defn- table-names
+  "A map from each table or alias after FROM or JOIN, and after a comma of a FROM list, to the lower case name of the table."
+  [toks]
+  (loop [i 0, out {}, in-from? false]
+    (if (>= i (count toks))
+      out
+      (let [{:keys [text kind]} (get toks i)
+            starts?             (or (and (= :word kind) (#{"from" "join"} text))
+                                    (and in-from? (= "," text)))]
+        (if-let [[table after] (when starts? (table-at toks (inc i)))]
+          (let [as?          (and (= :word (:kind (get toks after))) (= "as" (:text (get toks after))))
+                alias-at     (if as? (inc after) after)
+                alias-tok    (get toks alias-at)
+                alias-name   (when (and (part-of-name? alias-tok)
+                                        (or as? (not (not-an-alias (:text alias-tok)))))
+                               (:text alias-tok))]
+            (recur (if alias-name (inc alias-at) after)
+                   (cond-> (assoc out table table) alias-name (assoc alias-name table))
+                   true))
+          (recur (inc i) out (cond
+                               starts?                                          false
+                               (and (= :word kind) (not-an-alias text))         false
+                               (= "(" text)                                     false
+                               :else                                            in-from?)))))))
+
+(defn- star-of-select?
+  "True if the `*` at `i` is a whole list of columns: after SELECT, DISTINCT, a comma or a dot, and before FROM, a comma or the end."
+  [toks i]
+  (and (= "*" (:text (get toks i)))
+       (let [before (get toks (dec i))]
+         (or (= "." (:text before))
+             (= "," (:text before))
+             (and (= :word (:kind before)) (#{"select" "distinct"} (:text before)))))))
+
+(defn check-no-private-member!
+  "Cube in dev mode reads a member that it marks private, and a cube that it hides, so the driver does not send a name of one. This scans each query. MBQL always writes a
+  table before a column. Native SQL can leave it out, so a name with no table counts for each table that the text reads. A name after a table that is not on the list, such as
+  the alias of a subquery, reads a column that the subquery selected, and the scan sees that name there. docs/security.md says what this scan is not."
+  [cube-meta sql]
+  (let [private   (cube.meta/private-members cube-meta)
+        hidden    (cube.meta/private-cubes cube-meta)]
+    (when (or (seq private) (seq hidden))
+      (let [toks      (tokens sql)
+            tables    (table-names toks)
+            read-from (set (vals tables))
+            refuse-member! (fn [member table]
+                             (refuse! (format (str "%s is a private member of %s in the Cube data model, so it has no values here. Use another column, or make it public in the "
+                                                   "model. A Cube in dev mode reads private members, so do not run dev mode in production.")
+                                              member table)))]
+        (doseq [table read-from
+                :when (hidden table)]
+          (refuse! (format (str "%s is private in the Cube data model, so it has no values here. A Cube in dev mode reads private cubes, so do not run dev mode in production.")
+                           table)))
+        (when (some #(seq (get (cube.meta/private-members cube-meta :with-join-targets? false) %)) read-from)
+          (doseq [i (range (count toks))
+                  :when (star-of-select? toks i)]
+            (refuse! "A table of this query has private members in the Cube data model, and a Cube in dev mode gives them for *. List the columns.")))
+        (doseq [i (range (count toks))
+                :let [{:keys [kind text]} (get toks i)]
+                :when (contains? #{:word :ident} kind)]
+          (let [before    (get toks (dec i))
+                qualified (= "." (:text before))
+                prefix    (when qualified (:text (get toks (- i 2))))
+                as?       (and (= :word (:kind before)) (= "as" (:text before)))
+                call?     (= "(" (:text (get toks (inc i))))
+                dotted?   (= "." (:text (get toks (inc i))))]
+            (cond
+              (and qualified (get tables prefix))
+              (when (contains? (get private (get tables prefix)) text)
+                (refuse-member! text (get tables prefix)))
+
+              (or qualified as? call? dotted?)
+              nil
+
+              :else
+              (when-let [table (first (filter #(contains? (get private %) text) read-from))]
+                (refuse-member! text table)))))))))
+
 (defn check-paths!
   "For each query, also a compiled one."
   [cube-meta sql]

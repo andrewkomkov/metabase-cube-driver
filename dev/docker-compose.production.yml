@@ -1,0 +1,28 @@
+# Adds Cube as it runs in production, next to the demo Cube: dev mode off, Cube Store as a separate service and a refresh worker in the same process. It reads the same model.
+# Dev mode reads private members and accepts each JWT, so a result on the demo Cube says nothing about these. See docs/security.md and `make production`.
+# ClickHouse has a port here, because the check reads the truth directly. All ports bind to the loopback interface only.
+services:
+  clickhouse:
+    ports: ["127.0.0.1:18123:8123"]
+  cubestore:
+    image: cubejs/cubestore:${CUBE_VERSION:-v1.8.15}
+    mem_limit: 1g
+    environment:
+      CUBESTORE_TELEMETRY: "false"
+      CUBESTORE_DATA_DIR: /cube/data
+      CUBESTORE_SERVER_NAME: cubestore:9999
+    volumes: ["cubestore-data:/cube/data"]
+    restart: unless-stopped
+  cube-prod:
+    extends: { file: docker-compose.yml, service: cube }
+    depends_on: !override
+      clickhouse: { condition: service_healthy }
+      cubestore: { condition: service_started }
+    environment:
+      CUBEJS_DEV_MODE: "false"
+      CUBEJS_CUBESTORE_HOST: cubestore
+      CUBEJS_CUBESTORE_PORT: "3030"
+      CUBEJS_REFRESH_WORKER: "true"
+    ports: !override ["127.0.0.1:4405:4000", "127.0.0.1:15437:15432"]
+volumes:
+  cubestore-data:
