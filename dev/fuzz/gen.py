@@ -67,6 +67,10 @@ def gen_leaf(rng, ref, col_name, kind, vals):
         if op == "between":
             return dict(ref, op=op, v=[rng.choice(pool), rng.choice(pool)])
         if op in ("=", "!="):
+            # The driver compiles a list of 8 values or more to IN.
+            if kind == "num" and _maybe(rng, 0.2):
+                extra = [round(rng.choice(pool) + rng.choice([0.001, 0.005, 0.5]), 3) for _ in range(rng.choice([7, 8, 9]))]
+                return dict(ref, op=op, v=rng.sample(pool, 1) + extra)
             return dict(ref, op=op, v=rng.sample(pool, min(len(pool), rng.choice([1, 1, 2]))))
         return dict(ref, op=op, v=[rng.choice(pool)])
     if kind == "bool":
@@ -158,10 +162,10 @@ def gen_agg(rng, src):
     if k in ("int", "num"):
         # ClickHouse adds up stddev and var of a Float32 in single precision, so the last digits differ. See README.md.
         spread = [] if name == "f32" else ["stddev", "var"]
-        return {"f": rng.choice(["sum", "avg", "min", "max", "distinct"] + spread), "c": name}
+        return {"f": rng.choice(["sum", "avg", "min", "max", "distinct", "count"] + spread), "c": name}
     if k in ("time", "date"):
-        return {"f": rng.choice(["min", "max", "distinct"]), "c": name}
-    return {"f": "distinct", "c": name}
+        return {"f": rng.choice(["min", "max", "distinct", "count"]), "c": name}
+    return {"f": rng.choice(["distinct", "count"]), "c": name}
 
 
 def gen_aggregated(rng, src):

@@ -61,7 +61,7 @@ class Builder:
         if a.get("op") == "/":
             return ["/", self.agg(a["a"]), self.agg(a["b"])]
         f = a["f"]
-        if f == "count":
+        if f == "count" and "c" not in a and "i" not in a:
             return ["count"]
         if f == "count-where" or f == "share":
             return [f, self.filter(a["p"])]

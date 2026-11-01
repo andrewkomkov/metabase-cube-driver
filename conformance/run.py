@@ -3192,6 +3192,92 @@ def _(ctx):
                 ch("SELECT status, sum(quantity) FROM orders GROUP BY 1"), label="own column")
 
 
+def release_cases():
+    sys.path.insert(0, os.path.join(REPO, "dev", "review"))
+    import release_cases as cases  # noqa: PLC0415
+
+    return cases
+
+
+def run_release_cases(ctx, cases, label):
+    """Runs the cases of dev/review/release_cases.py through /api/dataset, each with its truth from ClickHouse."""
+    module = release_cases()
+
+    def execute(query, parameters):
+        body = {"database": ctx.mb.need_db(), "type": "query", "query": query}
+        if parameters:
+            body["parameters"] = parameters
+        res = ctx.mb.api("POST", "/api/dataset", body, ok=(200, 202, 400, 403, 500))
+        error = res.get("error") or res.get("message")
+        return (None, str(error)) if error else (res["data"]["rows"], None)
+
+    def differ(rows, truth, ordered, tol):
+        try:
+            assert_rows(rows, ch(truth), ordered=ordered, tol=tol, label=label)
+        except Fail as e:
+            return str(e)
+        return None
+
+    for table in ("orders", "products", "typed_events", "metric_types", "orphan_orders", "orphan_customers", "sales"):
+        ensure_table(ctx, table)
+    counts, problems = module.run(cases, execute, differ,
+                                  lambda table, name: ctx.mb.field(table, name)["id"],
+                                  lambda source, target: ctx.mb.fk_field(source, target)["id"],
+                                  lambda table: ctx.mb.table(table)["id"])
+    print("         %s" % json.dumps(counts, sort_keys=True))
+    if problems:
+        raise Fail("%d of %d differ: %s" % (len(problems), len(cases), " | ".join(problems[:6])))
+
+
+@check("compile.filter.fraction_list_keeps_digits")
+def _(ctx):
+    """A list of 8 values compiles to IN, and Cube sends each number as text, so ClickHouse cut 44.001 to 44 on a Decimal and stopped on an integer column."""
+    run_release_cases(ctx, release_cases().fraction_cases(stock=not DIALECT), "fraction list")
+
+
+@check("mcp.query.fraction_list_keeps_digits")
+def _(ctx):
+    values = release_cases().fractions(8)
+    ref = ["field", {"base-type": "type/Decimal"}, ctx.mb.field(ORD, "amount_dim")["id"]]
+    query = mcp_stage(ctx.mb.table(ORD)["id"], aggregation=[["count", {}]], filters=[["=", {}, ref, *values]])
+    assert_rows(ctx.mcp.call("execute_query", query=query)["rows"], ch("SELECT count() FROM orders WHERE amount IN (%s)" % ",".join(map(str, values))))
+
+
+@check("mb.dashboard.fraction_list_parameter_keeps_digits")
+def _(ctx):
+    values = release_cases().fractions(8)
+    card = ctx.mb.mbql_card("fraction list", ORD, agg=[["count"]])["id"]
+    field_ref = ["field", ctx.mb.field(ORD, "amount_dim")["id"], None]
+    parameter = {"id": "fractions", "slug": "fractions", "name": "Fractions", "type": "number/="}
+    dashboard = ctx.mb.dashboard("fraction list", [parameter], [(card, [("fractions", ["dimension", field_ref])])])
+    dashcard = dashboard["dashcards"][0]["id"]
+    res = ctx.mb.api("POST", "/api/dashboard/%d/dashcard/%d/card/%d/query" % (dashboard["id"], dashcard, card),
+                     {"parameters": [{"id": "fractions", "type": "number/=", "value": values, "target": ["dimension", field_ref]}]})
+    if res.get("error"):
+        raise Fail(str(res["error"])[:300])
+    assert_rows(res["data"]["rows"], ch("SELECT count() FROM orders WHERE amount IN (%s)" % ",".join(map(str, values))))
+
+
+@check("compile.join.each_aggregation_of_a_joined_column")
+def _(ctx):
+    """Cube reads each row of a joined cube once: count of a joined column gave 29 where the truth is 5000, and cum-sum 725 where the truth is 24967."""
+    run_release_cases(ctx, release_cases().join_cases(), "joined column")
+
+
+@check("mcp.query.count_of_a_joined_column")
+def _(ctx):
+    price = ["field", {"base-type": "type/Decimal", "source-field": ctx.mb.fk_field(ORD, "products")["id"]}, ctx.mb.field("products", "price")["id"]]
+    status = ["field", {"base-type": "type/Text"}, ctx.mb.field(ORD, "status")["id"]]
+    query = mcp_stage(ctx.mb.table(ORD)["id"], aggregation=[["count", {}, price]], breakout=[status])
+    assert_rows(ctx.mcp.call("execute_query", query=query)["rows"], ch("SELECT toString(o.status), count(p.price) FROM orders o JOIN products p ON o.product_id = p.id GROUP BY 1"))
+
+
+@check("compile.join.no_join_path_has_a_clear_message")
+def _(ctx):
+    query = ctx.mb.inner("products", agg=[["count"]], joins=[{"source-table": ctx.mb.table(ORD)["id"], "alias": "O", "strategy": "left-join", "condition": ["=", "d:products.id", "d:orders.product_id|O"]}])
+    expect_clear_error(ctx, query, "Cube has no join path between these tables")
+
+
 @check("compile.agg.median_gives_error")
 def _(ctx):
     expect_clear_error(ctx, ctx.mb.inner(ORD, agg=[["median", _AMT]]), "Cube cannot")
@@ -8764,6 +8850,71 @@ def _(ctx):
     assert_rows(ctx.mb.mbql("stock_items", agg=["m:stock_items.quantity"], by=["d:stock_items>warehouses.code"])["rows"], ch(truth), label="join through the key")
 
 
+@check("native.scan.adversarial_private_member")
+def _(ctx):
+    """Quoted names, E and dollar strings, nested comments, each table alias, ALL and a subquery alias over a private name give no row, and the ordinary SQL next to them runs. See docs/security.md."""
+    module = release_cases()
+
+    def differ(rows, truth, _ordered, tol):
+        try:
+            assert_rows(rows, ch(truth), tol=tol, label="native")
+        except Fail as e:
+            return str(e)
+        return None
+
+    for table in ("orders", "payments", "products", "users", "sales"):
+        ensure_table(ctx, table)
+    counts, problems = module.run_native(lambda sql: native_outcome(ctx, sql), differ)
+    print("         %s" % json.dumps(counts, sort_keys=True))
+    if problems:
+        raise Fail("%d differ: %s" % (len(problems), " | ".join(problems[:6])))
+
+
+@check("security.saved_native_question_infers_no_private_member")
+def _(ctx):
+    """`NULL AS id` in a saved native question, with a filter on `id` in the next stage, counted the rows of the real value for a person with the query builder only."""
+    ensure_table(ctx, "payments")
+    db = ctx.mb.need_db()
+    native = lambda sql: {"database": db, "type": "native", "native": {"query": sql, "template-tags": {}}}  # noqa: E731
+    shadow = ctx.mb.card("private shadow", native("SELECT NULL AS id, method FROM payments"))["id"]
+    plain = ctx.mb.card("private plain", native("SELECT method, order_id FROM payments"))["id"]
+    email = "query-builder@example.com"
+    users = ctx.mb.api("GET", "/api/user?query=%s" % urllib.parse.quote(email))["data"]
+    if not users:
+        ctx.mb.api("POST", "/api/user", {"email": email, "first_name": "Query", "last_name": "Builder", "password": PERSON_PASSWORD})
+    person = Metabase(PERSON_PASSWORD)
+    person.sid = person.api("POST", "/api/session", {"username": email, "password": PERSON_PASSWORD})["id"]
+    original = ctx.mb.api("GET", "/api/permissions/graph")
+    group = next(g["id"] for g in ctx.mb.api("GET", "/api/permissions/group") if g["name"] == "All Users")
+    graph = json.loads(json.dumps(original))
+    graph["groups"][str(group)][str(db)] = {"view-data": "unrestricted", "create-queries": "query-builder"}
+    updated = ctx.mb.api("PUT", "/api/permissions/graph", graph)
+    try:
+        by_name = ["field", "id", {"base-type": "type/Integer"}]
+        ask = lambda body: person.api("POST", "/api/dataset", dict(body, database=db), ok=(200, 202, 400, 403, 500))  # noqa: E731
+        direct = ask(native("SELECT method FROM payments LIMIT 1"))
+        if not isinstance(direct, str) and not (direct.get("error") or direct.get("message")):
+            raise Fail("a person with the query builder runs native SQL")
+        leaks = []
+        for label, query in (("shadow rows", {"source-table": "card__%d" % shadow, "limit": 1}),
+                             ("shadow filter", {"source-table": "card__%d" % shadow, "filter": [">", by_name, 100000], "aggregation": [["count"]]}),
+                             ("shadow narrow", {"source-table": "card__%d" % shadow, "filter": ["=", by_name, 10], "aggregation": [["count"]]}),
+                             ("plain filter", {"source-table": "card__%d" % plain, "filter": [">", by_name, 100000], "aggregation": [["count"]]}),
+                             ("plain max", {"source-table": "card__%d" % plain, "aggregation": [["max", by_name]]})):
+            res = ask({"type": "query", "query": query})
+            if not isinstance(res, str) and not (res.get("error") or res.get("message")):
+                leaks.append("%s: %s" % (label, res["data"]["rows"][:2]))
+        if leaks:
+            raise Fail("; ".join(leaks))
+        public = ask({"type": "query", "query": {"source-table": "card__%d" % plain, "breakout": [["field", "method", {"base-type": "type/Text"}]], "aggregation": [["count"]]}})
+        if isinstance(public, str) or public.get("error"):
+            raise Fail("a saved native question with public columns stops: %s" % str(public)[:300])
+        assert_rows(public["data"]["rows"], ch("SELECT 'card', 5000 UNION ALL SELECT 'fee', 5000"), label="public columns")
+    finally:
+        updated["groups"][str(group)][str(db)] = original["groups"][str(group)][str(db)]
+        ctx.mb.api("PUT", "/api/permissions/graph", updated)
+
+
 @check("preagg.rollup_lambda_under_a_report_zone")
 def _(ctx):
     """Stock Cube double counts or loses rows where the rollup of a rollup_lambda meets its source in a report time zone: New York 319894, Kolkata 319607, truth 319790. The driver reads the source."""
@@ -8848,6 +8999,19 @@ def _(ctx):
         raise Fail("a time measure in New York in January has the value %s" % value)
     if ch("SELECT toString(max(ts)) FROM zone_events")[0][0].replace(" ", "T")[:19] != "2026-01-10T17:06:51":
         raise Fail("the seed changed")
+
+
+@check("zone.time_measure_repeated_hour_limit")
+def _(ctx):
+    """The SQL API gives a time as text with no offset, so a value in the repeated hour reads as the first pass of that hour. The row at 06:00 UTC on 2025-11-02 is 01:00-05:00 in New York, and it reads 01:00-04:00."""
+    ensure_table(ctx, "metric_types")
+    row = ch("SELECT id FROM orders WHERE created_at = toDateTime('2025-11-02 06:00:00', 'UTC') LIMIT 1")[0][0]
+    with report_zone(ctx, "America/New_York"):
+        value = ctx.mb.mbql("metric_types", agg=[["max", "d:metric_types.m_last_order_at"]], where=[["=", "d:metric_types.id", int(row)]])["rows"][0][0]
+    if str(value) == "2025-11-02T01:00:00-05:00":
+        raise Fail("this limit went away. Give this entry its full status, and remove it from the README")
+    if str(value) != "2025-11-02T01:00:00-04:00":
+        raise Fail("the value in the repeated hour is %s" % value)
 
 
 @check("security.attribute_added_later_clears_the_lists")

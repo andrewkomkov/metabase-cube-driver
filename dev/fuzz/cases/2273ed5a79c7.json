@@ -1,0 +1,37 @@
+{
+ "found": {
+  "diff": "row 0: got [3652.0], truth [None]",
+  "error": null,
+  "index": 0,
+  "seed": "review",
+  "verdict": "wrong",
+  "why": "the same, with a measure"
+ },
+ "spec": {
+  "agg": [
+   {
+    "m": "revenue"
+   }
+  ],
+  "by": [],
+  "source": "orders",
+  "week": null,
+  "where": [
+   {
+    "c": "amount_dim",
+    "op": "=",
+    "v": [
+     44.001,
+     44.002,
+     44.003,
+     44.004,
+     44.005,
+     44.006,
+     44.007,
+     44.008
+    ]
+   }
+  ],
+  "zone": null
+ }
+}

@@ -1,0 +1,27 @@
+{
+ "found": {
+  "diff": "row 0: got ['cancelled', 29], truth ['cancelled', 1000]",
+  "error": null,
+  "index": 0,
+  "seed": "review",
+  "verdict": "wrong",
+  "why": "each product once in a group"
+ },
+ "spec": {
+  "agg": [
+   {
+    "c": "products.price",
+    "f": "count"
+   }
+  ],
+  "by": [
+   {
+    "c": "status"
+   }
+  ],
+  "source": "orders",
+  "week": null,
+  "where": [],
+  "zone": null
+ }
+}

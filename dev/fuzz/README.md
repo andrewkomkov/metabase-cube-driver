@@ -18,13 +18,13 @@ Output goes to `dev/fuzz/out/report-<seed>.json`. `FUZZ_PROJECT` changes the com
 
 ## What a query can have
 
-Aggregations: measures of each type, `count`, `sum`, `avg`, `min`, `max`, `distinct`, `stddev`, `var`, `count-where`, `sum-where`, `share`, and a ratio of two measures. Rolling windows and time shifts, also in forms that must stop.
+Aggregations: measures of each type, `count` of rows and of a column, `sum`, `avg`, `min`, `max`, `distinct`, `stddev`, `var`, `count-where`, `sum-where`, `share`, and a ratio of two measures. Rolling windows and time shifts, also in forms that must stop.
 
 Breakouts: each dimension type, bins, time buckets and parts of a date.
 
 Filters: each operator on text, numbers, booleans and times. Also `and`, `or`, `not`, segments and relative dates.
 
-Boundary values: the first and the last row, a day with a clock change, the end of a month and values out of the data. Also empty text, quotes, text that differs only in case, a number with more digits than its column, and NULL.
+Boundary values: the first and the last row, a day with a clock change, the end of a month and values out of the data. Also empty text, quotes, text that differs only in case, a number with more digits than its column, a list of 8 or more such numbers, and NULL.
 
 Sources: cubes, views with `default_filters`, implicit joins and explicit left and inner joins. Also a table with NULL in each type, a rollup over 10 million rows, and a table with zero and NULL denominators.
 

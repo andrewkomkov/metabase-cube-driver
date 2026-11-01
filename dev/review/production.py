@@ -16,6 +16,7 @@ import sys
 import time
 
 import lib
+import release_cases
 
 SECRET = "cube-dev-only-secret-0123456789abcdef"
 CONNECTIONS = {"Cube": "cube", "Cube prod": "cube-prod"}
@@ -97,6 +98,41 @@ def private_doors(mb, db, tables):
     return refused, leaks
 
 
+def run_release_cases(mb, db):
+    """dev/review/release_cases.py on this Cube."""
+    meta = mb.api("GET", "/api/database/%d/metadata?include_hidden=true" % db)
+    tables = {t["name"]: t for t in meta["tables"]}
+
+    def field_id(table, name):
+        return next(f["id"] for f in tables[table]["fields"] if f["name"] == name)
+
+    def fk_id(source, target):
+        keys = {f["id"] for f in tables[target]["fields"] if f.get("semantic_type") == "type/PK"}
+        return next(f["id"] for f in tables[source]["fields"] if f.get("fk_target_field_id") in keys)
+
+    def run_query(body):
+        res = mb.api("POST", "/api/dataset", dict(body, database=db), ok=(200, 202, 400, 403, 500))
+        error = res.get("error") or res.get("message")
+        return (None, str(error)) if error else (res["data"]["rows"], None)
+
+    def execute(query, parameters):
+        return run_query(dict({"type": "query", "query": query}, **({"parameters": parameters} if parameters else {})))
+
+    def execute_native(sql):
+        return run_query({"type": "native", "native": {"query": sql, "template-tags": {}}})
+
+    def differ(rows, truth, ordered, tol):
+        return lib.compare(rows, lib.ch(truth), ordered=ordered, tol=tol)
+
+    cases = release_cases.fraction_cases() + release_cases.join_cases()
+    counts, problems = release_cases.run(cases, execute, differ, field_id, fk_id, lambda table: tables[table]["id"])
+    native_counts, native_problems = release_cases.run_native(execute_native, differ, dev_mode=False)
+    print("release cases", counts, "native", native_counts, "problems", len(problems) + len(native_problems))
+    for line in (problems + native_problems)[:40]:
+        print("  ", line)
+    return problems + native_problems
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.environ.get("PRODUCTION_OUT", "out-production"))
@@ -117,6 +153,7 @@ def main():
     print("private doors: refused %d, values %d" % (refused, len(leaks)))
     for line in leaks[:10]:
         print("  ", line)
+    release_problems = run_release_cases(mb, have["Cube prod"]["id"])
     runner = [sys.executable, "-u", os.path.join(os.path.dirname(os.path.abspath(lib.__file__)), "gate", "run_gate.py"), "--db", "Cube prod"]
     verdicts = collections.Counter()
     bad = []
@@ -131,7 +168,7 @@ def main():
     print("shapes", dict(verdicts))
     for r in bad[:40]:
         print("  ", r["verdict"], r["id"], str(r.get("diff") or r.get("error"))[:220])
-    return 1 if bad or leaks or lost else 0
+    return 1 if bad or leaks or lost or release_problems else 0
 
 
 if __name__ == "__main__":

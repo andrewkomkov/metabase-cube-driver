@@ -1,0 +1,31 @@
+{
+ "found": {
+  "diff": "row 0: got [199], truth [2000]",
+  "error": null,
+  "index": 0,
+  "seed": "review",
+  "verdict": "wrong",
+  "why": "the same with a filter"
+ },
+ "spec": {
+  "agg": [
+   {
+    "c": "users.city",
+    "f": "count"
+   }
+  ],
+  "by": [],
+  "source": "orders",
+  "week": null,
+  "where": [
+   {
+    "c": "status",
+    "op": "=",
+    "v": [
+     "completed"
+    ]
+   }
+  ],
+  "zone": null
+ }
+}

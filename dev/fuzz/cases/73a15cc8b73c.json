@@ -1,0 +1,23 @@
+{
+ "found": {
+  "diff": "row 0: got [199], truth [5000]",
+  "error": null,
+  "index": 0,
+  "seed": "review",
+  "verdict": "wrong",
+  "why": "a view with a column of a joined cube"
+ },
+ "spec": {
+  "agg": [
+   {
+    "c": "users_city",
+    "f": "count"
+   }
+  ],
+  "by": [],
+  "source": "sales",
+  "week": null,
+  "where": [],
+  "zone": null
+ }
+}

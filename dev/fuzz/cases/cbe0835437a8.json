@@ -1,0 +1,23 @@
+{
+ "found": {
+  "diff": "row 0: got [29], truth [5000]",
+  "error": null,
+  "index": 0,
+  "seed": "review",
+  "verdict": "wrong",
+  "why": "the same on a text column"
+ },
+ "spec": {
+  "agg": [
+   {
+    "c": "products.name",
+    "f": "count"
+   }
+  ],
+  "by": [],
+  "source": "orders",
+  "week": null,
+  "where": [],
+  "zone": null
+ }
+}

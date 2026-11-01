@@ -8457,3 +8457,59 @@
   status: pass
   status_stock: pass
   check: security.attribute_added_later_clears_the_lists
+- id: compile.filter.fraction_list_keeps_digits
+  area: mb.compile.filter
+  title: "a list of numbers with a fraction, and other list forms at the length that compiles to IN"
+  status: pass
+  status_stock: pass
+  check: compile.filter.fraction_list_keeps_digits
+- id: mcp.query.fraction_list_keeps_digits
+  area: mcp
+  title: "a list of numbers with a fraction through MCP"
+  status: pass
+  status_stock: pass
+  check: mcp.query.fraction_list_keeps_digits
+- id: mb.dashboard.fraction_list_parameter_keeps_digits
+  area: mb.dashboards
+  title: "a list of numbers with a fraction through a dashboard parameter"
+  status: pass
+  status_stock: pass
+  check: mb.dashboard.fraction_list_parameter_keeps_digits
+- id: compile.join.each_aggregation_of_a_joined_column
+  area: mb.compile.join
+  title: "each aggregation of a joined column and of a joined column of a view, in each stage shape"
+  status: pass
+  status_stock: pass
+  check: compile.join.each_aggregation_of_a_joined_column
+- id: mcp.query.count_of_a_joined_column
+  area: mcp
+  title: "a count of a joined column through MCP"
+  status: pass
+  status_stock: pass
+  check: mcp.query.count_of_a_joined_column
+- id: compile.join.no_join_path_has_a_clear_message
+  area: mb.compile.join
+  title: "a join that the model has only from the other side has a clear message"
+  status: pass
+  status_stock: pass
+  check: compile.join.no_join_path_has_a_clear_message
+- id: native.scan.adversarial_private_member
+  area: mb.native
+  title: "adversarial native SQL on a private member, next to ordinary native SQL"
+  status: pass
+  status_stock: pass
+  check: native.scan.adversarial_private_member
+- id: security.saved_native_question_infers_no_private_member
+  area: cube.security
+  title: "a saved native question gives no private member to a person with the query builder only"
+  status: pass
+  status_stock: pass
+  check: security.saved_native_question_infers_no_private_member
+- id: zone.time_measure_repeated_hour_limit
+  area: cube.zone_day
+  title: "a time measure in the repeated hour of a clock change"
+  status: partial
+  status_stock: partial
+  check: zone.time_measure_repeated_hour_limit
+  cap: partial
+  reason: "The SQL API gives a time as text with no offset, so a value in the repeated hour reads as the first pass: 01:00-04:00 where the truth is 01:00-05:00 in New York. README lists this under Known wrong numbers."

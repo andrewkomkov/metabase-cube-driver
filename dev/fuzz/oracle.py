@@ -207,7 +207,7 @@ class Query:
         if a.get("op") == "/":
             return "(toFloat64(%s) / nullIf(toFloat64(%s), 0))" % (self.aggregate(a["a"], where), self.aggregate(a["b"], where))
         f = a["f"]
-        if f == "count":
+        if f == "count" and "c" not in a and "i" not in a:
             return "count()"
         if f == "count-where":
             return "sumOrNull(if(%s, 1, 0))" % self.predicate(a["p"])
@@ -225,7 +225,7 @@ class Query:
         if f == "sum-where":
             return "sumOrNull(if(%s, toFloat64(%s), 0))" % (self.predicate(a["p"]), sql)
         return {"sum": "sumOrNull(%s)", "avg": "avgOrNull(toFloat64(%s))", "min": "minOrNull(%s)", "max": "maxOrNull(%s)", "distinct": "uniqExact(%s)",
-                "stddev": "stddevPopOrNull(toFloat64(%s))", "var": "varPopOrNull(toFloat64(%s))"}[f] % sql
+                "stddev": "stddevPopOrNull(toFloat64(%s))", "var": "varPopOrNull(toFloat64(%s))", "count": "count(%s)"}[f] % sql
 
     def agg_kind(self, a):
         if "m" in a:

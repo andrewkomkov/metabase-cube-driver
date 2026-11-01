@@ -1,0 +1,37 @@
+{
+ "found": {
+  "diff": "row 0: got [83], truth [0]",
+  "error": null,
+  "index": 0,
+  "seed": "review",
+  "verdict": "wrong",
+  "why": "the list compiled to IN, and ClickHouse cut each number to the scale of the column"
+ },
+ "spec": {
+  "agg": [
+   {
+    "f": "count"
+   }
+  ],
+  "by": [],
+  "source": "orders",
+  "week": null,
+  "where": [
+   {
+    "c": "amount_dim",
+    "op": "=",
+    "v": [
+     44.001,
+     44.002,
+     44.003,
+     44.004,
+     44.005,
+     44.006,
+     44.007,
+     44.008
+    ]
+   }
+  ],
+  "zone": null
+ }
+}
