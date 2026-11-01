@@ -1,0 +1,55 @@
+{
+ "found": {
+  "diff": "row 0: got [7560.0], truth ['7564']",
+  "error": null,
+  "index": 273,
+  "seed": "7305",
+  "truth_sql": "SELECT sumOrNull(o.quantity) AS c0 FROM shop.orders o LEFT JOIN shop.users u ON o.user_id = u.id LEFT JOIN shop.products p ON o.product_id = p.id WHERE (NOT ((o.product_id >= 31) OR (toFloat64(o.amount) < 11))) AND (toDate(toTimeZone(o.created_at, 'Asia/Kathmandu')) >= toDate('2025-04-01') AND toDate(toTimeZone(o.created_at, 'Asia/Kathmandu')) <= toDate('2025-11-02')) SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "m": "m_quantity_sum"
+   }
+  ],
+  "by": [],
+  "source": "metric_types",
+  "week": null,
+  "where": [
+   {
+    "a": [
+     {
+      "a": [
+       {
+        "c": "product_id",
+        "op": ">=",
+        "v": [
+         31
+        ]
+       },
+       {
+        "c": "amount",
+        "op": "<",
+        "v": [
+         11
+        ]
+       }
+      ],
+      "op": "or"
+     }
+    ],
+    "op": "not"
+   },
+   {
+    "c": "created_at",
+    "op": "between",
+    "v": [
+     "2025-04-01",
+     "2025-11-02"
+    ]
+   }
+  ],
+  "zone": "Asia/Kathmandu"
+ }
+}
