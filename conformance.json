@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 1305,
-    "partial": 24,
-    "blocked": 2,
+    "pass": 1311,
+    "partial": 23,
+    "blocked": 1,
     "unsupported": 12,
-    "fail": 0,
-    "total": 1343
+    "fail": 3,
+    "total": 1350
   },
-  "coverage": "coverage: 1305/1343 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1311/1350 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -772,8 +772,8 @@
     },
     {
       "id": "preagg.rollup_lambda",
-      "status": "partial",
-      "reason": "Inside the range of the rollup, the lambda gives the truth. With a range that reads source rows on the demo data, the REST API and the SQL API of Cube can stop on ClickHouse with Stream query failed: aborted, see cube-js/cube#12285. A run gives the truth or this error. The driver shows a clear message for this. dev/cube/model/rollups.yml has the model."
+      "status": "fail",
+      "reason": "1 of 1 differ. whole range: ERROR The rollup batch of lambda_sales has no rows at 2025-07-01T00:00. Cube would give a part of the rows with no error, and each column of this table is in the roll"
     },
     {
       "id": "sqlapi.aggregate_function",
@@ -922,8 +922,8 @@
     },
     {
       "id": "meta.semantic_types",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "users.state semantic_type type/FK, want type/State"
     },
     {
       "id": "meta.tables_match_public_members",
@@ -2007,8 +2007,8 @@
     },
     {
       "id": "cube.sql_sync",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "payments.id must not sync"
     },
     {
       "id": "cube.sql_alias_sync",
@@ -3736,7 +3736,7 @@
       "reason": ""
     },
     {
-      "id": "measure.time_type_in_a_report_zone_refused",
+      "id": "measure.time_type_in_a_report_zone",
       "status": "pass",
       "reason": ""
     },
@@ -4733,7 +4733,7 @@
     {
       "id": "preagg.build_range.date_range_over_the_end_reads_only_the_range",
       "status": "partial",
-      "reason": "The docs warn that Cube does not return rows out of the build range. Buckets after the end are not in the result, with no error. Use rollup_lambda, or a build range over all rows."
+      "reason": "The docs warn that Cube does not return rows out of the build range. On the REST API of Cube, buckets after the end are not in the result, with no error, and no driver stands in front of it. In Metabase, preagg.build_range.metabase_gives_rows_out_of_the_range gives the truth."
     },
     {
       "id": "preagg.build_range.inside_hit",
@@ -4743,7 +4743,7 @@
     {
       "id": "preagg.build_range.whole_table_reads_only_the_range",
       "status": "partial",
-      "reason": "The docs warn that Cube does not return rows out of the build range. The rollup gives the sum of the range with no error. Use rollup_lambda, or a build range over all rows. The driver cannot see the range, because /meta has no such field."
+      "reason": "The docs warn that Cube does not return rows out of the build range. The REST API of Cube gives the sum of the range with no error, and no driver stands in front of it. In Metabase, preagg.build_range.metabase_gives_rows_out_of_the_range gives the truth."
     },
     {
       "id": "preagg.granularity.day_hit",
@@ -5078,7 +5078,7 @@
     {
       "id": "preagg.option.non_strict_inside_a_bucket_reads_whole_buckets",
       "status": "partial",
-      "reason": "allow_non_strict_date_range_match: true on a rollup is the slight discrepancy of the docs. With a range inside a bucket, the rollup gives other rows than the truth, with no error. The env var that this stack and docs/query-compilation.md set to false does not change a rollup with this key."
+      "reason": "allow_non_strict_date_range_match: true on a rollup is the slight discrepancy of the docs. With a range inside a bucket, the rollup gives other rows than the truth, with no error. The env var that this stack and docs/query-compilation.md set to false does not change a rollup with this key. No driver stands in front of the REST API. In Metabase, preagg.option.non_strict_metabase_gives_a_range_inside_a_bucket gives the truth."
     },
     {
       "id": "preagg.option.non_strict_on_a_boundary_hit",
@@ -5468,7 +5468,7 @@
     {
       "id": "preagg.type.rollup_lambda_gap_loses_the_last_partition",
       "status": "partial",
-      "reason": "Cube reads each rollup of a rollup_lambda only up to the start of its last partition. If the next rollup does not hold that partition, those rows are not in the result, with no error. The docs say that the speed layer must hold the newer data. The model must overlap, see preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit."
+      "reason": "Cube reads each rollup of a rollup_lambda only up to the start of its last partition. If the next rollup does not hold that partition, those rows are not in the result, with no error. The docs say that the speed layer must hold the newer data. The model must overlap, see preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit. No driver stands in front of the REST API. In Metabase, preagg.type.rollup_lambda_gap_metabase_gives_the_last_partition gives the truth."
     },
     {
       "id": "preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit",
@@ -6602,8 +6602,43 @@
     },
     {
       "id": "preagg.empty_text_stays_apart_from_null",
-      "status": "blocked",
-      "reason": "Cube loads a rollup as CSV, and Cube Store reads an empty value as NULL, also a quoted one. So a group of empty text joins the group of NULL, and a filter on an empty text finds no rows, with no error. The driver cannot see this, and the dialect cannot change the parser of Cube Store. It needs a change in Cube Store."
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.model.count_keeps_rows_with_a_null_key",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "nested.model.row_value_with_a_null_key_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.count_with_a_null_key_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "preagg.build_range.metabase_gives_rows_out_of_the_range",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "preagg.option.non_strict_metabase_gives_a_range_inside_a_bucket",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "preagg.type.rollup_lambda_gap_metabase_gives_the_last_partition",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "sync.private_primary_key_keeps_the_foreign_key",
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "context.compile_context",

@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1305/1343 pass on Cube with the ClickHouse dialect** (1305 pass, 24 partial, 2 blocked, 12 unsupported, 0 fail of 1343)
+**coverage: 1311/1350 pass on Cube with the ClickHouse dialect** (1311 pass, 23 partial, 1 blocked, 12 unsupported, 3 fail of 1350)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `5d6ced5f27fa`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41298356108), 2026-11-01.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `dcce573a6a36`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41303922726), 2026-11-01.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -160,7 +160,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `5d6ce
 | `preagg.partitioned` | pass |  |
 | `preagg.rollup` | pass |  |
 | `preagg.rollup_join` | pass |  |
-| `preagg.rollup_lambda` | partial | Inside the range of the rollup, the lambda gives the truth. With a range that reads source rows on the demo data, the REST API and the SQL API of Cube can stop on ClickHouse with Stream query failed: aborted, see cube-js/cube#12285. A run gives the truth or this error. The driver shows a clear message for this. dev/cube/model/rollups.yml has the model. |
+| `preagg.rollup_lambda` | fail | 1 of 1 differ. whole range: ERROR The rollup batch of lambda_sales has no rows at 2025-07-01T00:00. Cube would give a part of the rows with no error, and each column of this table is in the roll |
 | `sqlapi.aggregate_function` | pass |  |
 | `sqlapi.date_trunc` | pass |  |
 | `sqlapi.having` | pass |  |
@@ -190,7 +190,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `5d6ce
 | `meta.measure_is_marked` | pass |  |
 | `meta.no_internal_columns` | pass |  |
 | `meta.resync_keeps_metadata` | pass |  |
-| `meta.semantic_types` | pass |  |
+| `meta.semantic_types` | fail | users.state semantic_type type/FK, want type/State |
 | `meta.tables_match_public_members` | pass |  |
 | `mb.agg.avg_field` | pass |  |
 | `mb.agg.count_rows` | pass |  |
@@ -407,7 +407,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `5d6ce
 | `view.on_extended_cube` | pass |  |
 | `view.prefix_sync` | pass |  |
 | `view.member_alias_sync` | pass |  |
-| `cube.sql_sync` | pass |  |
+| `cube.sql_sync` | fail | payments.id must not sync |
 | `cube.sql_alias_sync` | pass |  |
 | `cube.data_source_default` | pass |  |
 | `cube.polymorphic_first` | pass |  |
@@ -753,7 +753,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `5d6ce
 | `filter.case_dimension_on_raw_rows` | pass |  |
 | `filter.fraction_beyond_the_scale_of_a_decimal` | pass |  |
 | `filter.aggregation_on_a_join_of_a_view_refused` | pass |  |
-| `measure.time_type_in_a_report_zone_refused` | pass |  |
+| `measure.time_type_in_a_report_zone` | pass |  |
 | `grid.compact.mcp` | pass |  |
 | `grid.compact.report_zone` | pass |  |
 | `grid.compact.mcp_report_zone` | pass |  |
@@ -952,9 +952,9 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `5d6ce
 | `preagg.additive.revenue.other_dimension_miss` | pass |  |
 | `preagg.additive.revenue.same_grain_hit` | pass |  |
 | `preagg.additive.revenue.total_hit` | pass |  |
-| `preagg.build_range.date_range_over_the_end_reads_only_the_range` | partial | The docs warn that Cube does not return rows out of the build range. Buckets after the end are not in the result, with no error. Use rollup_lambda, or a build range over all rows. |
+| `preagg.build_range.date_range_over_the_end_reads_only_the_range` | partial | The docs warn that Cube does not return rows out of the build range. On the REST API of Cube, buckets after the end are not in the result, with no error, and no driver stands in front of it. In Metabase, preagg.build_range.metabase_gives_rows_out_of_the_range gives the truth. |
 | `preagg.build_range.inside_hit` | pass |  |
-| `preagg.build_range.whole_table_reads_only_the_range` | partial | The docs warn that Cube does not return rows out of the build range. The rollup gives the sum of the range with no error. Use rollup_lambda, or a build range over all rows. The driver cannot see the range, because /meta has no such field. |
+| `preagg.build_range.whole_table_reads_only_the_range` | partial | The docs warn that Cube does not return rows out of the build range. The REST API of Cube gives the sum of the range with no error, and no driver stands in front of it. In Metabase, preagg.build_range.metabase_gives_rows_out_of_the_range gives the truth. |
 | `preagg.granularity.day_hit` | pass |  |
 | `preagg.granularity.hour_hit` | pass |  |
 | `preagg.granularity.minute_hit` | pass |  |
@@ -1021,7 +1021,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `5d6ce
 | `preagg.option.index_on_a_null_column_hit` | pass |  |
 | `preagg.option.index_regular_hit` | pass |  |
 | `preagg.option.no_index` | pass |  |
-| `preagg.option.non_strict_inside_a_bucket_reads_whole_buckets` | partial | allow_non_strict_date_range_match: true on a rollup is the slight discrepancy of the docs. With a range inside a bucket, the rollup gives other rows than the truth, with no error. The env var that this stack and docs/query-compilation.md set to false does not change a rollup with this key. |
+| `preagg.option.non_strict_inside_a_bucket_reads_whole_buckets` | partial | allow_non_strict_date_range_match: true on a rollup is the slight discrepancy of the docs. With a range inside a bucket, the rollup gives other rows than the truth, with no error. The env var that this stack and docs/query-compilation.md set to false does not change a rollup with this key. No driver stands in front of the REST API. In Metabase, preagg.option.non_strict_metabase_gives_a_range_inside_a_bucket gives the truth. |
 | `preagg.option.non_strict_on_a_boundary_hit` | pass |  |
 | `preagg.option.read_only_hit` | pass |  |
 | `preagg.option.scheduled_refresh_false_hit` | pass |  |
@@ -1099,7 +1099,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `5d6ce
 | `preagg.metabase.time_zone_range_without_a_bucket_hit` | pass |  |
 | `preagg.refresh.scheduled_refresh_false_stays_old_until_a_job` | pass |  |
 | `preagg.shape.segment_left_out_hit` | pass |  |
-| `preagg.type.rollup_lambda_gap_loses_the_last_partition` | partial | Cube reads each rollup of a rollup_lambda only up to the start of its last partition. If the next rollup does not hold that partition, those rows are not in the result, with no error. The docs say that the speed layer must hold the newer data. The model must overlap, see preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit. |
+| `preagg.type.rollup_lambda_gap_loses_the_last_partition` | partial | Cube reads each rollup of a rollup_lambda only up to the start of its last partition. If the next rollup does not hold that partition, those rows are not in the result, with no error. The docs say that the speed layer must hold the newer data. The model must overlap, see preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit. No driver stands in front of the REST API. In Metabase, preagg.type.rollup_lambda_gap_metabase_gives_the_last_partition gives the truth. |
 | `preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit` | pass |  |
 | `preagg.type.original_sql_in_cube_store_with_an_index_stops` | partial | An index on an original_sql table in Cube Store names a column that the table does not have, so Cube stops with an error on each Cube. See cube-js/cube#7420. No number is wrong. The docs advise against this form. |
 | `preagg.refresh.cron_key_keeps_the_old_number_inside_its_time` | pass |  |
@@ -1326,7 +1326,14 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `5d6ce
 | `filter_params.value.one_text_value` | pass |  |
 | `filter_params.value.other_text_filter_refused` | pass |  |
 | `filter_params.condition.other_operator` | pass |  |
-| `preagg.empty_text_stays_apart_from_null` | blocked | Cube loads a rollup as CSV, and Cube Store reads an empty value as NULL, also a quoted one. So a group of empty text joins the group of NULL, and a filter on an empty text finds no rows, with no error. The driver cannot see this, and the dialect cannot change the parser of Cube Store. It needs a change in Cube Store. |
+| `preagg.empty_text_stays_apart_from_null` | pass |  |
+| `nested.model.count_keeps_rows_with_a_null_key` | pass |  |
+| `nested.model.row_value_with_a_null_key_refused` | pass |  |
+| `measure.count_with_a_null_key_refused` | pass |  |
+| `preagg.build_range.metabase_gives_rows_out_of_the_range` | pass |  |
+| `preagg.option.non_strict_metabase_gives_a_range_inside_a_bucket` | pass |  |
+| `preagg.type.rollup_lambda_gap_metabase_gives_the_last_partition` | pass |  |
+| `sync.private_primary_key_keeps_the_foreign_key` | pass |  |
 | `context.compile_context` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |
