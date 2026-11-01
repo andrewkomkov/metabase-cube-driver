@@ -4,6 +4,8 @@ const { ClickHouseQuery } = require('@cubejs-backend/schema-compiler/dist/src/ad
 const { CubeStoreQuery } = require('@cubejs-backend/schema-compiler/dist/src/adapter/CubeStoreQuery');
 const { PreAggregationLoader } = require('@cubejs-backend/query-orchestrator/dist/src/orchestrator/PreAggregationLoader');
 const { QueryCache } = require('@cubejs-backend/query-orchestrator/dist/src/orchestrator/QueryCache');
+const { CubeStoreDriver } = require('@cubejs-backend/cubestore-driver');
+const { Transform, pipeline } = require('stream');
 
 // Rollup over original_sql: no pull request yet, see docs/cube-audit.md#original-sql-rollup.
 // The load of a rollup into Cube Store streams its SQL with the name of the original_sql table, and that name has no version.
@@ -33,7 +35,60 @@ for (const method of ['queryResponse', 'stream']) {
   };
 }
 
+// Empty text in a rollup: no pull request yet. Cube loads a rollup as CSV, and Cube Store reads an empty value as NULL, also a quoted one. So the group of empty text joins the group of NULL,
+// and a filter on empty text finds no rows. Cube Store keeps empty text that comes with INSERT, so the rows with empty text go to the same table with INSERT after the load.
+const importStream = CubeStoreDriver.prototype.importStream;
+CubeStoreDriver.prototype.importStream = async function importStreamWithEmptyText(columns, tableData, table, indexes, aggregations, tracing) {
+  const rows = [];
+  const withoutEmptyText = new Transform({
+    objectMode: true,
+    transform(row, _encoding, callback) {
+      if (columns.some((column) => row[column.name] === '')) {
+        rows.push(row);
+        callback();
+      } else {
+        callback(null, row);
+      }
+    },
+  });
+  // The caller reads the errors of this stream, so a failed source also fails the load.
+  pipeline(tableData.rowStream, withoutEmptyText, () => {});
+  await importStream.call(this, columns, { ...tableData, rowStream: withoutEmptyText }, table, indexes, aggregations, tracing);
+  if (rows.length) {
+    // importRows creates the table first. Here the table exists. It drops the table if an INSERT fails, so no rollup stays with a part of its rows.
+    const toExistingTable = Object.create(this, { createTableWithOptions: { value: async () => undefined } });
+    await toExistingTable.importRows(table, columns, indexes, aggregations, { rows }, tracing);
+  }
+};
+
+// Time measure in a zone: no pull request yet. Cube makes each time dimension local to the zone of the query, and it leaves a measure of type time as the database prints it: `max(ts)` has the
+// clock of the zone of the column, so UTC for a usual column. ClickHouse knows the type of the column here and Cube and the driver do not, so this reads the value as the zone of the query.
+// A Date stays at midnight of its day, and a measure that reads convertTz itself keeps its value. The driver finds this in the SQL of /v1/sql, see probe/time-measure-in-zone?.
+const measuresInZone = new WeakSet();
+function readTimeMeasuresInZone(evaluator) {
+  if (measuresInZone.has(evaluator)) {
+    return;
+  }
+  measuresInZone.add(evaluator);
+  for (const cube of Object.values(evaluator.evaluatedCubes)) {
+    for (const measure of cube.isView ? [] : Object.values(cube.measures || {})) {
+      if (measure.type === 'time' && typeof measure.sql === 'function') {
+        // Cube reads the names of the arguments from the text of the function, so the new function needs them in its text.
+        const names = evaluator.funcArguments(measure.sql);
+        const params = names.includes('SQL_UTILS') ? names : [...names, 'SQL_UTILS'];
+        // eslint-disable-next-line no-new-func
+        measure.sql = new Function('original', `return (${params.join(', ')}) => SQL_UTILS.convertTz(original(${names.join(', ')}));`)(measure.sql);
+      }
+    }
+  }
+}
+
 class ClickHouseFixes extends ClickHouseQuery {
+  constructor(compilers, options) {
+    readTimeMeasuresInZone(compilers.cubeEvaluator);
+    super(compilers, options);
+  }
+
   // B1: https://github.com/cube-js/cube/pull/12532
   // parseDateTimeBestEffort drops the milliseconds of a bound, and the SQL API starts a strict bound 1 ms later, so the row at
   // the bound stays in the result.
