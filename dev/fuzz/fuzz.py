@@ -17,6 +17,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "review"))
 
+import catalog  # noqa: E402
 import gen  # noqa: E402
 import known_limits  # noqa: E402
 import lib  # noqa: E402
@@ -257,6 +258,14 @@ def load_cases():
     return out
 
 
+def missing_objects(ctx):
+    out = []
+    for src in catalog.SOURCES.values():
+        out += [(src["table"], m) for m in src["measures"] if (src["table"], m) not in ctx.measures]
+        out += [(src["table"], m) for m in src.get("segments", {}) if (src["table"], m) not in ctx.segments]
+    return out
+
+
 def connect():
     mb = lib.Metabase(lib.MB, PASSWORD, ADMIN).login()
     have = {d["name"]: d for d in mb.api("GET", "/api/database")["data"]}
@@ -269,7 +278,14 @@ def connect():
         if d.get("initial_sync_status") == "complete":
             break
         time.sleep(3)
-    return mb, run_grid.Ctx(mb, "Cube")
+    # Metabase makes the measures and segments after the first sync, so a new Metabase needs a moment.
+    ctx = run_grid.Ctx(mb, "Cube")
+    for _ in range(60):
+        if not missing_objects(ctx):
+            break
+        time.sleep(5)
+        ctx = run_grid.Ctx(mb, "Cube")
+    return mb, ctx
 
 
 def run_seed(runner, seed, count, start=0, reduce=True, save=True, workers=3, log=print, max_reduce=200):
