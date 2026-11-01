@@ -1,0 +1,26 @@
+# Runs the full conformance of this commit on a published Cube image. The cycle gates an image only when
+# the image changes, so a release of the driver uses this to check the current image.
+name: cube-image-check
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Full name of the published Cube image.
+        type: string
+        required: true
+
+permissions: {}
+
+jobs:
+  stack:
+    name: published image with the dialect
+    uses: ./.github/workflows/cube-image-stack.yml
+    permissions:
+      contents: read
+      packages: read
+    with:
+      name: published image with the dialect
+      artifact-name: cube-image-check
+      image: ${{ inputs.image }}
+      clickhouse-fixes: "on"
