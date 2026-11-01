@@ -8760,13 +8760,13 @@ def _(ctx):
     ensure_table(ctx, "lambda_sales")
     for zone in ("America/New_York", "America/Los_Angeles", "Asia/Kolkata", "Europe/Berlin"):
         with report_zone(ctx, zone):
-            grid = Grid(ctx, refusal="rollup_lambda")
-            grid.add("%s by month" % zone, ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.created_at@month"]),
-                     "SELECT toStartOfMonth(toTimeZone(created_at, '%s')), sum(amount) FROM orders GROUP BY 1" % zone)
-            grid.add("%s total" % zone, ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"]), "SELECT sum(amount) FROM orders")
-            grid.done()
-            if grid.refused:
-                raise Fail("the driver can read the source here, and it refused in %s" % zone)
+            rows, error = outcome(ctx, ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.created_at@month"]))
+            if error:
+                raise Fail("the driver can read the source here, and it stops in %s: %s" % (zone, error[:300]))
+            # The label of a month has the offset of its zone, so the compare reads the months in their order.
+            truth = ch("SELECT sum(amount) FROM orders GROUP BY toStartOfMonth(toTimeZone(created_at, '%s')) ORDER BY toStartOfMonth(toTimeZone(created_at, '%s'))" % (zone, zone))
+            assert_rows([[r[1]] for r in rows], truth, ordered=True, label="%s by month" % zone)
+            assert_rows(ctx.mb.mbql("lambda_sales", agg=["m:lambda_sales.revenue"])["rows"], ch("SELECT sum(amount) FROM orders"), label="%s total" % zone)
 
 
 PAID = "orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'"
