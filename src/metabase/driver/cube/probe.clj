@@ -4,10 +4,12 @@
   docstring says so."
   (:require
    [clojure.string :as str]
-   [metabase.driver.cube.meta :as cube.meta])
+   [metabase.driver.cube.meta :as cube.meta]
+   [metabase.util.json :as json])
   (:import
-   (java.time LocalDate LocalDateTime OffsetDateTime ZoneOffset)
-   (java.time.format DateTimeParseException)))
+   (java.time DayOfWeek LocalDate LocalDateTime OffsetDateTime ZoneId ZoneOffset)
+   (java.time.format DateTimeFormatter DateTimeParseException)
+   (java.time.temporal ChronoUnit TemporalAdjusters)))
 
 (set! *warn-on-reflection* true)
 
@@ -29,8 +31,8 @@
 (defn- sql-of
   "The SQL text that Cube writes for a REST query, and the pre-aggregations that it reads."
   [details query]
-  (let [{{[text] :sql, :keys [preAggregations]} :sql} (cube.meta/rest-get details "/v1/sql" query)]
-    {:text (str text), :pre-aggregations preAggregations}))
+  (let [{{[text] :sql, :keys [preAggregations rollupMatchResults]} :sql} (cube.meta/rest-get details "/v1/sql" query)]
+    {:text (str text), :pre-aggregations preAggregations, :match-results rollupMatchResults}))
 
 (defn- cube-named
   [cube-meta cube-name]
@@ -409,3 +411,336 @@
                        "before the origin in the wrong bin, so the number would be wrong. Give the granularity an origin before "
                        "all rows, in place of an offset, or use a measure that the rollup does not serve.")
                   granularity-name time-dimension))))))
+
+;;; Measures of type time. Cube makes each time dimension local to the zone of the query, and it leaves a measure of type time as the database prints it.
+
+(defn time-measure-in-zone?
+  "True if the SQL that Cube writes for this measure reads the zone of the query, as the ClickHouse dialect does for each measure of type time, so its
+  value is a time in that zone. With no answer this is false."
+  [details measure zone]
+  (cached details [:time-measure-in-zone measure zone]
+          (fn []
+            (try
+              (str/includes? (:text (sql-of details {:measures [measure], :timezone zone, :limit 1})) (str "'" zone "'"))
+              (catch Exception _ false)))))
+
+;;; Rollups that read a part of the rows. Cube answers from a rollup with no error, in these cases:
+;;;
+;;; - The query asks for rows out of the build range of the rollup.
+;;; - The rollups of a rollup_lambda have a gap: Cube reads each one up to the start of its last partition.
+;;; - The rollup has allow_non_strict_date_range_match, and a bound of the query is inside a bucket.
+;;;
+;;; /v1/meta names these rollups, so a query on another cube adds no request. For a query on such a cube, EXPLAIN gives the request of Cube, /v1/sql the
+;;; rollups that it reads, and /v1/load the partitions. A filter that the rollup cannot serve makes Cube read the source, which has all rows. See [[wrong-rollup]].
+
+(defn- time-of-request
+  "A bound of a request as a local time, or nil. Cube reads a bound in the zone of the query, also with a `Z`."
+  ^LocalDateTime [text]
+  (try
+    (let [text (str/replace (str text) #"Z$" "")]
+      (if (re-matches #"\d{4}-\d{2}-\d{2}" text)
+        (.atStartOfDay (LocalDate/parse text))
+        (LocalDateTime/parse text)))
+    (catch DateTimeParseException _ nil)))
+
+(defn- end-of-day
+  "`2025-03-31` as a last bound is the end of that day."
+  ^LocalDateTime [text]
+  (if (re-matches #"\d{4}-\d{2}-\d{2}" (str text))
+    (.plusNanos (.atStartOfDay (.plusDays (LocalDate/parse (str text)) 1)) -1000000)
+    (time-of-request text)))
+
+(defn- filter-bounds
+  "The bounds in one filter of a request, as [lower upper]."
+  [{:keys [operator values]}]
+  (case operator
+    "inDateRange"    [(time-of-request (first values)) (end-of-day (last values))]
+    ("afterDate" "afterOrOnDate")   [(time-of-request (first values)) nil]
+    ("beforeDate" "beforeOrOnDate") [nil (end-of-day (first values))]
+    nil))
+
+(defn- request-bounds
+  "The lower and the upper bound of the time in a request, as [lower upper]. A bound that the request does not have is nil."
+  [{:keys [timeDimensions filters]}]
+  (let [ranges (concat (keep (fn [{[lower upper] :dateRange}]
+                               (when lower [(time-of-request lower) (end-of-day (or upper lower))]))
+                             timeDimensions)
+                       (keep filter-bounds filters))]
+    [(some first ranges) (some second ranges)]))
+
+(defn- plus-unit
+  "`t` plus one `unit` of Cube."
+  ^LocalDateTime [^LocalDateTime t unit]
+  (case unit
+    "second"  (.plusSeconds t 1)
+    "minute"  (.plusMinutes t 1)
+    "hour"    (.plusHours t 1)
+    "day"     (.plusDays t 1)
+    "week"    (.plusWeeks t 1)
+    "month"   (.plusMonths t 1)
+    "quarter" (.plusMonths t 3)
+    "year"    (.plusYears t 1)
+    nil))
+
+(defn- start-of-unit
+  ^LocalDateTime [^LocalDateTime t unit]
+  (let [day (.atStartOfDay (.toLocalDate t))]
+    (case unit
+      "second"  (.truncatedTo t ChronoUnit/SECONDS)
+      "minute"  (.truncatedTo t ChronoUnit/MINUTES)
+      "hour"    (.truncatedTo t ChronoUnit/HOURS)
+      "day"     day
+      "week"    (.with day (TemporalAdjusters/previousOrSame DayOfWeek/MONDAY))
+      "month"   (.withDayOfMonth day 1)
+      "quarter" (.withMonth (.withDayOfMonth day 1) (inc (* 3 (quot (dec (.getMonthValue t)) 3))))
+      "year"    (.withDayOfYear day 1)
+      nil)))
+
+(defn- fits-buckets?
+  "True if the bounds of a query are the start and the end of a bucket of this unit, so a rollup of these buckets has the rows of the query."
+  [unit [^LocalDateTime lower ^LocalDateTime upper]]
+  (and (or (nil? lower) (= lower (start-of-unit lower unit)))
+       (or (nil? upper)
+           (let [next-time (.plusNanos upper 1000000)]
+             (= next-time (start-of-unit next-time unit))))))
+
+(def ^:private ^DateTimeFormatter partition-format
+  (DateTimeFormatter/ofPattern "yyyyMMddHHmmss"))
+
+(defn- partition-start
+  "The start of a partition from the end of its table name, as in `20250301`, or `2025030106` for an hour."
+  ^LocalDateTime [digits]
+  (try
+    (LocalDateTime/parse (subs (str digits "0000000000") 0 14) partition-format)
+    (catch DateTimeParseException _ nil)))
+
+(defn- partitions-of
+  "The periods of the partitions that Cube reads for a rollup, sorted, from a value of `usedPreAggregations`, as [start end]."
+  [rollup-table unit target-table]
+  (let [pattern (re-pattern (str (java.util.regex.Pattern/quote rollup-table) "(\\d{8,14})_"))]
+    (sort-by first
+             (keep (fn [[_ digits]]
+                     (when-let [start (partition-start digits)]
+                       [start (plus-unit start unit)]))
+                   (re-seq pattern (str target-table))))))
+
+(defn- first-gap
+  "The first time in `[lower upper]` that `periods` do not hold, or nil. `periods` are sorted. An end is the first time after a period."
+  [periods ^LocalDateTime lower ^LocalDateTime upper]
+  (loop [covered-to lower, periods periods]
+    (cond
+      (.isAfter covered-to upper)                       nil
+      (empty? periods)                                  covered-to
+      (.isAfter ^LocalDateTime (ffirst periods) covered-to) covered-to
+      :else (let [^LocalDateTime end (second (first periods))]
+              (recur (if (.isAfter end covered-to) end covered-to) (rest periods))))))
+
+(defn- extent
+  "The first and the last time of a time dimension in the source, in the zone of the query, or nil."
+  [details cube-name member zone]
+  (cached details [:extent cube-name member zone]
+          (fn []
+            (try
+              (let [[[lower upper]] (cube.meta/rest-sql details
+                                                        (format "SELECT MIN(%s), MAX(%s) FROM %s" member member cube-name)
+                                                        zone)]
+                (when (and lower upper)
+                  [(time-of-request lower) (time-of-request upper)]))
+              (catch Exception _ nil)))))
+
+(defn- range-bound
+  "What the SQL of one end of a build range says: a local time in `zone`, :open if the data or the clock sets it, or :unknown if only the database can tell."
+  [[sql] ^String zone]
+  (let [sql (str/trim (str sql))]
+    (cond
+      ;; With no build range, Cube reads the first and the last time of the data.
+      (re-find #"(?i)^select\s+(\w+\()?\s*(min|max)\(.*\bfrom\b" sql) :open
+      (re-matches #"(?i)select\s+(now\(\)|current_timestamp(\(\))?)" sql) :open
+      :else
+      (if-let [[_ text _ source-zone] (re-matches #"(?i)select\s+\w*\(?\s*'(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})'\s*(,\s*'([^']+)')?\s*\)?" sql)]
+        (try
+          (let [t (LocalDateTime/parse (str/replace text " " "T"))]
+            (.toLocalDateTime (.withZoneSameInstant (.atZone t (ZoneId/of (or source-zone "UTC"))) (ZoneId/of zone))))
+          (catch Exception _ :unknown))
+        :unknown))))
+
+(defn- clipped-periods
+  "The periods of a rollup that hold rows: a partition at the end of a build range holds rows only up to that end. An end that only the database can tell gives the first or
+  the last partition of the rollup no credit. `periods-of-all` gives the partitions of the rollup with no date filter, on such an end only."
+  [{[start-query end-query] :preAggregationStartEndQueries} zone periods periods-of-all]
+  (let [start  (range-bound start-query zone)
+        end    (range-bound end-query zone)
+        all    (when (or (= :unknown start) (= :unknown end)) (periods-of-all))
+        ^LocalDateTime from (cond
+                              (instance? LocalDateTime start) start
+                              (= :unknown start) (second (first all)))
+        ^LocalDateTime to   (cond
+                              ;; A build range ends at a whole second, and it holds that second.
+                              (instance? LocalDateTime end) (.plusSeconds ^LocalDateTime end 1)
+                              (= :unknown end) (first (last all)))]
+    (keep (fn [[^LocalDateTime period-start ^LocalDateTime period-end]]
+            (let [period-start (if (and from (.isBefore period-start from)) from period-start)
+                  period-end   (if (and to (.isAfter period-end to)) to period-end)]
+              (when (.isBefore period-start period-end)
+                [period-start period-end])))
+          periods)))
+
+(defn- without-time-bounds
+  "A request with no bound on a time."
+  [request]
+  (-> request
+      (update :timeDimensions (partial mapv #(dissoc % :dateRange)))
+      (update :filters (partial filterv (complement filter-bounds)))))
+
+(defn- used-partition-gap
+  "A text if the rollups that a request reads do not hold each row of the bounds of the request, or nil. A bound that the request does not have is the
+  first or the last time of the source. With no answer about these times, the rollups may not hold the rows."
+  [details cube-meta request zone pre-aggregations bounds]
+  (let [partitioned (filter :partitionGranularity pre-aggregations)
+        ;; The source holds the rows after the last rollup of such a lambda.
+        open-end?   (some :unionWithSourceData pre-aggregations)]
+    (when (seq partitioned)
+      (let [targets       (fn [query]
+                            (map :targetTableName (vals (:usedPreAggregations (cube.meta/rest-load details (assoc query :timezone zone, :limit 1))))))
+            periods-in    (fn [{:keys [tableName partitionGranularity]} tables]
+                            (sort-by first
+                                     (mapcat #(partitions-of (last (str/split tableName #"\.")) partitionGranularity %) tables)))
+            used          (targets request)
+            periods       (sort-by first
+                                   (mapcat (fn [rollup]
+                                             (clipped-periods rollup zone (periods-in rollup used)
+                                                              #(periods-in rollup (targets (without-time-bounds request)))))
+                                           partitioned))
+            [lower upper] bounds
+            id            (:preAggregationId (first partitioned))
+            [cube-name rollup-name] (str/split (str id) #"\.")
+            entry         (cube.meta/pre-aggregation-named cube-meta id)
+            whole         (when-not (and lower upper)
+                            (extent details cube-name (:timeDimensionReference entry) zone))
+            lower         (or lower (first whole))
+            upper         (or upper (second whole))]
+        (cond
+          (empty? used)
+          nil
+
+          (not (and lower upper))
+          (format "Cube gives no first or last time for the rollup %s." rollup-name)
+
+          (empty? periods)
+          (format "The rollup %s of %s has no rows at %s." rollup-name cube-name lower)
+
+          :else
+          (when-let [gap (first-gap periods lower (if open-end?
+                                                    (let [^LocalDateTime end (second (last periods))]
+                                                      (if (.isAfter end upper) upper end))
+                                                    upper))]
+            (format "The rollup %s of %s has no rows at %s." rollup-name cube-name gap)))))))
+
+(defn- non-strict-reason
+  "A text if a rollup of this request allows a range that does not fit its buckets, and the bounds of the request do not fit them, or nil."
+  [pre-aggregations match-results bounds]
+  (first (for [{:keys [preAggregationId granularity]} pre-aggregations
+               :let  [{{:keys [allowNonStrictDateRangeMatch]} :references} (first (filter #(= preAggregationId (:name %)) match-results))]
+               :when (and allowNonStrictDateRangeMatch granularity (not (fits-buckets? granularity bounds)))]
+           (format "The rollup %s has allow_non_strict_date_range_match, and the range of the query does not fit its buckets of one %s."
+                   preAggregationId granularity))))
+
+(defn- requests-of-plan
+  "The requests of Cube in the rows of EXPLAIN."
+  [rows]
+  (let [plan (or (some (fn [[kind text]] (when (= "physical_plan" kind) text)) rows) "")]
+    (into [] (keep #(try (json/decode+kw %) (catch Exception _ nil))) (re-seq #"(?m)^\{.*\}$" plan))))
+
+(defn- wrapped-rollup-reason
+  "A text if the SQL of a plan with no request reads a rollup with a build range, a gap or a loose range. The driver cannot see what it reads."
+  [cube-meta rows]
+  (let [plan (or (some (fn [[kind text]] (when (= "physical_plan" kind) text)) rows) "")]
+    (first (for [cube  (:cubes cube-meta)
+                 entry (:preAggregations cube)
+                 :let  [table (str (:name cube) "_" (:name entry))]
+                 :when (and (cube.meta/rollup-can-read-other-rows? entry)
+                            (re-find (re-pattern (str "\\b" (java.util.regex.Pattern/quote table) "\\b")) plan))]
+             (format "The query reads the rollup %s, and Cube does not tell which range it reads." table)))))
+
+(defn wrong-rollup
+  "If Cube would read this SQL from a rollup that does not hold each row of the query, a map with `:reason`, a text, and `:rollups`, the entries of /v1/sql. Else nil.
+  This asks Cube only if the SQL names a table with such a rollup. A check that gets no answer stops nothing."
+  [details cube-meta sql zone]
+  (let [tables (cube.meta/tables-with-partial-rollups cube-meta)
+        words  (set (map str/lower-case (re-seq #"\w+" (str sql))))]
+    (when (some tables words)
+      (cached details [:wrong-rollup sql zone]
+              (fn []
+                (try
+                  (let [rows     (cube.meta/rest-sql details (str "EXPLAIN " sql) zone)
+                        requests (requests-of-plan rows)]
+                    (if (empty? requests)
+                      (when-let [reason (wrapped-rollup-reason cube-meta rows)]
+                        {:reason reason, :rollups []})
+                      (first (for [request requests
+                                   :let  [{:keys [pre-aggregations match-results]} (sql-of details (assoc request :timezone zone, :limit 1))
+                                          bounds (request-bounds request)
+                                          reason (when (seq pre-aggregations)
+                                                   (or (non-strict-reason pre-aggregations match-results bounds)
+                                                       (used-partition-gap details cube-meta request zone pre-aggregations bounds)))]
+                                   :when reason]
+                               {:reason reason, :rollups pre-aggregations, :match-results match-results}))))
+                  (catch Exception _ nil)))))))
+
+(defn- rollup-members
+  "The full names of the dimensions that the rollups of [[wrong-rollup]] hold."
+  [{:keys [rollups match-results]}]
+  (let [ids (set (map :preAggregationId rollups))]
+    (into #{} (comp (filter #(ids (:name %))) (mapcat #(get-in % [:references :dimensions]))) match-results)))
+
+(defn column-past-rollup
+  "A dimension of this table that the rollups of [[wrong-rollup]] do not hold, so a filter on it makes Cube read the source, or nil. It reads the same cube as the
+  rollup, so the filter adds no join. A view names the member of the cube in `aliasMember`."
+  [cube-meta table-name wrong]
+  (let [held      (rollup-members wrong)
+        cube      (cube-named cube-meta table-name)
+        rollup-of (some-> (or (first (map :preAggregationId (:rollups wrong))) "") (str/split #"\.") first)
+        same-cube (fn [{:keys [aliasMember], member :name}]
+                    (or (str/blank? rollup-of)
+                        (= rollup-of (first (str/split (str (or aliasMember member)) #"\.")))))
+        usable    (fn [{:keys [aliasMember], member :name, kind :type, :as dimension}]
+                    (and (not (false? (:public dimension)))
+                         (not (false? (:isVisible dimension)))
+                         (#{"number" "string"} kind)
+                         (or (:sql dimension) (:case dimension) aliasMember)
+                         (same-cube dimension)
+                         (not (held (or aliasMember member)))))
+        options   (filter usable (:dimensions cube))]
+    (some-> (or (first (filter :primaryKey options)) (first options))
+            :name
+            (str/split #"\.")
+            last)))
+
+;;; A count measure counts the primary key. Cube writes `count(pk)`, so a row with a NULL key does not count. The primary key can be private, so the driver compares the
+;;; measure with COUNT(*) on the rows.
+
+(defn null-key-rows?
+  "True if a measure of type count on this cube counts less than its rows. The answer is at most one minute old. With no answer this is false."
+  [details table-name measure-name]
+  (cached details [:null-key-rows table-name measure-name]
+          (fn []
+            (try
+              (let [[[rows counted]] (cube.meta/rest-sql details
+                                                         (format "SELECT COUNT(*), MEASURE(%s) FROM %s" measure-name table-name)
+                                                         "UTC")]
+                (and (some? rows) (some? counted) (not= (bigdec rows) (bigdec counted))))
+              (catch Exception _ false)))))
+
+;;; A row of a model and a group of Cube. See group-raw-stage in metabase.driver.cube.
+
+(defn same-row-count?
+  "False if these two SQL texts, which each give one count, give two counts. With no answer this is true."
+  [details rows-sql groups-sql]
+  (cached details [:same-row-count rows-sql groups-sql]
+          (fn []
+            (try
+              (let [count-of (fn [sql] (ffirst (cube.meta/rest-sql details sql "UTC")))
+                    rows     (count-of rows-sql)
+                    groups   (count-of groups-sql)]
+                (or (nil? rows) (nil? groups) (= (bigdec rows) (bigdec groups))))
+              (catch Exception _ true)))))

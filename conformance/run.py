@@ -365,6 +365,11 @@ class Metabase:
         for f in self.table(source)["fields"]:
             if pk and f.get("fk_target_field_id") in pk:
                 return f
+        # A private key is hidden. The metadata of its table can leave it out.
+        target_id = self.table(target)["id"]
+        for f in self.table(source)["fields"]:
+            if f.get("fk_target_field_id") and self.api("GET", "/api/field/%d" % f["fk_target_field_id"]).get("table_id") == target_id:
+                return f
         raise Fail("no foreign key from %s to %s" % (source, target))
 
     def ref(self, s):
@@ -5929,18 +5934,20 @@ def _(ctx):
     raise Fail("the query gave a number")
 
 
-@check("measure.time_type_in_a_report_zone_refused")
+@check("measure.time_type_in_a_report_zone")
 def _(ctx):
-    """Cube gives a measure of type time in UTC under a report time zone, and a time dimension in the zone."""
+    """Metabase on Postgres shows max(timestamptz) as the same instant in the report time zone. The dialect gives each measure of type time in the zone. Stock Cube prints the zone of the column, and it does not show that zone, so the driver stops it."""
+    zone = "America/New_York"
+    truth = ch("SELECT toString(max(toTimeZone(created_at, '%s'))), toString(min(toTimeZone(created_at, '%s'))) FROM orders" % (zone, zone))
+
     def body():
-        try:
-            ctx.mb.mbql(ORD, agg=["m:orders.last_order_at"])
-        except Fail as e:
-            if "measure of type time" in str(e):
-                return
-            raise
-        raise Fail("the query gave a number")
-    with_report_timezone(ctx, "America/New_York", body)
+        if not DIALECT:
+            expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.last_order_at"]), "measure of type time")
+            return
+        rows = ctx.mb.mbql(ORD, agg=["m:orders.last_order_at", "m:orders.first_order_time"])["rows"]
+        got = [[dt.datetime.fromisoformat(v).strftime("%Y-%m-%d %H:%M:%S") for v in rows[0]]]
+        assert_rows(got, truth, label="the times in the zone")
+    with_report_timezone(ctx, zone, body)
 
 
 # ----------------------------------------------------------------- the random query generator, see dev/fuzz/README.md
@@ -8488,6 +8495,174 @@ def run_suite(args):
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import zone_day  # noqa: E402
+
+# ----------------------------------------------------------------- rows that a rollup or a key would lose
+
+NK = "null_keys"
+NK_FIELDS = ["d:null_keys.id", "d:null_keys.grp", "d:null_keys.total"]
+
+
+@check("nested.model.count_keeps_rows_with_a_null_key")
+def _(ctx):
+    """COUNT(*) on a model counts rows, as in SQL and in Metabase on Postgres, also a row with a NULL key and a key that repeats."""
+    ensure_table(ctx, NK)
+    model = card_of(ctx, "model of null keys", ctx.mb.inner(NK), "model")
+    total = named("total")
+    grp = named("grp", "type/Text")
+    expect_rows(ctx, over(model, aggregation=[["count"]]), "SELECT count() FROM null_keys", "count")
+    expect_rows(ctx, over(model, aggregation=[["count"]], breakout=[grp]), "SELECT grp, count() FROM null_keys GROUP BY grp", "count by a dimension")
+    expect_rows(ctx, over(model, aggregation=[["count"]], filter=["=", grp, "a"]), "SELECT count() FROM null_keys WHERE grp = 'a'", "count with a filter")
+    expect_rows(ctx, over(model, aggregation=[["count"], ["sum", total]]), "SELECT count(), sum(amount) FROM null_keys", "count and a measure")
+    # The time tells each row apart here, so a group of the dimensions is one row.
+    expect_rows(ctx, over(model, aggregation=[["count"]], filter=[">", total, 25]), "SELECT count() FROM null_keys WHERE amount > 25", "filter on a measure")
+    expect_rows(ctx, over(model, aggregation=[["count"]], breakout=[total]), "SELECT toFloat64(amount), count() FROM null_keys GROUP BY amount", "group by a measure")
+
+
+@check("nested.model.row_value_with_a_null_key_refused")
+def _(ctx):
+    """A filter on a measure column reads each row with GROUP BY of the dimensions. With no column that tells two rows apart, a group is more than one row, and COUNT(*) misses rows, so the driver stops it. A model on a unique key keeps its value: see nested.measure_column.filter_gives_row_values."""
+    ensure_table(ctx, NK)
+    model = card_of(ctx, "model with a null key and no time", ctx.mb.inner(NK, fields=NK_FIELDS), "model")
+    needle = "has no value for each row"
+    expect_clear_error(ctx, over(model, aggregation=[["count"]], filter=[">", named("total"), 0]), needle)
+    expect_clear_error(ctx, over(model, aggregation=[["count"]], breakout=[named("total")]), needle)
+    # With no filter on the measure, this model gives each row.
+    expect_rows(ctx, over(model, aggregation=[["count"]]), "SELECT count() FROM null_keys", "count")
+
+
+@check("measure.count_with_a_null_key_refused")
+def _(ctx):
+    """Cube writes a measure of type count as count(pk), so a row with a NULL key does not count. A count of a column keeps its number, and the count of rows of Metabase gives the truth."""
+    ensure_table(ctx, NK)
+    needle = "counts the primary key"
+    for member in ("m:null_keys.n", "m:null_keys.n_of_a"):
+        expect_clear_error(ctx, ctx.mb.inner(NK, agg=[member]), needle)
+    rows, error = native_outcome(ctx, "SELECT MEASURE(n) FROM null_keys")
+    if not error or needle not in error:
+        raise Fail("native SQL gave %s, error %s" % (rows, error))
+    assert_rows(ctx.mb.mbql(NK, agg=[["count"]])["rows"], ch("SELECT count() FROM null_keys"), label="count of rows")
+    assert_rows(ctx.mb.mbql(NK, agg=["m:null_keys.n_of_amounts"])["rows"], ch("SELECT count(amount) FROM null_keys"), label="count of a column")
+
+
+def mb_reads_source(ctx, table, truth, **kw):
+    """The driver adds a filter that holds for each row, on a column that the rollup does not hold. The number must be the truth, and Cube must read the source."""
+    res = ctx.mb.dataset({"database": ctx.mb.need_db(), "type": "query", "query": ctx.mb.inner(table, **kw)})["data"]
+    text = res["native_form"]["query"]
+    if " IS NULL) OR " not in text:
+        raise Fail("the driver reads the rollup: %s" % text)
+    assert_rows(res["rows"], ch(truth), label="the rows of the source")
+
+
+def mb_reads_rollup(ctx, table, truth, **kw):
+    """The rollup has each row of this query, so it stays."""
+    res = ctx.mb.dataset({"database": ctx.mb.need_db(), "type": "query", "query": ctx.mb.inner(table, **kw)})["data"]
+    text = res["native_form"]["query"]
+    if " IS NULL) OR " in text:
+        raise Fail("the driver reads the source: %s" % text)
+    assert_rows(res["rows"], ch(truth), label="the rows of the rollup")
+
+
+@check("preagg.build_range.metabase_gives_rows_out_of_the_range")
+def _(ctx):
+    """Cube reads only the build range, with no error. The driver finds that the partitions do not hold the query, and it makes Cube read the source."""
+    p, rev, at = "pa_partitions", "m:pa_partitions.rev_range", "d:pa_partitions.created_at"
+    mb_reads_source(ctx, p, "SELECT sum(amount) FROM orders", agg=[rev])
+    mb_reads_source(ctx, p, "SELECT toStartOfMonth(created_at), sum(amount) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-05-01' GROUP BY 1",
+                    agg=[rev], by=[at + "@month"], where=[["between", at, "2025-03-01", "2025-04-30"]])
+    mb_reads_source(ctx, p, "SELECT sum(amount) FROM orders WHERE created_at >= '2025-05-01' AND created_at < '2025-06-01'", agg=[rev], where=[["between", at, "2025-05-01", "2025-05-31"]])
+    mb_reads_rollup(ctx, p, "SELECT toStartOfMonth(created_at), sum(amount) FROM orders WHERE created_at >= '2025-01-01' AND created_at < '2025-04-01' GROUP BY 1",
+                    agg=[rev], by=[at + "@month"], where=[["between", at, "2025-01-01", "2025-03-31"]])
+    # A build range that ends inside a partition holds rows only up to that end.
+    m, mid, mat = "pa_range_mid", "m:pa_range_mid.revenue", "d:pa_range_mid.created_at"
+    ensure_table(ctx, m)
+    mb_reads_source(ctx, m, "SELECT sum(amount) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-04-01'", agg=[mid], where=[["between", mat, "2025-03-01", "2025-03-31"]])
+    mb_reads_rollup(ctx, m, "SELECT sum(amount) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-03-16'", agg=[mid], where=[["between", mat, "2025-03-01", "2025-03-15"]])
+    # Native SQL has no stage for the filter, so the driver stops it, with its way out.
+    rows, error = native_outcome(ctx, "SELECT MEASURE(rev_range) FROM pa_partitions")
+    if not error or "Cube would give a part of the rows" not in error:
+        raise Fail("native SQL gave %s, error %s" % (rows, error))
+    rows, error = native_outcome(ctx, "SELECT MEASURE(rev_range) FROM pa_partitions WHERE created_at >= '2025-01-01' AND created_at < '2025-02-01'")
+    if error:
+        raise Fail("native SQL in the range: %s" % error)
+    assert_rows(rows, ch("SELECT sum(amount) FROM orders WHERE created_at >= '2025-01-01' AND created_at < '2025-02-01'"), label="native SQL in the range")
+
+
+@check("preagg.option.non_strict_metabase_gives_a_range_inside_a_bucket")
+def _(ctx):
+    """allow_non_strict_date_range_match reads whole buckets. The driver makes Cube read the source for a range that does not fit them, and keeps the rollup for one that does."""
+    o, rev, at = "pa_options", "m:pa_options.rev_nonstrict", "d:pa_options.created_at"
+    mb_reads_source(ctx, o, "SELECT sum(amount) FROM orders WHERE created_at >= '2025-03-01 06:00:00' AND created_at <= '2025-03-02 06:00:00'",
+                    agg=[rev], where=[[">=", at, "2025-03-01T06:00:00"], ["<=", at, "2025-03-02T06:00:00"]])
+    mb_reads_rollup(ctx, o, "SELECT sum(amount) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-03-03'",
+                    agg=[rev], where=[["between", at, "2025-03-01", "2025-03-02"]])
+    rows, error = native_outcome(ctx, "SELECT MEASURE(rev_nonstrict) FROM pa_options WHERE created_at >= TIMESTAMP '2025-03-01 06:00:00' AND created_at <= TIMESTAMP '2025-03-02 06:00:00'")
+    if not error or "does not fit its buckets" not in error:
+        raise Fail("native SQL gave %s, error %s" % (rows, error))
+
+
+@check("preagg.type.rollup_lambda_gap_metabase_gives_the_last_partition")
+def _(ctx):
+    """Cube reads a rollup of a lambda up to the start of its last partition. The driver finds the gap between the partitions, and it makes Cube read the source. A range before the gap keeps the rollups, and so does a lambda with an overlap."""
+    lam, rev, at = "pa_lambda_rollups", "m:pa_lambda_rollups.revenue", "d:pa_lambda_rollups.created_at"
+    mb_reads_source(ctx, lam, PA_LAM + " GROUP BY 1", agg=[rev], by=[at + "@month"])
+    mb_reads_rollup(ctx, lam, "SELECT sum(amount) FROM orders WHERE created_at >= '2025-01-01' AND created_at < '2025-05-01'", agg=[rev], where=[["between", at, "2025-01-01", "2025-04-30"]])
+    mb_reads_rollup(ctx, "pa_lambda_overlap", PA_LAM + " GROUP BY 1", agg=["m:pa_lambda_overlap.revenue"], by=["d:pa_lambda_overlap.created_at@month"])
+
+
+@check("preagg.empty_text_stays_apart_from_null")
+def _(ctx):
+    """Cube Store reads an empty value of its CSV as NULL, also a quoted one. The dialect sends the rows with empty text with INSERT, which keeps them. On stock Cube the driver cannot see this."""
+    ensure_table(ctx, "text_edges")
+    by_label = pa_query(["text_edges.total"], ["text_edges.label"])
+    on_empty = pa_query(["text_edges.total"], filters=[{"member": "text_edges.label", "operator": "equals", "values": [""]}])
+    res = pa_load(by_label)
+    pa_expect_used(res, ["text_edges_by_label"], by_label)
+    truth = ch("SELECT label, sum(amount) FROM text_edges GROUP BY 1")
+    empty = ch("SELECT sum(amount) FROM text_edges WHERE label = ''")
+    if not DIALECT:
+        got = {row[0]: float(row[1]) for row in pa_rows(res, by_label)}
+        if "" in got or got.get(None) != 230.0:
+            raise Fail("stock Cube now keeps empty text: %s. Give this entry its full status" % got)
+        return
+    assert_rows(pa_rows(res, by_label), truth, label="groups from the rollup")
+    res = pa_load(on_empty)
+    pa_expect_used(res, ["text_edges_by_label"], on_empty)
+    assert_rows(pa_rows(res, on_empty), empty, label="filter from the rollup")
+    assert_rows(ctx.mb.mbql("text_edges", agg=["m:text_edges.total"], by=["d:text_edges.label"])["rows"], truth, label="groups in Metabase")
+    assert_rows(ctx.mb.mbql("text_edges", agg=["m:text_edges.total"], where=[["=", "d:text_edges.label", ""]])["rows"], empty, label="filter in Metabase")
+
+
+@check("sync.private_primary_key_keeps_the_foreign_key")
+def _(ctx):
+    """A cube can have a private primary key. Metabase needs a field as the target of a foreign key, so sync keeps it as hidden. Raw rows show NULL for it, no list and no sample have its values, and a query on its values stops."""
+    ensure_table(ctx, "stock_items")
+    ensure_table(ctx, "warehouses")
+    fk = ctx.mb.field("stock_items", "warehouse_id")
+    if not fk.get("fk_target_field_id") or fk.get("semantic_type") != "type/FK":
+        raise Fail("no foreign key to the private key: %s" % fk)
+    key = ctx.mb.api("GET", "/api/field/%d" % fk["fk_target_field_id"])
+    if key.get("table_id") != ctx.mb.table("warehouses")["id"] or key.get("name") != "id":
+        raise Fail("the foreign key has another target: %s" % key.get("name"))
+    if key.get("semantic_type") != "type/PK" or key.get("visibility_type") != "hidden":
+        raise Fail("the private key has semantic type %s and visibility %s" % (key.get("semantic_type"), key.get("visibility_type")))
+    if key.get("fingerprint") or key.get("has_field_values") not in (None, "none") or key.get("description"):
+        raise Fail("sync read the private key: %s" % key)
+    truth = "SELECT concat('W', toString(number % 3 + 1)), sum(number + 1) FROM numbers(30) GROUP BY 1"
+    assert_rows(ctx.mb.mbql("stock_items", agg=["m:stock_items.quantity"], by=["d:stock_items>warehouses.code"])["rows"], ch(truth), label="implicit join through the key")
+    # Raw rows have no value of the key, and a person who reads the metadata does not get it.
+    raw = ctx.mb.mbql("warehouses")
+    position = [c["name"] for c in raw["cols"]].index("id") if any(c["name"] == "id" for c in raw["cols"]) else None
+    if position is not None and any(r[position] is not None for r in raw["rows"]):
+        raise Fail("raw rows show the private key: %s" % raw["rows"][:2])
+    metadata = ctx.mb.api("GET", "/api/table/%d/query_metadata" % ctx.mb.table("warehouses")["id"])
+    if any(f["name"] == "id" for f in metadata["fields"]):
+        raise Fail("the metadata of the table lists the private key")
+    # A query on its values gets an error, and no value. Cube in dev mode reads a private member, so this is the driver.
+    key_ref = ["field", key["id"], None]
+    table_id = ctx.mb.table("warehouses")["id"]
+    for query in ({"source-table": table_id, "breakout": [key_ref], "aggregation": [["count"]]}, {"source-table": table_id, "filter": ["=", key_ref, 1]}):
+        expect_clear_error(ctx, query, "is a private primary key")
+
 
 zone_day.register(sys.modules[__name__])
 

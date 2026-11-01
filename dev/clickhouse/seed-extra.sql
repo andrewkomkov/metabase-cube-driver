@@ -64,3 +64,16 @@ WHERE created_at >= parseDateTimeBestEffort({date_from:String}) AND created_at <
 
 CREATE OR REPLACE VIEW shop.orders_status AS
 SELECT id, status, amount FROM shop.orders WHERE status = {wanted:String};
+
+-- A primary key of Cube with NULL and with a value that repeats. See dev/cube/model/edges.yml.
+CREATE TABLE IF NOT EXISTS shop.null_keys (id Nullable(Int32), grp LowCardinality(String), amount Int32, ts DateTime('UTC')) ENGINE = MergeTree ORDER BY ts;
+INSERT INTO shop.null_keys SELECT * FROM values('id Nullable(Int32), grp String, amount Int32, ts DateTime(\'UTC\')',
+  (1, 'a', 10, '2025-01-01 10:00:00'), (2, 'a', 20, '2025-01-02 10:00:00'), (NULL, 'a', 30, '2025-01-03 10:00:00'), (NULL, 'a', 40, '2025-01-04 10:00:00'),
+  (NULL, 'b', 50, '2025-01-05 10:00:00'), (5, 'b', 60, '2025-01-06 10:00:00'), (5, 'b', 70, '2025-01-07 10:00:00'))
+  WHERE (SELECT count() FROM shop.null_keys) = 0;
+
+-- Empty text next to NULL, for a rollup. See dev/cube/model/edges.yml.
+CREATE TABLE IF NOT EXISTS shop.text_edges (id Int32, label Nullable(String), amount Int32) ENGINE = MergeTree ORDER BY id;
+INSERT INTO shop.text_edges SELECT * FROM values('id Int32, label Nullable(String), amount Int32',
+  (1, '', 10), (2, '', 20), (3, NULL, 40), (4, 'x', 80), (5, NULL, 160))
+  WHERE (SELECT count() FROM shop.text_edges) = 0;

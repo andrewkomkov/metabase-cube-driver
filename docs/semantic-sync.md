@@ -55,7 +55,7 @@ Each Measure and Segment has a fixed `entity_id`, a hash of the Metabase databas
 | --- | --- |
 | New member | New Measure or Segment |
 | New title, description, measure type | The same object changes |
-| Member removed, or `public: false` | Measure or Segment archived. The field becomes inactive. |
+| Member removed, or `public: false` | Measure or Segment archived. The field becomes inactive. A private primary key stays as a hidden field, because a foreign key needs its target. Raw rows show `NULL` for it, and a query on its values stops. |
 | Cube removed | Table inactive. Its Measures and Segments archived. |
 | Member comes back | The same object is active again |
 | Join removed | Foreign key removed |

@@ -1,0 +1,74 @@
+# Data at the edge of what Cube and Metabase agree on. conformance/run.py reads the truth of each one from ClickHouse.
+cubes:
+  - name: null_keys
+    title: Null keys
+    description: A primary key with NULL and with a value that repeats.
+    sql_table: shop.null_keys
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: grp, sql: grp, type: string }
+      - { name: ts, sql: ts, type: time }
+    measures:
+      - { name: n, type: count, description: Counts the primary key. }
+      - { name: n_of_a, type: count, filters: [{ sql: "{CUBE}.grp = 'a'" }], description: Counts the primary key in one group. }
+      - { name: n_of_amounts, type: count, sql: amount, description: Counts a column with no NULL. }
+      - { name: total, type: sum, sql: amount }
+
+  - name: text_edges
+    title: Text edges
+    description: Empty text next to NULL, with a rollup.
+    sql_table: shop.text_edges
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: label, sql: label, type: string }
+    measures:
+      - { name: total, type: sum, sql: amount }
+    pre_aggregations:
+      - name: by_label
+        measures: [total]
+        dimensions: [label]
+        refresh_key: { every: 1 hour }
+        indexes: [{ name: by_label, columns: [label] }]
+
+  - name: warehouses
+    title: Warehouses
+    description: A cube with a private primary key. Each stock item points to it.
+    sql: "SELECT toInt32(number + 1) AS id, concat('W', toString(number + 1)) AS code FROM numbers(3)"
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: false }
+      - { name: code, sql: code, type: string, description: Code of the warehouse. }
+    measures:
+      - { name: count, type: count }
+
+  - name: stock_items
+    title: Stock items
+    description: Items with a foreign key to a private primary key.
+    sql: "SELECT toInt32(number + 1) AS id, toInt32(number % 3 + 1) AS warehouse_id, toInt32(number + 1) AS quantity FROM numbers(30)"
+    joins:
+      - { name: warehouses, relationship: many_to_one, sql: "{CUBE}.warehouse_id = {warehouses.id}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: warehouse_id, sql: warehouse_id, type: number, description: The warehouse of the item. }
+    measures:
+      - { name: quantity, type: sum, sql: quantity }
+
+  - name: pa_range_mid
+    title: Range to the middle of a month
+    description: A rollup with a build range that ends inside a partition.
+    sql_table: shop.orders
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string }
+      - { name: created_at, sql: created_at, type: time }
+    measures:
+      - { name: revenue, type: sum, sql: amount }
+    pre_aggregations:
+      - name: to_the_15th
+        measures: [revenue]
+        dimensions: [status]
+        indexes: [{ name: by_status, columns: [status] }]
+        time_dimension: created_at
+        granularity: day
+        partition_granularity: month
+        build_range_start: { sql: "SELECT toDateTime('2025-01-01 00:00:00', 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime('2025-03-15 23:59:59', 'UTC')" }

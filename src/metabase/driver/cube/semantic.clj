@@ -65,6 +65,8 @@
             :settings      settings}
      title                           (assoc :display_name title)
      (#{:measure :segment} kind)     (assoc :has_field_values :none)
+     ;; Sync sets this only on a new field, and a member can become private later.
+     (= cube.meta/private-key-type (:database-type member)) (assoc :visibility_type :hidden, :has_field_values :none)
      (and (= kind :dimension)
           (cube.identity/attribute (:details database))) (assoc :has_field_values :search))))
 

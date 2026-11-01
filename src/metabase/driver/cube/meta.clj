@@ -43,22 +43,39 @@
       (throw (ex-info "The Cube REST URL is not set." {})))
     (str (if (str/ends-with? base "/cubejs-api") base (str base "/cubejs-api")) path)))
 
-(defn- api-get
-  "GET a path of the Cube REST API. Returns the status and the decoded body, or throws for another status than 200."
-  [details path query-params]
+(defn- api-call
+  "Call a path of the Cube REST API. Returns the response, or throws for another status than 200."
+  [send details path options]
   (let [url      (api-url details path)
         token    (api-token details)
-        response (http/get url {:headers            (cond-> {"Accept" "application/json"}
-                                                      token (assoc "Authorization" (str "Bearer " token)))
-                                :query-params       query-params
-                                :as                 :text
-                                :throw-exceptions   false
-                                :socket-timeout     http-timeout-ms
-                                :connection-timeout http-timeout-ms})]
+        response (send url (merge {:headers            (cond-> {"Accept" "application/json"}
+                                                         token (assoc "Authorization" (str "Bearer " token)))
+                                   :as                 :text
+                                   :throw-exceptions   false
+                                   :socket-timeout     http-timeout-ms
+                                   :connection-timeout http-timeout-ms}
+                                  options))]
     (when-not (= 200 (:status response))
       (throw (ex-info (format "Cube REST API returned HTTP %s for %s" (:status response) url)
                       {:status (:status response)})))
-    (json/decode+kw (:body response))))
+    response))
+
+(defn- api-get
+  "GET a path of the Cube REST API. Returns the decoded body."
+  [details path query-params]
+  (json/decode+kw (:body (api-call http/get details path {:query-params query-params}))))
+
+(defn rest-sql
+  "The rows of a SQL text on /v1/cubesql, in the time zone `zone`. This path answers with the schema on the first line, and the data
+  after it."
+  [details sql zone]
+  (let [body  (:body (api-call http/post details "/v1/cubesql"
+                               {:content-type :json
+                                :body         (json/encode {:query sql, :timezone zone})}))
+        lines (map json/decode+kw (remove str/blank? (str/split-lines body)))]
+    (when-let [error (some :error lines)]
+      (throw (ex-info (str error) {})))
+    (into [] (mapcat :data) lines)))
 
 (declare mark-geo-views)
 
@@ -285,17 +302,23 @@
       (update cube-meta :cubes (partial mapv #(cond-> % (= "view" (:type %)) (assoc :geo-readable? true))))
       cube-meta)))
 
+(def private-key-type
+  "The database type of a private primary key. Raw rows show NULL for it, and the driver stops each other use, see check-no-private-key!."
+  "cube.dimension/private-key")
+
 (defn- dimension->field
   [member]
   (cond-> {:name          (short-name (:name member))
-           :database-type (str "cube.dimension/" (:type member))
+           :database-type (if (public? member) (str "cube.dimension/" (:type member)) private-key-type)
            :base-type     (dimension-base-type member)
            :pk?           (boolean (:primaryKey member))}
     (format->semantic-type member) (assoc :semantic-type (format->semantic-type member))
     (geo-part-types (:type member)) (assoc :semantic-type (geo-part-types (:type member)))
     ;; Cube adds this column for a dimension link. A person has no use for it.
     (or (:synthetic member)
-        (= "geo-in-view" (:type member))) (assoc :visibility-type :hidden)))
+        (= "geo-in-view" (:type member))) (assoc :visibility-type :hidden)
+    ;; A foreign key needs its target field. Metabase core cannot compile an implicit join to a sensitive field: it fails with `Missing ::desired-alias->escaped`.
+    (not (public? member)) (assoc :visibility-type :hidden)))
 
 (defn- measure->field
   [member]
@@ -360,7 +383,7 @@
 
 (defn- with-member-info
   [field member kind]
-  (let [comment (member-description member)]
+  (let [comment (when (public? member) (member-description member))]
     (cond-> (assoc field
                    ::kind     kind
                    ::member   member
@@ -441,7 +464,7 @@
   See [[metabase.driver.cube.semantic]]."
   [cube]
   (let [fields (concat (for [dimension (:dimensions cube)
-                             :when (public? dimension)
+                             :when (or (public? dimension) (:primaryKey dimension))
                              m (with-geo-parts cube dimension)]
                          (with-member-info (dimension->field m) m :dimension))
                        (for [m (:measures cube) :when (public? m)]
@@ -482,9 +505,10 @@
         [left right]))))
 
 (defn- find-dimension
-  "The public dimension of `cube` that a join reference names."
+  "The dimension of `cube` that a join reference names: a public dimension, or a primary key, which a foreign key can target if it is
+  private."
   [cube column kind]
-  (let [dimensions (filter public? (:dimensions cube))
+  (let [dimensions (filter #(or (public? %) (:primaryKey %)) (:dimensions cube))
         by-name    (fn [d] (= (short-name (:name d)) column))
         by-sql     (fn [d] (= (str/replace (str (:sql d)) "`" "") column))]
     (or (when (= kind :sql) (first (filter by-sql dimensions)))
@@ -514,7 +538,7 @@
           [local remote] (let [a (resolve-side left), b (resolve-side right)]
                            (if (= (first a) (:name cube)) [a b] [b a]))
           [from to]      (if (#{"belongsTo" "many_to_one"} relationship) [local remote] [remote local])]
-      (when (and from to (not= (first from) (first to)) (:primaryKey (nth to 2)))
+      (when (and from to (not= (first from) (first to)) (public? (nth from 2)) (:primaryKey (nth to 2)))
         {:fk (subvec from 0 2), :pk (subvec to 0 2)}))))
 
 (defn- join->pair
@@ -580,6 +604,54 @@
         root       (cube-of (first dimensions))
         dimension  (first (filter #(= (str/lower-case member-name) (str/lower-case (short-name (:name %)))) dimensions))]
     (boolean (and root (cube-of dimension) (not= root (cube-of dimension))))))
+
+(defn rollup-can-read-other-rows?
+  "True if a query can read a part of the rows from this rollup: it has a build range, it is a rollup_lambda, or it allows a range that does
+  not fit its buckets."
+  [{:keys [type allowNonStrictDateRangeMatch] :as pre-aggregation}]
+  (or (= "rollupLambda" type)
+      allowNonStrictDateRangeMatch
+      (contains? pre-aggregation :refreshRangeStart)
+      (contains? pre-aggregation :refreshRangeEnd)))
+
+(defn tables-with-partial-rollups
+  "The lower case names of the cubes that have a rollup of [[rollup-can-read-other-rows?]], and of the views on these cubes."
+  [cube-meta]
+  (let [cubes  (into #{}
+                     (comp (filter #(some rollup-can-read-other-rows? (:preAggregations %)))
+                           (map :name))
+                     (:cubes cube-meta))
+        cube-of #(first (str/split (str %) #"\."))]
+    (into #{}
+          (comp (filter (fn [cube]
+                          (or (cubes (:name cube))
+                              (some #(cubes (cube-of (:aliasMember %))) (concat (:measures cube) (:dimensions cube))))))
+                (map (comp str/lower-case :name)))
+          (:cubes cube-meta))))
+
+(defn key-count-measure
+  "If this measure has type count and no SQL of its own, so Cube writes `count(pk)`, also with a filter: [cube measure], the short names of a measure with no filter on its
+  cube, or nil. A view reads the cube of its alias, because the rows of a view can come from a join."
+  [cube-meta member-name]
+  (let [measures    (into {} (comp (mapcat :measures) (map (juxt :name identity))) (:cubes cube-meta))
+        measure     (measures member-name)
+        source      (or (measures (:aliasMember measure)) measure)
+        counts-key? (fn [{:keys [aggType sql]}] (and (= "count" aggType) (nil? sql)))
+        cube-name   (first (str/split (str (:name source)) #"\."))]
+    (when (and source (counts-key? source))
+      (when-let [plain (first (remove (comp seq :filters)
+                                      (filter counts-key? (:measures (first (filter #(= cube-name (:name %)) (:cubes cube-meta)))))))]
+        [cube-name (short-name (:name plain))]))))
+
+(defn pre-aggregation-named
+  "The entry of /v1/meta for a pre-aggregation by its name `cube.rollup`."
+  [cube-meta pre-aggregation-id]
+  (let [[cube-name rollup-name] (str/split (str pre-aggregation-id) #"\.")]
+    (first (for [cube  (:cubes cube-meta)
+                 :when (= cube-name (:name cube))
+                 entry (:preAggregations cube)
+                 :when (= rollup-name (:name entry))]
+             entry))))
 
 (defn measure-in-query-zone?
   "True if the SQL of this measure reads SQL_UTILS.convertTz, so its value is a time in the zone of the query. A view reads its alias."

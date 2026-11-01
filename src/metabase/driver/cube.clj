@@ -866,7 +866,10 @@
   "True if the stage before this one selects the primary key of a cube, so each row of that stage is one row of the cube."
   [earlier]
   (when (seq earlier)
-    (some #(= :type/PK (:semantic-type (column-field (pop earlier) %))) (:fields (peek earlier)))))
+    (some #(let [field (column-field (pop earlier) %)]
+             (and (= :type/PK (:semantic-type field))
+                  (not= cube.meta/private-key-type (:database-type field))))
+          (:fields (peek earlier)))))
 
 (defn- row-measure?
   "True if an earlier stage can give this measure for each row: a stage with raw rows and the primary key. The driver then
@@ -1038,10 +1041,13 @@
     (doseq [[agg-type field] (aggregated-fields (pop stages) (peek stages))]
       (when (and (= :measure (field-kind field))
                  (isa? (:base-type field) :type/Temporal)
-                 (not (some-> (current-meta) (cube.meta/measure-in-query-zone? (full-member-name field)))))
-        (throw (ex-info (format (str "%s is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be "
-                                     "wrong. Remove the report time zone, use min or max of the time column, or read the time with "
-                                     "SQL_UTILS.convertTz in the SQL of the measure.")
+                 (not (some-> (current-meta) (cube.meta/measure-in-query-zone? (full-member-name field))))
+                 (not (cube.probe/time-measure-in-zone? (:details (driver-api/database (driver-api/metadata-provider)))
+                                                        (full-member-name field)
+                                                        (str (session-zone)))))
+        (throw (ex-info (format (str "%s is a measure of type time, and stock Cube gives it in the time zone of the column under a report time zone, so the "
+                                     "time would be wrong. Install cube-clickhouse, which gives each such measure in the report time zone, read the time "
+                                     "with SQL_UTILS.convertTz in the SQL of the measure, or remove the report time zone.")
                                 (:name field))
                         {:type :invalid-query})))
       (when (and (= :distinct agg-type)
@@ -1065,6 +1071,22 @@
                                    "UTC, Cube can read the filter value in UTC or in the zone, so it can pick another bucket. Put the filter "
                                    "inside the question, or remove the report time zone.")
                               (nth clause 2))
+                      {:type :invalid-query})))))
+
+(defn- check-no-count-of-null-key!
+  "Cube writes a measure of type count as `count(pk)`, so a row with a NULL key does not count. It keeps a left join from counting a row with no match, so the driver
+  cannot write COUNT(*) in its place."
+  [stages]
+  (when-let [cube-meta (current-meta)]
+    (doseq [[_ field] (aggregated-fields (pop stages) (peek stages))
+            :let  [[cube-name plain] (when (and (= :measure (field-kind field))
+                                                (= "cube.measure/count" (str (:database-type field))))
+                                       (cube.meta/key-count-measure cube-meta (full-member-name field)))]
+            :when (and plain
+                       (cube.probe/null-key-rows? (:details (driver-api/database (driver-api/metadata-provider))) cube-name plain))]
+      (throw (ex-info (format (str "%s counts the primary key of the cube, and some rows have a NULL key, so it would miss these rows. Use the count of rows of Metabase, "
+                                   "or give the cube a key with no NULL.")
+                              (:name field))
                       {:type :invalid-query})))))
 
 (defn- check-aggregations!
@@ -1339,6 +1361,16 @@
                                   member member)
                           {:type :invalid-query})))))))
 
+(defn- check-no-private-key!
+  "A private primary key is a field only as the target of a foreign key. Cube does not read it, or it reads it only in dev mode, so a stage must not read its values."
+  [stage]
+  (doseq [form  (tree-seq coll? seq (select-keys stage [:breakout :filters :aggregation :order-by :expressions]))
+          :when (and (vector? form) (= :field (first form)))
+          :let  [field (stored-field form)]
+          :when (= cube.meta/private-key-type (:database-type field))]
+    (throw (ex-info (format "%s is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model." (:name field))
+                    {:type :invalid-query}))))
+
 (defn- check-stages!
   [stages]
   (check-value-read-members! stages)
@@ -1346,6 +1378,7 @@
           :let [stage (nth stages i)]
           :when (not= :mbql.stage/native (:lib/type stage))]
     (let [upto (subvec stages 0 (inc i))]
+      (check-no-private-key! stage)
       (check-no-total-through-join! stage)
       (check-no-time-filter-over-aggregation-in-zone! (pop upto) stage)
       (check-no-group-by-member! (pop upto) stage)
@@ -1353,6 +1386,7 @@
       (check-row-values-give-measure! (pop upto) stage)
       (check-equal-sql-breakout! (pop upto) stage)
       (check-aggregations! upto)
+      (check-no-count-of-null-key! upto)
       (check-time-shift! upto)
       (check-time-shift-zone! upto)
       (check-time-shift-bounds! upto)
@@ -1510,6 +1544,7 @@
     (cond
       (not (or (#{:measure :segment} (member-kind clause))
                (= "cube.dimension/geo-in-view" (:database-type field))
+               (= cube.meta/private-key-type (:database-type field))
                (contains? same-source (:name field)))) selected
       alias-form                                        (do (some-> *null-columns* (swap! conj alias-form))
                                                             [null-column alias-form])
@@ -1850,6 +1885,10 @@
                                      (some used (identifier-names alias-form))))
                                select)))
 
+(def ^:private ^:dynamic *grouped-stages*
+  "The stages that give the value of a measure for each row, as [raw grouped] forms with no measure."
+  nil)
+
 (defn- restore-nested-measures
   "A measure is an empty column in raw rows, see raw-select-item. An outer stage aggregates the column of a subquery, and
   Cube reads that as the measure, so a subquery must select the measure itself. With `row-measures`, an outer stage filters or
@@ -1872,7 +1911,10 @@
                                                             item))
                                                         items))))]
                        (if (some (comp row-measure-aliases second) (:select restored))
-                         (group-raw-stage restored raw-measures null-columns)
+                         (let [grouped (group-raw-stage restored raw-measures null-columns)]
+                           (when *grouped-stages*
+                             (swap! *grouped-stages* conj grouped))
+                           grouped)
                          restored))
                      form))
                  from))))
@@ -1921,6 +1963,95 @@
        (needs-date-ranges preprocessed)])
     [query {} {} #{} nil]))
 
+(defn- inline-params
+  "The SQL with its parameters as literals, for a question to Cube, or nil if a parameter has another type."
+  [sql params]
+  (if (empty? params)
+    sql
+    (when (every? #(or (string? %) (number? %)) params)
+      (reduce (fn [text param]
+                (str/replace-first text "?" (java.util.regex.Matcher/quoteReplacement
+                                             (if (string? param)
+                                               (str "'" (str/replace param "'" "''") "'")
+                                               (str param)))))
+              sql
+              params))))
+
+;;; A row of a model. A later stage that filters or groups by a measure column reads the value of each row, and the driver gets it with MEASURE() and GROUP BY of the
+;;; dimensions, see group-raw-stage. If the key has NULL or repeats, and no other dimension tells two rows apart, a group is more than one row: COUNT(*) on the model then
+;;; misses rows, and the value is the sum of the group. SQL and Metabase on Postgres read each row. Cube has no other way to read the value of a row in a subquery.
+
+(defn- check-grouped-stages!
+  "Stop a query if a stage of [[group-raw-stage]] has fewer groups than rows. This asks Cube only for this shape, and each answer is at most one minute old."
+  [driver stages]
+  (let [details (:details (driver-api/database (driver-api/metadata-provider)))
+        text    (fn [form]
+                  (let [[sql & args] (sql.qp/format-honeysql driver form)]
+                    (inline-params sql args)))]
+    (doseq [{:keys [group-by] :as stage} stages]
+      (let [plain      (dissoc stage :limit :order-by :group-by)
+            rows-sql   (text (assoc plain :select [[[:count :*] :rows]]))
+            groups     (text (assoc plain
+                                    :select (vec (map-indexed (fn [i column] [column (keyword (str "c" i))]) group-by))
+                                    :group-by group-by))
+            groups-sql (when groups (format "SELECT COUNT(*) FROM (%s) AS \"groups\"" groups))]
+        (when (and rows-sql groups-sql (not (cube.probe/same-row-count? details rows-sql groups-sql)))
+          (throw (ex-info (str "This column of a measure has no value for each row here, because the primary key of the cube has NULL or repeats, and the other columns of the "
+                               "model do not tell the rows apart. The driver reads such a value with GROUP BY, so rows would join. Add a column that tells the rows apart to the "
+                               "model, or filter or group by a dimension.")
+                          {:type :invalid-query})))))))
+
+;;; Rollups that read a part of the rows. See the part on them in metabase.driver.cube.probe.
+
+(defn- table-of-stage
+  "The name of the table that this stage of honeysql reads, or nil."
+  [{[[table]] :from}]
+  (when (h2x/identifier? table)
+    (last (nth table 2))))
+
+(defn- past-rollup-filter
+  "A filter that holds for each row, on a column of `table` that the rollup does not hold, or nil. Cube cannot read it from the rollup, so it reads the source."
+  [cube-meta wrong table]
+  (when-let [column (cube.probe/column-past-rollup cube-meta table wrong)]
+    (let [identifier (h2x/identifier :field table column)]
+      [:or [:is identifier nil] [:is-not identifier nil]])))
+
+(defn- read-source-in-stages
+  "`form` with the filter of [[past-rollup-filter]] on each stage that reads a table. Throws if a table with this rollup has no such column."
+  [cube-meta wrong partial-tables form]
+  (walk/postwalk
+   (fn [stage]
+     (if-let [table (when (map? stage) (some-> (table-of-stage stage) not-empty))]
+       (if (partial-tables (str/lower-case table))
+         (if-let [every-row (past-rollup-filter cube-meta wrong table)]
+           (update stage :where #(if % [:and % every-row] every-row))
+           (throw (ex-info (format "%s Cube would give a part of the rows with no error, and each column of this table is in the rollup, so the driver cannot read the source. Add a date filter in the range of the rollup, or change the rollup."
+                                   (:reason wrong))
+                           {:type :invalid-query})))
+         stage)
+       stage))
+   form))
+
+(defn- format-past-wrong-rollup
+  "The SQL and the parameters of `form`. If Cube would read it from a rollup that does not hold each row of the query, this makes Cube read the source, which has them."
+  [driver form]
+  (let [[sql & args] (sql.qp/format-honeysql driver form)
+        cube-meta    (current-meta)
+        details      (:details (driver-api/database (driver-api/metadata-provider)))
+        zone         (str (session-zone))
+        wrong        (when-let [text (when cube-meta (inline-params sql args))]
+                       (cube.probe/wrong-rollup details cube-meta text zone))]
+    (if-not wrong
+      [sql args]
+      (let [partial-tables       (cube.meta/tables-with-partial-rollups cube-meta)
+            [new-sql & new-args] (sql.qp/format-honeysql driver (read-source-in-stages cube-meta wrong partial-tables form))]
+        (when-let [text (inline-params new-sql new-args)]
+          (when-let [still (cube.probe/wrong-rollup details cube-meta text zone)]
+            (throw (ex-info (format "%s Cube would give a part of the rows with no error, and it does not read the source for this query. Add a date filter in the range of the rollup, or change the rollup."
+                                    (:reason still))
+                            {:type :invalid-query}))))
+        [new-sql new-args]))))
+
 (defmethod driver/mbql->native :cube
   [driver query]
   (binding [*week-numbers* (atom [])
@@ -1933,11 +2064,14 @@
                                   *row-measures*        row-measures
                                   *keep-date-ranges*    date-ranges]
                           (sql.qp/mbql->honeysql driver query))
-          honeysql-form (restore-nested-measures honeysql-form @*raw-measures* @*row-measure-aliases* @*null-columns*)
+          grouped-stages (atom [])
+          honeysql-form (binding [*grouped-stages* grouped-stages]
+                          (restore-nested-measures honeysql-form @*raw-measures* @*row-measure-aliases* @*null-columns*))
+          _             (check-grouped-stages! driver @grouped-stages)
           honeysql-form (if (and (map? honeysql-form) (seq @*week-numbers*))
                           (nest-all-week-numbers driver honeysql-form @*week-numbers*)
                           honeysql-form)
-          [sql & args]  (sql.qp/format-honeysql driver honeysql-form)]
+          [sql args]    (format-past-wrong-rollup driver honeysql-form)]
       {:query sql, :params args})))
 
 ;;; Parts of a date. Cube runs EXTRACT over a CubeScan as post-processing, which reads at most CUBEJS_DB_QUERY_LIMIT rows
@@ -2198,14 +2332,41 @@
   [query]
   (contains? #{:table-rows-sample :fingerprint} (-> query :info :context)))
 
+(defn- check-native-rollup!
+  "Native SQL has no stage to add a filter to, so the driver stops it if Cube would read it from a rollup that does not hold each row of the query."
+  [details cube-meta sql params]
+  (when-let [text (inline-params sql params)]
+    (when-let [{:keys [reason]} (cube.probe/wrong-rollup details cube-meta text (str (session-zone)))]
+      (throw (ex-info (format "%s Cube would give a part of the rows with no error. Add a date filter in the range of the rollup that fits its buckets, or a filter on a column that the rollup does not hold, so that Cube reads the source."
+                              reason)
+                      {:type :invalid-query})))))
+
+(defn- check-native-count-of-null-key!
+  "See [[check-no-count-of-null-key!]]. MEASURE() names a measure of type count of a table in this text."
+  [details cube-meta sql]
+  (let [words    (set (map str/lower-case (re-seq #"\w+" sql)))
+        measures (map (comp str/lower-case second)
+                      (re-seq #"(?i)\bmeasure\s*\(\s*(?:\"?\w+\"?\s*\.\s*)?\"?(\w+)\"?\s*\)" sql))]
+    (doseq [cube    (:cubes cube-meta)
+            :when   (words (str/lower-case (:name cube)))
+            measure measures
+            :let    [[cube-name plain] (cube.meta/key-count-measure cube-meta (str (:name cube) "." measure))]
+            :when   (and plain (cube.probe/null-key-rows? details cube-name plain))]
+      (throw (ex-info (format (str "%s counts the primary key of the cube, and some rows have a NULL key, so it would miss these rows. Use COUNT(*), or give the cube a key "
+                                   "with no NULL.")
+                              measure)
+                      {:type :invalid-query})))))
+
 (defn- check-sql!
   "Stop a shape of SQL text that gives a wrong number. Sync reads samples of a table and does not need this."
   [{{sql :query, params :params} :native, :as query}]
   (when-not (sync-query? query)
     (when-let [cube-meta (current-meta)]
       (if (native-only? query)
-        (cube.native/check-native! cube-meta sql (or params [])
-                                   (native-questions (:details (driver-api/database (driver-api/metadata-provider))) cube-meta))
+        (let [details (:details (driver-api/database (driver-api/metadata-provider)))]
+          (cube.native/check-native! cube-meta sql (or params []) (native-questions details cube-meta))
+          (check-native-rollup! details cube-meta sql params)
+          (check-native-count-of-null-key! details cube-meta sql))
         (cube.native/check-paths! cube-meta sql)))))
 
 (defn- with-count-on-no-rows

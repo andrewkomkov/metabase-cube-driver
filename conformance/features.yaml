@@ -4649,12 +4649,14 @@
   status: pass
   status_stock: pass
   check: filter.aggregation_on_a_join_of_a_view_refused
-- id: measure.time_type_in_a_report_zone_refused
+- id: measure.time_type_in_a_report_zone
   area: cube.measures
-  title: "a measure of type time stops under a report time zone"
+  title: "a measure of type time under a report time zone"
   status: pass
-  status_stock: pass
-  check: measure.time_type_in_a_report_zone_refused
+  status_stock: partial
+  check: measure.time_type_in_a_report_zone
+  cap_stock: partial
+  reason_stock: "Stock Cube prints the clock of the zone of the column, and it does not show that zone, so the driver stops each plain measure of type time under a report time zone. The dialect reads it in the zone. A measure that reads SQL_UTILS.convertTz needs no dialect."
 - id: grid.compact.mcp
   area: grid
   title: "a compact form of the review grid through MCP"
@@ -5858,7 +5860,7 @@
   status_stock: partial
   check: preagg.build_range.date_range_over_the_end_reads_only_the_range
   cap: partial
-  reason: "The docs warn that Cube does not return rows out of the build range. Buckets after the end are not in the result, with no error. Use rollup_lambda, or a build range over all rows."
+  reason: "The docs warn that Cube does not return rows out of the build range. On the REST API of Cube, buckets after the end are not in the result, with no error, and no driver stands in front of it. In Metabase, preagg.build_range.metabase_gives_rows_out_of_the_range gives the truth."
 - id: preagg.build_range.inside_hit
   area: cube.pre_aggregations
   title: "preagg build range inside hit"
@@ -5872,7 +5874,7 @@
   status_stock: partial
   check: preagg.build_range.whole_table_reads_only_the_range
   cap: partial
-  reason: "The docs warn that Cube does not return rows out of the build range. The rollup gives the sum of the range with no error. Use rollup_lambda, or a build range over all rows. The driver cannot see the range, because /meta has no such field."
+  reason: "The docs warn that Cube does not return rows out of the build range. The REST API of Cube gives the sum of the range with no error, and no driver stands in front of it. In Metabase, preagg.build_range.metabase_gives_rows_out_of_the_range gives the truth."
 - id: preagg.granularity.day_hit
   area: cube.pre_aggregations
   title: "preagg granularity day hit"
@@ -6278,7 +6280,7 @@
   status_stock: partial
   check: preagg.option.non_strict_inside_a_bucket_reads_whole_buckets
   cap: partial
-  reason: "allow_non_strict_date_range_match: true on a rollup is the slight discrepancy of the docs. With a range inside a bucket, the rollup gives other rows than the truth, with no error. The env var that this stack and docs/query-compilation.md set to false does not change a rollup with this key."
+  reason: "allow_non_strict_date_range_match: true on a rollup is the slight discrepancy of the docs. With a range inside a bucket, the rollup gives other rows than the truth, with no error. The env var that this stack and docs/query-compilation.md set to false does not change a rollup with this key. No driver stands in front of the REST API. In Metabase, preagg.option.non_strict_metabase_gives_a_range_inside_a_bucket gives the truth."
 - id: preagg.option.non_strict_on_a_boundary_hit
   area: cube.pre_aggregations
   title: "preagg option non strict on a boundary hit"
@@ -6764,7 +6766,7 @@
   status_stock: partial
   check: preagg.type.rollup_lambda_gap_loses_the_last_partition
   cap: partial
-  reason: "Cube reads each rollup of a rollup_lambda only up to the start of its last partition. If the next rollup does not hold that partition, those rows are not in the result, with no error. The docs say that the speed layer must hold the newer data. The model must overlap, see preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit."
+  reason: "Cube reads each rollup of a rollup_lambda only up to the start of its last partition. If the next rollup does not hold that partition, those rows are not in the result, with no error. The docs say that the speed layer must hold the newer data. The model must overlap, see preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit. No driver stands in front of the REST API. In Metabase, preagg.type.rollup_lambda_gap_metabase_gives_the_last_partition gives the truth."
 - id: preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit
   area: cube.pre_aggregations
   title: "preagg type rollup lambda of two rollups with overlap hit"
@@ -8300,6 +8302,50 @@
 - id: preagg.empty_text_stays_apart_from_null
   area: cube.pre_aggregations
   title: "a rollup keeps an empty text apart from NULL"
-  status: blocked
-  status_stock: blocked
-  reason: "Cube loads a rollup as CSV, and Cube Store reads an empty value as NULL, also a quoted one. So a group of empty text joins the group of NULL, and a filter on an empty text finds no rows, with no error. The driver cannot see this, and the dialect cannot change the parser of Cube Store. It needs a change in Cube Store."
+  status: pass
+  status_stock: partial
+  check: preagg.empty_text_stays_apart_from_null
+  cap_stock: partial
+  reason_stock: "Cube loads a rollup as CSV, and Cube Store reads an empty value as NULL, also a quoted one, so a group of empty text joins the group of NULL, with no error. The result does not show which rows were empty, so the driver cannot see this. The dialect sends these rows with INSERT, which keeps them."
+- id: nested.model.count_keeps_rows_with_a_null_key
+  area: metabase.models
+  title: "COUNT(*) on a model counts a row with a NULL key"
+  status: pass
+  status_stock: pass
+  check: nested.model.count_keeps_rows_with_a_null_key
+- id: nested.model.row_value_with_a_null_key_refused
+  area: metabase.models
+  title: "a filter on a measure column stops if a group of a model is more than one row"
+  status: pass
+  status_stock: pass
+  check: nested.model.row_value_with_a_null_key_refused
+- id: measure.count_with_a_null_key_refused
+  area: cube.measures
+  title: "a measure of type count stops if some rows have a NULL key"
+  status: pass
+  status_stock: pass
+  check: measure.count_with_a_null_key_refused
+- id: preagg.build_range.metabase_gives_rows_out_of_the_range
+  area: cube.pre_aggregations
+  title: "Metabase gives rows out of the build range of a rollup"
+  status: pass
+  status_stock: pass
+  check: preagg.build_range.metabase_gives_rows_out_of_the_range
+- id: preagg.option.non_strict_metabase_gives_a_range_inside_a_bucket
+  area: cube.pre_aggregations
+  title: "Metabase gives a range inside a bucket of a rollup with allow_non_strict_date_range_match"
+  status: pass
+  status_stock: pass
+  check: preagg.option.non_strict_metabase_gives_a_range_inside_a_bucket
+- id: preagg.type.rollup_lambda_gap_metabase_gives_the_last_partition
+  area: cube.pre_aggregations
+  title: "Metabase gives the rows of a gap of a rollup_lambda"
+  status: pass
+  status_stock: pass
+  check: preagg.type.rollup_lambda_gap_metabase_gives_the_last_partition
+- id: sync.private_primary_key_keeps_the_foreign_key
+  area: metabase.sync
+  title: "a private primary key keeps its foreign key and stays out of Metabase"
+  status: pass
+  status_stock: pass
+  check: sync.private_primary_key_keeps_the_foreign_key
