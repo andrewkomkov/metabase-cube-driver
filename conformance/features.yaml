@@ -8305,3 +8305,9 @@
   status: pass
   status_stock: pass
   check: filter_params.condition.other_operator
+- id: preagg.empty_text_stays_apart_from_null
+  area: cube.pre_aggregations
+  title: "a rollup keeps an empty text apart from NULL"
+  status: blocked
+  status_stock: blocked
+  reason: "Cube loads a rollup as CSV, and Cube Store reads an empty value as NULL, also a quoted one. So a group of empty text joins the group of NULL, and a filter on an empty text finds no rows, with no error. The driver cannot see this, and the dialect cannot change the parser of Cube Store. It needs a change in Cube Store."
