@@ -554,7 +554,8 @@
           ;; The time of the session, also for a relative bound: Cube reads the two bounds of a date range in that zone.
           (postgres-clause driver [op opts field (at-time t)])
           (let [compiled (postgres-clause driver [op opts field (at-time (utc-time t))])]
-            (if (or *inside-not* *inside-case*)
+            ;; `x != t` keeps NULL, and Cube merges no range from it.
+            (if (or *inside-not* *inside-case* (= :!= op))
               compiled
               (not-merged driver field compiled))))))))
 

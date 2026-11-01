@@ -1,0 +1,30 @@
+{
+ "found": {
+  "diff": "row 0: got [834], truth ['1000']",
+  "error": null,
+  "index": 660,
+  "seed": "7603",
+  "truth_sql": "SELECT count() AS c0 FROM shop.typed_events t WHERE (toTimeZone(t.n_ts, 'America/New_York') != toDateTime64('2030-01-01 00:00:00', 3, 'America/New_York') OR t.n_ts IS NULL) SETTINGS join_use_nulls = 1",
+  "verdict": "wrong"
+ },
+ "spec": {
+  "agg": [
+   {
+    "m": "count"
+   }
+  ],
+  "by": [],
+  "source": "typed_events",
+  "week": null,
+  "where": [
+   {
+    "c": "n_ts",
+    "op": "!=",
+    "v": [
+     "2030-01-01T00:00:00"
+    ]
+   }
+  ],
+  "zone": "America/New_York"
+ }
+}
