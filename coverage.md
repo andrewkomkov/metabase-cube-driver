@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1303/1343 pass on Cube with the ClickHouse dialect** (1303 pass, 23 partial, 2 blocked, 12 unsupported, 3 fail of 1343)
+**coverage: 1303/1343 pass on Cube with the ClickHouse dialect** (1303 pass, 24 partial, 2 blocked, 12 unsupported, 2 fail of 1343)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `502f8bc85273`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41264261089), 2026-11-01.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `f99f8be64e94`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41289609833), 2026-11-01.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -638,7 +638,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `502f8
 | `compile.join.explicit_measure_regular` | pass |  |
 | `compile.ch.integer_within_double` | pass |  |
 | `compile.xray.table_all_cards_run` | pass |  |
-| `compile.xray.field_all_cards_run` | fail | 1 of 15 cards failed: [('Status by User → Signup Cohort', 'no truth for the column users.signup_cohort of the card')] |
+| `compile.xray.field_all_cards_run` | partial | The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) can stop. Stock Cube adds each row of the joined cube once. So it gives another number, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. The check accepts this message or a number equal to the truth. |
 | `compile.xray.time_field_all_cards_run` | partial | The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) can stop. Stock Cube adds each row of the joined cube once. So it gives another number, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. The check accepts this message or a number equal to the truth. |
 | `compile.xray.typed_table_all_cards_run` | pass |  |
 | `compile.granularity.native_offset_no_rollup` | pass |  |
@@ -1297,12 +1297,12 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `502f8
 | `zone.kol.rollup.stored_day` | pass |  |
 | `zone.kol.rollup.text_day` | pass |  |
 | `zone.ny.stored_day_other_zone` | pass |  |
-| `zone.ny.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-01T02:46:43.546280672Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr |
+| `zone.ny.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-01T09:20:56.10116927Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_at is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wrong. |
 | `zone.ny.native` | pass |  |
 | `zone.ny.mcp` | pass |  |
 | `zone.ny.catalog` | pass |  |
 | `zone.kol.stored_day_other_zone` | pass |  |
-| `zone.kol.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-01T02:46:54.363403047Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr |
+| `zone.kol.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-01T09:21:09.508696793Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_at is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wrong |
 | `zone.kol.native` | pass |  |
 | `zone.kol.mcp` | pass |  |
 | `zone.kol.catalog` | pass |  |

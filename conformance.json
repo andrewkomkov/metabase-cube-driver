@@ -2,10 +2,10 @@
   "schema": 1,
   "counts": {
     "pass": 1303,
-    "partial": 23,
+    "partial": 24,
     "blocked": 2,
     "unsupported": 12,
-    "fail": 3,
+    "fail": 2,
     "total": 1343
   },
   "coverage": "coverage: 1303/1343 pass on Cube with the ClickHouse dialect",
@@ -3162,8 +3162,8 @@
     },
     {
       "id": "compile.xray.field_all_cards_run",
-      "status": "fail",
-      "reason": "1 of 15 cards failed: [('Status by User \u2192 Signup Cohort', 'no truth for the column users.signup_cohort of the card')]"
+      "status": "partial",
+      "reason": "The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) can stop. Stock Cube adds each row of the joined cube once. So it gives another number, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. The check accepts this message or a number equal to the truth."
     },
     {
       "id": "compile.xray.time_field_all_cards_run",
@@ -6458,7 +6458,7 @@
     {
       "id": "zone.ny.time_measure",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-01T02:46:43.546280672Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-01T09:20:56.10116927Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_at is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wrong."
     },
     {
       "id": "zone.ny.native",
@@ -6483,7 +6483,7 @@
     {
       "id": "zone.kol.time_measure",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-01T02:46:54.363403047Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_local is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wr"
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-01T09:21:09.508696793Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_at is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wrong"
     },
     {
       "id": "zone.kol.native",
