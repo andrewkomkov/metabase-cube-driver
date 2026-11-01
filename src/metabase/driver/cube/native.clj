@@ -841,13 +841,33 @@
                                :else                                            in-from?)))))))
 
 (defn- star-of-select?
-  "True if the `*` at `i` is a whole list of columns: after SELECT, DISTINCT, a comma or a dot, and before FROM, a comma or the end."
+  "True if the `*` at `i` is a whole list of columns: after SELECT, DISTINCT, a comma or a dot."
   [toks i]
   (and (= "*" (:text (get toks i)))
        (let [before (get toks (dec i))]
          (or (= "." (:text before))
              (= "," (:text before))
              (and (= :word (:kind before)) (#{"select" "distinct"} (:text before)))))))
+
+(defn- tables-of-star
+  "The tables that the `*` at `i` reads directly: those of the FROM of its own SELECT, with no subquery. A subquery lists its own columns, and the scan reads them there. `alias.*`
+  reads the table of that alias."
+  [toks tables i]
+  (if (= "." (:text (get toks (dec i))))
+    (keep tables [(:text (get toks (- i 2)))])
+    (loop [j (inc i), depth 0, in-from? false, out []]
+      (let [{:keys [kind text] :as tok} (get toks j)]
+        (cond
+          (or (nil? tok) (neg? depth)) out
+          (= "(" text)                 (recur (inc j) (inc depth) in-from? out)
+          (= ")" text)                 (recur (inc j) (dec depth) in-from? out)
+          (pos? depth)                 (recur (inc j) depth in-from? out)
+          (and (= :word kind) (#{"from" "join"} text)) (let [[table after] (table-at toks (inc j))]
+                                                         (recur (or after (inc j)) depth true (cond-> out table (conj table))))
+          (and in-from? (= "," text))  (let [[table after] (table-at toks (inc j))]
+                                         (recur (or after (inc j)) depth true (cond-> out table (conj table))))
+          (and (= :word kind) (#{"where" "group" "order" "having" "limit" "union"} text)) out
+          :else                        (recur (inc j) depth in-from? out))))))
 
 (defn check-no-private-member!
   "Cube in dev mode reads a member that it marks private, and a cube that it hides, so the driver does not send a name of one. This scans each query. MBQL always writes a
@@ -879,10 +899,12 @@
                 :when (hidden table)]
           (refuse! (format "%s is private in the Cube data model, so it has no values here. A Cube in dev mode reads private cubes, so do not run dev mode in production."
                            table)))
-        (when (some #(seq (get (cube.meta/private-members cube-meta :in-cube-only? true) %)) read-from)
+        (let [with-columns (cube.meta/private-members cube-meta :in-cube-only? true)]
           (doseq [i (range (count toks))
-                  :when (star-of-select? toks i)]
-            (refuse! "A table of this query has private members in the Cube data model, and a Cube in dev mode gives them for *. List the columns.")))
+                  :when (star-of-select? toks i)
+                  table (tables-of-star toks tables i)
+                  :when (seq (get with-columns table))]
+            (refuse! (format "%s has private members in the Cube data model, and a Cube in dev mode gives them for *. List the columns." table))))
         (doseq [i (range (count toks))
                 :let [{:keys [kind text]} (get toks i)]
                 :when (contains? #{:word :ident} kind)]

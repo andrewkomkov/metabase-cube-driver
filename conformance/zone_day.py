@@ -610,7 +610,8 @@ class Grid:
                          ("Metabase", lambda: self.metabase(ctx, cube, zone, [member], "day", None, None, "at", (), None)))
                 for name, got in ((n, fetch()) for n, fetch in pairs):
                     for key, truth in local.items():
-                        if dt.datetime.fromisoformat(got[key][member]) != dt.datetime.fromisoformat(truth):
+                        # A truth is the clock of the zone. Metabase also gives the offset, as it does for a time dimension.
+                        if dt.datetime.fromisoformat(got[key][member]).replace(tzinfo=None) != dt.datetime.fromisoformat(truth):
                             raise self.run.Fail("%s %s %s: %s is %s, truth %s" % (form, name, member, key, got[key][member], truth))
 
     def native(self, ctx, p):

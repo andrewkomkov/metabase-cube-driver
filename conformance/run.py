@@ -5915,7 +5915,7 @@ def _(ctx):
     rows = ctx.mb.mbql(ORD, agg=["m:orders.min_amount", "m:orders.max_amount", "m:orders.first_order_at"], where=[["=", "d:orders.status", "no such status"]])["rows"]
     if DIALECT and rows != [[None, None, None]]:
         raise Fail("got %s, truth NULL" % rows)
-    if not DIALECT and rows != [[0.0, 0.0, "1970-01-01T00:00:00.000"]] and rows != [[None, None, None]]:
+    if not DIALECT and rows != [[0.0, 0.0, "1970-01-01T00:00:00Z"]] and rows != [[None, None, None]]:
         raise Fail("got %s, the known value on stock Cube is 0, 0 and 1970-01-01" % rows)
 
 Q("filter.case_dimension_on_raw_rows", ORD, "SELECT id, if(quantity >= 3, 'large', 'small') FROM orders WHERE id <= 3",
@@ -6341,16 +6341,30 @@ def _(ctx):
 @check("preagg.original_sql")
 def _(ctx):
     """m5. The dialect builds an original_sql pre-aggregation and a rollup over it. Stock Cube stops each form on ClickHouse with its own error."""
+    # These cubes are private, and the driver stops native SQL on a private cube, so this asks the SQL API of Cube with no driver.
+    def sql_api(sql):
+        status, reply, _h = http("POST", CUBE + "/cubejs-api/v1/cubesql", {"query": sql})
+        lines = [json.loads(line) for line in reply.splitlines() if line.strip()]
+        error = next((line["error"] for line in lines if "error" in line), None)
+        if status != 200 or error:
+            return None, str(error or reply[:300])
+        return [row for line in lines for row in line.get("data", [])], None
+
     sql = "SELECT status, MEASURE(revenue) FROM original_sql_orders GROUP BY 1"
     truth = "SELECT status, sum(amount) FROM orders GROUP BY status"
     if DIALECT:
-        expect_native_rows(ctx, sql, truth)
+        for text in (sql, "SELECT status, MEASURE(revenue) FROM lambda_orders GROUP BY 1"):
+            rows, error = sql_api(text)
+            if error:
+                raise Fail("%s: %s" % (text, error[:300]))
+            assert_rows(rows, ch(truth), label=text[:80])
         used_rollup({"measures": ["original_sql_orders.revenue"], "dimensions": ["original_sql_orders.status"]}, "base")(ctx, None)
-        expect_native_rows(ctx, "SELECT status, MEASURE(revenue) FROM lambda_orders GROUP BY 1", truth)
         used_rollup({"measures": ["lambda_orders.revenue"], "dimensions": ["lambda_orders.status"]}, "daily")(ctx, None)
     else:
-        expect_native_refusal(ctx, sql, "Missing columns")
-        rows, error = native_outcome(ctx, "SELECT status, MEASURE(revenue) FROM lambda_orders GROUP BY 1", None, None)
+        rows, error = sql_api(sql)
+        if error is None or "Missing columns" not in error:
+            raise Fail("stock Cube on an original_sql rollup gives: %s" % (error or rows))
+        rows, error = sql_api("SELECT status, MEASURE(revenue) FROM lambda_orders GROUP BY 1")
         if error is None:
             raise Fail("a rollup over original_sql now works on stock Cube: %s" % rows[:3])
 
@@ -8762,21 +8776,21 @@ def _(ctx):
             assert_rows(ctx.mb.mbql("lambda_sales", agg=["m:lambda_sales.revenue"])["rows"], ch("SELECT sum(amount) FROM orders"), label="%s total" % zone)
 
 
-PAID = "orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'"
-JOINED = "orders o JOIN users u ON o.user_id = u.id"
-Q("compile.two_stages.default_filters_month_of_year", "paid_sales", "SELECT toMonth(o.created_at), sum(o.amount) FROM %s GROUP BY 1" % PAID,
+PAID_SALES_JOIN = "orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'"
+ORDERS_USERS_JOIN = "orders o JOIN users u ON o.user_id = u.id"
+Q("compile.two_stages.default_filters_month_of_year", "paid_sales", "SELECT toMonth(o.created_at), sum(o.amount) FROM %s GROUP BY 1" % PAID_SALES_JOIN,
   agg=["m:paid_sales.net_sales"], by=["d:paid_sales.created_at@month-of-year"])
-Q("compile.two_stages.default_filters_day_of_week", "paid_sales", "SELECT toDayOfWeek(o.created_at) % 7 + 1, sum(o.amount) FROM " + PAID + " GROUP BY 1",
+Q("compile.two_stages.default_filters_day_of_week", "paid_sales", "SELECT toDayOfWeek(o.created_at) % 7 + 1, sum(o.amount) FROM " + PAID_SALES_JOIN + " GROUP BY 1",
   agg=["m:paid_sales.net_sales"], by=["d:paid_sales.created_at@day-of-week"])
-Q("compile.two_stages.default_filters_text_filter", "paid_sales", "SELECT u.city, sum(o.amount) FROM %s AND u.city = 'Chicago' GROUP BY 1" % PAID,
+Q("compile.two_stages.default_filters_text_filter", "paid_sales", "SELECT u.city, sum(o.amount) FROM %s AND u.city = 'Chicago' GROUP BY 1" % PAID_SALES_JOIN,
   agg=["m:paid_sales.net_sales"], by=["d:paid_sales.users_city"], where=[["starts-with", "d:paid_sales.users_city", "Chi"]])
-Q("compile.two_stages.default_filters_distinct_next_to_a_measure", "paid_sales", "SELECT u.city, uniqExact(o.status), sum(o.amount) FROM %s GROUP BY 1" % PAID,
+Q("compile.two_stages.default_filters_distinct_next_to_a_measure", "paid_sales", "SELECT u.city, uniqExact(o.status), sum(o.amount) FROM %s GROUP BY 1" % PAID_SALES_JOIN,
   agg=[["distinct", "d:paid_sales.status"], "m:paid_sales.net_sales"], by=["d:paid_sales.users_city"])
-Q("compile.two_stages.count_where_on_a_joined_column", "orders", "SELECT toString(o.status), countIf(u.is_vip) FROM %s GROUP BY 1" % JOINED,
+Q("compile.two_stages.count_where_on_a_joined_column", "orders", "SELECT toString(o.status), countIf(u.is_vip) FROM %s GROUP BY 1" % ORDERS_USERS_JOIN,
   agg=[["count-where", ["=", "d:orders>users.is_vip", True]]], by=["d:orders.status"])
-Q("compile.two_stages.count_where_on_a_view_of_a_join", "sales", "SELECT toString(o.status), countIf(u.city = 'Austin') FROM %s GROUP BY 1" % JOINED,
+Q("compile.two_stages.count_where_on_a_view_of_a_join", "sales", "SELECT toString(o.status), countIf(u.city = 'Austin') FROM %s GROUP BY 1" % ORDERS_USERS_JOIN,
   agg=[["count-where", ["=", "d:sales.users_city", "Austin"]]], by=["d:sales.status"])
-Q("compile.two_stages.share_on_a_view_of_a_join", "sales", "SELECT toString(o.status), countIf(u.city = 'Austin') / count() FROM %s GROUP BY 1" % JOINED, tol=1e-9,
+Q("compile.two_stages.share_on_a_view_of_a_join", "sales", "SELECT toString(o.status), countIf(u.city = 'Austin') / count() FROM %s GROUP BY 1" % ORDERS_USERS_JOIN, tol=1e-9,
   agg=[["share", ["=", "d:sales.users_city", "Austin"]]], by=["d:sales.status"])
 Q("compile.two_stages.case_with_two_branches", ORD, "SELECT multiIf(amount > 500, 'big', amount > 100, 'mid', 'low') AS k, count() FROM orders GROUP BY k",
   agg=[["count"]], exprs={"k": ["case", [[[">", "d:orders.amount_dim", 500], "big"], [[">", "d:orders.amount_dim", 100], "mid"]], {"default": "low"}]}, by=[["expression", "k"]])
@@ -8824,8 +8838,9 @@ def _(ctx):
 def _(ctx):
     """A time measure comes from Cube as text. It must have the offset that a time dimension has, or a client that parses it reads another instant."""
     ensure_table(ctx, "ny_a")
+    # Stock Cube stops a plain time measure under a report time zone. A measure that reads convertTz works on both.
     with report_zone(ctx, "America/New_York"):
-        value = ctx.mb.mbql("ny_a", agg=["m:ny_a.m_last_at"])["rows"][0][0]
+        value = ctx.mb.mbql("ny_a", agg=["m:ny_a.m_last_local"])["rows"][0][0]
     if not str(value).endswith("-05:00"):
         raise Fail("a time measure in New York in January has the value %s" % value)
     if ch("SELECT toString(max(ts)) FROM zone_events")[0][0].replace(" ", "T")[:19] != "2026-01-10T17:06:51":
