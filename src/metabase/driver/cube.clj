@@ -491,7 +491,7 @@
       on-column)))
 
 (def ^:private goes-to-the-database
-  #{:contains :starts-with :ends-with :does-not-contain :temporal-extract :sum-where :count-where :share :distinct-where :case :binning
+  #{:not :or :contains :starts-with :ends-with :does-not-contain :temporal-extract :sum-where :count-where :share :distinct-where :case :binning
     :+ :- :* :/ :minute-of-hour :hour-of-day :day-of-week :day-of-month :day-of-year :week-of-year :month-of-year :quarter-of-year})
 
 (defn- reads-the-database?
@@ -1027,17 +1027,29 @@
   (or (some #(= :measure (field-kind (column-field earlier %))) (concat (row-value-clauses stage) (:breakout stage)))
       (some :expressions earlier)))
 
+(declare time-field?)
+
 (defn- check-no-time-measure-in-zone!
-  "Cube makes each time dimension local to the report time zone, and it leaves the value of a measure with `type: time` in UTC."
+  "Cube makes each time dimension local to the report time zone, and it leaves the value of a measure with `type: time` in UTC, unless the SQL of the
+  measure reads SQL_UTILS.convertTz. A distinct count of a time counts the clock, so two rows in the repeated hour of a clock change count once."
   [stages]
   (when (report-zone?)
-    (doseq [[_agg-type field] (aggregated-fields (pop stages) (peek stages))
-            :when (and (= :measure (field-kind field))
-                       (isa? (:base-type field) :type/Temporal))]
-      (throw (ex-info (format (str "%s is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be "
-                                   "wrong. Remove the report time zone, or use min or max of the time column.")
-                              (:name field))
-                      {:type :invalid-query})))))
+    (doseq [[agg-type field] (aggregated-fields (pop stages) (peek stages))]
+      (when (and (= :measure (field-kind field))
+                 (isa? (:base-type field) :type/Temporal)
+                 (not (some-> (current-meta) (cube.meta/measure-in-query-zone? (full-member-name field)))))
+        (throw (ex-info (format (str "%s is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be "
+                                     "wrong. Remove the report time zone, use min or max of the time column, or read the time with "
+                                     "SQL_UTILS.convertTz in the SQL of the measure.")
+                                (:name field))
+                        {:type :invalid-query})))
+      (when (and (= :distinct agg-type)
+                 (time-field? field)
+                 (not (.isFixedOffset (.getRules (session-zone)))))
+        (throw (ex-info (format (str "Cube counts the clock of %s in the report time zone, so two rows in the repeated hour of a clock change "
+                                     "count once. Remove the report time zone, or count a dimension with another type.")
+                                (:name field))
+                        {:type :invalid-query}))))))
 
 (defn- check-no-time-filter-over-aggregation-in-zone!
   "A filter on a time of an aggregated stage goes to the database or to a rollup. The database reads the literal as UTC and a rollup reads it in the

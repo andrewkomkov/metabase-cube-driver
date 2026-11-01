@@ -6893,10 +6893,8 @@
   area: cube.zone_day
   title: "New York day from a UTC DateTime64, Metabase report time zone: each metric by day"
   status: pass
-  status_stock: partial
+  status_stock: pass
   check: zone.ny.a64.report.day
-  cap_stock: partial
-  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
 - id: zone.ny.a64.report.coarse
   area: cube.zone_day
   title: "New York day from a UTC DateTime64, Metabase report time zone: week, month, quarter and year"
@@ -6907,10 +6905,8 @@
   area: cube.zone_day
   title: "New York day from a UTC DateTime64, Metabase report time zone: a date filter"
   status: pass
-  status_stock: partial
+  status_stock: pass
   check: zone.ny.a64.report.filter
-  cap_stock: partial
-  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
 - id: zone.ny.a64.report.stages
   area: cube.zone_day
   title: "New York day from a UTC DateTime64, Metabase report time zone: multi-stage metrics"
@@ -7521,10 +7517,8 @@
   area: cube.zone_day
   title: "Kolkata day from a UTC DateTime64, Metabase report time zone: each metric by day"
   status: pass
-  status_stock: partial
+  status_stock: pass
   check: zone.kol.a64.report.day
-  cap_stock: partial
-  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
 - id: zone.kol.a64.report.coarse
   area: cube.zone_day
   title: "Kolkata day from a UTC DateTime64, Metabase report time zone: week, month, quarter and year"
@@ -7535,10 +7529,8 @@
   area: cube.zone_day
   title: "Kolkata day from a UTC DateTime64, Metabase report time zone: a date filter"
   status: pass
-  status_stock: partial
+  status_stock: pass
   check: zone.kol.a64.report.filter
-  cap_stock: partial
-  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
 - id: zone.kol.a64.report.stages
   area: cube.zone_day
   title: "Kolkata day from a UTC DateTime64, Metabase report time zone: multi-stage metrics"

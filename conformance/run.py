@@ -3665,6 +3665,7 @@ XRAY_COLUMNS = {
     "users": dict(
         {name: "{t}." + name for name in ("id", "name", "email", "city", "state", "is_vip", "created_at", "lifetime_orders")},
         location="concat(toString({t}.latitude), ',', toString({t}.longitude))",
+        signup_cohort="if({t}.created_at < toDateTime('2024-04-01 00:00:00', 'UTC'), 'Q1', if({t}.created_at < toDateTime('2024-07-01 00:00:00', 'UTC'), 'Q2', 'later'))",
         location__latitude="{t}.latitude", location__longitude="{t}.longitude"),
     "products": {name: "{t}." + name for name in ("id", "name", "category", "price")},
     "typed_events": dict(

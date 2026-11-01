@@ -581,6 +581,14 @@
         dimension  (first (filter #(= (str/lower-case member-name) (str/lower-case (short-name (:name %)))) dimensions))]
     (boolean (and root (cube-of dimension) (not= root (cube-of dimension))))))
 
+(defn measure-in-query-zone?
+  "True if the SQL of this measure reads SQL_UTILS.convertTz, so its value is a time in the zone of the query. A view reads its alias."
+  [cube-meta member-name]
+  (let [measures (into {} (comp (mapcat :measures) (map (juxt :name identity))) (:cubes cube-meta))
+        measure  (measures member-name)
+        source   (or (measures (:aliasMember measure)) measure)]
+    (boolean (some-> (:sql source) str (str/includes? "convertTz")))))
+
 (defn same-sql-groups
   "Sets of short names of dimensions that read another member with equal SQL, as a `sub_query` dimension does. /v1/meta has no
   other sign of a `sub_query`."
