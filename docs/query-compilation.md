@@ -123,6 +123,7 @@ These queries fail with a message that tells what to do. The message includes th
 | `distinct` of a time column, with a report time zone that has a clock change | Cube counts the clock, so two rows in the repeated hour count once. |
 | `count-where`, `sum-where` or `share` on a column of a joined cube, also a column of a view that comes from another cube than the first dimension of the view | Cube adds each row of that cube once, so the number would be wrong. |
 | A filter on a time column of a question with an aggregation, with a report time zone that is not UTC | The database reads the filter value as UTC, and a rollup reads it in the zone. So the filter can pick another bucket, and the driver cannot see which one Cube reads. A filter inside the question has no such limit. |
+| A relative date before the year 1900 | ClickHouse clips such a time with no error, so the filter compares with another date. |
 | A time shift measure with a date range that starts or ends inside a bucket, with a report time zone that is not UTC | Cube moves rows of other periods into the bucket. |
 | A time shift measure with one date bound | Cube reads a time shift only with a date range, so it gives periods outside the filter. |
 | A time shift measure with `x > t` on stock Cube | A date range on stock Cube has no form for this bound that is right for a `DateTime64`. Use `>=` with the next second, or the dialect. |
