@@ -99,6 +99,7 @@ The outer stage needs the rows of each group, so these limits apply. If one does
 
 - A measure must add up over groups: `sum`, `count`, `min` or `max`, with no rolling window and with no other measure in its SQL. A distinct count or an average stops.
 - A column that the outer stage folds must come from the cube of each measure, or from a many to one join of it, and it cannot be a `switch` dimension. Else a row of the cube is in two groups.
+- No column can read a member of a cube, as a `sub_query` dimension does, because Cube changes its value with the other columns of the query.
 - A row count needs a measure of type `count` with no filter on the first cube, and no row with a NULL key.
 - Under a report time zone, a filter on a time stays in the inner stage. If Cube cannot plan it there, the query stops. See the row on a time filter below.
 

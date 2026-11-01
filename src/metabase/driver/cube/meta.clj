@@ -697,6 +697,11 @@
   [cube-meta table-name member-name kind]
   (some-> (source-member cube-meta table-name member-name kind) :name (str/split #"\.") first))
 
+(defn dimension-reads-a-member?
+  "True if the SQL of this dimension reads a member of a cube, as a `sub_query` dimension does. Its value can depend on the other columns and the filters of the query."
+  [cube-meta table-name member-name]
+  (boolean (re-find #"\{\w+\.\w+\}" (str (:sql (source-member cube-meta table-name member-name :dimensions))))))
+
 (defn roll-up-of-measure
   "The aggregation that gives this measure from its values on smaller groups, or nil if no aggregation can. A measure that reads another measure can change with the groups."
   [cube-meta table-name member-name]

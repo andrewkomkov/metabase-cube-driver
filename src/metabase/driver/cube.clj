@@ -2300,6 +2300,11 @@
         folded    (remove #(contains? plain ((juxt (fn [c] (nth c 2)) (comp :join-alias second)) %)) dimension-clauses)
         measure-cubes (cond-> (map #(cube.meta/cube-of-member cube-meta table-name % :measures) measure-names)
                         count? (conj (second (cube.meta/row-count-measure cube-meta table-name))))]
+    ;; `users.lifetime_paid_orders` by status gave 1301 where a SQL join gives 25130: Cube changes a `sub_query` with the other columns of the query.
+    (doseq [clause dimension-clauses
+            :let [field (stored-field clause)]]
+      (when (cube.meta/dimension-reads-a-member? cube-meta (:name (driver-api/table provider (:table-id field))) (:name field))
+        (no-split!)))
     (doseq [clause folded
             :let [dimension (cube-of-field clause)
                   column    (str/lower-case (:name (stored-field clause)))]]
