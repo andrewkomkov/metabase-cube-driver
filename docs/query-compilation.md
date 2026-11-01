@@ -45,7 +45,9 @@ Set these two values on a Cube that Metabase reads. Without them, Cube returns w
 | Segment | `segment = TRUE` | Regular |
 | `count` or a count measure with no breakout | `COALESCE(x, 0)`, because a rollup gives NULL on no rows | Post-processing |
 | Native `COUNT(...)` or `MEASURE()` of a count, in a text with one `SELECT` and no grouping | `COALESCE(x, 0)`, for the same reason | Post-processing |
-| A number with a fraction in a filter on a column | `x * CAST('1.0' AS double precision) < 12.50001`. Cube sends a plain number as text, and ClickHouse cuts text to the scale of a `Decimal` column, so `x < 12.50001` reads as `x < 12.5`. | Push-down |
+| A number with a fraction in a filter on a column | `x * CAST('1.0' AS double precision) < 12.50001`. Cube sends a plain number as text, and ClickHouse cuts text to the scale of a `Decimal` column, so `x < 12.50001` reads as `x < 12.5`. On an integer column it stops with `Cannot convert string`. | Push-down |
+| `=` with 8 values or more on a number or a text column | `x IN (a, b, ...)`, because a list of `OR` stops at about 100 values. With a number that has a fraction, `x * CAST('1.0' AS double precision) IN (...)`, for the reason above. | Regular, or push-down with a fraction |
+| A native `x = n`, `x IN (...)` or `x BETWEEN a AND b`, with a number that has a fraction, on a number dimension | The driver adds `* CAST('1.0' AS double precision)` after the column, for the reason above. So a rollup does not serve this filter. | Push-down |
 | Date filter value | `TIMESTAMP '2025-03-15 05:00:00'` as text in the SQL, not a query parameter. A parameter makes post-processing fail with `Can't parse date: 'replaced_placeholder'` | Same as the query |
 | `column > time`, `column < time` on stock Cube | `(column > time OR column IS NULL) AND column IS NOT NULL`, see [Date bounds](#date-bounds) | Regular |
 | A question or model with an aggregation, and another stage on it | The inner query has `LIMIT 2147483647`, see [Stages](#stages) | Post-processing |
@@ -92,7 +94,7 @@ Cube cannot plan some first stages, and it can plan the same query as two stages
 | Stage | Why one stage fails |
 | --- | --- |
 | A view with `default_filters`, with a part of a date, a filter that needs push-down, or `distinct` next to a measure | Cube has no push-down for such a view. It fails with `Can't detect Cube query`, or with `was used with the aggregate function`. |
-| `count-where`, `sum-where`, `share`, `sum` or `avg` on a column of a joined cube, through a many to one join | Cube adds each row of the joined cube once. The outer stage adds up the row count of the first cube, so the number is the number of a SQL join. |
+| `count`, `sum`, `avg`, `cum-sum`, `cum-count`, `count-where`, `sum-where` or `share` on a column of a joined cube, through a many to one join, also a custom column on it, a column of a view from another cube, and a later stage over raw rows | Cube reads each row of the joined cube once. `count(products.price)` gave 29 where the truth is 5000. The outer stage adds up the row count of the first cube, so the number is the number of a SQL join. A later stage over raw rows first joins the first stage. |
 | A custom column that reads one column twice, such as `case` with two branches, next to `COUNT(*)` or a `SUM` | Cube fails with `Schema contains duplicate qualified field name`. |
 
 The outer stage needs the rows of each group, so these limits apply. If one does not hold, the query keeps its message:
@@ -118,7 +120,7 @@ These queries fail with a message that tells what to do. The message includes th
 | Query | Reason |
 | --- | --- |
 | Join on columns that no join of the model compares | The driver writes `__cubeJoinField`, so Cube would use the model join. Cube refuses `JOIN ... ON a = b` on other columns in native SQL with `Can't detect Cube query`, and `CROSS JOIN ... WHERE o.other_id = u.id` applies the model join and then the filter. |
-| Sum or average of a dimension of a joined cube, when [two stages](#two-stages) cannot give it | Cube adds each row of the joined cube once. `SUM(products.price)` by a column of `orders` in one stage gives the total of the products, for each group. Add a measure, or start from the cube of the dimension. |
+| An aggregation of a dimension of a joined cube that depends on how often a row counts, when [two stages](#two-stages) cannot give it: `stddev`, `var`, `median` and `percentile` always, and `sum`, `avg`, `count`, `cum-sum`, `cum-count`, `count-where`, `sum-where` or `share` next to a measure that does not add up or on a `sub_query` dimension | Cube reads each row of the joined cube once. `SUM(products.price)` by a column of `orders` in one stage gives the total of the products, for each group. Add a measure, or start from the cube of the dimension. `min`, `max` and `distinct` do not depend on this, and they run. |
 | Join of a question, or with a filter inside the join | A subquery that lists its columns has no `__cubeJoinField`. A subquery with `SELECT *` has it, but a filter inside it applies to the whole query, so it has no use here. |
 | `median`, `percentile` | The Cube templates for ClickHouse have no `PERCENTILE_CONT`. |
 | `datetime-diff` in months, quarters, years | Cube has no form for whole months. Its `DATEDIFF` counts boundaries. |
@@ -175,7 +177,7 @@ If the rollups do not hold each row, the driver adds a filter that holds for eac
 
 ### Native SQL
 
-The driver changes native SQL in one case: it writes `COALESCE(x, 0)` around a count in a text with one `SELECT` and no grouping. It makes a cheap scan of the text, and it stops these shapes:
+The driver changes native SQL in two cases: it writes `COALESCE(x, 0)` around a count in a text with one `SELECT` and no grouping, and it writes the exact form next to a number dimension that compares with a number with a fraction. It makes a cheap scan of the text, with a lexer that reads quoted names, `E''` strings, dollar quotes and nested comments, and it stops these shapes:
 
 | Shape | Reason |
 | --- | --- |
@@ -189,7 +191,7 @@ The driver changes native SQL in one case: it writes `COALESCE(x, 0)` around a c
 | `x LIKE` a pattern with a wildcard and a letter, also `NOT LIKE`, `STRPOS(x, 'a') > 0`, `LEFT(x, n) =` and `RIGHT(x, n) =` | Cube reads these as an operator that ignores case on ClickHouse. Write `ILIKE`, or `STRPOS(x, 'a') >= 1` to keep the case. |
 | A raw select of a `switch` dimension, also `SELECT *` | Each row comes once for each value. |
 | `SELECT *` on a cube with a rolling window measure | The star reads that measure, and it needs a time bucket and a date filter. |
-| `SUM(j.x)` or `AVG(j.x)` of a dimension of a joined cube | See the table above. |
+| `SUM`, `AVG`, `COUNT`, `STDDEV` or `VARIANCE` of a dimension of a joined cube, with a table or with none, also `COUNT(c)` of a column of a view from another cube | See the table above. Native SQL has no stage that the driver can write. `MIN`, `MAX` and `COUNT(DISTINCT x)` run. |
 | With a report time zone, each filter on a time with no lower and upper bound, or next to `OR` or `NOT`, or with `DATE_TRUNC` | Cube reads a literal in the zone only in a date range, and as UTC in other forms. |
 | A cube whose SQL reads a filter as a value, with another filter on that dimension or none | See the table above. |
 
@@ -248,7 +250,7 @@ ClickHouse is fast on this table, and Metabase adds most of the time to a small 
 - The repeated hour of a clock change gives two rows with one label, such as `01:00:00-04:00`, where Metabase on Postgres labels the second row `-05:00`. Each number and the total are right. The SQL API gives a time with no offset, so the two rows have one local time, and the driver cannot tell which row is the first: a sort of the rows is not a promise of Cube, and a row can exist in only one of the two hours. A rollup by hour joins the two rows into one.
 - A masked measure with no group gives one row for each source row, all with the mask. A group or a `COUNT(*)` next to it gives one row. Cube reads the SQL of the mask as a value, and `/v1/meta` does not show that a measure has a mask.
 - `count_distinct_approx` is `uniq()` on ClickHouse. A rollup cannot store it on ClickHouse. If a rollup holds this measure, each query on the measure stops, and each run of the refresh worker stops, so each other rollup goes stale. Do not put it in a rollup. See [the audit](cube-audit.md#rollup-approx-worker).
-- A left join starts at the cube that the data model starts at. `COUNT(*)` on a left join from `products` to `orders` stops with `Can't find join path` if the model has only the join from `orders` to `products`. A measure of `orders` works, and it has no row for a product with no orders.
+- A left join starts at the cube that the data model starts at. `COUNT(*)` on a left join from `products` to `orders` stops with a clear message, from `Can't find join path`, if the model has only the join from `orders` to `products`. A measure of `orders` works, and it has no row for a product with no orders.
 - `avg` and `count_distinct` measures are not additive. A rollup with other dimensions than the query does not serve them.
 - `DATEDIFF` compares with a time literal in the week number form. The literal is in the time zone of the ClickHouse server, and the demo server has UTC. A server in another zone can move the start of a week.
 - Forms with `DATEDIFF` were tested on ClickHouse only.
@@ -270,4 +272,6 @@ The driver cannot stop these. Each number comes with no error. [Cube findings](c
 | Stock Cube: a raw `DateTime64` value | It shows whole seconds. Buckets are right. The dialect keeps the milliseconds. | `clickhouse.datetime64_millis` |
 | Native `COUNT(*)` on no rows in a text with more than one `SELECT` or with a grouping, on a cube with a rollup | `NULL` where SQL gives 0. Only a rollup gives this, because Cube reads it with `SUM`. | `native.count_on_no_rows` |
 | Native SQL in a shape that the scan does not read. The scan is not a SQL parser, and it reads the shapes in [Native SQL](#native-sql). | The same wrong numbers that the scan stops in the plain shape. | `native.bound.strict_lower_refused`, `native.subquery_filter_refused` |
+| A value of a time in the repeated hour of a clock change, under a report time zone: a measure with `type: time`, or a raw time column | The value reads 1 hour early, with the offset of the first pass: `01:00:00-04:00` where the truth is `01:00:00-05:00` in New York. The SQL API gives a time with no offset, so the driver cannot tell the two passes apart. | `zone.time_measure_repeated_hour_limit` |
+| A number with a fraction in native SQL next to a cast or a function of a `Decimal` column, such as `amount_dim::numeric = 44.001`, or next to a measure in `HAVING` | ClickHouse cuts the number to the scale of the column. The driver writes the exact form only for a plain number dimension. | None |
 | Postgres, not the main target: a rolling window with a range that starts inside a month (N1), a custom granularity in months with no rollup | Shifted buckets. See [Cube audit](cube-audit.md). | None. The suite runs on ClickHouse. |
