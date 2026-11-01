@@ -6359,7 +6359,8 @@ def _(ctx):
             rows, error = sql_api(text)
             if error:
                 raise Fail("%s: %s" % (text, error[:300]))
-            assert_rows(rows, ch(truth), label=text[:80])
+            # This API gives each number as text.
+            assert_rows([[status, float(total)] for status, total in rows], ch(truth), label=text[:80])
         used_rollup({"measures": ["original_sql_orders.revenue"], "dimensions": ["original_sql_orders.status"]}, "base")(ctx, None)
         used_rollup({"measures": ["lambda_orders.revenue"], "dimensions": ["lambda_orders.status"]}, "daily")(ctx, None)
     else:
