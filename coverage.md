@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1303/1343 pass on Cube with the ClickHouse dialect** (1303 pass, 24 partial, 2 blocked, 12 unsupported, 2 fail of 1343)
+**coverage: 1305/1343 pass on Cube with the ClickHouse dialect** (1305 pass, 24 partial, 2 blocked, 12 unsupported, 0 fail of 1343)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `f99f8be64e94`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41289609833), 2026-11-01.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `8ba58eef4822`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41292638685), 2026-11-01.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -1297,12 +1297,12 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `f99f8
 | `zone.kol.rollup.stored_day` | pass |  |
 | `zone.kol.rollup.text_day` | pass |  |
 | `zone.ny.stored_day_other_zone` | pass |  |
-| `zone.ny.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-01T09:20:56.10116927Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_at is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wrong. |
+| `zone.ny.time_measure` | pass |  |
 | `zone.ny.native` | pass |  |
 | `zone.ny.mcp` | pass |  |
 | `zone.ny.catalog` | pass |  |
 | `zone.kol.stored_day_other_zone` | pass |  |
-| `zone.kol.time_measure` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-01T09:21:09.508696793Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error compiling query: m_last_at is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wrong |
+| `zone.kol.time_measure` | pass |  |
 | `zone.kol.native` | pass |  |
 | `zone.kol.mcp` | pass |  |
 | `zone.kol.catalog` | pass |  |

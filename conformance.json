@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 1303,
+    "pass": 1305,
     "partial": 24,
     "blocked": 2,
     "unsupported": 12,
-    "fail": 2,
+    "fail": 0,
     "total": 1343
   },
-  "coverage": "coverage: 1303/1343 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1305/1343 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -6457,8 +6457,8 @@
     },
     {
       "id": "zone.ny.time_measure",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-01T09:20:56.10116927Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_at is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wrong."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "zone.ny.native",
@@ -6482,8 +6482,8 @@
     },
     {
       "id": "zone.kol.time_measure",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-01T09:21:09.508696793Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error compiling query: m_last_at is a measure of type time, and Cube gives it in UTC under a report time zone, so the time would be wrong"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "zone.kol.native",
