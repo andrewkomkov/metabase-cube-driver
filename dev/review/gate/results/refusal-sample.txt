@@ -1,0 +1,147 @@
+queries 1200 Counter({'pass': 1055, 'refused': 142, 'skip': 2, 'raw_error': 1})
+refused 142 expected by the generator 28
+
+[36, expected 0] Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+   #45 orders agg=['count'] by=[('cancel_status', None), ('amount_pct', None), ('id', 100)] where=[('<', 'id', [-1])] zone=None week=None
+   #132 orders agg=['statuses'] by=[('user_id', 25), ('created_at', 'day-of-month')] where=[('contains', 'users.city', [''])] zone=Europe/Berlin week=thursday
+   #181 orders agg=['distinct'] by=[('id', 25), ('price', None)] where=[] zone=America/New_York week=tuesday join={'to': 'products', 'strategy': 'left-join'}
+
+[16, expected 0] Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function that the
+   #38 paid_sales agg=['distinct'] by=[('users_is_vip', None)] where=[('starts-with', 'users_city', ['Chicago'])] zone=America/St_Johns week=wednesday
+   #46 paid_sales agg=['net_sales', 'count'] by=[('created_at', 'week-of-year')] where=[('not-empty', 'status', None), ('is-null', 'status', None), ('does-not-contain', 'users_city', ['Seattle'])] zone=None week=None
+   #108 paid_sales agg=['users_vip_count', 'count'] by=[('status', None), ('users_city', None)] where=[('!=', 'created_at', ['2025-06-15T11:00:00'])] zone=Australia/Sydney week=thursday
+
+[8, expected 8] X is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the
+   #30 orders agg=['revenue_mtd'] by=[] where=[('>=', 'created_at', ['2025-04-01']), ('<', 'created_at', ['2025-10-01']), ('=', 'status', ['completed'])] zone=America/St_Johns week=wednesday
+   #202 orders agg=['cumulative_count'] by=[] where=[('>=', 'created_at', ['2025-01-01']), ('<', 'created_at', ['2025-03-01'])] zone=Europe/Berlin week=monday
+   #317 orders agg=['revenue_trailing_30d'] by=[] where=[('>=', 'created_at', ['2025-06-10']), ('<', 'created_at', ['2025-06-12'])] zone=America/New_York week=wednesday
+
+[8, expected 0] Cube cannot aggregate a dimension of a view next to a measure, or a dimension that comes from a
+   #65 paid_sales agg=['distinct', 'net_sales'] by=[('users_city', None)] where=[] zone=None week=None
+   #417 paid_sales agg=['/', 'net_sales', 'distinct'] by=[('users_city', None), ('users_is_vip', None)] where=[] zone=Europe/Berlin week=sunday
+   #431 paid_sales agg=['distinct', 'net_sales'] by=[('users_is_vip', None), ('users_state', None)] where=[] zone=Europe/Berlin week=sunday
+
+[8, expected 0] Cube counts the clock of created_at in the report time zone, so two rows in the repeated hour o
+   #231 sales agg=['count', 'distinct'] by=[('products_category', None)] where=[('=', 'users_is_vip', [False])] zone=Europe/Berlin week=monday
+   #441 metric_types agg=[] by=[] where=[('<=', 'product_id', [30])] zone=Australia/Sydney week=friday stage via=question agg=['distinct', 'distinct'] by=[{'i': 2}] where=[{'i': 3, 'op': 'is-null'}]
+   #636 orders agg=['unique_customers', 'distinct'] by=[('amount_pct', None)] where=[('segment', None, None)] zone=Europe/Berlin week=None
+
+[6, expected 0] inner: Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+   #0 orphan_orders agg=['count'] by=[('id', 100)] where=[] zone=America/St_Johns week=wednesday stage via=model agg=['min'] by=[{'i': 0}] where=[{'i': 1, 'op': '<', 'v': [1000.5]}]
+   #40 orphan_orders agg=['count'] by=[('orphan_customers.name', None), ('id', 1)] where=[] zone=None week=None stage via=model agg=['avg'] by=[{'i': 1}] where=[{'i': 2, 'op': '=', 'v': [50]}]
+   #368 sales agg=['paid_share'] by=[('id', 5), ('products_category', None)] where=[] zone=None week=sunday stage via=model agg=['count'] by=[{'i': 1}] where=[]
+
+[6, expected 0] Cube counts the clock of day in the report time zone, so two rows in the repeated hour of a clo
+   #315 metric_edges agg=[] by=[] where=[] zone=America/New_York week=wednesday stage via=inline agg=['sum', 'distinct'] by=[{'i': 1, 'unit': 'quarter'}] where=[]
+   #703 metric_edges agg=['max', 'num', 'distinct'] by=[('grp', None), ('id', None)] where=[('>=', 'day', ['2025-03-01']), ('!=', 'day', ['2025-04-12']), ('>=', 'id', [1])] zone=Europe/Berlin week=saturday
+   #794 typed_events agg=['sum_dec', 'distinct', 'max'] by=[('flag', None), ('en', None)] where=[] zone=Pacific/Apia week=None
+
+[5, expected 5] X is a rolling window measure with a window of month to date, X is shorter than a quarter. Cube
+   #106 metric_types agg=['m_rev_mtd'] by=[('created_at', 'quarter')] where=[('>=', 'created_at', ['2025-04-01']), ('<', 'created_at', ['2025-10-01'])] zone=Australia/Sydney week=thursday
+   #499 orders agg=['revenue_mtd'] by=[('created_at', 'quarter')] where=[('>=', 'created_at', ['2025-01-15']), ('<', 'created_at', ['2025-07-01'])] zone=None week=sunday
+   #659 metric_types agg=['m_rev_mtd'] by=[('created_at', 'quarter')] where=[('>=', 'created_at', ['2025-04-01']), ('<', 'created_at', ['2025-10-01'])] zone=America/New_York week=None
+
+[5, expected 0] Cube cannot join a segment to another filter with OR. Use one segment, or add a segment with bo
+   #111 users agg=['count'] by=[('signup_cohort', None), ('name', None), ('is_vip', None)] where=[('or', None, None)] zone=Australia/Sydney week=thursday
+   #269 orders agg=['/', 'count'] by=[('users.state', None)] where=[('or', None, None)] zone=None week=None
+   #302 orders agg=['avg_order_value', 'distinct', '/'] by=[('users.state', None)] where=[('or', None, None), ('>=', 'id', [5001]), ('not-empty', 'cancel_status', None)] zone=America/New_York week=wednesday
+
+[5, expected 5] X is a rolling window measure with a window of month to date, X is shorter than a year. Cube do
+   #255 orders agg=['revenue_mtd'] by=[('created_at', 'year')] where=[('>=', 'created_at', ['2025-01-01']), ('<', 'created_at', ['2026-01-01'])] zone=None week=None
+   #510 orders agg=['revenue_mtd'] by=[('created_at', 'year')] where=[('>=', 'created_at', ['2025-01-01']), ('<', 'created_at', ['2026-01-01'])] zone=None week=sunday
+   #526 metric_types agg=['m_rev_mtd'] by=[('created_at', 'year')] where=[('>=', 'created_at', ['2025-01-01']), ('<', 'created_at', ['2026-01-01']), ('=', 'status', ['completed'])] zone=America/New_York week=wednesday
+
+[3, expected 0] Cube cannot add up the dimension users_is_vip over the rows of this query. It adds each row of 
+   #4 paid_sales agg=['share', 'count-where'] by=[('users_state', None), ('status', None)] where=[('or', None, None), ('=', 'users_state', ['tx', 'MA', 'TX'])] zone=America/St_Johns week=wednesday
+   #366 sales agg=['count-where'] by=[('products_name', None), ('status', None)] where=[] zone=None week=sunday
+   #1103 paid_sales agg=['count-where', 'count'] by=[('created_at', 'hour')] where=[] zone=Asia/Kathmandu week=None
+
+[3, expected 2] Cube needs a date range for this query. A rolling window measure by a time bucket needs a date 
+   #340 metric_types agg=['m_rev_ytd'] by=[('created_at', 'month')] where=[('>=', 'created_at', ['2025-11-01'])] zone=None week=friday
+   #792 orders agg=['revenue_ytd'] by=[('created_at', 'month')] where=[('>=', 'created_at', ['2025-01-01'])] zone=Pacific/Apia week=None
+   #931 orders agg=[] by=[] where=[('=', 'users.created_at', [4])] zone=None week=sunday stage via=model agg=['sum'] by=[{'i': 1}] where=[]
+
+[2, expected 2] X is a rolling window measure with a window of # day, X is shorter than a year. Cube does not s
+   #82 orders agg=['revenue_leading_7d'] by=[('created_at', 'year')] where=[('>=', 'created_at', ['2025-01-01']), ('<', 'created_at', ['2026-01-01'])] zone=Australia/Sydney week=thursday
+   #258 orders agg=['revenue_leading_7d'] by=[('created_at', 'year')] where=[('>=', 'created_at', ['2025-01-01']), ('<', 'created_at', ['2026-01-01'])] zone=None week=None
+
+[2, expected 0] Cube counts the clock of created_label in the report time zone, so two rows in the repeated hou
+   #189 orders agg=['distinct', 'statuses', 'distinct'] by=[('products.price', None), ('size', None)] where=[('is-null', 'products.category', None), ('is-null', 'product_id', None), ('not', None, None)] zone=America/New_York week=tuesday
+   #785 orders agg=['paid_share', 'distinct'] by=[('amount_dim', None)] where=[('!=', 'user_id', [199, 2]), ('not-null', 'user_id', None)] zone=Pacific/Apia week=None
+
+[2, expected 2] X is a rolling window measure with a window of # day, X is shorter than a quarter. Cube does no
+   #213 orders agg=['revenue_trailing_30d'] by=[('created_at', 'quarter')] where=[('>=', 'created_at', ['2025-04-01']), ('<', 'created_at', ['2025-10-01'])] zone=Europe/Berlin week=monday
+   #811 orders agg=['revenue_leading_7d'] by=[('created_at', 'quarter')] where=[('>=', 'created_at', ['2025-01-01']), ('<', 'created_at', ['2025-07-01'])] zone=America/New_York week=monday
+
+[2, expected 0] Cube cannot add up the dimension price over the rows of this query. It adds each row of the joi
+   #235 orders agg=['avg', 'distinct', 'statuses'] by=[('users.state', None)] where=[('or', None, None), ('>=', 'user_id', [1]), ('segment', None, None)] zone=Europe/Berlin week=monday
+   #692 orders agg=['var', 'revenue_share_of_total'] by=[('created_label', None)] where=[('=', 'users.is_vip', [False]), ('not-null', 'products.category', None)] zone=Europe/Berlin week=saturday
+
+[2, expected 0] inner: Cube cannot add up the dimension price over the rows of this query. It adds each row of 
+   #288 orders agg=['avg'] by=[('quantity_dim', None), ('is_paid', None)] where=[] zone=America/New_York week=wednesday stage via=question agg=['count'] by=[] where=[{'i': 1, 'op': 'is-null'}]
+   #601 orders agg=['count', 'sum'] by=[('users.name', None), ('cancel_status', None)] where=[] zone=Europe/Berlin week=None stage via=model agg=[] by=[] where=[]
+
+[2, expected 2] X is a rolling window measure, and Cube computes it for each whole month. This date filter star
+   #517 orders agg=['cumulative_count'] by=[('created_at', 'month')] where=[('>=', 'created_at', ['2025-01-15']), ('<', 'created_at', ['2025-03-01'])] zone=None week=sunday
+   #885 orders agg=['revenue_trailing_30d'] by=[('created_at', 'month')] where=[('>=', 'created_at', ['2025-04-15']), ('<', 'created_at', ['2025-05-01'])] zone=Australia/Sydney week=thursday
+
+[2, expected 0] Cube counts the clock of ts_utc in the report time zone, so two rows in the repeated hour of a 
+   #643 typed_events agg=['distinct', 'avg_n_int'] by=[] where=[] zone=America/New_York week=None
+   #1115 typed_events agg=['distinct'] by=[('n_ts', None), ('has_t1', None)] where=[] zone=Asia/Kathmandu week=None
+
+[2, expected 0] inner: Cube cannot join a segment to another filter with OR. Use one segment, or add a segment 
+   #872 orders agg=['statuses'] by=[('status', None)] where=[('or', None, None)] zone=None week=None stage via=question agg=['min'] by=[] where=[]
+   #1062 orders agg=[] by=[] where=[('or', None, None)] zone=Australia/Sydney week=None stage via=model agg=['distinct'] by=[{'i': 1, 'unit': 'month'}] where=[{'i': 1, 'op': '<', 'unit': 'day', 'v': ['2024-02-29']}]
+
+[1, expected 0] Illegal embedded sign character
+   #48 orders agg=['revenue', 'count'] by=[('size', None)] where=[('is-null', 'users.city', None)] zone=None week=None stage via=question agg=['max'] by=[] where=[{'i': 2, 'op': '<=', 'v': ['2025-01-01T00:00:00']}]
+
+[1, expected 0] Cube wrote SQL that ClickHouse cannot run for this cube, with a filter inside the first stage a
+   #165 metric_types agg=[] by=[] where=[('contains', 'size', ['large'])] zone=America/New_York week=tuesday stage via=inline agg=['sum', 'sum'] by=[{'i': 1}] where=[{'i': 1, 'op': '=', 'v': [200]}]
+
+[1, expected 0] This filter reads the time column ts_ny of a question with an aggregation. With a report time z
+   #187 typed_events agg=['tags_total', 'count'] by=[('tags_text', None), ('ts_ny', 'day')] where=[] zone=America/New_York week=tuesday stage via=inline agg=['sum'] by=[{'i': 1, 'unit': 'year'}] where=[{'i': 1, 'op': '!=', 'v': ['2025-01-01']}]
+
+[1, expected 1] revenue_prior_month has a time shift, and Cube reads it only with a date range. This filter has
+   #205 orders agg=['revenue_prior_month'] by=[('created_at', 'month')] where=[('>=', 'created_at', ['2025-02-01']), ('=', 'status', ['no such'])] zone=Europe/Berlin week=monday
+
+[1, expected 0] Cube cannot add up the dimension users_city over the rows of this query. It adds each row of th
+   #232 sales agg=['count-where'] by=[('users_state', None)] where=[('is-empty', 'status', None), ('does-not-contain', 'users_city', ['Austin'])] zone=Europe/Berlin week=monday
+
+[1, expected 0] This filter reads the time column day# of a question with an aggregation. With a report time zo
+   #312 typed_events agg=['sum_dec'] by=[('day32', 'month')] where=[('=', 'nums_len', [1])] zone=America/New_York week=wednesday stage via=question agg=['count'] by=[{'i': 0, 'unit': 'year'}] where=[{'i': 0, 'op': 'between', 'v': ['2025-04-01', '2026-01-01']}]
+
+[1, expected 0] Cube cannot add up the dimension is_vip over the rows of this query. It adds each row of the jo
+   #334 orders agg=['sum-where'] by=[('users.city', None), ('created_label', 'day')] where=[('!=', 'status_sorted', [''])] zone=None week=friday
+
+[1, expected 0] Cube cannot add up the dimension city over the rows of this query. It adds each row of the join
+   #450 orders agg=['share', 'max_amount', 'distinct'] by=[('created_at', 'minute-of-hour')] where=[('and', None, None), ('contains', 'status_sorted', ['a\\b'])] zone=Australia/Sydney week=friday
+
+[1, expected 0] inner: Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function t
+   #587 orders agg=['count'] by=[('products.name', None)] where=[('and', None, None)] zone=None week=monday stage via=inline agg=['avg'] by=[] where=[{'i': 1, 'op': '=', 'v': [50, 100]}]
+
+[1, expected 0] Cube cannot run this query, because it needs MEASURE() and post-processing at the same time. Us
+   #595 typed_events agg=[] by=[] where=[('<=', 'f32', [0.25])] zone=None week=monday stage via=model agg=['sum', 'distinct'] by=[] where=[]
+
+[1, expected 0] Cube cannot add up the dimension signup_cohort over the rows of this query. It adds each row of
+   #673 orders agg=['sum-where', 'count'] by=[('users.is_vip', None)] where=[('>', 'amount_dim', [1000000]), ('<=', 'amount_pct', [0.1]), ('and', None, None)] zone=America/New_York week=None
+
+[1, expected 0] Cube cannot add up the dimension products_name over the rows of this query. It adds each row of
+   #699 sales agg=['share', 'count'] by=[] where=[('between', 'id', [2, 1]), ('not-empty', 'users_city', None), ('is-empty', 'users_state', None)] zone=Europe/Berlin week=saturday
+
+[1, expected 0] m_rev_prior_month has a time shift. Under a report time zone, Cube moves the rows of other peri
+   #782 metric_types agg=['m_rev_prior_month'] by=[('created_at', 'month')] where=[('>=', 'created_at', ['2025-01-15']), ('<', 'created_at', ['2025-03-01'])] zone=Pacific/Apia week=None
+
+[1, expected 0] Cube cannot add up the dimension products_category over the rows of this query. It adds each ro
+   #913 sales agg=['share'] by=[('users_state', None)] where=[('!=', 'products_category', ['gadget', 'Gadget']), ('=', 'users_city', [''])] zone=Australia/Sydney week=thursday
+
+[1, expected 0] Cube counts the clock of ts_ny in the report time zone, so two rows in the repeated hour of a c
+   #914 typed_events agg=['distinct', 'count', 'distinct'] by=[('en', None), ('tags_text', None)] where=[('!=', 'dec_amount', [12.50001])] zone=Australia/Sydney week=thursday
+
+[1, expected 0] This filter reads the time column created_at of a question with an aggregation. With a report t
+   #1013 paid_sales agg=['count'] by=[('created_at', None)] where=[] zone=America/New_York week=thursday stage via=inline agg=['sum'] by=[] where=[{'i': 0, 'op': '=', 'v': ['2025-01-01T00:00:00']}]
+
+[1, expected 1] X is a rolling window measure, and Cube computes it for each whole quarter. This date filter st
+   #1159 orders agg=['cumulative_count'] by=[('created_at', 'quarter')] where=[('>=', 'created_at', ['2025-01-15']), ('<', 'created_at', ['2025-07-01'])] zone=Europe/Berlin week=wednesday
+FAIL 1153 raw_error ERROR: Rewrite Error: Schema contains duplicate qualified field name 'big_orders.created_at'. Please check logs for additional information
+QUERY: SELECT CASE WHEN "big_orders"."created_at" IS NOT NULL THEN CAST(SUBSTR(CAST("big_orders"."created_at" A big_orders agg=['distinct'] by=[('created_at', 'hour-of-day'), ('quantity_dim', 25)] where=[('<=', 'quantity_dim', [0]), ('!=', 'quantity_dim', [3])] zone=Europe/Berlin week=wednesday

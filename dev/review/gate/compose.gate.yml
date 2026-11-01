@@ -1,0 +1,8 @@
+# The gate adds Cube with dev mode off, on the same model. Dev mode accepts each JWT and reads private members, and a production Cube has it off.
+services:
+  cube-nodev:
+    extends: { file: docker-compose.yml, service: cube }
+    environment:
+      CUBEJS_DEV_MODE: "false"
+      CUBEJS_CACHE_AND_QUEUE_DRIVER: memory
+    ports: !override ["127.0.0.1:14405:4000", "127.0.0.1:25437:15432"]

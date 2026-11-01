@@ -1,0 +1,25 @@
+REFUSED paid_sales: net sales, count by week of year | Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function that the SQL API does not know, and a JOIN with an ON condition are the common cause. Use a time bucket, or add a dimension
+REFUSED paid_sales: net sales by month of year | Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function that the SQL API does not know, and a JOIN with an ON condition are the common cause. Use a time bucket, or add a dimension
+REFUSED paid_sales: net sales by day of week | Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function that the SQL API does not know, and a JOIN with an ON condition are the common cause. Use a time bucket, or add a dimension
+REFUSED paid_sales: net sales by hour of day | Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function that the SQL API does not know, and a JOIN with an ON condition are the common cause. Use a time bucket, or add a dimension
+OK sales: revenue by month of year | equal | [[1, 27068.0], [2, 25988.0]]
+OK orders: revenue by month of year | equal | [[1, 27068.0], [2, 25988.0]]
+OK paid_sales: vip count, count by status, city | equal | [["completed", "Austin", 9, 492], ["completed", "Boston", 10, 502]]
+OK paid_sales: net sales by city | equal | [["Austin", 30173.0], ["Boston", 30236.0]]
+REFUSED paid_sales: net sales by city, filter on city | Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function that the SQL API does not know, and a JOIN with an ON condition are the common cause. Use a time bucket, or add a dimension
+OK paid_sales: distinct cities by vip | no truth | [[false, 4], [true, 4]]
+REFUSED paid_sales: distinct status, net sales by city | Cube cannot aggregate a dimension of a view next to a measure, or a dimension that comes from another cube. Add a measure to the data model, or start from the cube of this dimension. Cube said: Error executing 
+OK sales: distinct cities, revenue by status | equal | [["cancelled", 4, 69970.0], ["completed", 4, 119940.0]]
+OK sales: distinct status, revenue by city | equal | [["Austin", 4, 80678.0], ["Boston", 4, 80706.0]]
+OK sales: distinct cities alone | equal | [[4]]
+REFUSED sales: count where city, by status | Cube cannot add up the dimension users_city over the rows of this query. It adds each row of the joined cube once, so the number would be wrong. Add a measure to the data model, or start from the cube of this d
+OK sales: share completed, by state | equal | [["IL", 0.3996815286624204], ["MA", 0.3996815286624204]]
+OK sales: count where completed, by product | equal | [["Gadget", 622.0], ["Gizmo", 689.0]]
+OK orders: count where completed, by city through a join | equal | [["Austin", 492.0], ["Boston", 502.0]]
+REFUSED orders: count where vip, by status | Cube cannot add up the dimension is_vip over the rows of this query. It adds each row of the joined cube once, so the number would be wrong. Add a measure to the data model, or start from the cube of this dimen
+REFUSED orders: bin of id | Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+REFUSED orders: bin of user_id | Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+OK orders: bin of quantity | equal | [[0.0, 1250], [2.0, 2500]]
+OK orders: default bins of amount | no truth | [[0.0, 417], [20.0, 1334]]
+OK orders: ten bins of amount | no truth | [[0.0, 417], [20.0, 1334]]
+REFUSED orders: distinct of a time, Kathmandu | Cube counts the clock of created_at in the report time zone, so two rows in the repeated hour of a clock change count once. Remove the report time zone, or count a dimension with another type.

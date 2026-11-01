@@ -1,0 +1,11 @@
+None diff {} total got 319790.0 truth 319790.0
+America/New_York diff {'2025-06-01': 104.0} total got 319894.0 truth 319790.0
+America/Los_Angeles diff {'2025-06-01': 178.0} total got 319968.0 truth 319790.0
+Europe/Berlin ERR Cube cannot read a rollup_lambda on ClickHouse with a range that reads source rows. Add a date filter inside the range of the rollup, or read this measure from a plain rollup. Cube said: Error executi
+Asia/Kolkata diff {'2025-07-01': -183.0} total got 319607.0 truth 319790.0
+rows in the last hours of the batch [['processing', '2', '104']]
+PG bin of id type/PK False Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+PG bin of user_id type/FK True Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+Cube id type/PK fingerprint False none
+Cube user_id type/FK fingerprint True none
+Cube quantity_dim None fingerprint True none

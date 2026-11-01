@@ -1,0 +1,52 @@
+details keys ['cube-api-secret-id', 'cube-api-secret-options', 'cube-api-secret-value', 'cube-rest-url', 'cube-sql-user-attribute', 'cube-user-attribute', 'dbname', 'host', 'password', 'port', 'user']
+secure tables ['analyst_sales', 'orders', 'sales', 'users']
+truth {'Austin': ['80678', '1231'], 'Boston': ['80706', '1256']}
+admin | plain | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+admin | by city | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+admin | raw users | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+admin | stage | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+admin | native | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+admin | native city | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+admin | native widen | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+admin | native __user | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+admin | native set | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+admin | analyst view | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+alice | plain | [[80678.0, 1231]]
+alice | by city | [["Austin", 50]]
+alice | raw users | [["Austin", "hidden"], ["Austin", "hidden"]]
+alice | stage | [[1]]
+alice | native | [[80678.0, 1231]]
+alice | native city | [["Austin", 50]]
+alice | native widen | [["Austin", 50]]
+alice | native __user | "ERR This connection gives data per person, so a query cannot read as another person. Cube said: Error executing query: ERROR: Database Execution Error: You cannot change security context vi
+alice | native set | "ERR This connection gives data per person, so a query cannot read as another person. Cube said: Error executing query: ERROR: User Error: user 'alice@example.com' is not allowed to switch t
+alice | analyst view | [[1231]]
+bob | plain | [[80706.0, 1256]]
+bob | by city | [["Boston", 50]]
+bob | raw users | [["Boston", "hidden"], ["Boston", "hidden"]]
+bob | stage | [[1]]
+bob | native | [[80706.0, 1256]]
+bob | native city | [["Boston", 50]]
+bob | native widen | [["Boston", 50]]
+bob | native __user | "ERR This connection gives data per person, so a query cannot read as another person. Cube said: Error executing query: ERROR: Database Execution Error: You cannot change security context vi
+bob | native set | "ERR This connection gives data per person, so a query cannot read as another person. Cube said: Error executing query: ERROR: User Error: user 'bob@example.com' is not allowed to switch to 
+bob | analyst view | "ERR ERROR: Planning Error: Initial planning error: Error during planning: Table or CTE with name '\"analyst_sales\"' not found\nQUERY: SELECT COALESCE(COUNT(*), 0) AS \"count\" FROM \"analy
+carol unknown | plain | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+carol unknown | by city | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+carol unknown | raw users | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+carol unknown | stage | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+carol unknown | native | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+carol unknown | native city | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+carol unknown | native widen | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+carol unknown | native __user | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+carol unknown | native set | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+carol unknown | analyst view | "ERR Cube refused the sign-in. Check the password of the connection. With per-user data, also check that checkSqlAuth in cube.js knows this person. Cube said: Unable to connect to the databa
+alice [[80678.0, 1231]] bob [[80706.0, 1256]]
+alice [[80678.0, 1231]] bob [[80706.0, 1256]]
+Traceback (most recent call last):
+  File "/home/andrewkomkov/mcd-review/security_gate.py", line 79, in <module>
+    print("saved, admin", mb.api("POST", "/api/card/%d/query" % card, {})["data"]["rows"])
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/andrewkomkov/mcd-review/lib.py", line 125, in api
+    raise RuntimeError("%s %s: HTTP %s: %s" % (method, path, status, text[:600]))
+RuntimeError: POST /api/card/197/query: HTTP 400: {"database_id":6,"parameterized":false,"started_at":"2026-11-01T14:09:01.101314197Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"constraints":{"max-r

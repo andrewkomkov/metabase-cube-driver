@@ -1,0 +1,6 @@
+queries 110 equal 110
+Traceback (most recent call last):
+  File "/home/andrewkomkov/mcd-review/plugin_gate.py", line 101, in <module>
+    print("engines only in A", sorted(set(pa["engines"]) - set(pb["engines"])), "only in B", sorted(set(pb["engines"]) - set(pa["engines"])))
+                                          ~~^^^^^^^^^^^
+KeyError: 'engines'

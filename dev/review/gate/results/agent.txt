@@ -1,0 +1,37 @@
+browse_data({"action": "list_databases"}) -> {"data": [{"id": 2, "name": "Cube", "engine": "cube", "description": "Cube semantic layer. Each table is a cube or a view. Its description lists its measures, dimensions and segments, and browse_data with action get_fields gives their ids. Prefer a view if one
+search({"term_queries": ["revenue", "paid sales"]}) -> {"data": [{"description": "Share of revenue that was paid.\n\nTable: Sales (sales, id 291).", "name": "Paid Share", "type": "measure", "id": 3164}, {"description": "Revenue under another name.\n\nMeta: {\"curated\":true}.\n\nTable: Paid sales (paid_sales, id 2
+browse_data({"action": "list_tables", "database_id": 2, "search": "sales"}) -> {"data": [{"id": 13, "name": "calendar_sales", "display_name": "Calendar sales", "schema": null, "db_id": 2, "description": "Orders by the fiscal calendar.\n\nMeasures: Revenue, Revenue Prior Fiscal.\n\nDimensions: Fiscal Calendar Date, Fiscal Calendar Fiscal 
+browse_data({"action": "get_fields", "table_ids": [96]}) -> {"tables": [{"description": "Curated view of orders with customer and product attributes. Start here for sales analysis.\n\nFolders: Money: revenue, avg_order_value.\n\nView groups: Revenue views (revenue_views).\n\nMeta: {\"ai_hint\":\"Preferred entry point f
+description in fields: True
+visible fields: ['created_at', 'id', 'products_category', 'products_name', 'status', 'users_city', 'users_is_vip', 'users_state']
+measures: ['AOV', 'Customer count', 'Order count', 'Paid Share', 'Revenue']
+execute_query({"query": {"lib/type": "mbql/query", "database": 2, "stages": [{"lib/type": "mbql.stage/mbql", "source-table": 96, "aggregation": [["measure", {}, 104) -> {"query_handle": "a528e35c-7894-4452-a135-3bc620cff6fc", "returned": 4, "truncated": false, "cols": [{"name": "users_state", "base_type": "type/Text", "display_name": "Users State", "effective_type": "type/Text"}, {"name": "sum", "base_type": "type/Float", "di
+execute_query({"query": {"lib/type": "mbql/query", "database": 2, "stages": [{"lib/type": "mbql.stage/mbql", "source-table": 96, "aggregation": [["measure", {}, 104) -> {"query_handle": "55919fb8-7653-41b7-baba-5ea2ca78fb3c", "returned": 12, "truncated": false, "cols": [{"name": "created_at", "base_type": "type/DateTime", "display_name": "Created at: Month", "effective_type": "type/DateTime"}, {"name": "sum", "base_type": "ty
+question_write({"method": "create", "name": "Gate revenue by state", "query_handle": "a528e35c-7894-4452-a135-3bc620cff6fc", "display": "bar", "collection_id": "root) -> {"id": 624, "name": "Gate revenue by state", "display": "bar", "collection_id": null, "collection_path": "Our analytics", "description": null, "visualization_settings": {}, "url": "http://127.0.0.1:13300/question/624"}
+question_write({"method": "create", "name": "Gate revenue by month", "query_handle": "55919fb8-7653-41b7-baba-5ea2ca78fb3c", "display": "line", "collection_id": "roo) -> {"id": 625, "name": "Gate revenue by month", "display": "line", "collection_id": null, "collection_path": "Our analytics", "description": null, "visualization_settings": {}, "url": "http://127.0.0.1:13300/question/625"}
+dashboard_write({"method": "create", "name": "Gate revenue", "description": "Revenue by state and by month, with a date and a status filter.", "collection_id": "root") -> {"id": 2, "name": "Gate revenue", "description": "Revenue by state and by month, with a date and a status filter.", "tabs": [], "parameters": [{"id": "when", "name": "Order date", "type": "date/all-options", "dashcard_ids": [37, 38]}, {"id": "st", "name": "Sta
+get_content({"items": [{"type": "dashboard", "id": 2, "fields": null}]}) -> {"results": [{"id": 2, "name": "Gate revenue", "description": "Revenue by state and by month, with a date and a status filter.", "tabs": [], "parameters": [{"id": "when", "name": "Order date", "type": "date/all-options", "dashcard_ids": [37, 38]}, {"id": "st",
+{"results": [{"id": 2, "name": "Gate revenue", "description": "Revenue by state and by month, with a date and a status filter.", "tabs": [], "parameters": [{"id": "when", "name": "Order date", "type": "date/all-options", "dashcard_ids": [37, 38]}, {"id": "st", "name": "Status", "type": "string/=", "dashcard_ids": [37, 38]}], "dashcards": [{"size_x": 12, "card": {"id": 624, "name": "Gate revenue by state"}, "col": 0, "id": 37, "kind": "card", "size_y": 6, "row": 0}, {"size_x": 12, "card": {"id": 625, "name": "Gate revenue by month"}, "col": 12, "id": 38, "kind": "card", "size_y": 6, "row": 0}], "type": "dashboard"}]}
+get_parameter_values({"target": "dashboard", "id": 2, "parameter_id": "st"}) -> {"values": [["cancelled"], ["completed"], ["processing"], ["shipped"]], "returned": 4, "has_more_values": false}
+status values: {"values": [["cancelled"], ["completed"], ["processing"], ["shipped"]], "returned": 4, "has_more_values": false}
+run_saved_question({"id": 624}) -> {"returned": 4, "truncated": false, "cols": [{"name": "users_state", "base_type": "type/Text", "display_name": "Users State", "effective_type": "type/Text"}, {"name": "sum", "base_type": "type/Float", "display_name": "Revenue", "effective_type": "type/Float"}]
+saved question 1: equal
+dashcard 37 624 mappings [{"parameter_id": "when", "card_id": 624, "target": ["dimension", ["field", 1465, null], {"stage-number": 0}]}, {"parameter_id": "st", "card_id": 624, "target": ["dimension", ["field", 1464, null], {"stage-number": 0}]}]
+dashcard 38 625 mappings [{"parameter_id": "when", "card_id": 625, "target": ["dimension", ["field", 1465, null], {"stage-number": 0}]}, {"parameter_id": "st", "card_id": 625, "target": ["dimension", ["field", 1464, null], {"stage-number": 0}]}]
+None no filter 37 rows 4 equal
+None no filter 38 rows 12 equal
+None month and status 37 rows 4 equal
+None month and status 38 rows 1 equal
+None last year 37 rows 4 equal
+None last year 38 rows 12 equal
+None two statuses 37 rows 4 equal
+None two statuses 38 rows 12 equal
+America/New_York no filter 37 rows 4 equal
+America/New_York no filter 38 rows 13 equal
+America/New_York month and status 37 rows 4 equal
+America/New_York month and status 38 rows 1 equal
+America/New_York last year 37 rows 4 equal
+America/New_York last year 38 rows 12 equal
+America/New_York two statuses 37 rows 4 equal
+America/New_York two statuses 38 rows 12 equal
+PROBLEMS []

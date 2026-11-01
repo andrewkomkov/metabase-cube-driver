@@ -1,0 +1,5 @@
+field-in-metadata                  payments    no hidden field
+field-in-metadata                  warehouses  no hidden field
+field-in-metadata                  promos      no hidden field
+field-in-metadata                  shipments   no hidden field
+fk                                 stock_items fk to None

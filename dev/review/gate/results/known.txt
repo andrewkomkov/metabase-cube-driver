@@ -1,0 +1,70 @@
+== long decimal below 2^53
+truth [['1', '1000000000000.00000001'], ['2', '2000000000000.00000002'], ['3', '3000000000000.00000003']]
+dialect [[1.0, 1000000000000.0, '1000000000000.00000001'], [2.0, 2000000000000.0, '2000000000000.00000002'], [3.0, 3000000000000.0, '3000000000000.00000003']]
+stock [[1.0, 1000000000000.0, '1000000000000.00000001'], [2.0, 2000000000000.0, '2000000000000.00000002'], [3.0, 3000000000000.0, '3000000000000.00000003']]
+== offset in a literal under a report zone
+2025-06-15T11:00:00Z truth at the instant [['2684']] truth when read in the zone [['2682']]
+  PG [[2684]]
+  dialect [[2682]]
+  stock [[2682]]
+2025-06-15T11:00:00-05:00 truth at the instant [['2681']] truth when read in the zone [['2682']]
+  PG [[2684]]
+  dialect [[2682]]
+  stock [[2682]]
+== native SQL that the scan may not read
+truth of the month to 03-09 [['6581']] total [['319790']]
+SELECT MEASURE(revenue_mtd) FROM orders => "ERR revenue_mtd is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by DATE_TRUNC on a time c
+SELECT revenue_mtd FROM orders => "ERR revenue_mtd is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by DATE_TRUNC on a time c
+SELECT MEASURE("revenue_mtd") FROM "orders" => "ERR revenue_mtd is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by DATE_TRUNC on a time c
+SELECT x FROM (SELECT MEASURE(revenue_mtd) AS x FROM orders) t => "ERR revenue_mtd is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by DATE_TRUNC on a time c
+WITH t AS (SELECT MEASURE(revenue_mtd) AS x FROM orders) SELECT x FROM t => "ERR revenue_mtd is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by DATE_TRUNC on a time c
+SELECT /* d */ MEASURE( revenue_mtd ) FROM orders => "ERR revenue_mtd is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by DATE_TRUNC on a time c
+SELECT MEASURE(o.revenue_mtd) FROM orders o => "ERR revenue_mtd is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by DATE_TRUNC on a time c
+SELECT status, MEASURE(revenue_trailing_30d) FROM orders GROUP BY 1 => "ERR revenue_trailing_30d is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by DATE_TRUNC on
+SELECT DATE_TRUNC('month', created_at) m, MEASURE(revenue_mtd) x FROM orders WHERE created_at >= => "ERR revenue_mtd is a rolling window measure, and Cube computes it for each whole month. This date filter starts or ends inside a month, and Cube does
+SELECT DATE_TRUNC('day', created_at) m, MEASURE(revenue_trailing_30d) x FROM orders WHERE create => "ERR revenue_trailing_30d is a rolling window measure, and Cube computes it for each whole day. This date filter starts or ends inside a day, and Cube
+SELECT MEASURE(revenue_prior_month) FROM orders => "ERR revenue_prior_month has a time shift. With no time bucket and no date filter, Cube returns the total of all rows, and a shift of that is not a nu
+SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_prior_month) FROM orders GROUP BY 1 LIMI => [["2025-03-01T00:00:00Z", 25988.0], ["2025-08-01T00:00:00Z", 27141.0]]
+SELECT MEASURE(n) FROM null_keys => "ERR n counts the primary key of the cube, and some rows have a NULL key, so it would miss these rows. Use COUNT(*), or give the cube a key with no NU
+SELECT MEASURE(n_of_a) FROM null_keys WHERE ts >= '2025-01-01' => "ERR n_of_a counts the primary key of the cube, and some rows have a NULL key, so it would miss these rows. Use COUNT(*), or give the cube a key with 
+SELECT COUNT(*) FROM null_keys => [[7]]
+SELECT x FROM (SELECT MEASURE(n) AS x FROM null_keys) t => "ERR n counts the primary key of the cube, and some rows have a NULL key, so it would miss these rows. Use COUNT(*), or give the cube a key with no NU
+SELECT MEASURE(rev_range) FROM pa_partitions => "ERR The rollup part_range of pa_partitions has no rows at 2025-04-01T00:00. Cube would give a part of the rows with no error. Add a date filter in th
+SELECT x FROM (SELECT MEASURE(rev_range) AS x FROM pa_partitions) t => "ERR The rollup part_range of pa_partitions has no rows at 2025-04-01T00:00. Cube would give a part of the rows with no error. Add a date filter in th
+WITH t AS (SELECT MEASURE(rev_range) AS x FROM pa_partitions) SELECT x FROM t => "ERR The rollup part_range of pa_partitions has no rows at 2025-04-01T00:00. Cube would give a part of the rows with no error. Add a date filter in th
+SELECT status, MEASURE(rev_range) FROM pa_partitions GROUP BY 1 => "ERR The rollup part_range of pa_partitions has no rows at 2025-04-01T00:00. Cube would give a part of the rows with no error. Add a date filter in th
+SELECT DATE_TRUNC('month', created_at), MEASURE(rev_range) FROM pa_partitions GROUP BY 1 => "ERR The rollup part_range of pa_partitions has no rows at 2025-04-01T00:00. Cube would give a part of the rows with no error. Add a date filter in th
+SELECT MEASURE(revenue) FROM lambda_sales WHERE created_at >= '2025-08-01' AND created_at < '202 => [[27989.0]]
+SELECT MEASURE(balance_closing) FROM metric_balances => "ERR balance_closing is a rolling window measure. With no time bucket, Cube returns the total of all rows, not the window. Group by DATE_TRUNC on a ti
+SELECT MEASURE(revenue) FROM orders WHERE created_at = '2025-03-09 10:00:00' => [[null]]
+SELECT DATE_TRUNC('day', created_at), MEASURE(count) FROM orders WHERE created_at = '2025-03-09  => "ERR With DATE_TRUNC on created_at, Cube reads created_at = t as the whole bucket that starts at t, so the number would be wrong. Write created_at >= 
+SELECT count(*) FROM orders WHERE LOWER(status) = 'SHIPPED' => [[0]]
+SELECT count(*) FROM orders WHERE created_at BETWEEN '2025-03-09' AND '2025-03-09' => "ERR Cube reads the end of BETWEEN on created_at as the end of that day when it has no time, but SQL reads it as midnight, so the number would differ 
+SELECT count(*) FROM orders WHERE status NOT LIKE '%ip%' => "ERR Cube reads LIKE '%ip%' as a filter that ignores case, so the number can differ from SQL. Write ILIKE to ignore case. To keep the case, write STRP
+SELECT count(*) FROM orders WHERE status ~ 'ship' => [[1000]]
+SELECT count(*) FROM orders WHERE status SIMILAR TO 'ship%' => "ERR Cube cannot plan this query. EXTRACT on a time dimension next to a measure, a function that the SQL API does not know, and a JOIN with an ON cond
+SELECT count(*) FROM orders WHERE SUBSTR(status, 1, 4) = 'ship' => [[1000]]
+SELECT count(*) FROM orders WHERE status ILIKE 'SHIP%' => [[1000]]
+truth null_keys [['7', '4', '4']] orders at the hour [['0', '0']] lambda aug [['27989']] rev_range total [['319790']]
+truth text [['0', '1', '4000', '1000']] day [['14']]
+== on stock with no dialect
+Date32 by month, truth [['2025-03-01', '743'], ['2025-04-01', '257']] stock [['2025-02-01T00:00:00-05:00', 23], ['2025-03-01T00:00:00-05:00', 744], ['2025-04-01T00:00:00-04:00', 233]] dialect [['2025-03-01T00:00:00-05:00', 743], ['2025-04-01T00:00:00-04:00', 257]]
+Date marked date_only, stock ERR day is a Date column, and stock Cube reads it as a time at midnight UTC. With a report time zone that is not UTC, each row can move to another day, so the number would be wrong. Remove the report time
+native half-open, truth [['8']] stock [[7]] dialect [[8]]
+builder half-open, stock [[8]]
+raw ts64, truth [['2024-11-25 04:59:59.001'], ['2024-11-25 05:00:00.002']] stock [['2024-11-25T04:59:59Z'], ['2024-11-25T05:00:00Z']] dialect [['2024-11-25T04:59:59.001Z'], ['2024-11-25T05:00:00.002Z']]
+rollup empty text, truth [[None, '200'], ['', '30'], ['x', '80']] stock [['x', 80.0], [None, 230.0]] dialect [['', 30.0], ['x', 80.0], [None, 200.0]]
+== the repeated hour of 2025-11-02 in New York
+orders rows 5000 near [['2025-11-02T01:00:00-04:00', 104.0], ['2025-11-02T01:00:00-04:00', 32.0], ['2025-11-02T02:00:00-05:00', 87.0], ['2025-11-02T03:00:00-05:00', 19.0], ['2025-11-02T05:00:00-05:00', 88.0], ['2025-11-02T07:00:00-05:00', 75.0]]
+pa_grain rows 4999 near [['2025-11-02T01:00:00-04:00', 136.0], ['2025-11-02T02:00:00-05:00', 87.0], ['2025-11-02T03:00:00-05:00', 19.0], ['2025-11-02T05:00:00-05:00', 88.0], ['2025-11-02T07:00:00-05:00', 75.0], ['2025-11-02T09:00:00-05:00', 56.0]]
+pa_types rows 5000 near [['2025-11-02T01:00:00-04:00', 104.0], ['2025-11-02T01:00:00-04:00', 32.0], ['2025-11-02T02:00:00-05:00', 87.0], ['2025-11-02T03:00:00-05:00', 19.0], ['2025-11-02T05:00:00-05:00', 88.0], ['2025-11-02T07:00:00-05:00', 75.0]]
+sales rows 5000 near [['2025-11-02T01:00:00-04:00', 104.0], ['2025-11-02T01:00:00-04:00', 32.0], ['2025-11-02T02:00:00-05:00', 87.0], ['2025-11-02T03:00:00-05:00', 19.0], ['2025-11-02T05:00:00-05:00', 88.0], ['2025-11-02T07:00:00-05:00', 75.0]]
+metric_types rows 5000 near [['2025-11-02T01:00:00-04:00', 104.0], ['2025-11-02T01:00:00-04:00', 32.0], ['2025-11-02T02:00:00-05:00', 87.0], ['2025-11-02T03:00:00-05:00', 19.0], ['2025-11-02T05:00:00-05:00', 88.0], ['2025-11-02T07:00:00-05:00', 75.0]]
+metric_rollup_sales rows 5000 near [['2025-11-02T01:00:00-04:00', 104.0], ['2025-11-02T01:00:00-04:00', 32.0], ['2025-11-02T02:00:00-05:00', 87.0], ['2025-11-02T03:00:00-05:00', 19.0], ['2025-11-02T05:00:00-05:00', 88.0], ['2025-11-02T07:00:00-05:00', 75.0]]
+truth hour by instant [['2025-11-02 01:00:00', '2025-11-02 05:00:00', '104'], ['2025-11-02 01:00:00', '2025-11-02 06:00:00', '32'], ['2025-11-02 02:00:00', '2025-11-02 07:00:00', '87'], ['2025-11-02 03:00:00', '2025-11-02 08:00:00', '19'], ['2025-11-02 05:00:00', '2025-11-02 10:00:00', '88'], ['2025-11-02 07:00:00', '2025-11-02 12:00:00', '75']]
+PG hour buckets on the day [["2025-11-01T00:00:00-04:00", 1], ["2025-11-01T08:00:00-04:00", 1], ["2025-11-01T13:00:00-04:00", 1], ["2025-11-01T14:00:00-04:00", 2], ["2025-11-01T19:00:00-04:00", 1], ["2025-11-01T20:00:00-04:00", 1]]
+Cube hour buckets on the day [["2025-11-01T00:00:00-04:00", 1], ["2025-11-01T08:00:00-04:00", 1], ["2025-11-01T13:00:00-04:00", 1], ["2025-11-01T14:00:00-04:00", 2], ["2025-11-01T19:00:00-04:00", 1], ["2025-11-01T20:00:00-04:00", 1]] of 21
+truth [['2025-11-01 00:00:00', '1'], ['2025-11-01 08:00:00', '1'], ['2025-11-01 13:00:00', '1'], ['2025-11-01 14:00:00', '2'], ['2025-11-01 19:00:00', '1'], ['2025-11-01 20:00:00', '1']]
+== rolling on one bucket, the item of PR 3
+[['2025-03-01T00:00:00Z', 1259]] [['1259']]
+[['2025-03-01T00:00:00Z', 1259], ['2025-04-01T00:00:00Z', 1679], ['2025-05-01T00:00:00Z', 2113]] [['2025-01-01', '433'], ['2025-02-01', '392'], ['2025-03-01', '434'], ['2025-04-01', '420'], ['2025-05-01', '434'], ['2025-06-01', '420']]

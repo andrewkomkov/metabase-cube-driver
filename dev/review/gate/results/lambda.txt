@@ -1,0 +1,24 @@
+Cube lambda_sales Q2 equal | SQL: SELECT "lambda_sales"."status" AS "status", MEASURE("lambda_sales"."revenue") AS "sum" FROM "lambda_sales" WHERE ("lambda_sales"."created_at" >= TIMESTAMP '2025-04-01 00:00:00') AND ("lambda_sales"."created_at" < TIMESTAMP '2025-0
+Cube lambda_sales June equal | SQL: 
+Cube lambda_sales July equal | SQL: 
+Cube lambda_sales March equal | SQL: 
+Cube lambda_sales Jan equal | SQL: 
+Cube lambda_sales all by month ERR Cube cannot read a rollup_lambda on ClickHouse with a range that reads source rows. Add a date filter inside the range of the rollup, or read this measure from a plain ro
+Cube pa_range_mid Q2 equal | SQL: SELECT "pa_range_mid"."status" AS "status", MEASURE("pa_range_mid"."revenue") AS "sum" FROM "pa_range_mid" WHERE (("pa_range_mid"."created_at" >= TIMESTAMP '2025-04-01 00:00:00') AND ("pa_range_mid"."created_at" < TIMESTAMP '2025-
+Cube pa_range_mid June equal | SQL: 
+Cube pa_range_mid July equal | SQL: 
+Cube pa_range_mid March equal | SQL: 
+Cube pa_range_mid Jan equal | SQL: 
+Cube pa_range_mid all by month equal | SQL: 
+Cube stock lambda_sales Q2 row 2: got ['processing', 16739.0], truth ['processing', '16635'] | SQL: SELECT "lambda_sales"."status" AS "status", MEASURE("lambda_sales"."revenue") AS "sum" FROM "lambda_sales" WHERE ("lambda_sales"."created_at" >= TIMESTAMP '2025-04-01 00:00:00') AND ("lambda_sales"."created_at" < TIMESTAMP '2025-0
+Cube stock lambda_sales June row 2: got ['processing', 5666.0], truth ['processing', '5562'] | SQL: 
+Cube stock lambda_sales July equal | SQL: 
+Cube stock lambda_sales March equal | SQL: 
+Cube stock lambda_sales Jan equal | SQL: 
+Cube stock lambda_sales all by month row 6: got ['2025-06-01T00:00:00-04:00', 27404.0], truth ['2025-06-01', '27300'] | SQL: 
+Cube stock pa_range_mid Q2 equal | SQL: SELECT "pa_range_mid"."status" AS "status", MEASURE("pa_range_mid"."revenue") AS "sum" FROM "pa_range_mid" WHERE (("pa_range_mid"."created_at" >= TIMESTAMP '2025-04-01 00:00:00') AND ("pa_range_mid"."created_at" < TIMESTAMP '2025-
+Cube stock pa_range_mid June equal | SQL: 
+Cube stock pa_range_mid July equal | SQL: 
+Cube stock pa_range_mid March equal | SQL: 
+Cube stock pa_range_mid Jan equal | SQL: 
+Cube stock pa_range_mid all by month equal | SQL: 

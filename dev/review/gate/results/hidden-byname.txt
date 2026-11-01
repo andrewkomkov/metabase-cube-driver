@@ -1,0 +1,78 @@
+Cube admin by-name raw ROWS ['id'] [[4693.0], [1083.0], [2166.0]]
+Cube admin by-name max ROWS ['max'] [[105000.0]]
+Cube admin by-name breakout ROWS ['id', 'count'] [[1.0, 1], [2.0, 1], [3.0, 1]]
+Cube admin by-name filter ROWS ['count'] [[5000]]
+Cube admin by-name order ROWS ['method'] [["fee"], ["fee"]]
+Cube admin by-name expression ROWS ['x'] [[4693.0], [1083.0], [2166.0]]
+Cube admin by-name private-dim ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube admin by-name private-measure ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube admin native SELECT id FROM payments LIMIT 3 ROWS ['id'] [[4693.0], [1083.0], [2166.0]]
+Cube admin native SELECT MAX(id) FROM payments ROWS ['MAX(payments.id)'] [[105000.0]]
+Cube admin native SELECT COUNT(*) FROM secret_audit ROWS ['coalesce(COUNT(UInt8(1)),Int64(0))'] [[5000]]
+Cube admin native SELECT internal_note FROM orders LIMIT 1 ERR ERROR: canceling statement due to user request
+Cube admin mcp name-ref fields ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+Cube admin mcp name-ref max [[105000.0]]
+Cube admin mcp execute_sql [[105000.0]]
+Cube stock admin by-name raw ROWS ['id'] [[104693.0], [101083.0], [102166.0]]
+Cube stock admin by-name max ROWS ['max'] [[105000.0]]
+Cube stock admin by-name breakout ROWS ['id', 'count'] [[1.0, 1], [2.0, 1], [3.0, 1]]
+Cube stock admin by-name filter ROWS ['count'] [[5000]]
+Cube stock admin by-name order ROWS ['method'] [["fee"], ["fee"]]
+Cube stock admin by-name expression ROWS ['x'] [[4693.0], [1083.0], [2166.0]]
+Cube stock admin by-name private-dim ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube stock admin by-name private-measure ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube stock admin native SELECT id FROM payments LIMIT 3 ROWS ['id'] [[4693.0], [1083.0], [2166.0]]
+Cube stock admin native SELECT MAX(id) FROM payments ROWS ['MAX(payments.id)'] [[105000.0]]
+Cube stock admin native SELECT COUNT(*) FROM secret_audit ROWS ['coalesce(COUNT(UInt8(1)),Int64(0))'] [[5000]]
+Cube stock admin native SELECT internal_note FROM orders LIMIT 1 ROWS ['internal_note'] [["x"]]
+Cube stock admin mcp name-ref fields ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+Cube stock admin mcp name-ref max [[105000.0]]
+Cube stock admin mcp execute_sql [[105000.0]]
+Cube nodev admin by-name raw ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube nodev admin by-name max ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube nodev admin by-name breakout ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube nodev admin by-name filter ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube nodev admin by-name order ERR ERROR: Planning Error: Initial planning error: Error during planning: column "__mb_source.id" must appear in the GROUP BY clause or be used in an aggregate function
+QUERY
+Cube nodev admin by-name expression ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube nodev admin by-name private-dim ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube nodev admin by-name private-measure ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube nodev admin native SELECT id FROM payments LIMIT 3 ERR This table has no column with that name. Call browse_data with action get_fields to read the columns of the table. A column of another cube is not on this table: use a vi
+Cube nodev admin native SELECT MAX(id) FROM payments ERR This table has no column with that name. Call browse_data with action get_fields to read the columns of the table. A column of another cube is not on this table: use a vi
+Cube nodev admin native SELECT COUNT(*) FROM secret_audit ERR ERROR: Planning Error: Initial planning error: Error during planning: Table or CTE with name 'secret_audit' not found
+QUERY: SELECT COALESCE(COUNT(*), 0) FROM secret_audi
+Cube nodev admin native SELECT internal_note FROM orders LIMIT 1 ERR This table has no column with that name. Call browse_data with action get_fields to read the columns of the table. A column of another cube is not on this table: use a vi
+Cube nodev admin mcp name-ref fields ERR Query failed: "This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Error executing qu
+Cube nodev admin mcp name-ref max ERR Query failed: "This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Error executing qu
+Cube nodev admin mcp execute_sql ERR Query failed: "This table has no column with that name. Call browse_data with action get_fields to read the columns of the table. A column of another cube is not on this table: use a view that has it,
+Cube query-builder by-name raw ROWS ['id'] [[104693.0], [101083.0], [102166.0]]
+Cube query-builder by-name max ROWS ['max'] [[105000.0]]
+Cube query-builder by-name breakout ROWS ['id', 'count'] [[1.0, 1], [2.0, 1], [3.0, 1]]
+Cube query-builder by-name filter ROWS ['count'] [[5000]]
+Cube query-builder by-name order ROWS ['method'] [["fee"], ["fee"]]
+Cube query-builder by-name expression ROWS ['x'] [[104693.0], [101083.0], [102166.0]]
+Cube query-builder by-name private-dim ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube query-builder by-name private-measure ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube query-builder native SELECT id FROM payments LIMIT 3 ERR You do not have permissions to run this query.
+Cube query-builder native SELECT MAX(id) FROM payments ERR You do not have permissions to run this query.
+Cube query-builder native SELECT COUNT(*) FROM secret_audit ERR You do not have permissions to run this query.
+Cube query-builder native SELECT internal_note FROM orders LIMIT 1 ERR You do not have permissions to run this query.
+Cube query-builder mcp name-ref fields ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+Cube query-builder mcp name-ref max [[105000.0]]
+Cube query-builder mcp execute_sql ERR You do not have permission to run native queries against this database.
+Cube nodev query-builder by-name raw ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube nodev query-builder by-name max ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube nodev query-builder by-name breakout ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube nodev query-builder by-name filter ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube nodev query-builder by-name order ERR ERROR: Planning Error: Initial planning error: Error during planning: column "__mb_source.id" must appear in the GROUP BY clause or be used in an aggregate function
+QUERY
+Cube nodev query-builder by-name expression ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube nodev query-builder by-name private-dim ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube nodev query-builder by-name private-measure ERR This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Err
+Cube nodev query-builder native SELECT id FROM payments LIMIT 3 ERR You do not have permissions to run this query.
+Cube nodev query-builder native SELECT MAX(id) FROM payments ERR You do not have permissions to run this query.
+Cube nodev query-builder native SELECT COUNT(*) FROM secret_audit ERR You do not have permissions to run this query.
+Cube nodev query-builder native SELECT internal_note FROM orders LIMIT 1 ERR You do not have permissions to run this query.
+Cube nodev query-builder mcp name-ref fields ERR Query failed: "This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Error executing qu
+Cube nodev query-builder mcp name-ref max ERR Query failed: "This column is not on the table of the query. For a segment or a member of another cube, use a view that has it, or add it to the data model of this table. Cube said: Error executing qu
+Cube nodev query-builder mcp execute_sql ERR You do not have permission to run native queries against this database.

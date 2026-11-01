@@ -1,0 +1,339 @@
+field-json                         payments    {"visibility_type": "hidden", "semantic_type": "type/PK", "database_type": "cube.dimension/private-key", "fingerprint": null, "has_field_values": "none"}
+raw-all-fields                     payments    ROWS 3 cols=['id', 'order_id', 'method', 'count', 'total'] first=[[null, 4693.0, "card", null, null], [null, 1083.0, "card", null, null], [null, 2166.0, "card", null, null]]
+raw-fields-id                      payments    ROWS 3 cols=['id'] first=[[null], [null], [null]]
+raw-by-name                        payments    ROWS 3 cols=['id'] first=[[4693.0], [1083.0], [2166.0]]
+breakout                           payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+breakout-by-name                   payments    ROWS 3 cols=['id', 'count'] first=[[1.0, 1], [2.0, 1], [3.0, 1]]
+filter-eq                          payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-gt                          payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-is-null                     payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-by-name                     payments    ROWS 1 cols=['count'] first=[[5000]]
+agg-min                            payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-max                            payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-sum                            payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-avg                            payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-distinct                       payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-by-name                        payments    ROWS 1 cols=['max'] first=[[105000.0]]
+count-where                        payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+sum-where                          payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+share                              payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-plus                    payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-case                    payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-concat                  payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-coalesce                payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+binning                            payments    ERR Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+order-by-key                       payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+order-by-key-agg                   payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+cum-sum                            payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+stage-raw-then-field               payments    ROWS 3 cols=['id'] first=[[null], [null], [null]]
+stage-raw-then-max                 payments    ROWS 1 cols=['max'] first=[[null]]
+stage-raw-then-filter              payments    ROWS 1 cols=['count'] first=[[5000]]
+stage-fields-id-then-max           payments    ROWS 1 cols=['max'] first=[[null]]
+model-columns                      payments    ['id', 'order_id', 'method', 'count', 'total']
+model-then-id                      payments    ROWS 3 cols=['id'] first=[[null], [null], [null]]
+model-then-max                     payments    ROWS 1 cols=['max'] first=[[null]]
+model-then-filter                  payments    ROWS 1 cols=['count'] first=[[5000]]
+pivot                              payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+csv                                payments    200 ID |  |  |  | 
+field-values                       payments    200 {"values":[],"field_id":1420,"has_more_values":false}
+field-search                       payments    200 []
+field-summary                      payments    500 {"via":[{"type":"clojure.lang.ExceptionInfo","message":"Error compiling query: id is a private primary key of the cube, so it has no values here. Use another column, or m
+field-related                      payments    200 {"table":{"description":"Two payment rows per order, from a SQL query.\n\nMeasures: Count, Total.\n\nDimensions: Order ID, Method.","entity_type":"entity/GenericTable","v
+field-remapping                    payments    204 
+field-rescan                       payments    200 {"status":"success"}
+field-values-after-rescan          payments    200 {"values":[],"field_id":1420,"has_more_values":false}
+parameter-values                   payments    200 {"has_more_values":false,"values":[]}
+parameter-search                   payments    200 {"has_more_values":true,"values":[]}
+parameter-on-key                   payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+native-field-filter                payments    ROWS 1 cols=['coalesce(COUNT(UInt8(1)),Int64(0))'] first=[[5000]]
+native-select                      payments    ROWS 3 cols=['id'] first=[[4693.0], [1083.0], [2166.0]]
+native-star                        payments    ROWS 3 cols=['count', 'total', 'id', 'order_id', 'method'] first=[[1, 1.0, 104693.0, 4693.0, "fee", null, null], [1, 1.0, 101083.0, 1083.0, "fee", null, null], [1, 1.0, 102166.0, 2166.0, "fee", n
+native-max                         payments    ROWS 1 cols=['MAX(payments.id)'] first=[[105000.0]]
+native-where                       payments    ROWS 1 cols=['coalesce(COUNT(UInt8(1)),Int64(0))'] first=[[5000]]
+native-order                       payments    ROWS 1 cols=['a'] first=[[1]]
+native-sub                         payments    ROWS 3 cols=['i'] first=[[4693.0], [1083.0], [2166.0]]
+native-cte                         payments    ROWS 3 cols=['i'] first=[[4693.0], [1083.0], [2166.0]]
+native-quoted                      payments    ROWS 3 cols=['id'] first=[[4693.0], [1083.0], [2166.0]]
+native-upper                       payments    ROWS 3 cols=['id'] first=[[4693.0], [1083.0], [2166.0]]
+native-alias-dot                   payments    ROWS 3 cols=['id'] first=[[4693.0], [1083.0], [2166.0]]
+native-group                       payments    ROWS 3 cols=['id', 'COUNT(UInt8(1))'] first=[[1.0, 1], [2.0, 1], [3.0, 1]]
+native-join-field                  payments    ROWS 3 cols=['__cubeJoinField'] first=[[null], [null], [null]]
+native-comment                     payments    ROWS 3 cols=['id'] first=[[4693.0], [1083.0], [2166.0]]
+native-cast                        payments    ROWS 3 cols=['CAST(payments.id AS Utf8)'] first=[["4693"], ["1083"], ["2166"]]
+native-info-schema                 payments    ROWS 3 cols=['table_catalog', 'table_schema', 'table_name', 'column_name', 'ordinal_position'] first=[["cube", "public", "payments", "count", 1, "", "NO", "bigint", null, null, 64, 2, 0, null, "", "", "", "", "", "", "", "", null, 
+mcp-raw                            payments    ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-fields                         payments    ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-breakout                       payments    ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-max                            payments    ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-filter                         payments    ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-execute-sql                    payments    [[4693.0], [1083.0], [2166.0]]
+mcp-get-fields-hidden              payments    names key values:False
+mcp-get-fields                     payments    names key
+mcp-search                         payments    ok, 100001 in text: False
+xray-table                         payments    200 len=56436
+xray-cards                         payments    cards=15 on key=0
+xray-field                         payments    200 len=54464
+xray-field-card                    payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    payments    ROWS 1 cols=['count'] first=[[10000]]
+xray-field-card                    payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+admin-visible-values               payments    200 {"values":[],"field_id":1420,"has_more_values":false}
+admin-visible-raw                  payments    ROWS 3 cols=['id'] first=[[null], [null], [null]]
+admin-visible-max                  payments    ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+field-json                         warehouses  {"visibility_type": "hidden", "semantic_type": "type/PK", "database_type": "cube.dimension/private-key", "fingerprint": null, "has_field_values": "none"}
+raw-all-fields                     warehouses  ROWS 3 cols=['id', 'code', 'count'] first=[[null, "W1", null], [null, "W2", null], [null, "W3", null]]
+raw-fields-id                      warehouses  ROWS 3 cols=['id'] first=[[null], [null], [null]]
+raw-by-name                        warehouses  ROWS 3 cols=['id'] first=[[1.0], [2.0], [3.0]]
+breakout                           warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+breakout-by-name                   warehouses  ROWS 3 cols=['id', 'count'] first=[[1.0, 1], [2.0, 1], [3.0, 1]]
+filter-eq                          warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-gt                          warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-is-null                     warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-by-name                     warehouses  ROWS 1 cols=['count'] first=[[0]]
+agg-min                            warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-max                            warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-sum                            warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-avg                            warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-distinct                       warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-by-name                        warehouses  ROWS 1 cols=['max'] first=[[3.0]]
+count-where                        warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+sum-where                          warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+share                              warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-plus                    warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-case                    warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-concat                  warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-coalesce                warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+binning                            warehouses  ERR Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+order-by-key                       warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+order-by-key-agg                   warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+cum-sum                            warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+stage-raw-then-field               warehouses  ROWS 3 cols=['id'] first=[[null], [null], [null]]
+stage-raw-then-max                 warehouses  ROWS 1 cols=['max'] first=[[null]]
+stage-raw-then-filter              warehouses  ROWS 1 cols=['count'] first=[[0]]
+stage-fields-id-then-max           warehouses  ROWS 1 cols=['max'] first=[[null]]
+model-columns                      warehouses  ['id', 'code', 'count']
+model-then-id                      warehouses  ROWS 3 cols=['id'] first=[[null], [null], [null]]
+model-then-max                     warehouses  ROWS 1 cols=['max'] first=[[null]]
+model-then-filter                  warehouses  ROWS 1 cols=['count'] first=[[0]]
+pivot                              warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+csv                                warehouses  200 ID |  |  |  | 
+field-values                       warehouses  200 {"values":[],"field_id":1545,"has_more_values":false}
+field-search                       warehouses  200 []
+field-summary                      warehouses  500 {"via":[{"type":"clojure.lang.ExceptionInfo","message":"Error compiling query: id is a private primary key of the cube, so it has no values here. Use another column, or m
+field-related                      warehouses  200 {"table":{"description":"A cube with a private primary key. Each stock item points to it.\n\nMeasures: Count.\n\nDimensions: Code.","entity_type":"entity/GenericTable","v
+field-remapping                    warehouses  204 
+field-rescan                       warehouses  200 {"status":"success"}
+field-values-after-rescan          warehouses  200 {"values":[],"field_id":1545,"has_more_values":false}
+parameter-values                   warehouses  200 {"has_more_values":false,"values":[]}
+parameter-search                   warehouses  200 {"has_more_values":true,"values":[]}
+parameter-on-key                   warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+native-field-filter                warehouses  ROWS 1 cols=['coalesce(COUNT(UInt8(1)),Int64(0))'] first=[[0]]
+native-select                      warehouses  ROWS 3 cols=['id'] first=[[1.0], [2.0], [3.0]]
+native-star                        warehouses  ROWS 3 cols=['count', 'id', 'code', '__user', '__cubeJoinField'] first=[[1, 1.0, "W1", null, null], [1, 2.0, "W2", null, null], [1, 3.0, "W3", null, null]]
+native-max                         warehouses  ROWS 1 cols=['MAX(warehouses.id)'] first=[[3.0]]
+native-where                       warehouses  ROWS 1 cols=['coalesce(COUNT(UInt8(1)),Int64(0))'] first=[[0]]
+native-order                       warehouses  ROWS 1 cols=['a'] first=[[1]]
+native-sub                         warehouses  ROWS 3 cols=['i'] first=[[1.0], [2.0], [3.0]]
+native-cte                         warehouses  ROWS 3 cols=['i'] first=[[1.0], [2.0], [3.0]]
+native-quoted                      warehouses  ROWS 3 cols=['id'] first=[[1.0], [2.0], [3.0]]
+native-upper                       warehouses  ROWS 3 cols=['id'] first=[[1.0], [2.0], [3.0]]
+native-alias-dot                   warehouses  ROWS 3 cols=['id'] first=[[1.0], [2.0], [3.0]]
+native-group                       warehouses  ROWS 3 cols=['id', 'COUNT(UInt8(1))'] first=[[3.0, 1], [2.0, 1], [1.0, 1]]
+native-join-field                  warehouses  ROWS 3 cols=['__cubeJoinField'] first=[[null], [null], [null]]
+native-comment                     warehouses  ROWS 3 cols=['id'] first=[[1.0], [2.0], [3.0]]
+native-cast                        warehouses  ROWS 3 cols=['CAST(warehouses.id AS Utf8)'] first=[["1"], ["2"], ["3"]]
+native-info-schema                 warehouses  ROWS 3 cols=['table_catalog', 'table_schema', 'table_name', 'column_name', 'ordinal_position'] first=[["cube", "public", "warehouses", "count", 1, "", "NO", "bigint", null, null, 64, 2, 0, null, "", "", "", "", "", "", "", "", null
+mcp-raw                            warehouses  ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-fields                         warehouses  ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-breakout                       warehouses  ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-max                            warehouses  ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-filter                         warehouses  ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-execute-sql                    warehouses  [[1.0], [2.0], [3.0]]
+mcp-get-fields-hidden              warehouses  names key values:False
+mcp-get-fields                     warehouses  names key
+mcp-search                         warehouses  ok, 100001 in text: False
+xray-table                         warehouses  200 len=7950
+xray-cards                         warehouses  cards=2 on key=0
+xray-field                         warehouses  200 len=11021
+xray-field-card                    warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    warehouses  ROWS 1 cols=['count'] first=[[3]]
+xray-field-card                    warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    warehouses  ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+field-json                         promos      {"visibility_type": "hidden", "semantic_type": "type/PK", "database_type": "cube.dimension/private-key", "fingerprint": null, "has_field_values": "none"}
+raw-all-fields                     promos      ROWS 3 cols=['id', 'code', 'count'] first=[[null, "P0", null], [null, "P1", null], [null, "P2", null]]
+raw-fields-id                      promos      ROWS 3 cols=['id'] first=[[null], [null], [null]]
+raw-by-name                        promos      ROWS 3 cols=['id'] first=[[0.0], [1.0], [2.0]]
+breakout                           promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+breakout-by-name                   promos      ROWS 3 cols=['id', 'count'] first=[[0.0, 1], [1.0, 1], [2.0, 1]]
+filter-eq                          promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-gt                          promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-is-null                     promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-by-name                     promos      ROWS 1 cols=['count'] first=[[0]]
+agg-min                            promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-max                            promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-sum                            promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-avg                            promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-distinct                       promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-by-name                        promos      ROWS 1 cols=['max'] first=[[9.0]]
+count-where                        promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+sum-where                          promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+share                              promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-plus                    promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-case                    promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-concat                  promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-coalesce                promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+binning                            promos      ERR Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+order-by-key                       promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+order-by-key-agg                   promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+cum-sum                            promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+stage-raw-then-field               promos      ROWS 3 cols=['id'] first=[[null], [null], [null]]
+stage-raw-then-max                 promos      ROWS 1 cols=['max'] first=[[null]]
+stage-raw-then-filter              promos      ROWS 1 cols=['count'] first=[[0]]
+stage-fields-id-then-max           promos      ROWS 1 cols=['max'] first=[[null]]
+model-columns                      promos      ['id', 'code', 'count']
+model-then-id                      promos      ROWS 3 cols=['id'] first=[[null], [null], [null]]
+model-then-max                     promos      ROWS 1 cols=['max'] first=[[null]]
+model-then-filter                  promos      ROWS 1 cols=['count'] first=[[0]]
+pivot                              promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+csv                                promos      200 ID |  |  |  | 
+field-values                       promos      200 {"values":[],"field_id":1439,"has_more_values":false}
+field-search                       promos      200 []
+field-summary                      promos      500 {"via":[{"type":"clojure.lang.ExceptionInfo","message":"Error compiling query: id is a private primary key of the cube, so it has no values here. Use another column, or m
+field-related                      promos      200 {"table":{"description":"Ten promo codes. Orders join it twice through aliases.\n\nMeasures: Count.\n\nDimensions: Code.","entity_type":"entity/GenericTable","view_count"
+field-remapping                    promos      204 
+field-rescan                       promos      200 {"status":"success"}
+field-values-after-rescan          promos      200 {"values":[],"field_id":1439,"has_more_values":false}
+parameter-values                   promos      200 {"has_more_values":false,"values":[]}
+parameter-search                   promos      200 {"has_more_values":true,"values":[]}
+parameter-on-key                   promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+native-field-filter                promos      ROWS 1 cols=['coalesce(COUNT(UInt8(1)),Int64(0))'] first=[[0]]
+native-select                      promos      ROWS 3 cols=['id'] first=[[0.0], [1.0], [2.0]]
+native-star                        promos      ROWS 3 cols=['count', 'id', 'code', '__user', '__cubeJoinField'] first=[[1, 0.0, "P0", null, null], [1, 1.0, "P1", null, null], [1, 2.0, "P2", null, null]]
+native-max                         promos      ROWS 1 cols=['MAX(promos.id)'] first=[[9.0]]
+native-where                       promos      ROWS 1 cols=['coalesce(COUNT(UInt8(1)),Int64(0))'] first=[[0]]
+native-order                       promos      ROWS 1 cols=['a'] first=[[1]]
+native-sub                         promos      ROWS 3 cols=['i'] first=[[0.0], [1.0], [2.0]]
+native-cte                         promos      ROWS 3 cols=['i'] first=[[0.0], [1.0], [2.0]]
+native-quoted                      promos      ROWS 3 cols=['id'] first=[[0.0], [1.0], [2.0]]
+native-upper                       promos      ROWS 3 cols=['id'] first=[[0.0], [1.0], [2.0]]
+native-alias-dot                   promos      ROWS 3 cols=['id'] first=[[0.0], [1.0], [2.0]]
+native-group                       promos      ROWS 3 cols=['id', 'COUNT(UInt8(1))'] first=[[0.0, 1], [1.0, 1], [2.0, 1]]
+native-join-field                  promos      ROWS 3 cols=['__cubeJoinField'] first=[[null], [null], [null]]
+native-comment                     promos      ROWS 3 cols=['id'] first=[[0.0], [1.0], [2.0]]
+native-cast                        promos      ROWS 3 cols=['CAST(promos.id AS Utf8)'] first=[["0"], ["1"], ["2"]]
+native-info-schema                 promos      ROWS 3 cols=['table_catalog', 'table_schema', 'table_name', 'column_name', 'ordinal_position'] first=[["cube", "public", "promos", "count", 1, "", "NO", "bigint", null, null, 64, 2, 0, null, "", "", "", "", "", "", "", "", null, nu
+mcp-raw                            promos      ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-fields                         promos      ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-breakout                       promos      ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-max                            promos      ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-filter                         promos      ERR Query failed: "id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-execute-sql                    promos      [[0.0], [1.0], [2.0]]
+mcp-get-fields-hidden              promos      names key values:False
+mcp-get-fields                     promos      names key
+mcp-search                         promos      ok, 100001 in text: False
+xray-table                         promos      200 len=7712
+xray-cards                         promos      cards=2 on key=0
+xray-field                         promos      200 len=10971
+xray-field-card                    promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    promos      ROWS 1 cols=['count'] first=[[10]]
+xray-field-card                    promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    promos      ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+field-json                         shipments   {"visibility_type": "hidden", "semantic_type": "type/PK", "database_type": "cube.dimension/private-key", "fingerprint": null, "has_field_values": "none"}
+raw-all-fields                     shipments   ROWS 3 cols=['order_id', 'carrier_mode', 'count'] first=[[null, "ground", null], [null, "air", null], [null, "air", null]]
+raw-fields-id                      shipments   ROWS 3 cols=['order_id'] first=[[null], [null], [null]]
+raw-by-name                        shipments   ROWS 3 cols=['order_id'] first=[[4693.0], [1083.0], [2166.0]]
+breakout                           shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+breakout-by-name                   shipments   ROWS 3 cols=['order_id', 'count'] first=[[1.0, 1], [2.0, 1], [3.0, 1]]
+filter-eq                          shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-gt                          shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-is-null                     shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+filter-by-name                     shipments   ROWS 1 cols=['count'] first=[[0]]
+agg-min                            shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-max                            shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-sum                            shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-avg                            shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-distinct                       shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+agg-by-name                        shipments   ROWS 1 cols=['max'] first=[[5000.0]]
+count-where                        shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+sum-where                          shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+share                              shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-plus                    shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-case                    shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-concat                  shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+expression-coalesce                shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+binning                            shipments   ERR Unable to bin Field without a min/max value (missing or incomplete fingerprint)
+order-by-key                       shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+order-by-key-agg                   shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+cum-sum                            shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+stage-raw-then-field               shipments   ROWS 3 cols=['order_id'] first=[[null], [null], [null]]
+stage-raw-then-max                 shipments   ROWS 1 cols=['max'] first=[[null]]
+stage-raw-then-filter              shipments   ROWS 1 cols=['count'] first=[[0]]
+stage-fields-id-then-max           shipments   ROWS 1 cols=['max'] first=[[null]]
+model-columns                      shipments   ['order_id', 'carrier_mode', 'count']
+model-then-id                      shipments   ROWS 3 cols=['order_id'] first=[[null], [null], [null]]
+model-then-max                     shipments   ROWS 1 cols=['max'] first=[[null]]
+model-then-filter                  shipments   ROWS 1 cols=['count'] first=[[0]]
+pivot                              shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+csv                                shipments   200 Order ID |  |  |  | 
+field-values                       shipments   200 {"values":[],"field_id":1480,"has_more_values":false}
+field-search                       shipments   200 []
+field-summary                      shipments   500 {"via":[{"type":"clojure.lang.ExceptionInfo","message":"Error compiling query: order_id is a private primary key of the cube, so it has no values here. Use another column
+field-related                      shipments   200 {"table":{"description":"One shipment per order. Joined one to one.\n\nMeasures: Count.\n\nDimensions: Carrier Mode.\n\nJoins: regions, region_labels.","entity_type":"ent
+field-remapping                    shipments   204 
+field-rescan                       shipments   200 {"status":"success"}
+field-values-after-rescan          shipments   200 {"values":[],"field_id":1480,"has_more_values":false}
+parameter-values                   shipments   200 {"has_more_values":false,"values":[]}
+parameter-search                   shipments   200 {"has_more_values":true,"values":[]}
+parameter-on-key                   shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+native-field-filter                shipments   ROWS 1 cols=['coalesce(COUNT(UInt8(1)),Int64(0))'] first=[[0]]
+native-select                      shipments   ROWS 3 cols=['order_id'] first=[[4693.0], [1083.0], [2166.0]]
+native-star                        shipments   ROWS 3 cols=['count', 'order_id', 'carrier_mode', '__user', '__cubeJoinField'] first=[[1, 4693.0, "ground", null, null], [1, 1083.0, "air", null, null], [1, 2166.0, "air", null, null]]
+native-max                         shipments   ROWS 1 cols=['MAX(shipments.order_id)'] first=[[5000.0]]
+native-where                       shipments   ROWS 1 cols=['coalesce(COUNT(UInt8(1)),Int64(0))'] first=[[0]]
+native-order                       shipments   ROWS 1 cols=['a'] first=[[1]]
+native-sub                         shipments   ROWS 3 cols=['i'] first=[[4693.0], [1083.0], [2166.0]]
+native-cte                         shipments   ROWS 3 cols=['i'] first=[[4693.0], [1083.0], [2166.0]]
+native-quoted                      shipments   ROWS 3 cols=['order_id'] first=[[4693.0], [1083.0], [2166.0]]
+native-upper                       shipments   ROWS 3 cols=['order_id'] first=[[4693.0], [1083.0], [2166.0]]
+native-alias-dot                   shipments   ROWS 3 cols=['order_id'] first=[[4693.0], [1083.0], [2166.0]]
+native-group                       shipments   ROWS 3 cols=['order_id', 'COUNT(UInt8(1))'] first=[[1.0, 1], [2.0, 1], [3.0, 1]]
+native-join-field                  shipments   ROWS 3 cols=['__cubeJoinField'] first=[[null], [null], [null]]
+native-comment                     shipments   ROWS 3 cols=['order_id'] first=[[4693.0], [1083.0], [2166.0]]
+native-cast                        shipments   ROWS 3 cols=['CAST(shipments.order_id AS Utf8)'] first=[["4693"], ["1083"], ["2166"]]
+native-info-schema                 shipments   ROWS 3 cols=['table_catalog', 'table_schema', 'table_name', 'column_name', 'ordinal_position'] first=[["cube", "public", "shipments", "count", 1, "", "NO", "bigint", null, null, 64, 2, 0, null, "", "", "", "", "", "", "", "", null,
+mcp-raw                            shipments   ERR Query failed: "order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-fields                         shipments   ERR Query failed: "order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-breakout                       shipments   ERR Query failed: "order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-max                            shipments   ERR Query failed: "order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-filter                         shipments   ERR Query failed: "order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model."
+mcp-execute-sql                    shipments   [[4693.0], [1083.0], [2166.0]]
+mcp-get-fields-hidden              shipments   names key values:False
+mcp-get-fields                     shipments   no key
+mcp-search                         shipments   ok, 100001 in text: False
+xray-table                         shipments   200 len=7771
+xray-cards                         shipments   cards=2 on key=0
+xray-field                         shipments   200 len=11096
+xray-field-card                    shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    shipments   ROWS 1 cols=['count'] first=[[5000]]
+xray-field-card                    shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+xray-field-card                    shipments   ERR order_id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+fk                                 stock_items fk to 1545
+implicit-breakout                  stock_items ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+implicit-max                       stock_items ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+implicit-filter                    stock_items ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+explicit-join-all                  stock_items ROWS 3 cols=['id', 'warehouse_id', 'quantity', 'id_2', 'code'] first=[[1.0, 1.0, null, null, "W1", null], [2.0, 2.0, null, null, "W2", null], [3.0, 3.0, null, null, "W3", null]]
+explicit-join-key                  stock_items ROWS 3 cols=['id', 'warehouse_id', 'quantity', 'id_2'] first=[[1.0, 1.0, null, null], [2.0, 2.0, null, null], [3.0, 3.0, null, null]]
+explicit-join-max                  stock_items ERR id is a private primary key of the cube, so it has no values here. Use another column, or make it public in the model.
+explicit-join-on-other             warehouses  ERR ERROR: Internal Error: Can't find join path to join 'warehouses,stock_items'
+QUERY: SELECT COALESCE(COUNT(*), 0) AS "count" FROM "warehouses" LEFT JOI

@@ -1,0 +1,16 @@
+== the URL of the docs today
+404
+== case 1: the docs
+ Container mcd-review-metabase-install-1 Started 
+healthy
+2026-11-01 14:47:23,183 INFO driver.impl :: [34mRegistered driver :cube[0m (parents: [:postgres]) 
+tables 96
+revenue [[319790.0]] truth [['319790']]
+ Container mcd-review-metabase-install-1 Removed 
+== case 2: no chmod 777
+ Container mcd-review-metabase-install-1 Started 
+healthy
+2026-11-01 14:48:50,217 WARN plugins.impl :: Metabase cannot use the plugins directory /plugins 
+ Please make sure the directory exists and that Metabase has permission to write to it. You can change the directory Metabase uses for modules by setting the environment variable MB_PLUGINS_DIR. Falli
+2026-11-01 14:49:09,396 WARN sample-data.impl :: Plugins directory is a temp directory; the sample database will be re-extracted on every startup. Set MB_PLUGINS_DIR to a writable directory to make th
+ Container mcd-review-metabase-install-1 Removed 

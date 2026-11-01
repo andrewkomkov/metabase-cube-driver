@@ -1,0 +1,124 @@
+== meta.semantic_types: a text column with a foreign key on Postgres
+PG people.state semantic type/FK target 4532 | plain text column of the same name, users.state: type/State
+PG people.email type/Email
+PG people.name type/Name
+PG people.city type/City
+Cube users.state type/FK target 1444 has_field_values search
+Cube users.email type/Email target None has_field_values list
+Cube users.name type/Name target None has_field_values list
+Cube users.city type/City target None has_field_values list
+Cube join_customers.state type/State target None has_field_values list
+Cube metric_customers.state type/FK target 1454 has_field_values search
+Cube by users.state [['IL', 50], ['MA', 50], ['TX', 50], ['WA', 50]]
+truth [['IL', '50'], ['MA', '50'], ['TX', '50'], ['WA', '50']]
+== cube.sql_sync: a hidden key on Postgres
+PG hidden field in query_metadata: ['label']
+PG raw columns with a hidden field: ['state', 'label'] [['TX', 'South']]
+PG breakout on a hidden field: [['IL', 1], ['MA', 1]]
+PG filter on a hidden field: [[1]]
+Cube payments in query_metadata: ['order_id', 'method']
+Cube payments raw columns: ['id', 'order_id', 'method', 'count', 'total'] [[None, 4693.0, 'card', None, None]]
+Cube payments by method: [['card', 5000], ['fee', 5000]]
+truth: [['fee', '5000'], ['card', '5000']]
+== zone.*.time_measure: max of a time under a report zone
+-- zone None
+PG max(timestamptz) [['2026-01-10T17:06:51Z']]
+PG max(timestamp) [['2026-01-10T17:06:51Z']]
+PG max(timestamptz(3)) [['2026-01-10T17:06:51.296Z']]
+PG day, max [['2024-11-24T00:00:00Z', '2024-11-24T23:59:59Z'], ['2024-11-25T00:00:00Z', '2024-11-25T23:59:59Z']]
+dialect ny_a m_last_at [['2026-01-10T17:06:51.000']]
+dialect ny_a m_last_local [['2026-01-10T17:06:51.000']]
+dialect ny_b m_last_at [['2026-01-10T17:06:51.000']]
+dialect ny_d m_last_at [['2026-01-10T17:06:51.000']]
+dialect ny_a64 m_last_at [['2026-01-10T17:06:51.000']]
+dialect orders last_order_at [['2025-12-27T21:00:00.000']]
+dialect metric_types m_last_order_at [['2025-12-27T21:00:00.000']]
+dialect ny_a max(at) [['2026-01-10T17:06:51Z']]
+dialect ny_a day, m_last_at [['2024-11-24T00:00:00Z', '2024-11-24T23:59:59.000'], ['2024-11-25T00:00:00Z', '2024-11-25T23:59:59.000']]
+stock ny_a m_last_at [['2026-01-10T17:06:51.000']]
+stock ny_a m_last_local [['2026-01-10T17:06:51.000']]
+stock ny_b m_last_at [['2026-01-10T17:06:51.000']]
+stock ny_d m_last_at [['2026-01-10T17:06:51.000']]
+stock ny_a64 m_last_at [['2026-01-10T17:06:51.000']]
+stock orders last_order_at [['2025-12-27T21:00:00.000']]
+stock metric_types m_last_order_at [['2025-12-27T21:00:00.000']]
+stock ny_a max(at) [['2026-01-10T17:06:51Z']]
+stock ny_a day, m_last_at [['2024-11-24T00:00:00Z', '2024-11-24T23:59:59.000'], ['2024-11-25T00:00:00Z', '2024-11-25T23:59:59.000']]
+-- zone America/New_York
+PG max(timestamptz) [['2026-01-10T12:06:51-05:00']]
+PG max(timestamp) [['2026-01-10T17:06:51-05:00']]
+PG max(timestamptz(3)) [['2026-01-10T12:06:51.296-05:00']]
+PG day, max [['2024-11-24T00:00:00-05:00', '2024-11-24T23:59:59-05:00'], ['2024-11-25T00:00:00-05:00', '2024-11-25T23:59:59-05:00']]
+dialect ny_a m_last_at [['2026-01-10T12:06:51.000']]
+dialect ny_a m_last_local [['2026-01-10T12:06:51.000']]
+dialect ny_b m_last_at [['2026-01-10T12:06:51.000']]
+dialect ny_d m_last_at [['2026-01-10T12:06:51.000']]
+dialect ny_a64 m_last_at [['2026-01-10T12:06:51.000']]
+dialect orders last_order_at [['2025-12-27T16:00:00.000']]
+dialect metric_types m_last_order_at [['2025-12-27T16:00:00.000']]
+dialect ny_a max(at) [['2026-01-10T12:06:51-05:00']]
+dialect ny_a day, m_last_at [['2024-11-24T00:00:00-05:00', '2024-11-24T23:59:59.000'], ['2024-11-25T00:00:00-05:00', '2024-11-25T23:59:59.000']]
+stock ny_a m_last_at ERR m_last_at is a measure of type time, and stock Cube gives it in the time zone of the column under a report time zone, so the time would be wrong. Install cube-clickhouse, which gives each such measure in the report time zone, read
+stock ny_a m_last_local [['2026-01-10T12:06:51.000']]
+stock ny_b m_last_at ERR m_last_at is a measure of type time, and stock Cube gives it in the time zone of the column under a report time zone, so the time would be wrong. Install cube-clickhouse, which gives each such measure in the report time zone, read
+stock ny_d m_last_at ERR m_last_at is a measure of type time, and stock Cube gives it in the time zone of the column under a report time zone, so the time would be wrong. Install cube-clickhouse, which gives each such measure in the report time zone, read
+stock ny_a64 m_last_at ERR m_last_at is a measure of type time, and stock Cube gives it in the time zone of the column under a report time zone, so the time would be wrong. Install cube-clickhouse, which gives each such measure in the report time zone, read
+stock orders last_order_at ERR last_order_at is a measure of type time, and stock Cube gives it in the time zone of the column under a report time zone, so the time would be wrong. Install cube-clickhouse, which gives each such measure in the report time zone, 
+stock metric_types m_last_order_at [['2025-12-27T16:00:00.000']]
+stock ny_a max(at) [['2026-01-10T12:06:51-05:00']]
+stock ny_a day, m_last_at ERR m_last_at is a measure of type time, and stock Cube gives it in the time zone of the column under a report time zone, so the time would be wrong. Install cube-clickhouse, which gives each such measure in the report time zone, read
+-- zone Asia/Kolkata
+PG max(timestamptz) [['2026-01-10T22:36:51+05:30']]
+PG max(timestamp) [['2026-01-10T17:06:51+05:30']]
+PG max(timestamptz(3)) [['2026-01-10T22:36:51.296+05:30']]
+PG day, max [['2024-11-24T00:00:00+05:30', '2024-11-24T23:59:59+05:30'], ['2024-11-25T00:00:00+05:30', '2024-11-25T23:59:59+05:30']]
+dialect ny_a m_last_at [['2026-01-10T22:36:51.000']]
+dialect ny_a m_last_local [['2026-01-10T22:36:51.000']]
+dialect ny_b m_last_at [['2026-01-10T22:36:51.000']]
+dialect ny_d m_last_at [['2026-01-10T22:36:51.000']]
+dialect ny_a64 m_last_at [['2026-01-10T22:36:51.000']]
+dialect orders last_order_at [['2025-12-28T02:30:00.000']]
+dialect metric_types m_last_order_at [['2025-12-28T02:30:00.000']]
+dialect ny_a max(at) [['2026-01-10T22:36:51+05:30']]
+dialect ny_a day, m_last_at [['2024-11-24T00:00:00+05:30', '2024-11-24T23:59:59.000'], ['2024-11-25T00:00:00+05:30', '2024-11-25T23:59:59.000']]
+stock ny_a m_last_at ERR m_last_at is a measure of type time, and stock Cube gives it in the time zone of the column under a report time zone, so the time would be wrong. Install cube-clickhouse, which gives each such measure in the report time zone, read
+stock ny_a m_last_local [['2026-01-10T22:36:51.000']]
+stock ny_b m_last_at ERR m_last_at is a measure of type time, and stock Cube gives it in the time zone of the column under a report time zone, so the time would be wrong. Install cube-clickhouse, which gives each such measure in the report time zone, read
+stock ny_d m_last_at ERR m_last_at is a measure of type time, and stock Cube gives it in the time zone of the column under a report time zone, so the time would be wrong. Install cube-clickhouse, which gives each such measure in the report time zone, read
+stock ny_a64 m_last_at ERR m_last_at is a measure of type time, and stock Cube gives it in the time zone of the column under a report time zone, so the time would be wrong. Install cube-clickhouse, which gives each such measure in the report time zone, read
+stock orders last_order_at ERR last_order_at is a measure of type time, and stock Cube gives it in the time zone of the column under a report time zone, so the time would be wrong. Install cube-clickhouse, which gives each such measure in the report time zone, 
+stock metric_types m_last_order_at [['2025-12-28T02:30:00.000']]
+stock ny_a max(at) [['2026-01-10T22:36:51+05:30']]
+stock ny_a day, m_last_at ERR m_last_at is a measure of type time, and stock Cube gives it in the time zone of the column under a report time zone, so the time would be wrong. Install cube-clickhouse, which gives each such measure in the report time zone, read
+truth [['2026-01-10 17:06:51', '2026-01-10 12:06:51', '2026-01-10 17:06:51.296']]
+== a64 on stock: a day under a report zone keeps the last second
+2025-03-08 truth [['8', '445.04']] PG [[8, 445.04]]
+   dialect filter [[8, 445.04]]
+   dialect bucket [['2025-03-08T00:00:00-05:00', 8, 445.04]]
+   stock filter [[8, 445.04]]
+   stock bucket [['2025-03-08T00:00:00-05:00', 8, 445.04]]
+2025-03-09 truth [['8', '385.96']] PG [[9, 404.22]]
+   dialect filter [[8, 385.96]]
+   dialect bucket [['2025-03-09T00:00:00-05:00', 8, 385.96]]
+   stock filter [[8, 385.96]]
+   stock bucket [['2025-03-09T00:00:00-05:00', 8, 385.96]]
+2025-11-02 truth [['8', '400.92']] PG [[7, 393.57]]
+   dialect filter [[8, 400.92]]
+   dialect bucket [['2025-11-02T00:00:00-04:00', 8, 400.92]]
+   stock filter [[8, 400.92]]
+   stock bucket [['2025-11-02T00:00:00-04:00', 8, 400.92]]
+2025-07-04 truth [['8', '410.6']] PG [[8, 410.6]]
+   dialect filter [[8, 410.6]]
+   dialect bucket [['2025-07-04T00:00:00-04:00', 8, 410.6]]
+   stock filter [[8, 410.6]]
+   stock bucket [['2025-07-04T00:00:00-04:00', 8, 410.6]]
+2025-03-08T00:00:00 2025-03-09T00:00:00 truth [['8']] PG [[8]]
+   dialect half-open [[8]]
+   stock half-open [[8]]
+2025-03-09T00:00:00.500 2025-03-09T00:00:00.900 truth [['1']] PG [[1]]
+   dialect half-open [[1]]
+   stock half-open ERR Cube drops the fraction of a second in a filter on a time, so the number would be wrong. Use whole seconds, or install the ClickHouse dialect, see cube-clickhouse/README.md.
+no zone: a64 on stock
+2025-03-08 truth [['8']] PG [[8]] stock [[8]]
+  half-open at last second: truth [['8']] stock [[8]]
+{"done": true}

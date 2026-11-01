@@ -1,0 +1,15 @@
+dialect dataset 1053 {'pass': 1024, 'raw_error': 12, 'refused': 13, 'review': 3, 'no_object': 1}
+stock dataset 1046 {'pass': 973, 'raw_error': 15, 'wrong': 8, 'refused': 48, 'review': 2}
+mcp-dialect 349 {'pass': 314, 'page limit of the run': 8, 'skip': 22, 'refused': 3, 'raw_error': 1, 'review': 1}
+mcp-stock 175 {'pass': 151, 'page limit of the run': 1, 'refused': 10, 'skip': 10, 'raw_error': 1, 'wrong': 1, 'review': 1}
+generator Counter({'pass': 1055, 'refused': 142, 'skip': 2, 'raw_error': 1})
+42 bin of a key, Postgres gives the same message
+28 rolling or time shift, the generator expects it
+19 distinct of a time under a zone
+17 ORDINARY view with default filters, push-down cannot plan
+13 ORDINARY count-where, share or sum over a joined column
+8 ORDINARY distinct next to a measure on a view
+7 segment with OR
+6 other
+2 rolling measure, other
+rate 142 of 1200

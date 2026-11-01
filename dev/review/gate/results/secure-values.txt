@@ -1,0 +1,11 @@
+city {'has_field_values': 'search', 'fingerprint': None}
+alice@example.com values {"values": [], "field_id": 4558, "has_more_values": false}
+alice@example.com search Bo []
+alice@example.com param {"has_more_values": false, "values": [["Austin"]]}
+alice@example.com xray 200 1580
+alice@example.com cities in x-ray cards []
+bob@example.com values {"values": [], "field_id": 4558, "has_more_values": false}
+bob@example.com search Bo [["Boston"]]
+bob@example.com param {"has_more_values": false, "values": [["Boston"]]}
+bob@example.com xray 200 1580
+bob@example.com cities in x-ray cards []
