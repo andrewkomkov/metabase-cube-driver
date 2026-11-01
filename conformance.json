@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 1313,
+    "pass": 1330,
     "partial": 24,
     "blocked": 1,
     "unsupported": 12,
-    "fail": 18,
+    "fail": 1,
     "total": 1368
   },
-  "coverage": "coverage: 1313/1368 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1330/1368 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -753,7 +753,7 @@
     {
       "id": "preagg.original_sql",
       "status": "fail",
-      "reason": "SELECT status, MEASURE(revenue) FROM original_sql_orders GROUP BY 1: query failed: original_sql_orders is private in the Cube data model, so it has no values here. A Cube in dev mode reads private cubes, so do not run dev mode in production."
+      "reason": "SELECT status, MEASURE(revenue) FROM original_sql_orders GROUP BY 1: got ['cancelled', '69970'], truth ['cancelled', 69970.0]"
     },
     {
       "id": "preagg.partitioned",
@@ -1592,8 +1592,8 @@
     },
     {
       "id": "mb.search.segment",
-      "status": "fail",
-      "reason": "truth SQL failed: SELECT count() FROM orders WHERE orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed': Code: 62. DB::Exception: Syntax error: failed at position 41 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'. Expected one of: token sequence, Dot, token, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UNKNOWN, IS UNKNOWN, IS NOT FALSE, IS FALSE, IS NOT TRUE, IS TRUE, I"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.search.table",
@@ -1672,8 +1672,8 @@
     },
     {
       "id": "mcp.browse.get_fields_segments",
-      "status": "fail",
-      "reason": "truth SQL failed: SELECT count() FROM orders WHERE orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed': Code: 62. DB::Exception: Syntax error: failed at position 41 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'. Expected one of: token sequence, Dot, token, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UNKNOWN, IS UNKNOWN, IS NOT FALSE, IS FALSE, IS NOT TRUE, IS TRUE, I"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.browse.list_databases",
@@ -1752,8 +1752,8 @@
     },
     {
       "id": "mcp.execute_query.segment",
-      "status": "fail",
-      "reason": "truth SQL failed: SELECT count() FROM orders WHERE orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed': Code: 62. DB::Exception: Syntax error: failed at position 41 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'. Expected one of: token sequence, Dot, token, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UNKNOWN, IS UNKNOWN, IS NOT FALSE, IS FALSE, IS NOT TRUE, IS TRUE, I"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.execute_query.view",
@@ -1857,8 +1857,8 @@
     },
     {
       "id": "mcp.search.segment",
-      "status": "fail",
-      "reason": "truth SQL failed: SELECT count() FROM orders WHERE orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed': Code: 62. DB::Exception: Syntax error: failed at position 41 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'. Expected one of: token sequence, Dot, token, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UNKNOWN, IS UNKNOWN, IS NOT FALSE, IS FALSE, IS NOT TRUE, IS TRUE, I"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.search.table_by_description",
@@ -2067,8 +2067,8 @@
     },
     {
       "id": "semantic.measure.type_number",
-      "status": "fail",
-      "reason": "truth SQL failed: SELECT sumIf(toFloat64(amount), orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed') / sum(toFloat64(amount)) FROM orders: Code: 62. DB::Exception: Syntax error: failed at position 40 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed') / sum(toFloat64(amount)) FROM orders. Expected one of: token sequence, Dot, token, Comma, ClosingRoundBracket, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UN"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "semantic.measure.type_string",
@@ -2087,8 +2087,8 @@
     },
     {
       "id": "semantic.segment.every_member",
-      "status": "fail",
-      "reason": "truth SQL failed: SELECT count() FROM orders WHERE orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed': Code: 62. DB::Exception: Syntax error: failed at position 41 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'. Expected one of: token sequence, Dot, token, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UNKNOWN, IS UNKNOWN, IS NOT FALSE, IS FALSE, IS NOT TRUE, IS TRUE, I"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "semantic.display_names",
@@ -2837,8 +2837,8 @@
     },
     {
       "id": "compile.native.field_filter_multi",
-      "status": "fail",
-      "reason": "truth SQL failed: SELECT count() FROM orders WHERE orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed': Code: 62. DB::Exception: Syntax error: failed at position 41 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'. Expected one of: token sequence, Dot, token, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UNKNOWN, IS UNKNOWN, IS NOT FALSE, IS FALSE, IS NOT TRUE, IS TRUE, I"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.native.field_filter_number_range",
@@ -2862,8 +2862,8 @@
     },
     {
       "id": "compile.nested.model_of_a_native_query",
-      "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-01T15:53:58.502643549Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/mbql\",\"aggregation\":[[\"sum\",{\"lib/uuid\":\"e9ae4479-e35"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.nested.model_raw_rows_then_group",
@@ -3163,12 +3163,12 @@
     {
       "id": "compile.xray.field_all_cards_run",
       "status": "partial",
-      "reason": "The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) can stop. Stock Cube adds each row of the joined cube once. So it gives another number, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. The check accepts this message or a number equal to the truth."
+      "reason": "The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) reads two stages, see compile.join.total_of_dimension_refused. The check accepts the clear message of a form that two stages cannot give, or a number equal to the truth."
     },
     {
       "id": "compile.xray.time_field_all_cards_run",
       "status": "partial",
-      "reason": "The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) can stop. Stock Cube adds each row of the joined cube once. So it gives another number, and the driver stops this query with a clear message, see compile.join.total_of_dimension_refused. The check accepts this message or a number equal to the truth."
+      "reason": "The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) reads two stages, see compile.join.total_of_dimension_refused. The check accepts the clear message of a form that two stages cannot give, or a number equal to the truth."
     },
     {
       "id": "compile.xray.typed_table_all_cards_run",
@@ -3227,8 +3227,8 @@
     },
     {
       "id": "mcp.agent.find_segment_owner",
-      "status": "fail",
-      "reason": "truth SQL failed: SELECT count() FROM orders WHERE orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed': Code: 62. DB::Exception: Syntax error: failed at position 41 (o): o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed'. Expected one of: token sequence, Dot, token, OR, AND, IS NOT DISTINCT FROM, IS DISTINCT FROM, IS NOT UNKNOWN, IS UNKNOWN, IS NOT FALSE, IS FALSE, IS NOT TRUE, IS TRUE, I"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mcp.agent.table_description_lists_members",
@@ -3392,8 +3392,8 @@
     },
     {
       "id": "nested.outer_date_filter.native_source",
-      "status": "fail",
-      "reason": "native source: query failed: A table of this query has private members in the Cube data model, and a Cube in dev mode gives them for *. List the columns."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "nested.outer_date_filter.week_numbers",
@@ -3647,8 +3647,8 @@
     },
     {
       "id": "compile.join.total_of_dimension_refused",
-      "status": "fail",
-      "reason": "sum by status: the error has no 'Cube cannot add up the dimension': "
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.expr.measure_with_expression_breakout",
@@ -3677,8 +3677,8 @@
     },
     {
       "id": "native.subquery_filter_refused",
-      "status": "fail",
-      "reason": "the error for SELECT * FROM (SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS r FROM orders GROUP BY 1) AS s WHERE m < has no 'LIMIT 2147483647': A table of this query has private members in the Cube data model, and a Cube in dev mode gives them for *. List the columns."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "native.bound.alias_in_a_subquery",
@@ -3732,8 +3732,8 @@
     },
     {
       "id": "filter.aggregation_on_a_join_of_a_view_refused",
-      "status": "fail",
-      "reason": "the query gave a number"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "measure.time_type_in_a_report_zone",
@@ -6457,8 +6457,8 @@
     },
     {
       "id": "zone.ny.time_measure",
-      "status": "fail",
-      "reason": "a Metabase m_last_local: ('2024-11-24',) is 2024-11-24T23:59:59-05:00, truth 2024-11-24 23:59:59"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "zone.ny.native",
@@ -6482,8 +6482,8 @@
     },
     {
       "id": "zone.kol.time_measure",
-      "status": "fail",
-      "reason": "a Metabase m_last_local: ('2024-11-24',) is 2024-11-24T23:59:59+05:30, truth 2024-11-24 23:59:59"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "zone.kol.native",
@@ -6642,8 +6642,8 @@
     },
     {
       "id": "preagg.rollup_lambda_under_a_report_zone",
-      "status": "fail",
-      "reason": "1 of 2 differ. America/New_York by month: got ['2024-12-01T05:00:00', 155.0], truth ['2024-12-01T00:00:00', 155.0]"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.two_stages.default_filters_month_of_year",
@@ -6847,8 +6847,8 @@
     },
     {
       "id": "security.attribute_added_later_clears_the_lists",
-      "status": "fail",
-      "reason": "the list stays after the attribute: [['Austin'], ['Boston'], ['Chicago']]"
+      "status": "pass",
+      "reason": ""
     }
   ]
 }
