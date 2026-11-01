@@ -2212,12 +2212,14 @@
   [:field {:lib/uuid (new-uuid), :base-type :type/BigInteger} row-count-column])
 
 (defn- named
-  "`opts` with a name for a clause that has another tag than the clause of the first stage, because a later stage reads a column by its name."
-  [opts tag {:keys [later-stages?]}]
+  "`opts` with a name for a clause that has another tag than the clause of the first stage, because a later stage reads a column by its name. Metabase names such a column after
+  its tag, and it adds a number to the second one, so the driver gives that name only to the one clause with this tag."
+  [opts tag {:keys [later-stages? tags]}]
   (cond
-    (:name opts)    opts
-    later-stages?   (no-split!)
-    :else           (assoc opts :name (name tag))))
+    (:name opts)                                    opts
+    (and later-stages? (not= 1 (get tags tag)))     (no-split!)
+    (and later-stages? (not (#{:count :avg} tag)))  (no-split!)
+    :else                                           (assoc opts :name (name tag))))
 
 (defn- outer-measure
   "The aggregation of a measure from its values on smaller groups."
@@ -2253,7 +2255,7 @@
       (= :avg tag)                                             [:/ (named opts tag ctx)
                                                                 [:sum (u) (times arg)]
                                                                 [:sum-where (u) (rows) [:not-null (u) (outer-form arg)]]]
-      (= :count-where tag)                                     [:coalesce (named opts tag ctx) [:sum-where (u) (rows) (outer-form arg)] 0]
+      (= :count-where tag)                                     [:sum-where (named opts tag ctx) (rows) (outer-form arg)]
       (= :sum-where tag)                                       [:sum-where opts (times arg) (outer-form second-arg)]
       (= :share tag)                                           [:/ (named opts tag ctx)
                                                                 [:sum-where (u) (rows) (outer-form arg)]
@@ -2307,6 +2309,10 @@
                            (cube.meta/many-to-one-path? cube-meta measure-cube dimension)))
           (no-split!))))))
 
+(def ^:private ^:dynamic *read-source*
+  "True if the two stages must make Cube read the source of a rollup. A rollup does not hold a raw time, so the inner stage groups by the times that its filters read."
+  false)
+
 (defn- split-first-stage
   "`stages` with the first stage as two stages, or nil. See the note on two stages."
   [cube-meta stages strategy]
@@ -2319,11 +2325,13 @@
                              :table-name    table-name
                              :measures      (atom {})
                              :needs-count   (atom false)
-                             :later-stages? (some? (next stages))}
+                             :later-stages? (some? (next stages))
+                             :tags          (frequencies (map first aggregation))}
               aggregation'  (mapv #(outer-aggregation ctx %) aggregation)
               inside        (filterv #(filter-stays-inside? strategy %) filters)
               outside       (filterv #(not (filter-stays-inside? strategy %)) filters)
-              dimensions    (->> (field-clauses (concat breakout outside expressions order-by aggregation))
+              dimensions    (->> (field-clauses (concat breakout outside expressions order-by aggregation
+                                                        (when *read-source* (filter has-time? inside))))
                                  (filter integer-field?)
                                  (remove #(= :measure (member-kind %)))
                                  (remove has-segment?)
@@ -2345,11 +2353,6 @@
                               (no-split!))
               inner         (cond-> {:lib/type    :mbql.stage/mbql
                                      :source-table source-table
-                                     :breakout    (mapv (fn [[_ {:keys [join-alias base-type]} id :as clause]]
-                                                          [:field (cond-> {:lib/uuid (new-uuid), :base-type (or base-type (:base-type (stored-field clause)))}
-                                                                    join-alias (assoc :join-alias join-alias))
-                                                           id])
-                                                        dimensions)
                                      :aggregation (cond-> (mapv (fn [[column-name arg]]
                                                                   (let [field (stored-field arg)]
                                                                     [(cube.meta/aggregation-of-measure (str/replace-first (str (:database-type field)) "cube.measure/" "") :max)
@@ -2358,6 +2361,11 @@
                                                                 @(:measures ctx))
                                                     count-field (conj [:sum {:lib/uuid (new-uuid), :name row-count-column}
                                                                        [:field {:lib/uuid (new-uuid), :base-type (:base-type count-field)} (:id count-field)]]))}
+                              (seq dimensions) (assoc :breakout (mapv (fn [[_ {:keys [join-alias base-type]} id :as clause]]
+                                                                        [:field (cond-> {:lib/uuid (new-uuid), :base-type (or base-type (:base-type (stored-field clause)))}
+                                                                                  join-alias (assoc :join-alias join-alias))
+                                                                         id])
+                                                                      dimensions))
                               (seq joins)  (assoc :joins joins)
                               (seq inside) (assoc :filters inside))
               outer         (cond-> (-> (dissoc stage :source-table :joins :filters :expressions :order-by :breakout)
@@ -2366,8 +2374,8 @@
                               (seq outside)     (assoc :filters (outer-form outside))
                               (seq expressions) (assoc :expressions (outer-form expressions))
                               (seq order-by)    (assoc :order-by (outer-form order-by)))]
-          (when (or (seq (:breakout inner)) (seq (:aggregation inner)))
-            (into [inner outer] (rest stages))))))
+          (when (or (seq dimensions) (seq (:aggregation inner)))
+            (into [(cond-> inner (empty? (:aggregation inner)) (dissoc :aggregation)) outer] (rest stages))))))
     (catch clojure.lang.ExceptionInfo e
       (if (::no-split (ex-data e))
         nil
@@ -2422,7 +2430,8 @@
               compiled))
         (catch clojure.lang.ExceptionInfo e
           (or (when (::try-two-stages (ex-data e))
-                (compile-two-stages driver query cube-meta))
+                (binding [*read-source* true]
+                  (compile-two-stages driver query cube-meta)))
               (throw e)))))))
 
 (defn- time-measure-columns
