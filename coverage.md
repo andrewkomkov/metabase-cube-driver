@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1330/1368 pass on Cube with the ClickHouse dialect** (1330 pass, 24 partial, 1 blocked, 12 unsupported, 1 fail of 1368)
+**coverage: 1331/1368 pass on Cube with the ClickHouse dialect** (1331 pass, 24 partial, 1 blocked, 12 unsupported, 0 fail of 1368)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `f71962b0d9ea`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41332831009), 2026-11-01.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `8f60bcba3ea6`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41337202592), 2026-11-01.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -156,7 +156,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `f7196
 | `hierarchy.levels` | pass |  |
 | `hierarchy.public_false` | pass |  |
 | `preagg.indexes` | pass |  |
-| `preagg.original_sql` | fail | SELECT status, MEASURE(revenue) FROM original_sql_orders GROUP BY 1: got ['cancelled', '69970'], truth ['cancelled', 69970.0] |
+| `preagg.original_sql` | pass |  |
 | `preagg.partitioned` | pass |  |
 | `preagg.rollup` | pass |  |
 | `preagg.rollup_join` | pass |  |

@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 1330,
+    "pass": 1331,
     "partial": 24,
     "blocked": 1,
     "unsupported": 12,
-    "fail": 1,
+    "fail": 0,
     "total": 1368
   },
-  "coverage": "coverage: 1330/1368 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1331/1368 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -752,8 +752,8 @@
     },
     {
       "id": "preagg.original_sql",
-      "status": "fail",
-      "reason": "SELECT status, MEASURE(revenue) FROM original_sql_orders GROUP BY 1: got ['cancelled', '69970'], truth ['cancelled', 69970.0]"
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.partitioned",
