@@ -4537,7 +4537,7 @@
   check: isolation.other_driver_sync
 - id: compile.join.total_of_dimension_refused
   area: mb.compile.join
-  title: "a sum of a dimension of a joined cube stops, and other aggregations give the truth"
+  title: "a sum of a dimension of a joined cube gives the number of a SQL join, in two stages"
   status: pass
   status_stock: pass
   check: compile.join.total_of_dimension_refused
@@ -4645,7 +4645,7 @@
   check: filter.fraction_beyond_the_scale_of_a_decimal
 - id: filter.aggregation_on_a_join_of_a_view_refused
   area: cube.views
-  title: "an aggregation on a joined column of a view stops"
+  title: "an aggregation on a joined column of a view gives the number of a SQL join, in two stages"
   status: pass
   status_stock: pass
   check: filter.aggregation_on_a_join_of_a_view_refused

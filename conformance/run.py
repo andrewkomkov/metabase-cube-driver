@@ -3174,18 +3174,16 @@ def _(ctx):
 
 @check("compile.join.total_of_dimension_refused")
 def _(ctx):
-    """Cube adds each row of the joined cube once: SUM(products.price) by a column of orders is the total of the products. So the driver stops this."""
+    """Cube adds each row of the joined cube once: SUM(products.price) by a column of orders in one stage is the total of the products. The driver writes two stages, so the number is the number of a SQL join."""
     price = "d:orders>products.price"
-    for name, query in (("sum by status", ctx.mb.inner(ORD, agg=[["sum", price]], by=["d:orders.status"])),
-                        ("sum", ctx.mb.inner(ORD, agg=[["sum", price]])),
-                        ("avg by status", ctx.mb.inner(ORD, agg=[["avg", price]], by=["d:orders.status"])),
-                        ("explicit join", ctx.mb.inner(ORD, agg=[["sum", "d:products.price|P"]], joins=[{
-                            "source-table": ctx.mb.table("products")["id"], "alias": "P", "strategy": "left-join",
-                            "condition": ["=", "d:orders.product_id", "d:products.id|P"]}]))):
-        try:
-            expect_clear_error(ctx, query, XRAY_TOTAL_REFUSAL)
-        except Fail as e:
-            raise Fail("%s: %s" % (name, e))
+    joined = "orders o JOIN products p ON o.product_id = p.id"
+    for name, query, sql in (("sum by status", ctx.mb.inner(ORD, agg=[["sum", price]], by=["d:orders.status"]), "SELECT toString(o.status), sum(p.price) FROM %s GROUP BY 1" % joined),
+                             ("sum", ctx.mb.inner(ORD, agg=[["sum", price]]), "SELECT sum(p.price) FROM %s" % joined),
+                             ("avg by status", ctx.mb.inner(ORD, agg=[["avg", price]], by=["d:orders.status"]), "SELECT toString(o.status), avg(p.price) FROM %s GROUP BY 1" % joined),
+                             ("explicit join", ctx.mb.inner(ORD, agg=[["sum", "d:products.price|P"]], joins=[{
+                                 "source-table": ctx.mb.table("products")["id"], "alias": "P", "strategy": "left-join",
+                                 "condition": ["=", "d:orders.product_id", "d:products.id|P"]}]), "SELECT sum(p.price) FROM %s" % joined)):
+        expect_rows(ctx, query, sql, label=name, tol=1e-6)
     # These do not depend on how often a row counts, and the side with the foreign key has no such rule.
     joined = "SELECT o.status, %s FROM orders o JOIN products p ON o.product_id = p.id GROUP BY 1"
     for agg, sql in ((["min", price], "min(p.price)"), (["max", price], "max(p.price)"), (["distinct", price], "uniqExact(p.price)")):
@@ -5928,14 +5926,9 @@ Q("filter.fraction_beyond_the_scale_of_a_decimal", "typed_events", "SELECT count
 
 @check("filter.aggregation_on_a_join_of_a_view_refused")
 def _(ctx):
-    """An aggregation with a column that comes from another cube of the view gives each row of that cube once."""
-    try:
-        ctx.mb.mbql("sales", agg=[["share", ["not-null", "d:sales.users_is_vip"]]])
-    except Fail as e:
-        if "add up the dimension" in str(e):
-            return
-        raise
-    raise Fail("the query gave a number")
+    """An aggregation in one stage with a column that comes from another cube of the view gives each row of that cube once. The driver writes two stages, so it counts each row of the first cube."""
+    assert_rows(ctx.mb.mbql("sales", agg=[["share", ["not-null", "d:sales.users_is_vip"]]])["rows"],
+                ch("SELECT countIf(u.is_vip IS NOT NULL) / count() FROM orders o LEFT JOIN users u ON o.user_id = u.id SETTINGS join_use_nulls = 1"), tol=1e-9)
 
 
 @check("measure.time_type_in_a_report_zone")
