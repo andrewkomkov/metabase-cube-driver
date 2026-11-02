@@ -4535,6 +4535,42 @@
   status: pass
   status_stock: pass
   check: isolation.other_driver_sync
+- id: native.semantics.each_construct
+  area: mb.native
+  title: "each construct of native SQL gives the number of ClickHouse or a message that names it"
+  status: pass
+  status_stock: pass
+  check: native.semantics.each_construct
+- id: native.semantics.in_a_stage
+  area: mb.native
+  title: "a saved native question reads the same corrections, also as a source"
+  status: pass
+  status_stock: pass
+  check: native.semantics.in_a_stage
+- id: native.semantics.parameters_and_snippets
+  area: mb.native
+  title: "a parameter, a field filter and a snippet read the same corrections"
+  status: pass
+  status_stock: pass
+  check: native.semantics.parameters_and_snippets
+- id: compile.join.fan_out_of_each_aggregation
+  area: mb.compile.join
+  title: "a dimension next to a one to many join gives the number of a SQL join, for each aggregation"
+  status: pass
+  status_stock: pass
+  check: compile.join.fan_out_of_each_aggregation
+- id: compile.stage.name_reference_of_a_joined_column
+  area: mb.compile.join
+  title: "a later stage that names a joined column gives the number of a SQL join"
+  status: pass
+  status_stock: pass
+  check: compile.stage.name_reference_of_a_joined_column
+- id: compile.filter.long_lists
+  area: mb.compile.filter
+  title: "a list of 1000 values of each type gives its truth"
+  status: pass
+  status_stock: pass
+  check: compile.filter.long_lists
 - id: compile.join.total_of_dimension_refused
   area: mb.compile.join
   title: "a sum of a dimension of a joined cube gives the number of a SQL join, in two stages"

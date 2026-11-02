@@ -44,10 +44,10 @@ Set these two values on a Cube that Metabase reads. Without them, Cube returns w
 | Inner join | As above, and the joined column must not be NULL | Push-down |
 | Segment | `segment = TRUE` | Regular |
 | `count` or a count measure with no breakout | `COALESCE(x, 0)`, because a rollup gives NULL on no rows | Post-processing |
-| Native `COUNT(...)` or `MEASURE()` of a count, in a text with one `SELECT` and no grouping | `COALESCE(x, 0)`, for the same reason | Post-processing |
 | A number with a fraction in a filter on a column | `x * CAST('1.0' AS double precision) < 12.50001`. Cube sends a plain number as text, and ClickHouse cuts text to the scale of a `Decimal` column, so `x < 12.50001` reads as `x < 12.5`. On an integer column it stops with `Cannot convert string`. | Push-down |
-| `=` with 8 values or more on a number or a text column | `x IN (a, b, ...)`, because a list of `OR` stops at about 100 values. With a number that has a fraction, `x * CAST('1.0' AS double precision) IN (...)`, for the reason above. | Regular, or push-down with a fraction |
-| A native `x = n`, `x IN (...)` or `x BETWEEN a AND b`, with a number that has a fraction, on a number dimension | The driver adds `* CAST('1.0' AS double precision)` after the column, for the reason above. So a rollup does not serve this filter. | Push-down |
+| `=` with 8 values or more on a number or a text column, or on a time | `x IN (a, b, ...)`, because a list of `OR` stops at about 100 values. With a number that has a fraction, `x * CAST('1.0' AS double precision) IN (...)`, for the reason above. See [Long lists](#long-lists). | Regular, or push-down with a fraction |
+| `=` with 8 whole days or more on a time column | `DATE_TRUNC('day', x) IN (a, b, ...)` | Push-down |
+| `!=` or NOT of `=` with 8 values or more | `(x NOT IN (...) OR x IS NULL)` for `!=`, `(x NOT IN (...) AND x IS NOT NULL)` for NOT, and `(CAST(x AS date) NOT IN (...) AND x IS NOT NULL)` for whole days | Regular or push-down |
 | Date filter value | `TIMESTAMP '2025-03-15 05:00:00'` as text in the SQL, not a query parameter. A parameter makes post-processing fail with `Can't parse date: 'replaced_placeholder'` | Same as the query |
 | `column > time`, `column < time` on stock Cube | `(column > time OR column IS NULL) AND column IS NOT NULL`, see [Date bounds](#date-bounds) | Regular |
 | A question or model with an aggregation, and another stage on it | The inner query has `LIMIT 2147483647`, see [Stages](#stages) | Post-processing |
@@ -107,7 +107,13 @@ The outer stage needs the rows of each group, so these limits apply. If one does
 
 ### Fan-out
 
-A join does not change a measure. Over a fan-out from `orders` to `payments`, `SUM(quantity_dim)` is the total quantity of the orders, as a measure, and each order counts once. `COUNT(*)` counts the rows of the join. So in the demo, `COUNT(*)` is 10000 and the sum is 12500, where a plain SQL join gives 25000. Use a measure of a cube to count that cube.
+A join does not change a measure. A measure of a cube counts each row of that cube once, also next to a one to many join. So `orders.count` over `orders` and `payments` is 5000. Use a measure of a cube to count that cube.
+
+An aggregation of a dimension or a count of rows has the number of a SQL join. Cube protects a dimension from fan-out, so `SUM(users.id)` over `users` and `orders` reads each user once: 20100, where a SQL join gives 498050. The driver writes [two stages](#two-stages) for this form: the inner stage groups by the dimension and has `COUNT(*)`, which is a real count of the rows of the join, and the outer stage adds up `value * rows`. So over `orders` and `payments`, `COUNT(*)` is 10000 and `SUM(quantity_dim)` is 25000. `stddev`, `var`, `median` and `percentile` have no form from groups, so they stop.
+
+Native SQL has no stage that the driver can write, so such an aggregation stops with a message. Write the two stages in the text: `SELECT SUM(id * c) FROM (SELECT u.id, COUNT(*) c FROM users u CROSS JOIN orders o WHERE u.__cubeJoinField = o.__cubeJoinField GROUP BY 1 LIMIT 2147483647) t`.
+
+A view with a one to many join from the cube where it starts has no one set of rows, because Cube joins only the cubes of the columns of a query. On such a view, a count of rows and an aggregation of a dimension stop with a message. A measure of the view runs.
 
 ### Custom granularities
 
@@ -120,8 +126,10 @@ These queries fail with a message that tells what to do. The message includes th
 | Query | Reason |
 | --- | --- |
 | Join on columns that no join of the model compares | The driver writes `__cubeJoinField`, so Cube would use the model join. Cube refuses `JOIN ... ON a = b` on other columns in native SQL with `Can't detect Cube query`, and `CROSS JOIN ... WHERE o.other_id = u.id` applies the model join and then the filter. |
-| An aggregation of a dimension of a joined cube that depends on how often a row counts, when [two stages](#two-stages) cannot give it: `stddev`, `var`, `median` and `percentile` always, and `sum`, `avg`, `count`, `cum-sum`, `cum-count`, `count-where`, `sum-where` or `share` next to a measure that does not add up or on a `sub_query` dimension | Cube reads each row of the joined cube once. `SUM(products.price)` by a column of `orders` in one stage gives the total of the products, for each group. Add a measure, or start from the cube of the dimension. `min`, `max` and `distinct` do not depend on this, and they run. |
+| An aggregation of a dimension of a joined cube, or next to a one to many join, that depends on how often a row counts, when [two stages](#two-stages) cannot give it: `stddev`, `var`, `median` and `percentile` always, and `sum`, `avg`, `count`, `cum-sum`, `cum-count`, `count-where`, `sum-where` or `share` next to a measure that does not add up or on a `sub_query` dimension | Cube reads each row of the joined cube once. `SUM(products.price)` by a column of `orders` in one stage gives the total of the products, for each group. Add a measure, or start from the cube of the dimension. `min`, `max` and `distinct` do not depend on this, and they run. |
 | Join of a question, or with a filter inside the join | A subquery that lists its columns has no `__cubeJoinField`. A subquery with `SELECT *` has it, but a filter inside it applies to the whole query, so it has no use here. |
+| A right or a full join | Metabase asks a driver for this feature, and Cube joins are left joins. |
+| A count of rows or an aggregation of a dimension on a view with a one to many join from the cube where it starts | See [Fan-out](#fan-out). |
 | `median`, `percentile` | The Cube templates for ClickHouse have no `PERCENTILE_CONT`. |
 | `datetime-diff` in months, quarters, years | Cube has no form for whole months. Its `DATEDIFF` counts boundaries. |
 | `datetime-add` on stock Cube | The ClickHouse dialect of stock Cube has no template for an interval: `Can't generate SQL for interval`. The form `x + INTERVAL` fails on raw rows too. [The ClickHouse dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) has the template. |
@@ -165,7 +173,7 @@ These queries fail with a message that tells what to do. The message includes th
 | `OR` of two segments | Cube fails with `Can't use OR operator with segments`. |
 | A segment of another cube | Cube fails with `No field named`. Use a view that has it. |
 
-These checks read the stages of the query, so they work on the query builder, on a model and a question by column name, and on the MCP tool `execute_query`, also with `source-card`.
+These checks read the stages of the query, so they work on the query builder, on a model and a question by column name, and on the MCP tool `execute_query`, also with `source-card`. A later stage can name a column by its output, as `products__via__product_id__price`, or by the name of its field, as `price`. Metabase core finds both, and the checks read both, so both give one number.
 
 ### Rollups that hold a part of the rows
 
@@ -177,7 +185,41 @@ If the rollups do not hold each row, the driver adds a filter that holds for eac
 
 ### Native SQL
 
-The driver changes native SQL in two cases: it writes `COALESCE(x, 0)` around a count in a text with one `SELECT` and no grouping, and it writes the exact form next to a number dimension that compares with a number with a fraction. It makes a cheap scan of the text, with a lexer that reads quoted names, `E''` strings, dollar quotes and nested comments, and it stops these shapes:
+The SQL API of Cube reads ordinary SQL with another meaning in some forms, and it gives a number with no error. The driver parses the text (`src/metabase/driver/cube/sqltext.clj`) and corrects each such form (`correct.clj`), for a question, a saved question as a stage, a parameter, a field filter and a snippet. A text with none of these forms stays the same, byte for byte. If the parser cannot read a text that has `<>`, `NOT`, `/`, `LIKE`, `FILTER`, `ROLLUP` or a number with a fraction, the query stops with a message, because the driver cannot show that the number is right. A form with no correction stops with a message that names it.
+
+`dev/review/release_cases.py` has a case for each row, with the truth in direct ClickHouse SQL. The check `native.semantics.each_construct` runs them on stock Cube and with the dialect, and `make production` runs them with dev mode off.
+
+| Construct | What Cube does with no driver | What the driver does |
+| --- | --- | --- |
+| `COUNT(*) FILTER (WHERE p)`, each aggregation, also before `OVER` | Drops `FILTER`, so 5000 where the truth is 2000. | `COUNT(CASE WHEN p THEN 1 END)`, and the same for the others |
+| `MEASURE(x) FILTER`, `SUM(measure) FILTER`, FILTER on another function | Drops `FILTER`. | Stops. CASE cannot go inside a measure. |
+| `x <> v`, `x NOT IN (...)`, `NOT (x = v)`, `x NOT LIKE p`, in `WHERE` and `HAVING`, on a column or a column of a subquery | Keeps NULL: 4000 where the truth is 2000. | `NOT` moves down to each comparison by De Morgan, and each `<>` gets `AND x IS NOT NULL`. In `WHERE` and `HAVING` only true counts, so this holds for three-valued logic, also under a second `NOT`. Inside `CASE`, in `SELECT` and on an expression, the database reads the comparison, and it is right as it is. |
+| `x NOT IN (a, NULL)` | Gives rows. | No row, as SQL. |
+| A number with a fraction in a comparison, `IN` or `BETWEEN`: `x = 44.001`, `(x) = 44.001`, `CAST(x AS numeric) = 44.001`, `x::numeric`, `x = '44.001'`, `x = CAST('44.001' AS numeric)`, `x = 44.0 + 0.001`, a column of a subquery, a parameter, in `WHERE` and `HAVING` | Sends the number as text, and ClickHouse cuts it to the scale of a `Decimal`: 83 where the truth is 0. On an integer column it stops. | `x * CAST('1.0' AS double precision) = 44.001`. A column in an expression makes Cube write the number as it is, so the database compares two doubles. A rollup does not serve this filter. Text compares as a number only with a column of numbers. |
+| `a / b` | Has three meanings: `Decimal / x` keeps the scale in the database, 160.00 / 7 is 22.85. Above a CubeScan, integers divide with no fraction, `COUNT(*) / 7` is 714. In the database, `quantity / 2` is 1.5. | A real division on each path, as on ClickHouse: `a * CAST('1.0' AS double precision) / b`. To cut the fraction, write `FLOOR` or `TRUNC`. |
+| `a / b` where `b` can be 0 | The database gives an error for a `Decimal`, and infinity for a double, which a filter reads as a number. | `b` is `NULLIF(b * CAST('1.0' AS double precision), 0.0)`, so such a row is NULL, as Metabase writes `/` in the query builder. A literal 0 as the divisor stops. |
+| `DATE_TRUNC(u, x) NOT IN (a, b)`, also `NOT (DATE_TRUNC(u, x) IN (a, b))` | Reads `notInDateRange`, and it joins the ranges with OR, so two buckets apart exclude no row. | Each value has its own `<>`. |
+| `x LIKE '%a%'`, also `NOT LIKE` | Reads an operator that ignores case on ClickHouse. | `(x \|\| '') LIKE '%a%'`, which the database reads with its case. |
+| `STRPOS(x, 'a') > 0`, `LEFT(x, n) =`, `RIGHT(x, n) =` | Reads the same operator. | Stops. Write `STRPOS(x, 'a') >= 1`. |
+| `SUM(DISTINCT x)`, `STDDEV(DISTINCT x)`, `VARIANCE(DISTINCT x)` | Drops `DISTINCT`: 12500 where the truth is 10. | Stops. `COUNT`, `AVG`, `MIN` and `MAX` with `DISTINCT` are right. |
+| `GROUP BY ROLLUP(x)`, `CUBE(x)` | Reads a plain `GROUP BY`, so the rows of the totals are not in the result. | Stops. Write the groups and the total with `UNION ALL`. |
+| `GROUP BY GROUPING SETS (...)` | Cannot plan it. | Stops with a message that names it. |
+| `ORDER BY x NULLS FIRST` | Drops `NULLS FIRST`. With `LIMIT`, the result has other rows. | Stops. `NULLS LAST` holds. With no `NULLS`, NULL is last in both directions, as on ClickHouse. SQL leaves this open, and Postgres has NULL first for `DESC`. |
+| `FROM a, b` or `a CROSS JOIN b` with no `__cubeJoinField`, also two subqueries or two `WITH` queries | Ignores the cross product, and reads the sources through the model: 5000 where the truth is 1000000, and a count of 199 where the truth is 200. | Stops. |
+| A join of a cube to itself through `__cubeJoinField` | Joins the cube once. | Stops. |
+| An aggregation of a dimension next to a one to many join, `SUM(u.id)` | See [Fan-out](#fan-out). | Stops. |
+| Two aggregations with one name and no alias in a `UNION`, `SELECT COUNT(*) FROM a UNION ALL SELECT COUNT(*) FROM a` | Gives NULL in each row. | The first branch gets an alias. |
+| `COUNT(*)` on no rows, on a cube with a rollup | NULL. | `COALESCE(x, 0)` around a count in each `SELECT` with no grouping, also in a branch of a `UNION` and over a subquery. |
+| A window function or `DISTINCT ON` over raw rows of a cube with a rolling window measure | Fails, because it reads each measure of the cube. | Stops with a message that names it. The same query runs on a cube with no such measure, and a window function over groups runs on each cube. |
+| A subquery of raw rows over a join or a view, with an aggregation outside it, also a saved native question as a source: `SELECT SUM(id) FROM (SELECT u.id FROM users u CROSS JOIN orders o WHERE ...) t` | Reads both as one query, so each row of `users` counts once: 20100 where the truth is 498050. | `LIMIT 2147483647` on the subquery. `CUBEJS_DB_QUERY_LIMIT` applies to its rows. |
+| `x IS DISTINCT FROM v AND y` | Writes it with no parentheses, as `x IS DISTINCT FROM (v AND y)`. | `(x <> v OR x IS NULL)`, with a literal. |
+| `CAST(x AS numeric)` on a column with NULL, a cast of a literal in a list | Stops on the type in the database. | In a comparison with a number, the cast goes away, because the meaning is the same. |
+| `EXISTS`, a subquery in the select next to an aggregation | Cannot plan it, or stops in the database. | Stops with a message that names it. `IN` with a subquery runs. |
+| `x - y` on two times | Fails on the type of the result. | Stops with a message. Use `DATEDIFF`. |
+
+These constructs were measured and they are right as they are: window functions over groups, `COUNT(DISTINCT)`, `AVG(DISTINCT)`, `DISTINCT`, `COALESCE`, `NULLIF`, `IS DISTINCT FROM`, `NOT BETWEEN`, `IN` with a subquery, `LIMIT` and `OFFSET` in a subquery, `WITH`, `UNION`, boolean expressions in `SELECT`, `CASE`, and date arithmetic with an interval. On stock Cube, an interval on a column in an aggregation stops, see above.
+
+The driver also stops these shapes, from a scan of the same text:
 
 | Shape | Reason |
 | --- | --- |
@@ -188,7 +230,6 @@ The driver changes native SQL in two cases: it writes `COALESCE(x, 0)` around a 
 | Two columns from one member through different join paths | See the table above. |
 | A rolling window measure that is shorter than the bucket, or with a report time zone on stock Cube | See the table above. |
 | `x = t` next to `DATE_TRUNC` on `x` | Cube returns the whole bucket. Write `x >= t AND x <= t`. |
-| `x LIKE` a pattern with a wildcard and a letter, also `NOT LIKE`, `STRPOS(x, 'a') > 0`, `LEFT(x, n) =` and `RIGHT(x, n) =` | Cube reads these as an operator that ignores case on ClickHouse. Write `ILIKE`, or `STRPOS(x, 'a') >= 1` to keep the case. |
 | A raw select of a `switch` dimension, also `SELECT *` | Each row comes once for each value. |
 | `SELECT *` on a cube with a rolling window measure | The star reads that measure, and it needs a time bucket and a date filter. |
 | `SUM`, `AVG`, `COUNT`, `STDDEV` or `VARIANCE` of a dimension of a joined cube, with a table or with none, also `COUNT(c)` of a column of a view from another cube | See the table above. Native SQL has no stage that the driver can write. `MIN`, `MAX` and `COUNT(DISTINCT x)` run. |
@@ -197,7 +238,28 @@ The driver changes native SQL in two cases: it writes `COALESCE(x, 0)` around a 
 
 On stock Cube, the scan also stops `x > a` next to an upper bound on the same column, and a bound with a fraction.
 
-The scan also stops an outer filter over a subquery or a `WITH` query with an aggregation and no limit, and a filter on a measure column over a subquery of raw rows. It removes parentheses and casts around a column or a literal, reads an alias of a time column, and reads `column op literal` on either side, `BETWEEN` and `DATE_TRUNC`, outside strings and comments. With a rolling window measure, it stops each other use of the time column, such as `IN` or a function, also `DATE_TRUNC` in a filter and arithmetic on a literal. See the shapes that it does not read in [Known wrong numbers](#known-wrong-numbers).
+The scan also stops an outer filter over a subquery or a `WITH` query with an aggregation and no limit, and a filter on a measure column over a subquery of raw rows. It removes parentheses and casts around a column or a literal, reads an alias of a time column, and reads `column op literal` on either side, `BETWEEN` and `DATE_TRUNC`, outside strings and comments. With a rolling window measure, it stops each other use of the time column, such as `IN` or a function, also `DATE_TRUNC` in a filter and arithmetic on a literal.
+
+### Long lists
+
+The planner of Cube rewrites a graph of the expression, and it stops at about 10000 nodes (`AST node limit`). Each condition joined with OR or AND adds to the graph, and a value of an `IN` list adds less. In a run on stock Cube with 2 GiB:
+
+| Form | Values | Result |
+| --- | --- | --- |
+| `x IN (...)` | 2000 | Runs, in 12 to 19 s. 1000 takes 3 s. |
+| `x IN (...)` | 4000 | Stops on the limit of the planner after 29 s. |
+| `x IN (...)` | 8000 | Stops on the limit of the planner after 105 s. |
+| `x = a OR x = b` | 50 | Stops on the limit of the planner after 5 s. |
+| `x = a OR x = b` | 1500 | Stops after 26 s, with 300 MB more in the container. |
+| `x = a OR x = b` | 2000 | Cube restarts. The client sees a broken connection. |
+
+So a filter on one column with many values must not be a chain:
+
+- The query builder writes `IN` or `NOT IN` from 8 values, for numbers, text, times and whole days, with `=`, `!=` and NOT. Metabase core writes such a filter as a chain, so a list of 1000 values with `!=` or on a time was 2000 conditions or more, and it restarted Cube. With a report time zone, a list of times stays a chain, because Cube reads a literal in another way in `IN`.
+- Native `x = a OR x = b ...` and `x <> a AND x <> b ...` from 8 values on one column become `IN` and `NOT IN`.
+- A list above 2000 values and a text with more than 500 conditions stop with a message before the query reaches Cube.
+
+A filter from another form, such as `contains` with many values, stays a chain and has the limit of the planner.
 
 ### Two join paths in a view
 
@@ -270,8 +332,6 @@ The driver cannot stop these. Each number comes with no error. [Cube findings](c
 | Stock Cube, or a ClickHouse user with `readonly`: `sum`, `min` or `max` of no rows | 0, and 1970-01-01 for a time, where SQL and Metabase on Postgres give `NULL`. Cube sends no setting for this, and the driver cannot tell no rows from a total of 0. [The ClickHouse dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) gives `NULL`. | `fuzz.sample` |
 | Stock Cube: a rollup with a text dimension that has an empty text | Cube Store reads an empty value of its CSV as `NULL`. So the group of the empty text joins the group of `NULL`, and a filter on the empty text finds no rows. The result does not show which rows were empty. [The dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) gives the truth. | `preagg.empty_text_stays_apart_from_null` |
 | Stock Cube: a raw `DateTime64` value | It shows whole seconds. Buckets are right. The dialect keeps the milliseconds. | `clickhouse.datetime64_millis` |
-| Native `COUNT(*)` on no rows in a text with more than one `SELECT` or with a grouping, on a cube with a rollup | `NULL` where SQL gives 0. Only a rollup gives this, because Cube reads it with `SUM`. | `native.count_on_no_rows` |
-| Native SQL in a shape that the scan does not read. The scan is not a SQL parser, and it reads the shapes in [Native SQL](#native-sql). | The same wrong numbers that the scan stops in the plain shape. | `native.bound.strict_lower_refused`, `native.subquery_filter_refused` |
+| Native SQL on a time, a rolling window or a subquery filter in a shape that the scan does not read. The corrections of [Native SQL](#native-sql) read a parse of the text, and the scan of these shapes reads tokens. | The same wrong numbers that the scan stops in the plain shape. | `native.bound.strict_lower_refused`, `native.subquery_filter_refused` |
 | A value of a time in the repeated hour of a clock change, under a report time zone: a measure with `type: time`, or a raw time column | The value reads 1 hour early, with the offset of the first pass: `01:00:00-04:00` where the truth is `01:00:00-05:00` in New York. The SQL API gives a time with no offset, so the driver cannot tell the two passes apart. | `zone.time_measure_repeated_hour_limit` |
-| A number with a fraction in native SQL next to a cast or a function of a `Decimal` column, such as `amount_dim::numeric = 44.001`, or next to a measure in `HAVING` | ClickHouse cuts the number to the scale of the column. The driver writes the exact form only for a plain number dimension. | None |
 | Postgres, not the main target: a rolling window with a range that starts inside a month (N1), a custom granularity in months with no rollup | Shifted buckets. See [Cube audit](cube-audit.md). | None. The suite runs on ClickHouse. |

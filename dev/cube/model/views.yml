@@ -117,5 +117,16 @@ views:
         member_level: { includes: [status, count] }
         member_masking: { includes: [masked_status, revenue_masked] }
 
+  # A view with a one to many join. Cube joins only the cubes of the columns of a query, so a count of rows has no one meaning here.
+  - name: customer_orders
+    title: Customer orders
+    description: Customers with their orders, through a one to many join.
+    cubes:
+      - join_path: users
+        includes: [id, city, count]
+      - join_path: users.orders
+        prefix: true
+        includes: [status, quantity_dim, revenue, count]
+
 view_groups:
   - { name: revenue_views, title: Revenue views, description: Views for revenue analysis., includes: [sales, paid_sales] }

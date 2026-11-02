@@ -729,6 +729,66 @@
                                  join-name)]
                 (recur (into seen next-cubes) (vec (distinct next-cubes))))))))
 
+(defn- join-paths
+  "A map from each cube that the declared joins reach from `root` to the joins on the way to it, each as [from to one-to-many?]. The first path in width that reaches a cube stays."
+  [name->cube root]
+  (loop [paths {root []}, front [root]]
+    (if (empty? front)
+      paths
+      (let [steps (for [cube-name front
+                        {:keys [relationship], join-name :name} (when-let [cube (name->cube cube-name)]
+                                                                  (own-and-inherited-joins name->cube cube))
+                        :when (not (contains? paths join-name))]
+                    [join-name (conj (get paths cube-name)
+                                     [cube-name join-name (contains? #{"hasMany" "one_to_many"} relationship)])])
+            found (reduce (fn [out [cube-name path]]
+                            (if (contains? out cube-name) out (assoc out cube-name path)))
+                          {}
+                          steps)]
+        (recur (merge paths found) (vec (keys found)))))))
+
+(defn fans-out?
+  "True if each row of the cube `one` counts once for each row of the cube `many` in a query from the cube `root`: the joins from `root` to `many` have a one to many join that is not on the way from
+  `root` to `one`. Cube protects a dimension from that, so an aggregation of the dimension reads each row of `one` once, and SQL over the join reads it once for each row of the join."
+  [cube-meta root one many]
+  (let [name->cube (into {} (map (juxt :name identity)) (:cubes cube-meta))
+        paths      (join-paths name->cube root)
+        to-many    (get paths many)
+        to-one     (set (get paths one))]
+    (boolean (some (fn [[_ _ one-to-many? :as step]]
+                     (and one-to-many? (not (contains? to-one step))))
+                   to-many))))
+
+(defn member-cube
+  "The cube of a member of a cube or a view."
+  [cube-meta table-name member-name]
+  (or (cube-of-member cube-meta table-name member-name :dimensions)
+      (cube-of-member cube-meta table-name member-name :measures)
+      table-name))
+
+(defn root-cube
+  "The cube that a query on this table starts from. A view starts at the cube of its first dimension."
+  [cube-meta table-name]
+  (if (view? cube-meta table-name)
+    (let [entry (cube-entry cube-meta table-name)]
+      (or (some-> (first (filter :aliasMember (concat (:dimensions entry) (:measures entry)))) :aliasMember (str/split #"\.") first)
+          table-name))
+    table-name))
+
+(defn view-fan-out
+  "[one many] if this view reads a cube `many` through a one to many join from the cube `one` where it starts, or nil. Cube joins only the cubes of the columns of a query, so a row of such a view has no
+  one meaning: a count of rows and an aggregation of a column of the one side give another number than SQL over the rows of the view."
+  [cube-meta view-name]
+  (when (view? cube-meta view-name)
+    (let [entry (cube-entry cube-meta view-name)
+          root  (root-cube cube-meta view-name)
+          cubes (into #{}
+                      (keep #(some-> (:aliasMember %) (str/split #"\.") first))
+                      (concat (:dimensions entry) (:measures entry)))]
+      (first (for [many cubes
+                   :when (fans-out? cube-meta root root many)]
+               [root many])))))
+
 (defn shared-by-many-rows?
   "True if the joins of the data model reach cube `to` from cube `from` with a many to one join on the way, so many rows of `from` can read one row of `to`. A one to one join
   alone keeps each row once."

@@ -336,7 +336,52 @@
       (when (and (every? plain? clauses) (apply = (map field-of clauses)))
         [(nth (first clauses) 2) (map #(nth % 3) clauses)]))))
 
-(declare fraction-value? exact-column)
+(declare fraction-value? exact-column plain-bound-time at-time report-zone? check-no-fraction!)
+
+(defn- same-field?
+  [clauses field-of]
+  (let [field (fn [clause] (let [[_ opts id] (field-of clause)] [id (:join-alias opts) (:temporal-unit opts)]))]
+    (apply = (map field clauses))))
+
+(defn- time-list
+  "The field and the time values if each clause is `field = time` on one time field, and the list is long, or nil. A report time zone reads a literal in other ways, see Date bounds in the docs."
+  [clauses op]
+  (when (and (>= (count clauses) shortest-in-list) (not (report-zone?)))
+    (let [plain? (fn [clause]
+                   (and (vector? clause) (= op (first clause)) (= 4 (count clause))
+                        (some? (plain-bound-time (nth clause 2) (nth clause 3)))))]
+      (when (and (every? plain? clauses) (same-field? clauses #(nth % 2)))
+        [(nth (first clauses) 2) (map #(plain-bound-time (nth % 2) (nth % 3)) clauses)]))))
+
+(defn- whole-day?
+  "True if these two times are a whole day."
+  [^LocalDateTime low ^LocalDateTime high]
+  (and low high
+       (= low (.truncatedTo low ChronoUnit/DAYS))
+       (= high (.plusDays low 1))))
+
+(defn- day-of-range
+  "The field and the first time of the clause `x >= day AND x < next day`, or nil."
+  [clause]
+  (when (and (vector? clause) (= :and (first clause)) (= 4 (count clause)))
+    (let [[_ _ [low-op _ low-field low] [high-op _ high-field high]] clause]
+      (when (and (= :>= low-op) (= :< high-op) (= (nth low-field 2 nil) (nth high-field 2 nil)))
+        (let [low-time  (plain-bound-time low-field low)
+              high-time (plain-bound-time high-field high)]
+          (when (whole-day? low-time high-time)
+            [low-field low-time]))))))
+
+(defn- day-list
+  "The field and the days if each clause reads one whole day of one time field, and the list is long, or nil."
+  [clauses]
+  (when (and (>= (count clauses) shortest-in-list) (not (report-zone?)))
+    (let [days (map day-of-range clauses)]
+      (when (and (every? some? days) (same-field? days first))
+        [(ffirst days) (map second days)]))))
+
+(defn- time-literal-form
+  [^LocalDateTime value]
+  (sql.qp/->honeysql :cube (at-time value)))
 
 (defmethod sql.qp/->honeysql [:cube :or]
   [driver [_ _opts & clauses :as clause]]
@@ -346,7 +391,70 @@
        (exact-column driver field)
        (sql.qp/->honeysql driver field))
      (mapv #(sql.qp/->honeysql driver %) values)]
-    ((get-method sql.qp/->honeysql [:postgres :or]) driver clause)))
+    (if-let [[field times] (time-list clauses :=)]
+      (do (run! #(check-no-fraction! field %) times)
+          [:in (sql.qp/->honeysql driver field) (mapv time-literal-form times)])
+      (if-let [[field days] (day-list clauses)]
+        [:in [:date_trunc (h2x/literal "day") (sql.qp/->honeysql driver field)] (mapv time-literal-form days)]
+        ((get-method sql.qp/->honeysql [:postgres :or]) driver clause)))))
+
+(defn- not-equal-list
+  "[field values with-null?] if each clause is `field != value` on one field, or NOT of `field = value`, and the list is long, or nil. A list of `AND` stops the planner of Cube at about 100 values."
+  [clauses]
+  (when (>= (count clauses) shortest-in-list)
+    (let [inner (fn [clause]
+                  (when (vector? clause)
+                    (case (first clause)
+                      :!=  (when (= 4 (count clause)) [:= (second clause) (nth clause 2) (nth clause 3)])
+                      :not (let [x (nth clause 2 nil)]
+                             (when (and (vector? x) (= := (first x)) (= 4 (count x))) x))
+                      nil)))
+          equals (map inner clauses)
+          with-null? (every? #(= :!= (first %)) clauses)]
+      (when (every? some? equals)
+        (when-let [[field values] (equal-list equals)]
+          [field values with-null?])))))
+
+(defn- not-day-of-range
+  "The field and the first time of the clause `x < day OR x >= next day`, or nil."
+  [clause]
+  (when (and (vector? clause) (= :or (first clause)) (= 4 (count clause)))
+    (let [[_ _ [low-op _ low-field low] [high-op _ high-field high]] clause]
+      (when (and (= :< low-op) (= :>= high-op) (= (nth low-field 2 nil) (nth high-field 2 nil)))
+        (let [low-time  (plain-bound-time low-field low)
+              high-time (plain-bound-time high-field high)]
+          (when (whole-day? low-time high-time)
+            [low-field low-time]))))))
+
+(defn- not-day-list
+  [clauses]
+  (when (and (>= (count clauses) shortest-in-list) (not (report-zone?)))
+    (let [days (map not-day-of-range clauses)]
+      (when (and (every? some? days) (same-field? days first))
+        [(ffirst days) (map second days)]))))
+
+(defmethod sql.qp/->honeysql [:cube :and]
+  [driver [_ _opts & clauses :as clause]]
+  (if-let [[field values with-null?] (not-equal-list clauses)]
+    (let [column (if (some fraction-value? values)
+                   (exact-column driver field)
+                   (sql.qp/->honeysql driver field))
+          plain  (sql.qp/->honeysql driver field)
+          out    [:not-in column (mapv #(sql.qp/->honeysql driver %) values)]]
+      (if with-null?
+        [:or out [:= plain nil]]
+        [:and out [:not= plain nil]]))
+    (if-let [[field times] (time-list clauses :!=)]
+      (let [plain (sql.qp/->honeysql driver field)]
+        (run! #(check-no-fraction! field %) times)
+        [:or [:not-in plain (mapv time-literal-form times)] [:= plain nil]])
+      (if-let [[field days] (not-day-list clauses)]
+        ;; Cube reads DATE_TRUNC('day', x) NOT IN (a, b) as notInDateRange and joins the ranges with OR, so two days apart exclude no row. A cast keeps the list. `docs/cube-findings.md` has this.
+        (let [plain (sql.qp/->honeysql driver field)]
+          [:and
+           [:not-in (h2x/cast "date" plain) (mapv (fn [^LocalDateTime day] [:raw (format "DATE '%s'" (.toLocalDate day))]) days)]
+           [:not= plain nil]])
+        ((get-method sql.qp/->honeysql [:postgres :and]) driver clause)))))
 
 ;; Cube computes SUBSTRING and SUBSTR above a subquery, and a sort of that column stops with "unsupported type Utf8View". A cast to text gives a type that it can sort.
 (defmethod sql.qp/->honeysql [:cube :substring]
@@ -397,7 +505,7 @@
 ;;; `(x > t OR x IS NULL) AND x IS NOT NULL` has the same rows as `x > t`. A dialect that keeps the fraction needs none of this,
 ;;; so the driver asks Cube. See cube.probe/keeps-fractions?.
 
-(declare bucket-rank bucket-start relative-time report-zone? table-name-of-field utc-time)
+(declare bucket-rank bucket-start relative-time table-name-of-field utc-time)
 
 (def ^:private ^:dynamic *keep-date-ranges*
   "Not nil if a measure of this query needs a date range, because it reads no other filter as a range: :rolling for a rolling
@@ -1381,6 +1489,27 @@
     (get expressions expression-name)
     (first (filter #(= expression-name (:lib/expression-name (second %))) expressions))))
 
+(defn- lower-text
+  [text]
+  (some-> text str/lower-case))
+
+(defn- columns-of-name
+  "The selected columns of this stage of raw rows that a reference by the name `column-name` can mean. A query can name a column by its output, such as `products__via__product_id__price`, or by the
+  name of its field, as `price`, and Metabase core finds it by both. Two columns with one name both count, because a wrong guess here gives a wrong number."
+  [column-name {:keys [fields]}]
+  (let [wanted (lower-text column-name)
+        by-output (filter (fn [item]
+                            (or (selected-as? column-name item)
+                                (and (= :expression (first item)) (= column-name (nth item 2 nil)))))
+                          fields)]
+    (if (seq by-output)
+      by-output
+      (filter (fn [item]
+                (let [field (when (and (vector? item) (= :field (first item)) (integer? (nth item 2 nil)))
+                              (stored-field item))]
+                  (= wanted (lower-text (:name field)))))
+              fields))))
+
 (defn- source-fields
   "The stored fields that `clause` reads, in the stage after `earlier`. This reads through a custom column, and through a column of an earlier stage of raw rows. A column of a stage
   with an aggregation or a breakout is a value of a group, so a later stage gives the number of SQL."
@@ -1398,11 +1527,7 @@
                   (integer? id) (keep identity [(stored-field form)])
 
                   (and (string? id) source (empty? (:aggregation source)) (empty? (:breakout source)))
-                  (when-let [selected (first (filter (fn [item]
-                                                       (or (selected-as? id item)
-                                                           (and (= :expression (first item)) (= id (nth item 2 nil)))))
-                                                     (:fields source)))]
-                    (source-fields (pop earlier) source selected))))))
+                  (mapcat #(source-fields (pop earlier) source %) (columns-of-name id source))))))
           (tree-seq #(and (coll? %) (not (and (vector? %) (= :field (first %))))) seq clause)))
 
 (defn- joined-through-model?
@@ -1417,24 +1542,76 @@
                                                (:name (driver-api/table provider root-table))
                                                (:name (driver-api/table provider table-id))))))))
 
+(defn- table-name-of-id
+  [table-id]
+  (:name (driver-api/table (driver-api/metadata-provider) table-id)))
+
+(defn- tables-of-query
+  "The names of the tables that the stages of a query read: the first table, each join, and the table of each field."
+  [stages]
+  (into #{}
+        (keep (fn [form]
+                (cond
+                  (and (map? form) (integer? (:source-table form)))
+                  (table-name-of-id (:source-table form))
+
+                  (and (vector? form) (= :field (first form)) (integer? (nth form 2 nil)))
+                  (some-> (stored-field form) :table-id table-name-of-id))))
+        (tree-seq coll? seq stages)))
+
+(defn- fan-out-of-field
+  "The cube of the query that gives each row of the cube of `field` many rows, or nil. See `cube.meta/fans-out?`."
+  [cube-meta stages root {:keys [table-id], field-name :name}]
+  (when (and cube-meta (integer? root))
+    (let [root-name (table-name-of-id root)
+          start     (cube.meta/root-cube cube-meta root-name)
+          own       (cube.meta/member-cube cube-meta (table-name-of-id table-id) field-name)]
+      (first (filter #(cube.meta/fans-out? cube-meta start own %)
+                     (mapcat (fn [table]
+                               (if (cube.meta/view? cube-meta table)
+                                 nil
+                                 [table]))
+                             (tables-of-query stages)))))))
+
+(defn- check-no-view-fan-out!
+  "A count of rows or an aggregation of a column on a view with a one to many join. Cube joins only the cubes of the columns of a query, so the view has no one set of rows."
+  [cube-meta root stage earlier]
+  (when (and cube-meta (integer? root))
+    (when-let [[one many] (cube.meta/view-fan-out cube-meta (table-name-of-id root))]
+      (doseq [form  (tree-seq coll? seq (:aggregation stage))
+              :when (and (vector? form) (row-aggregations (first form)))
+              :let  [fields (source-fields earlier stage (vec (drop 2 form)))]
+              :when (or (and (empty? (drop 2 form)) (= :count (first form)))
+                        (some #(= :dimension (field-kind %)) fields))]
+        (throw (ex-info (format (str "The view %s reads %s through a one to many join from %s, and Cube joins only the cubes of the columns of a query. So a count of rows or an aggregation of a column of "
+                                     "this view does not read the rows of the join, and the number would be wrong. Use a measure of the view, or start from the cube with the join.")
+                                (table-name-of-id root) many one)
+                        {:type :invalid-query}))))))
+
 (defn- check-no-total-through-join!
   "Cube protects a dimension of the one side of a join from fan-out, so it reads each row of that cube once. SUM(products.price) by a column of orders gives the total of the products in place of the
-  sum over the orders, and COUNT(products.price) gives the number of products. A later stage over raw rows gives the same number, because Cube reads it as one query."
+  sum over the orders, and COUNT(products.price) gives the number of products. A later stage over raw rows gives the same number, because Cube reads it as one query. The same holds for a dimension of the first
+  cube next to a one to many join: SUM(users.id) over users and orders reads each user once. The second form of two stages counts the rows of the join in each group."
   [stages]
   (let [stage   (peek stages)
         earlier (pop stages)
-        root    (:source-table (first stages))]
+        root    (:source-table (first stages))
+        cube-meta (current-meta)]
+    (check-no-view-fan-out! cube-meta root stage earlier)
     (when (integer? root)
       (doseq [form  (tree-seq coll? seq (:aggregation stage))
               :when (and (vector? form) (row-aggregations (first form)))
               field (source-fields earlier stage (vec (drop 2 form)))
-              :when (and (= :dimension (field-kind field))
-                         (joined-through-model? (current-meta) root field))]
+              :when (= :dimension (field-kind field))
+              :let  [fan-out (fan-out-of-field cube-meta stages root field)]
+              :when (or fan-out (joined-through-model? cube-meta root field))]
         (throw (ex-info (format (str "Cube cannot add up the dimension %s over the rows of this query. It reads each row of the "
-                                     "joined cube once, so the number would be wrong. Add a measure to the data model, or start "
+                                     "%s once, so the number would be wrong. Add a measure to the data model, or start "
                                      "from the cube of this dimension.")
-                                (:name field))
-                        {:type :invalid-query, ::try-two-stages true}))))))
+                                (:name field)
+                                (if fan-out (format "cube of this dimension, also next to the one to many join to %s," fan-out) "joined cube"))
+                        (cond-> {:type :invalid-query, ::try-two-stages true}
+                          fan-out (assoc ::fan-out true))))))))
 
 (defn- date-range-clauses?
   "True if these clauses on one time column are a date range for Cube: one `between`, or one `>=` next to one `<` or `<=`, with time literals."
@@ -1635,7 +1812,10 @@
         (map-indexed (fn [i {:keys [aggregation breakout limit native] :as stage}]
                        (cond
                          (= (inc i) (count stages))                  stage
-                         (and (string? native) (aggregated-native? native)) (assoc stage :native (limit-native native))
+                         (and (string? native) (or (aggregated-native? native)
+                                                   (when-let [cube-meta (current-meta)]
+                                                     (cube.native/joined-rows? cube-meta native))))
+                         (assoc stage :native (limit-native native))
                          (string? native)                            stage
                          (and (or (seq aggregation) (seq breakout)) (nil? limit)) (assoc stage :limit subquery-limit)
                          :else                                       stage)))
@@ -2105,7 +2285,6 @@
   [details cube-meta]
   {:keeps-fractions? (cube.probe/keeps-fractions? details cube-meta nil)
    :report-zone?     (report-zone?)
-   :joined-member-of-view? (partial cube.meta/joined-member-of-view? cube-meta)
    :value-read       (partial cube.probe/value-read-members details cube-meta)
    :rolling-reason   (partial cube.probe/rolling-window-reason details)
    :rolling-zone-reason (when (report-zone?)
@@ -2124,10 +2303,10 @@
         (cube.native/check-native! cube-meta native (or params []) (native-questions details cube-meta))))))
 
 (defn- exact-native-stage
-  "A saved native question as a stage of a query. See cube.native/exact-fractions."
+  "A saved native question as a stage of a query. See cube.native/correct-native."
   [{:keys [native params] :as stage}]
   (if-let [cube-meta (when (string? native) (current-meta))]
-    (assoc stage :native (cube.native/exact-fractions cube-meta native params))
+    (assoc stage :native (cube.native/correct-native cube-meta native params))
     stage))
 
 (defn- query-with-stages
@@ -2279,6 +2458,10 @@
     (vector? form)                                     (mapv outer-form form)
     :else                                              form))
 
+(def ^:private ^:dynamic *fan-out*
+  "True if the groups of the inner stage must count the rows of a one to many join: COUNT(*) is a real count of the rows of the join, and a measure of a cube is not."
+  false)
+
 (defn- count-column
   [ctx]
   (reset! (:needs-count ctx) true)
@@ -2299,7 +2482,8 @@
   [{:keys [measures table-name cube-meta] :as ctx} tag opts arg]
   (let [field (stored-field arg)
         roll  (cube.meta/roll-up-of-measure cube-meta table-name (:name field))]
-    (when-not (and roll (own-aggregation? tag field))
+    ;; Next to a one to many join, the value of a measure in two groups can read one row, so it does not add up.
+    (when (or *fan-out* (not (and roll (own-aggregation? tag field))))
       (no-split!))
     (swap! measures assoc (:name field) arg)
     (let [column [:field {:lib/uuid (new-uuid), :base-type (:base-type field)} (:name field)]]
@@ -2387,7 +2571,7 @@
                   column    (str/lower-case (:name (stored-field clause)))]]
       (when (contains? switches column)
         (no-split!))
-      (doseq [measure-cube measure-cubes]
+      (doseq [measure-cube (when-not *fan-out* measure-cubes)]
         (when-not (and measure-cube dimension
                        (or (= measure-cube dimension)
                            (cube.meta/many-to-one-path? cube-meta measure-cube dimension)))
@@ -2425,11 +2609,11 @@
                                          {})
                                  vals)
               _             (check-folded-columns! ctx dimensions breakout (keys @(:measures ctx)) @(:needs-count ctx))
-              [count-name]  (when @(:needs-count ctx) (cube.meta/row-count-measure cube-meta table-name))
-              _             (when (and @(:needs-count ctx) (not count-name)) (no-split!))
+              [count-name]  (when (and @(:needs-count ctx) (not *fan-out*)) (cube.meta/row-count-measure cube-meta table-name))
+              _             (when (and @(:needs-count ctx) (not *fan-out*) (not count-name)) (no-split!))
               count-field   (when count-name
                               (first (filter #(= count-name (:name %)) (driver-api/fields provider source-table))))
-              _             (when (and @(:needs-count ctx) (not count-field)) (no-split!))
+              _             (when (and @(:needs-count ctx) (not *fan-out*) (not count-field)) (no-split!))
               details       (:details (driver-api/database provider))
               _             (when (and count-name
                                        (when-let [[cube plain] (cube.meta/key-count-measure cube-meta (str table-name "." count-name))]
@@ -2444,7 +2628,8 @@
                                                                      [:field {:lib/uuid (new-uuid), :base-type (:base-type field)} (:id field)]]))
                                                                 @(:measures ctx))
                                                     count-field (conj [:sum {:lib/uuid (new-uuid), :name row-count-column}
-                                                                       [:field {:lib/uuid (new-uuid), :base-type (:base-type count-field)} (:id count-field)]]))}
+                                                                       [:field {:lib/uuid (new-uuid), :base-type (:base-type count-field)} (:id count-field)]])
+                                                    (and *fan-out* @(:needs-count ctx)) (conj [:count {:lib/uuid (new-uuid), :name row-count-column}]))}
                               (seq dimensions) (assoc :breakout (mapv (fn [[_ {:keys [join-alias base-type]} id :as clause]]
                                                                         [:field (cond-> {:lib/uuid (new-uuid), :base-type (or base-type (:base-type (stored-field clause)))}
                                                                                   join-alias (assoc :join-alias join-alias))
@@ -2496,8 +2681,12 @@
              (every? integer-field? fields)
              (not-any? first-stage [:aggregation :breakout :expressions :order-by :limit]))
     (let [column-names (fn [[_ opts :as clause]]
-                         (keep identity [(inner-column-name clause) (:lib/desired-column-alias opts) (:name opts)]))
-          by-name      (into {} (for [clause fields, column-name (column-names clause)] [column-name clause]))
+                         (keep identity [(get opts driver-api/qp.add.desired-alias) (inner-column-name clause) (:lib/desired-column-alias opts) (:name opts) (:name (stored-field clause))]))
+          ;; Metabase core finds a column by its first match, so the first one of a name stays.
+          by-name      (reduce (fn [found [column-name clause]]
+                                 (if (contains? found column-name) found (assoc found column-name clause)))
+                               {}
+                               (for [clause fields, column-name (column-names clause)] [column-name clause]))
           missing?     (atom false)
           merged       (walk/postwalk
                         (fn [form]
@@ -2545,7 +2734,8 @@
               compiled))
         (catch clojure.lang.ExceptionInfo e
           (or (when (::try-two-stages (ex-data e))
-                (binding [*read-source* true]
+                (binding [*read-source* true
+                          *fan-out*     (boolean (::fan-out (ex-data e)))]
                   (or (compile-two-stages driver query cube-meta)
                       (when-let [merged (merged-raw-stage (:stages query))]
                         (compile-two-stages driver (assoc query :stages merged) cube-meta)))))
@@ -2833,8 +3023,10 @@
    ["not found in provided schemas"
     (str "Cube cannot plan this expression in an aggregation. Add a measure to the data model, or use a plain filter.")]
    ["AST node limit"
-    (str "This query is too long for the planner of Cube, which stops at about 10000 nodes. A list of up to about 1000 values works. Use a shorter list, a range, or add a "
-         "segment to the data model.")]
+    (str "This query has too many conditions for the planner of Cube, which stops at about 10000 nodes. A list in IN or in a filter on one column works up to 2000 values, and conditions joined with OR or AND "
+         "stop at about 50. Use a shorter list, a range, or add a segment to the data model.")]
+   ["Cannot convert NULL value to non-Nullable type"
+    (str "Cube writes a cast of a column with no Nullable on ClickHouse, so it stops on a row with NULL. Remove the cast, or write COALESCE(x, 0) inside it.")]
    ["duplicate qualified field name"
     (str "Cube cannot plan a custom column that reads one column twice next to this aggregation. Use a measure of the data model that adds up, such as sum or count, or add a "
          "dimension for the custom column to the data model.")]
@@ -2859,12 +3051,39 @@
   (str/join " " (keep (fn [^Throwable t] (.getMessage t))
                       (take-while some? (iterate (fn [^Throwable t] (.getCause t)) e)))))
 
+(defn- construct-error
+  "A message that names the construct of native SQL behind a general error of Cube, or nil. A general message about a rolling window or a function sends a person to the wrong place."
+  [message sql]
+  (when (string? sql)
+    (let [planning? (some #(str/includes? message %) ["Can't detect Cube query" "Planning Error" "Rewrite Error" "Scalar subquery"])]
+      (cond
+        (and (str/includes? message "Date range is required for time series")
+             (re-find #"(?i)\bover\s*\(|\bdistinct\s+on\b" sql))
+        (str "Cube cannot compute a window function or DISTINCT ON over the rows of a cube with a rolling window measure, because it reads each measure of that cube here, and a rolling window needs a date "
+             "range. Group by a column first and use the window over the groups, or read a view with no rolling window measure.")
+
+        (and planning? (re-find #"(?i)\bexists\s*\(" sql))
+        "Cube cannot plan EXISTS here. It has no form for a subquery that reads other rows for each row. Use IN with a subquery, or a join of the data model."
+
+        (and planning? (re-find #"(?is)^\s*select\b[^;]*?\(\s*select\b" sql)
+             (not (re-find #"(?is)^\s*select\b.*?\bfrom\s*\(\s*select\b" sql)))
+        "Cube cannot plan a subquery in the select next to an aggregation. Read each number in its own query, or read the subquery in FROM."
+
+        (and (str/includes? message "Unable to map value") (str/includes? message "Interval"))
+        "Cube cannot give an interval as a result, such as the difference of two times. Use DATEDIFF, which gives a number."
+
+        (str/includes? message "Divide by zero")
+        "A divisor in this query is 0, and Cube stops on it above the database. Write NULLIF(x, 0) as the divisor."))))
+
 (defn- clear-error
-  [message]
-  (some (fn [[needle text]]
-          (when (str/includes? message needle)
-            (str text " Cube said: " message)))
-        cube-errors))
+  ([message] (clear-error message nil))
+  ([message sql]
+   (if-let [text (construct-error message sql)]
+     (str text " Cube said: " message)
+     (some (fn [[needle text]]
+             (when (str/includes? message needle)
+               (str text " Cube said: " message)))
+           cube-errors))))
 
 (defn- native-only?
   [{:keys [stages type]}]
@@ -2917,11 +3136,11 @@
         (cube.native/check-paths! cube-meta sql)))))
 
 (defn- with-native-rewrites
-  "See cube.native/count-on-no-rows and cube.native/exact-fractions."
+  "See cube.native/correct-native."
   [{{sql :query, params :params} :native, :as query}]
   (if (and (string? sql) (not (sync-query? query)) (native-only? query))
     (if-let [cube-meta (current-meta)]
-      (assoc-in query [:native :query] (cube.native/exact-fractions cube-meta (cube.native/count-on-no-rows cube-meta sql) params))
+      (assoc-in query [:native :query] (cube.native/correct-native cube-meta sql params))
       query)
     query))
 
@@ -2978,6 +3197,6 @@
               *time-measure-columns* (set (get-in query [:native :cube/time-measure-columns]))]
       (sql-jdbc.execute/execute-reducible-query driver (with-native-rewrites query) context respond))
     (catch Exception e
-      (if-let [text (clear-error (exception-text e))]
+      (if-let [text (clear-error (exception-text e) (when (native-only? query) (get-in query [:native :query])))]
         (throw (ex-info text {:type :invalid-query}))
         (throw e)))))

@@ -22,6 +22,7 @@ import gen  # noqa: E402
 import known_limits  # noqa: E402
 import lib  # noqa: E402
 import mbql  # noqa: E402
+import native  # noqa: E402
 import oracle  # noqa: E402
 import run_grid  # noqa: E402
 
@@ -83,8 +84,37 @@ class Runner:
                 self.truth_cache[sql] = rows
         return rows
 
+    def judge_native(self, spec):
+        """One verdict for a spec of native.py."""
+        n = spec["native"]
+        out = {"truth_sql": n.get("truth"), "query": n["sql"]}
+        rows, err, _ = run_query(self.mb, {"database": self.ctx.db, "type": "native", "native": {"query": n["sql"], "template-tags": {}}})
+        if err is not None:
+            out["error"] = err[:700]
+            if n.get("expect") == "refusal":
+                return dict(out, verdict="refused" if clear(err) else "raw_error", expected=True)
+            return dict(out, verdict="refused" if clear(err) else "raw_error")
+        if n.get("expect") == "refusal":
+            return dict(out, verdict="no_refusal", diff="This shape has no form on Cube, so only a refusal has a meaning.", got=rows[:4])
+        try:
+            want = self.truth(n["truth"])
+        except RuntimeError as e:
+            return dict(out, verdict="truth_error", error=str(e)[:700])
+        ordered, tol = n.get("ordered", False), n.get("tol", 1e-6)
+        diff = lib.compare(rows, want, ordered=ordered, tol=tol)
+        if diff is None:
+            return dict(out, verdict="pass", rows=len(rows))
+        if self.stock and "aggregate_functions_null_for_empty" in n["truth"]:
+            # A sum of no rows on stock Cube, see "Known wrong numbers" in docs/query-compilation.md.
+            plain = lib.compare(rows, self.truth(n["truth"].replace(native.NULL_FOR_EMPTY, "")), ordered=ordered, tol=tol)
+            if plain is None:
+                return dict(out, verdict="stock_no_rows", rows=len(rows))
+        return dict(out, verdict="wrong", diff=diff[:800], got=rows[:4], want=want[:4], rows=len(rows))
+
     def judge(self, spec):
         """One verdict. The settings of the spec must be on."""
+        if "native" in spec:
+            return self.judge_native(spec)
         t = oracle.truth(spec)
         out = {"truth_sql": t["sql"]}
         err = rows = etype = None
@@ -143,6 +173,8 @@ class Runner:
     # ------------------------------------------------------------------ the smallest query
 
     def reduce(self, spec, verdict, budget=70):
+        if "native" in spec:
+            return spec
         """Removes each part of the query while the same kind of failure stays. Returns the smallest spec."""
         current = copy.deepcopy(spec)
         tried = 0
@@ -269,23 +301,35 @@ def missing_objects(ctx):
 def connect():
     mb = lib.Metabase(lib.MB, PASSWORD, ADMIN).login()
     have = {d["name"]: d for d in mb.api("GET", "/api/database")["data"]}
-    if "Cube" not in have:
-        have["Cube"] = mb.api("POST", "/api/database", {"engine": "cube", "name": "Cube", "details": {
+    name = os.environ.get("FUZZ_DB", "Cube")
+    if name not in have:
+        have[name] = mb.api("POST", "/api/database", {"engine": "cube", "name": name, "details": {
             "host": "cube", "port": 15432, "dbname": "cube", "user": "cube", "password": "cube-dev-only", "cube-rest-url": "http://cube:4000",
             "cube-api-secret": "cube-dev-only-secret-0123456789abcdef"}})
     for _ in range(200):
-        d = mb.api("GET", "/api/database/%d" % have["Cube"]["id"])
+        d = mb.api("GET", "/api/database/%d" % have[name]["id"])
         if d.get("initial_sync_status") == "complete":
             break
         time.sleep(3)
     # Metabase makes the measures and segments after the first sync, so a new Metabase needs a moment.
-    ctx = run_grid.Ctx(mb, "Cube")
+    ctx = run_grid.Ctx(mb, name)
     for _ in range(60):
         if not missing_objects(ctx):
             break
         time.sleep(5)
-        ctx = run_grid.Ctx(mb, "Cube")
+        ctx = run_grid.Ctx(mb, name)
     return mb, ctx
+
+
+NATIVE_EVERY = 3
+
+
+def spec_of(seed, index):
+    """Each third query of a seed is native SQL. It reads the settings of its block, and it has no time column in a filter, so a setting does not change its truth."""
+    if index % NATIVE_EVERY == 2:
+        zone, week = gen.settings(seed, index)
+        return dict(native.generate(seed, index), zone=zone, week=week)
+    return gen.generate(seed, index)
 
 
 def run_seed(runner, seed, count, start=0, reduce=True, save=True, workers=3, log=print, max_reduce=200):
@@ -301,14 +345,14 @@ def run_seed(runner, seed, count, start=0, reduce=True, save=True, workers=3, lo
     with concurrent.futures.ThreadPoolExecutor(workers) as pool:
         while index < start + count:
             end = min((index // gen.BLOCK + 1) * gen.BLOCK, start + count)
-            block = [(i, gen.generate(seed, i)) for i in range(index, end)]
-            zone, week = block[0][1]["zone"], block[0][1]["week"]
+            block = [(i, spec_of(seed, i)) for i in range(index, end)]
+            zone, week = gen.settings(seed, index)
             runner.apply(zone, week)
             results = list(pool.map(lambda item: _safe(runner, item[1]), block))
             for (i, spec), r in zip(block, results):
                 v = r["verdict"]
                 counts[v] = counts.get(v, 0) + 1
-                for tag in gen.tags(spec):
+                for tag in (["native"] if "native" in spec else gen.tags(spec)):
                     bucket = features.setdefault(tag, {"pass": 0, "refused": 0, "failed": 0})
                     bucket["pass" if v == "pass" else "refused" if v == "refused" else "failed" if v in FAILURES else "pass"] += 1 if v != "skip" else 0
                 if v == "refused":
@@ -392,9 +436,9 @@ def main():
     a = ap.parse_args()
     seed = a.seed if a.seed is not None else str(int(time.time()))
     if a.show is not None:
-        spec = gen.generate(seed, a.show)
+        spec = spec_of(seed, a.show)
         print(json.dumps(spec, indent=1))
-        print(oracle.truth(spec))
+        print(spec["native"]["truth"] if "native" in spec else oracle.truth(spec))
         return 0
     os.makedirs(a.out, exist_ok=True)
     mb, ctx = connect()

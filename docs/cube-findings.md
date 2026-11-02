@@ -4832,6 +4832,39 @@ This needs the legacy planner.
 </details>
 
 
+## Native SQL that the SQL API reads with another meaning
+
+Measured on 2026-11-02 on Cube v1.8.15, on stock Cube, with the dialect and with dev mode off, on the demo model. Each row is one text on the SQL API with no driver, and the truth is direct SQL on ClickHouse. Each number is the same on the three. These wait for a later pull request. The driver corrects or stops each one, see [Native SQL](query-compilation.md#native-sql).
+
+| Defect | Repro on the SQL API | Cube | Truth |
+| --- | --- | --- | --- |
+| FILTER of an aggregation is dropped | `SELECT COUNT(*) FILTER (WHERE status = 'completed') FROM orders` | 5000 | 2000 |
+| The same with SUM | `SELECT SUM(amount_dim) FILTER (WHERE status = 'completed') FROM orders` | 319790 | 119940 |
+| The same with MEASURE | `SELECT MEASURE(revenue) FILTER (WHERE status = 'completed') FROM orders` | 319790 | 119940 |
+| NOT and `<>` keep NULL, because they read the member operator `notEquals`, see #12538 | `SELECT COUNT(*) FROM orders WHERE cancel_status <> 'shipped'` | 4000 | 2000 |
+| The same with NOT IN and NOT | `SELECT COUNT(*) FROM orders WHERE NOT (cancel_status = 'shipped')` | 4000 | 2000 |
+| A NULL in NOT IN | `SELECT COUNT(*) FROM orders WHERE cancel_status NOT IN ('shipped', NULL)` | 2000 | 0 |
+| A number in a member filter goes as text, and ClickHouse cuts it to the scale of a Decimal | `SELECT COUNT(*) FROM orders WHERE amount_dim = 44.001` | 83 | 0 |
+| The same through a cast, parentheses, a text and an alias of a subquery | `SELECT COUNT(*) FROM orders WHERE CAST(amount_dim AS numeric) = 44.001`, `(amount_dim) = 44.001`, `amount_dim = '44.001'`, `WITH t AS (SELECT amount_dim AS a FROM orders) SELECT COUNT(*) FROM t WHERE a = 44.001` | 83 | 0 |
+| The same on an integer column, as an error | `SELECT COUNT(*) FROM orders WHERE (quantity_dim) = 1.5` | `Cannot convert string '1.5' to type Int32` | 0 |
+| DISTINCT in SUM is dropped | `SELECT SUM(DISTINCT quantity_dim) FROM orders` | 12500 | 10 |
+| ROLLUP and CUBE read as a plain GROUP BY, with no total | `SELECT status, COUNT(*) FROM orders GROUP BY ROLLUP(status)` | 4 rows | 5 rows, with a total of 5000 |
+| NULLS FIRST is dropped | `SELECT cancel_status, COUNT(*) FROM orders GROUP BY 1 ORDER BY 1 NULLS FIRST LIMIT 1` | `cancelled`, 1000 | NULL, 2000 |
+| A cross product reads the model | `SELECT COUNT(*) FROM orders a CROSS JOIN users b` | 5000 | 1000000 |
+| The same on a cube and itself | `SELECT COUNT(*) FROM orders a CROSS JOIN orders b` | 5000 | 25000000 |
+| Two aggregated subqueries read as one query | `WITH a AS (SELECT COUNT(*) c FROM orders), b AS (SELECT COUNT(*) d FROM users) SELECT c, d FROM a, b` | 5000, 199 | 5000, 200 |
+| A dimension next to a one to many join reads each row once | `SELECT SUM(u.id) FROM users u CROSS JOIN orders o WHERE u.__cubeJoinField = o.__cubeJoinField` | 20100 | 498050 |
+| The same with COUNT | `SELECT COUNT(u.id) FROM users u CROSS JOIN orders o WHERE u.__cubeJoinField = o.__cubeJoinField` | 200 | 5001 |
+| Two aggregations with one name in UNION give NULL | `SELECT COUNT(*) FROM orders UNION ALL SELECT COUNT(*) FROM orders` | NULL, NULL | 5000, 5000 |
+| Decimal division in the database keeps the scale | `SELECT MAX(amount_dim / 7) FROM orders` | 22.85 | 22.857142 |
+| Integer division above a CubeScan and in the database differ | `SELECT COUNT(*) / 7 FROM orders`, `SELECT quantity_dim / 2 x, COUNT(*) FROM orders GROUP BY 1` | 714, and 0.5 to 2 | 714.28 and 0.5 to 2 on ClickHouse |
+| A window function or DISTINCT ON over raw rows reads each measure, also a rolling one | `SELECT id, ROW_NUMBER() OVER (ORDER BY id) FROM orders LIMIT 1` | `Date range is required for time series` | Runs on a cube with no rolling window measure |
+| LIKE reads an operator that ignores case, see B2 | `SELECT COUNT(*) FROM orders WHERE status LIKE '%SHIP%'` | 1000 | 0 |
+| DATE_TRUNC NOT IN reads `notInDateRange`, and it joins the ranges with OR, so two buckets apart exclude no row | `SELECT COUNT(*) FROM orders WHERE DATE_TRUNC('day', created_at) NOT IN (TIMESTAMP '2025-01-05 00:00:00', TIMESTAMP '2025-03-09 00:00:00')` | 5000 | 4972 |
+| A subquery of raw rows over a join reads as one query with the outer aggregation | `SELECT SUM(id) FROM (SELECT u.id FROM users u CROSS JOIN orders o WHERE u.__cubeJoinField = o.__cubeJoinField) t` | 20100 | 498050 |
+| IS DISTINCT FROM has no parentheses in pushed SQL | `SELECT id FROM orders WHERE status IS DISTINCT FROM 'x' AND quantity_dim = 1 LIMIT 1` | `Illegal type (String) of 1 argument of function and`, from `status IS DISTINCT FROM ('x' AND ...)` | Rows |
+| A long OR restarts Cube, with no message to the client | `SELECT COUNT(*) FROM orders WHERE id = 1 OR id = 2 ...` with 2000 terms, on 2 GiB | The process stops, the connection breaks | 2000 |
+
 ## Entries with no claim about Cube
 
 These entries in `conformance/features.yaml` have a non-pass status and make no claim that Cube has a defect or a limit, so I did not run them.

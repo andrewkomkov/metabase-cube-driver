@@ -85,9 +85,8 @@ Most shapes where Cube gives a wrong number now give the truth or stop with a cl
 
 - A long decimal below 2^53 loses digits, because the Cube SQL API has the type Double, and its value fits a Double. A dimension with `sql: toString(column)` keeps them.
 - A filter on a time with an offset in its literal, as `2025-06-15T11:00:00Z`, under a report time zone. Metabase core drops the offset before the driver gets the query. A filter from the date picker has no offset.
-- Native SQL in a shape that the scan of the text does not read. The scan is not a SQL parser. It reads the shapes in [Native SQL](docs/query-compilation.md#native-sql).
+- Native SQL on a time, a rolling window or a subquery filter in a shape that the scan of the text does not read. The corrections of [Native SQL](docs/query-compilation.md#native-sql) (`FILTER`, NULL in `<>` and `NOT`, numbers with a fraction, division, `LIKE`) read a parse of the text, and they stop a text that the parser cannot read. The scan of these other shapes reads tokens.
 - A value of a time in the repeated hour of a clock change, under a report time zone: a measure with `type: time`, or a raw time column. A row at 06:00 UTC on 2025-11-02 reads `01:00:00-04:00` in New York, 1 hour early, where the truth is `01:00:00-05:00`. The SQL API gives a time with no offset, so the driver cannot tell the two passes apart. Each other hour is right, and a count or a sum by these rows is right.
-- A number in native SQL next to a column of a cast or a function of a Decimal, such as `amount_dim::numeric = 44.001`, or a measure in `HAVING`. The driver writes the exact form only for a plain number dimension. See [Native SQL](docs/query-compilation.md#native-sql).
 
 On stock Cube with no dialect, also:
 

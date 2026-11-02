@@ -3235,6 +3235,12 @@ def _(ctx):
     run_release_cases(ctx, release_cases().fraction_cases(stock=not DIALECT), "fraction list")
 
 
+@check("compile.filter.long_lists")
+def _(ctx):
+    """A list of 1000 values of each type, with `=`, `!=` and NOT. A list of OR or AND stopped the planner of Cube at about 100 values."""
+    run_release_cases(ctx, release_cases().list_cases(), "long list")
+
+
 @check("mcp.query.fraction_list_keeps_digits")
 def _(ctx):
     values = release_cases().fractions(8)
@@ -3262,6 +3268,35 @@ def _(ctx):
 def _(ctx):
     """Cube reads each row of a joined cube once: count of a joined column gave 29 where the truth is 5000, and cum-sum 725 where the truth is 24967."""
     run_release_cases(ctx, release_cases().join_cases(), "joined column")
+
+
+@check("compile.join.fan_out_of_each_aggregation")
+def _(ctx):
+    """A dimension next to a one to many join: SUM(users.id) over users and orders read each user once, 20100 where the truth is 498050. Each aggregation, each form of the reference, both sides, each strategy and condition."""
+    ensure_table(ctx, "users")
+    ensure_table(ctx, "payments")
+    ensure_table(ctx, "customer_orders")
+    run_release_cases(ctx, release_cases().fan_out_cases(), "fan-out")
+
+
+@check("compile.stage.name_reference_of_a_joined_column")
+def _(ctx):
+    """A later stage names a column by the name of its field, `price`, where the output has `products__via__product_id__price`. So the check of a joined column did not see it: 725 where the truth is 124910."""
+    run_release_cases(ctx, release_cases().name_reference_cases(), "name reference")
+    db = ctx.mb.need_db()
+    price = ["field", ctx.mb.field("products", "price")["id"], {"source-field": ctx.mb.fk_field(ORD, "products")["id"]}]
+    mbql = {"database": db, "type": "query", "query": {"source-table": ctx.mb.table(ORD)["id"], "fields": [["field", ctx.mb.field(ORD, "id")["id"], None], price]}}
+    native = {"database": db, "type": "native", "native": {"query": "SELECT o.id, p.price FROM orders o CROSS JOIN products p WHERE o.__cubeJoinField = p.__cubeJoinField", "template-tags": {}}}
+    truth = ch("SELECT toFloat64(sum(p.price)) FROM orders o LEFT JOIN products p ON o.product_id = p.id")
+    for label, card, names in (("question", ctx.mb.card("name ref question", mbql)["id"], ("price", "products__via__product_id__price")),
+                               ("model", ctx.mb.api("POST", "/api/card", {"name": "name ref model", "display": "table", "visualization_settings": {}, "dataset_query": mbql, "type": "model"})["id"], ("price", "products__via__product_id__price")),
+                               ("native question", ctx.mb.card("name ref native", native)["id"], ("price",))):
+        for name in names:
+            res = ctx.mb.api("POST", "/api/dataset", {"database": db, "type": "query", "query": {"source-table": "card__%d" % card, "aggregation": [["sum", ["field", name, {"base-type": "type/Float"}]]]}},
+                             ok=(200, 202, 400, 500))
+            if res.get("error"):
+                raise Fail("%s %s: %s" % (label, name, str(res["error"])[:300]))
+            assert_rows(res["data"]["rows"], truth, tol=1e-6, label="%s %s" % (label, name))
 
 
 @check("mcp.query.count_of_a_joined_column")
@@ -5738,7 +5773,9 @@ def _(ctx):
         raise Fail("docs/query-compilation.md has no rule for a fan-out")
     join = [{"source-table": ctx.mb.table("payments")["id"], "alias": "P", "strategy": "left-join", "condition": ["=", "d:orders.id", "d:payments.order_id|P"]}]
     assert_rows(ctx.mb.mbql(ORD, agg=[["count"], ["sum", "d:orders.quantity_dim"]], joins=join)["rows"],
-                ch("SELECT (SELECT count() FROM orders o JOIN (SELECT id AS order_id FROM orders UNION ALL SELECT id FROM orders) p ON o.id = p.order_id), (SELECT sum(quantity) FROM orders)"), label="fan-out")
+                ch("SELECT count(), sum(o.quantity) FROM orders o JOIN (SELECT id AS order_id FROM orders UNION ALL SELECT id FROM orders) p ON o.id = p.order_id"), label="fan-out")
+    # A measure stays the measure.
+    assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.count"], joins=join)["rows"], ch("SELECT count() FROM orders"), label="fan-out of a measure")
 
 
 @check("native.count_on_no_rows")
@@ -8868,6 +8905,69 @@ def _(ctx):
     print("         %s" % json.dumps(counts, sort_keys=True))
     if problems:
         raise Fail("%d differ: %s" % (len(problems), " | ".join(problems[:6])))
+
+
+def native_semantics(ctx, execute):
+    module = release_cases()
+
+    def differ(rows, truth, _ordered, tol):
+        try:
+            assert_rows(rows, ch(truth), tol=tol, label="native")
+        except Fail as e:
+            return str(e)
+        return None
+
+    for table in ("orders", "payments", "products", "users", "sales", "typed_events", "metric_types", "customer_orders"):
+        ensure_table(ctx, table)
+    counts, problems = module.run_native_semantics(execute, differ)
+    print("         %s" % json.dumps(counts, sort_keys=True))
+    if problems:
+        raise Fail("%d differ: %s" % (len(problems), " | ".join(problems[:6])))
+
+
+@check("native.semantics.each_construct")
+def _(ctx):
+    """Each construct of "Native SQL" in docs/query-compilation.md, with its truth from ClickHouse: FILTER gave 5000 where the truth is 2000, `<>` 4000 where the truth is 2000, and a fraction 83 where the truth is 0."""
+    native_semantics(ctx, lambda sql: native_outcome(ctx, sql))
+
+
+@check("native.semantics.in_a_stage")
+def _(ctx):
+    """A saved native question reads the same corrections, also as the source of another question."""
+    db = ctx.mb.need_db()
+    for name, sql, truth in (("filter", "SELECT COUNT(*) FILTER (WHERE status = 'completed') AS n FROM orders", "SELECT countIf(status = 'completed') FROM orders"),
+                             ("not equal", "SELECT COUNT(*) AS n FROM orders WHERE cancel_status <> 'shipped'", "SELECT count() FROM orders WHERE nullIf(toString(status), 'completed') <> 'shipped'"),
+                             ("fraction", "SELECT COUNT(*) AS n FROM orders WHERE (amount_dim) = 44.001", "SELECT count() FROM orders WHERE amount = 44.001")):
+        card = ctx.mb.card("native stage " + name, {"database": db, "type": "native", "native": {"query": sql, "template-tags": {}}})["id"]
+        res = ctx.mb.api("POST", "/api/card/%d/query" % card, {})
+        if res.get("error"):
+            raise Fail("%s: %s" % (name, str(res["error"])[:300]))
+        assert_rows(res["data"]["rows"], ch(truth), label=name)
+        nested = ctx.mb.api("POST", "/api/dataset", {"database": db, "type": "query", "query": {"source-table": "card__%d" % card, "aggregation": [["sum", ["field", "n", {"base-type": "type/Integer"}]]]}},
+                            ok=(200, 202, 400, 500))
+        if nested.get("error"):
+            raise Fail("%s as a source: %s" % (name, str(nested["error"])[:300]))
+        assert_rows(nested["data"]["rows"], ch(truth), label=name + " as a source")
+
+
+@check("native.semantics.parameters_and_snippets")
+def _(ctx):
+    """A number from a parameter, a field filter and a snippet reads the same corrections as a number in the text."""
+    number = {"x": {"id": "x", "name": "x", "display-name": "x", "type": "number"}}
+    text = {"x": {"id": "x", "name": "x", "display-name": "x", "type": "text"}}
+    field = {"x": {"id": "x", "name": "x", "display-name": "x", "type": "dimension", "widget-type": "number/=", "dimension": ["field", ctx.mb.field(ORD, "amount_dim")["id"], None]}}
+    status_field = {"x": {"id": "x", "name": "x", "display-name": "x", "type": "dimension", "widget-type": "string/!=", "dimension": ["field", ctx.mb.field(ORD, "cancel_status")["id"], None]}}
+    value = lambda kind, v, target: [{"type": kind, "target": target, "value": v}]  # noqa: E731
+    var = ["variable", ["template-tag", "x"]]
+    dim = ["dimension", ["template-tag", "x"]]
+    expect_native_rows(ctx, "SELECT COUNT(*) FROM orders WHERE amount_dim = {{x}}", "SELECT count() FROM orders WHERE amount = 44.001", number, value("number/=", "44.001", var))
+    expect_native_rows(ctx, "SELECT COUNT(*) FROM orders WHERE (amount_dim) >= {{x}}", "SELECT count() FROM orders WHERE amount >= 44.001", number, value("number/=", "44.001", var))
+    expect_native_rows(ctx, "SELECT COUNT(*) FROM orders WHERE {{x}}", "SELECT count() FROM orders WHERE amount IN (44.001, 44.002)", field, value("number/=", [44.001, 44.002], dim))
+    expect_native_rows(ctx, "SELECT COUNT(*) FROM orders WHERE cancel_status <> {{x}}", "SELECT count() FROM orders WHERE nullIf(toString(status), 'completed') <> 'shipped'", text, value("category", "shipped", var))
+    expect_native_rows(ctx, "SELECT COUNT(*) FROM orders WHERE {{x}}", "SELECT count() FROM orders WHERE nullIf(toString(status), 'completed') <> 'shipped' OR status = 'completed'", status_field, value("string/!=", ["shipped"], dim))
+    snippet = ctx.mb.api("POST", "/api/native-query-snippet", {"name": "fraction %d" % int(time.time()), "content": "(amount_dim) = 44.001"})
+    tags = {"snippet: s": {"id": "s", "name": "snippet: s", "display-name": "s", "type": "snippet", "snippet-name": snippet["name"], "snippet-id": snippet["id"]}}
+    expect_native_rows(ctx, "SELECT COUNT(*) FROM orders WHERE {{snippet: s}}", "SELECT count() FROM orders WHERE amount = 44.001", tags)
 
 
 @check("security.saved_native_question_infers_no_private_member")

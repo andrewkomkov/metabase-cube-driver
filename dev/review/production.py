@@ -124,13 +124,14 @@ def run_release_cases(mb, db):
     def differ(rows, truth, ordered, tol):
         return lib.compare(rows, lib.ch(truth), ordered=ordered, tol=tol)
 
-    cases = release_cases.fraction_cases() + release_cases.join_cases()
+    cases = release_cases.fraction_cases() + release_cases.join_cases() + release_cases.fan_out_cases() + release_cases.name_reference_cases() + release_cases.list_cases()
     counts, problems = release_cases.run(cases, execute, differ, field_id, fk_id, lambda table: tables[table]["id"])
     native_counts, native_problems = release_cases.run_native(execute_native, differ, dev_mode=False)
-    print("release cases", counts, "native", native_counts, "problems", len(problems) + len(native_problems))
-    for line in (problems + native_problems)[:40]:
+    semantic_counts, semantic_problems = release_cases.run_native_semantics(execute_native, differ)
+    print("release cases", counts, "native", native_counts, "native semantics", semantic_counts, "problems", len(problems) + len(native_problems) + len(semantic_problems))
+    for line in (problems + native_problems + semantic_problems)[:40]:
         print("  ", line)
-    return problems + native_problems
+    return problems + native_problems + semantic_problems
 
 
 def main():

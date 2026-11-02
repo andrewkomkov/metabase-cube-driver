@@ -4,159 +4,15 @@
   It is not a SQL parser. docs/query-compilation.md lists the shapes that it does not read in \"Known wrong numbers\", and docs/security.md says what the scan of private members is."
   (:require
    [clojure.string :as str]
+   [metabase.driver.cube.correct :as correct]
    [metabase.driver.cube.meta :as cube.meta]
-   [metabase.driver.cube.probe :as cube.probe])
+   [metabase.driver.cube.probe :as cube.probe]
+   [metabase.driver.cube.sqltext :as sqltext :refer [lex tokens]])
   (:import
    (java.time DayOfWeek LocalDate LocalDateTime OffsetDateTime ZoneOffset ZonedDateTime)
    (java.time.temporal ChronoUnit TemporalAdjusters)))
 
 (set! *warn-on-reflection* true)
-
-;;; The lexer. It reads the text as the parser of Cube does, which has the rules of PostgreSQL: a string with '' or, with the prefix E, also a backslash; a quoted name with "";
-;;; a string in dollar quotes; a comment with -- or /* */, and these comments nest. A text that the lexer cannot read has a reason in :unreadable. See check-native-private-member!.
-
-(defn- word-start?
-  [c]
-  (or (Character/isLetter (char c)) (= c \_)))
-
-(defn- word-char?
-  [c]
-  (or (Character/isLetterOrDigit (char c)) (= c \_) (= c \$)))
-
-(defn- quoted-end
-  "The index after the quote that closes the text that opens at `start`, with a doubled quote inside it, or nil. With `backslash?`, a backslash also keeps the next character."
-  [^String sql start quote-char backslash?]
-  (let [size  (count sql)
-        quote (char quote-char)]
-    (loop [i (inc (long start))]
-      (when (< i size)
-        (let [c (.charAt sql i)]
-          (cond
-            (and backslash? (= c \\))                                   (recur (+ i 2))
-            (and (= c quote) (< (inc i) size) (= quote (.charAt sql (inc i)))) (recur (+ i 2))
-            (= c quote)                                                 (inc i)
-            :else                                                       (recur (inc i))))))))
-
-(defn- comment-end
-  "The index after the comment that opens at `start`. /* */ nests. Nil if it has no end."
-  [^String sql start]
-  (loop [i (+ (long start) 2), depth 1]
-    (cond
-      (zero? depth)            i
-      (>= i (count sql))       nil
-      (.startsWith sql "/*" i) (recur (+ i 2) (inc depth))
-      (.startsWith sql "*/" i) (recur (+ i 2) (dec depth))
-      :else                    (recur (inc i) depth))))
-
-(defn- dollar-tag
-  "The opening `$tag$` at `start`, or nil."
-  [^String sql start]
-  (let [matcher (re-matcher #"\$(?:[\p{L}_][\p{L}\p{N}_]*)?\$" sql)]
-    (.region matcher (int start) (count sql))
-    (when (.lookingAt matcher) (.group matcher))))
-
-(defn- string-of
-  [^String sql start end kind]
-  (let [inner (subs sql start end)]
-    {:kind  :string
-     :text  (case kind
-              :plain  (str/replace (subs inner 1 (dec (count inner))) "''" "'")
-              :escape (-> (subs inner 2 (dec (count inner)))
-                          (str/replace "''" "'")
-                          (str/replace #"\\(.)" "$1")))}))
-
-(defn- lex
-  "{:tokens the tokens of `sql` with their positions, and no comments, :unreadable the reason if the text is not one that the scan can read}."
-  [^String sql]
-  (let [size (count sql)]
-    (loop [i 0, out [], unreadable nil]
-      (if (>= i size)
-        {:tokens out, :unreadable unreadable}
-        (let [c    (.charAt sql i)
-              next-c (when (< (inc i) size) (.charAt sql (inc i)))]
-          (cond
-            (Character/isWhitespace c)
-            (recur (inc i) out unreadable)
-
-            (.startsWith sql "--" i)
-            (let [end (let [at (.indexOf sql "\n" i)] (if (neg? at) size at))]
-              (recur (long end) out (or unreadable
-                                        ;; PostgreSQL ends this comment at a carriage return, and the parser of Cube does not.
-                                        (when (re-find #"\r(?!\n)" (subs sql i (min size (inc end)))) "a carriage return in a comment"))))
-
-            (.startsWith sql "/*" i)
-            (if-let [end (comment-end sql i)]
-              (recur (long end) out unreadable)
-              {:tokens out, :unreadable (or unreadable "a comment with no end")})
-
-            (and (#{\E \e} c) (= next-c \'))
-            (if-let [end (quoted-end sql (inc i) \' true)]
-              (recur (long end) (conj out (assoc (string-of sql i end :escape) :start i :end end)) unreadable)
-              {:tokens out, :unreadable (or unreadable "a string with no end")})
-
-            (and (#{\U \u} c) (= next-c \&) (< (+ i 2) size) (#{\' \"} (.charAt sql (+ i 2))))
-            (let [end (quoted-end sql (+ i 2) (.charAt sql (+ i 2)) false)]
-              {:tokens out, :unreadable (or unreadable (if end "a name or a string with Unicode escapes" "a string with no end"))})
-
-            (= c \')
-            (if-let [end (quoted-end sql i \' false)]
-              (recur (long end)
-                     (conj out (assoc (string-of sql i end :plain) :start i :end end))
-                     ;; Standard SQL reads a backslash as a character, and other dialects read the quote after it as a part of the string.
-                     (or unreadable (when (str/includes? (subs sql i end) "\\'") "a backslash before a quote in a string")))
-              {:tokens out, :unreadable (or unreadable "a string with no end")})
-
-            (= c \")
-            (if-let [end (quoted-end sql i \" false)]
-              (recur (long end)
-                     (conj out {:kind  :ident
-                                :text  (str/lower-case (str/replace (subs sql (inc i) (dec end)) "\"\"" "\""))
-                                :start i
-                                :end   end})
-                     unreadable)
-              {:tokens out, :unreadable (or unreadable "a name with no end")})
-
-            (= c \$)
-            (if-let [tag (dollar-tag sql i)]
-              (let [at (.indexOf sql ^String tag (int (+ i (count tag))))]
-                (if (neg? at)
-                  {:tokens out, :unreadable (or unreadable "a string in dollar quotes with no end")}
-                  (let [end (+ at (count tag))]
-                    (recur (long end)
-                           (conj out {:kind :string, :text (subs sql (+ i (count tag)) at), :start i, :end end})
-                           unreadable))))
-              (let [end (loop [j (inc i)] (if (and (< j size) (Character/isDigit (.charAt sql j))) (recur (inc j)) j))]
-                (recur (long end) (conj out {:kind :other, :text (subs sql i end), :start i, :end end}) unreadable)))
-
-            (word-start? c)
-            (let [end (loop [j (inc i)] (if (and (< j size) (word-char? (.charAt sql j))) (recur (inc j)) j))]
-              (recur (long end) (conj out {:kind :word, :text (str/lower-case (subs sql i end)), :start i, :end end}) unreadable))
-
-            (or (Character/isDigit c)
-                (and (= c \.) next-c (Character/isDigit (char next-c))
-                     (not (contains? #{:word :ident} (:kind (peek out))))))
-            (let [matcher (re-matcher #"\d*\.?\d*(?:[eE][+-]?\d+)?" sql)]
-              (.region matcher (int i) size)
-              (.lookingAt matcher)
-              (let [end (.end matcher)]
-                (recur (long end) (conj out {:kind :other, :number? true, :text (.group matcher), :start i, :end end}) unreadable)))
-
-            (some #(.startsWith sql ^String % i) ["<=" ">=" "<>" "!="])
-            (recur (+ i 2) (conj out {:kind :other, :text (subs sql i (+ i 2)), :start i, :end (+ i 2)}) unreadable)
-
-            :else
-            (recur (inc i) (conj out {:kind :other, :text (str c), :start i, :end (inc i)}) unreadable)))))))
-
-(defn- tokens
-  "The tokens of `sql` as a vector, with no comments. Each `?` has the number of its query parameter."
-  [sql]
-  (first
-   (reduce (fn [[out params] {:keys [text kind] :as tok}]
-             (if (and (= :other kind) (= text "?"))
-               [(conj out (assoc tok :kind :param, :param params)) (inc params)]
-               [(conj out tok) params]))
-           [[] 0]
-           (:tokens (lex sql)))))
 
 ;;; Parentheses and casts around one value do not change it. The scan reads the value.
 
@@ -642,12 +498,8 @@
                             "Write %s >= t AND %s <= t.")
                        column column column column)))))
 
-(defn- wildcard-with-letters?
-  [pattern]
-  (and (re-find #"[%_]" pattern) (re-find #"\p{L}" pattern)))
-
 (defn- check-text-case!
-  "Cube reads these forms as its operators, and on ClickHouse they ignore case. SQL and Metabase read them as case sensitive."
+  "Cube reads these forms as its operators, and on ClickHouse they ignore case. SQL and Metabase read them as case sensitive. `metabase.driver.cube.correct` writes LIKE in a form that keeps the case."
   [toks]
   (let [message (fn [text]
                   (format (str "Cube reads %s as a filter that ignores case, so the number can differ from SQL. Write ILIKE to ignore case. To "
@@ -656,11 +508,6 @@
                           text))]
     (doseq [i (range (count toks))
             :let [tok (get toks i)]]
-      (when (and (word? tok "like")
-                 (not= ")" (:text (get toks (dec i))))
-                 (= :string (:kind (get toks (inc i))))
-                 (wildcard-with-letters? (:text (get toks (inc i)))))
-        (refuse! (message (str "LIKE '" (:text (get toks (inc i))) "'"))))
       (when (and (= :word (:kind tok)) (contains? #{"strpos" "left" "right"} (:text tok)) (= "(" (:text (get toks (inc i)))))
         (when-let [close (closing-paren toks (inc i))]
           (let [op    (:text (get toks (inc close)))
@@ -702,64 +549,80 @@
 
 ;;; An aggregation of a dimension of a joined cube.
 
-(defn- table-aliases
-  "A map from each name that can stand before a column to its table, and the first table of the text under :first."
-  [toks]
-  (reduce (fn [found i]
-            (if (or (word? (get toks i) "from") (word? (get toks i) "join"))
-              (if-let [[table next-at] (read-table toks (inc i))]
-                (let [alias-name (let [before (get toks (dec next-at))] (:text before))]
-                  (cond-> (assoc found table table alias-name table)
-                    (nil? (:first found)) (assoc :first table)))
-                found)
-              found))
-          {}
-          (range (count toks))))
-
 (def ^:private row-aggregations
   "The aggregations that give another number if a row counts once and not for each row of the query."
   #{"sum" "avg" "count" "stddev" "stddev_pop" "stddev_samp" "variance" "var_pop" "var_samp"})
 
-(defn- argument-column
-  "[qualifier column] of the plain column that the call at `i` reads, as in SUM(a.b), SUM(b) or COUNT(DISTINCT b), or nil. DISTINCT does not depend on how often a row counts."
-  [toks i]
-  (when (and (= :word (:kind (get toks i)))
-             (contains? row-aggregations (:text (get toks i)))
-             (= "(" (:text (get toks (inc i)))))
-    (let [at (if (word? (get toks (+ i 2)) "all") (+ i 3) (+ i 2))]
-      (cond
-        (and (name-token? (get toks at)) (= "." (:text (get toks (inc at)))) (name-token? (get toks (+ at 2))) (= ")" (:text (get toks (+ at 3)))))
-        [(:text (get toks at)) (:text (get toks (+ at 2)))]
-
-        (and (name-token? (get toks at)) (= ")" (:text (get toks (inc at)))))
-        [nil (:text (get toks at))]))))
-
-(defn- check-total-through-join!
-  "Cube reads each row of a joined cube once. See compile.join.total_of_dimension_refused."
-  [index toks joined-member-of-view?]
-  (let [aliases (table-aliases toks)
-        start   (:first aliases)
-        read    (tables toks)]
-    (doseq [i     (range (count toks))
-            :let  [[qualifier column] (argument-column toks i)]
-            :when column]
-      (let [table (cond
-                    qualifier                                   (get aliases qualifier)
-                    (contains? (:dimensions (get index start)) column) start
-                    :else                                       (first (filter #(contains? (:dimensions (get index %)) column) read)))]
-        (when (and table
-                   (not= table start)
-                   (next read)
-                   (contains? (:dimensions (get index table)) column))
-          (refuse! (format (str "Cube cannot add up the dimension %s of %s over the rows of %s. It reads each row of the joined cube once, so "
-                                "the number would be wrong. Add a measure to the data model, or start from %s.")
-                           column table start table)))
-        (when (and (= table start)
-                   joined-member-of-view?
-                   (joined-member-of-view? (:cube-name (get index table)) column))
-          (refuse! (format (str "Cube cannot add up the column %s of the view %s over the rows of the view, because this column comes from a joined cube, and Cube reads each of "
-                                "its rows once. So the number would be wrong. Add a measure to the data model, or start from the cube of this column.")
-                           column table)))))))
+(defn- check-fan-out!
+  "Cube reads each row of a cube once. Next to a one to many join, SUM(users.id) over users and orders gives the sum of the users, where SQL counts each user once for each order. And a view with such a
+  join has no one set of rows."
+  [cube-meta index ^String sql]
+  (let [tree (sqltext/parse sql)]
+    (when-not (:error tree)
+      (doseq [select (filter #(= :select (:k %)) (sqltext/nodes tree))
+              :let   [sources (filter :table (mapcat (fn visit [item]
+                                                       (case (:k item)
+                                                         :join (concat (visit (:l item)) (visit (:r item)))
+                                                         :from-paren (mapcat visit (:items item))
+                                                         [item]))
+                                                     (:from select)))
+                      by-name (into {} (mapcat (fn [{:keys [table alias]}]
+                                                 (cond-> [[table table]] alias (conj [alias table]))))
+                                    sources)
+                      member-table (fn [[qualifier column]]
+                                     (if qualifier
+                                       (get by-name qualifier)
+                                       (first (filter #(contains? (:dimensions (get index %)) column) (map :table sources)))))
+                      cube-name-of (fn [table] (:cube-name (get index table)))]
+              call   (filter #(and (= :call (:k %))
+                                   (contains? row-aggregations (:name %))
+                                   (not (:distinct? %)))
+                             (tree-seq #(not (contains? #{:sub :query :exists} (:k %))) sqltext/kids
+                                       {:k :items, :s 0, :e 0, :items (:items select)}))]
+        (let [args    (:args call)
+              columns (keep (fn [node]
+                              (when (= :name (:k node))
+                                [(when (next (:parts node)) (peek (pop (:parts node)))) (peek (:parts node))]))
+                            (mapcat sqltext/nodes args))]
+          (doseq [{:keys [table]} sources
+                  :let  [view (cube-name-of table)]
+                  :when view
+                  :let  [[one many] (cube.meta/view-fan-out cube-meta view)]
+                  :when one]
+            (when (or (and (= "count" (:name call)) (= :star (:k (first args))))
+                      (some #(contains? (:dimensions (get index table)) (second %)) columns))
+              (refuse! (format (str "The view %s reads %s through a one to many join from %s, and Cube joins only the cubes of the columns of a query. So %s does not read the rows of the join, and the "
+                                    "number would be wrong. Use MEASURE() of a measure of the view, or start from the cube with the join.")
+                               view many one (str/upper-case (:name call))))))
+          ;; A row of a joined cube that many rows read: see compile.join.total_of_dimension_refused.
+          (doseq [column columns
+                  :let  [table (member-table column)
+                         start (:table (first sources))
+                         start-cube (cube-name-of start)]
+                  :when (and table start-cube
+                             (contains? (:dimensions (get index table)) (second column)))]
+            (when (and (not= table start)
+                       (not (cube.meta/fans-out? cube-meta start-cube start-cube (cube-name-of table))))
+              (refuse! (format (str "Cube cannot add up the dimension %s of %s over the rows of %s. It reads each row of the joined cube once, so "
+                                    "the number would be wrong. Add a measure to the data model, or start from %s.")
+                               (second column) table start table)))
+            (when (and (= table start) (cube.meta/joined-member-of-view? cube-meta start-cube (second column)))
+              (refuse! (format (str "Cube cannot add up the column %s of the view %s over the rows of the view, because this column comes from a joined cube, and Cube reads each of "
+                                    "its rows once. So the number would be wrong. Add a measure to the data model, or start from the cube of this column.")
+                               (second column) table))))
+          (doseq [column columns
+                  :let  [table (member-table column)
+                         own   (cube-name-of table)]
+                  :when (and own (contains? (:dimensions (get index table)) (second column)))
+                  {other :table} sources
+                  :let  [other-cube (cube-name-of other)]
+                  :when (and other-cube
+                             (not (cube.meta/view? cube-meta own))
+                             (not (cube.meta/view? cube-meta other-cube))
+                             (cube.meta/fans-out? cube-meta (cube-name-of (:table (first sources))) own other-cube))]
+            (refuse! (format (str "Cube cannot add up the dimension %s of %s next to the one to many join to %s. It reads each row of %s once, and SQL over the join reads it once for each row of %s, so "
+                                  "the number would be wrong. Group by a key of %s in a subquery with COUNT(*), or add a measure to the data model.")
+                             (second column) table other table other table))))))))
 
 ;;; A report time zone.
 
@@ -1267,99 +1130,73 @@
                 (when (name-token? tok)
                   (refuse-member! text table))))))))))
 
-(defn- fraction-text?
-  "True if this number text has a part after the point that is not zero."
-  [text]
-  (try
-    (pos? (.scale (.stripTrailingZeros (BigDecimal. ^String text))))
-    (catch NumberFormatException _ false)))
-
-(defn- fraction-at
-  "The index after the number at `i`, with a sign, if it has a fraction, or nil."
-  [toks params i]
-  (let [at  (if (contains? #{"-" "+"} (:text (get toks i))) (inc i) i)
-        tok (get toks at)]
-    (cond
-      (and (:number? tok) (fraction-text? (:text tok))) (inc at)
-      (= :param (:kind tok))
-      (let [value (nth params (:param tok) nil)]
-        (when (and (number? value) (not= (double value) (Math/rint (double value))))
-          (inc at))))))
-
-(defn- list-has-fraction?
-  "True if the list that opens at `open` has a number with a fraction."
-  [toks params open]
-  (when-let [close (when (= "(" (:text (get toks open))) (closing-paren toks open))]
-    (some #(fraction-at toks params %) (range (inc open) close))))
-
-(defn- number-end
-  "The index after the number or the parameter at `i`, with a sign, or nil."
-  [toks i]
-  (let [at  (if (contains? #{"-" "+"} (:text (get toks i))) (inc i) i)
-        tok (get toks at)]
-    (when (or (:number? tok) (= :param (:kind tok)))
-      (inc at))))
-
-(defn- compares-with-fraction?
-  "True if the column at `i` compares with a number that has a fraction: with an operator on either side, IN or BETWEEN."
-  [toks params i]
-  (let [comparison #{"=" "<>" "!=" "<" "<=" ">" ">="}
-        at         (if (word? (get toks (inc i)) "not") (+ i 2) (inc i))
-        op         (get toks at)
-        start      (if (= "." (:text (get toks (dec i)))) (- i 3) (dec i))
-        before     (get toks start)]
-    (or (and (word? op "in")
-             (list-has-fraction? toks params (inc at)))
-        (and (word? op "between")
-             (or (fraction-at toks params (inc at))
-                 (when-let [low-end (number-end toks (inc at))]
-                   (and (word? (get toks low-end) "and")
-                        (fraction-at toks params (inc low-end))))))
-        (and (= :other (:kind op))
-             (contains? comparison (:text op))
-             (fraction-at toks params (inc at)))
-        (and (= :other (:kind before))
-             (contains? comparison (:text before))
-             (fraction-at toks params (dec start))))))
-
-(defn exact-fractions
-  "Cube sends a number in a filter to ClickHouse as text, and ClickHouse cuts text to the scale of a Decimal column, and it stops on a fraction for an integer column. So `amount = 44.001` reads
-  as `amount = 44`. A column in an expression makes Cube write the number as it is, and it compares two doubles, as the compiled form does. This writes that form next to a number dimension
-  that compares with a number with a fraction."
+(defn correct-native
+  "See `metabase.driver.cube.correct`. This gives it what the Cube data model says about the tables of the text."
   [cube-meta ^String sql params]
-  (let [toks    (tokens sql)
-        index   (cube-index cube-meta)
-        numbers (into #{} (mapcat #(:numbers (get index %))) (tables toks))]
-    (if (empty? numbers)
-      sql
-      (let [ends (for [i     (range (count toks))
-                       :let  [tok (get toks i)]
-                       :when (and (name-token? tok)
-                                  (contains? numbers (:text tok))
-                                  (not (word? (get toks (dec i)) "as"))
-                                  (not= "(" (:text (get toks (inc i))))
-                                  (not= "." (:text (get toks (inc i))))
-                                  (compares-with-fraction? toks (or params []) i))]
-                   (:end tok))]
-        (reduce (fn [^String text end]
-                  (str (subs text 0 end) " * CAST('1.0' AS double precision)" (subs text end)))
-                sql
-                (reverse ends))))))
+  (let [index   (cube-index cube-meta)
+        read    (keep index (tables (tokens sql)))
+        numbers (into #{} (mapcat :numbers) read)]
+    (correct/correct sql params {:numbers        numbers
+                                 :measures       (reduce disj (into #{} (mapcat :measures) read) (mapcat :dimensions read))
+                                 :count-measures (into #{} (mapcat :count-measures) read)
+                                 :views          (into #{}
+                                                       (comp (filter #(cube.meta/view? cube-meta (:cube-name %)))
+                                                             (map (comp str/lower-case :cube-name)))
+                                                       read)})))
+
+(defn joined-rows?
+  "True if this native question reads raw rows through a join or a view, so a later stage that aggregates it needs a limit. See `correct/joined-rows?`."
+  [cube-meta ^String sql]
+  (let [tree  (sqltext/parse sql)
+        index (cube-index cube-meta)]
+    (and (not (:error tree))
+         (correct/joined-rows? tree (into #{}
+                                          (comp (filter #(cube.meta/view? cube-meta (:cube-name %)))
+                                                (map (comp str/lower-case :cube-name)))
+                                          (vals index))))))
+
+(def ^:private longest-list
+  "The longest list of IN that the driver sends. In a run on a stock Cube with 2 GiB, 2000 values took 12 s, 4000 stopped on the limit of the planner after 29 s, and 8000 after 105 s. See \"Long lists\" in docs/query-compilation.md."
+  2000)
+
+(def ^:private most-conditions
+  "The most conditions joined with AND or OR that the driver sends. Each one adds to the rewrite graph of Cube: 50 stop on the limit of the planner, and 2000 restart Cube with no message to the client."
+  500)
+
+(defn- check-size!
+  "A text that is too long for the planner of Cube stops here, because a long enough one restarts Cube for each person who reads it."
+  [^String sql]
+  (when (> (count sql) 4000)
+    (let [toks       (tokens sql)
+          conditions (count (filter #(or (word? % "or") (word? % "and")) toks))]
+      (when (> conditions most-conditions)
+        (refuse! (format (str "This query has %d conditions joined with AND or OR. Cube stops on about 50, and a longer text can restart it. Write one column and many values as IN, "
+                              "use a range, or add a segment to the data model.")
+                         conditions))))
+    (let [tree (sqltext/parse sql)]
+      (when-not (:error tree)
+        (doseq [{:keys [items]} (filter #(= :in (:k %)) (sqltext/nodes tree))
+                :when (> (count items) longest-list)]
+          (refuse! (format "This query has a list of %d values. Cube works up to %d, and it can restart on a longer one. Use a shorter list, a range, or add a segment to the data model."
+                           (count items) longest-list)))))))
 
 (defn check-paths!
   "For each query, also a compiled one."
   [cube-meta sql]
+  (check-size! sql)
   (check-one-path! (cube-index cube-meta) (tokens sql)))
 
 (defn check-native!
   "For the text that a person or an agent wrote. `questions` has the answers that need Cube: :keeps-fractions? a boolean,
   :time-shift? a function of the cube and the full name of a measure, :wrong-bin-reason a function of the cube, the time
   member, the granularity and the full names of the measures, :rolling-reason a function of the full names of a measure and a time
-  member and the unit, :value-read a function of a cube that gives `cube.probe/value-read-members`, :joined-member-of-view? a function of a view and a column, and :report-zone? a boolean."
+  member and the unit, :value-read a function of a cube that gives `cube.probe/value-read-members`, and :report-zone? a boolean."
   [cube-meta sql params {:keys [keeps-fractions? time-shift? value-read wrong-bin-reason report-zone?] :as questions}]
   (let [index (cond->> (cube-index cube-meta)
                 keeps-fractions? (into {} (map (fn [[k v]] [k (dissoc v :date-only)]))))
         toks  (unwrap (tokens sql))]
+    (check-size! sql)
+    (check-fan-out! cube-meta index sql)
     (check-one-path! index toks)
     (check-rolling! index toks params questions)
     (check-between! index toks params)
@@ -1367,7 +1204,6 @@
     (check-equal-time-in-bucket! index toks params)
     (check-text-case! toks)
     (check-raw-select! index toks)
-    (check-total-through-join! index toks (:joined-member-of-view? questions))
     (when value-read
       (check-value-read! index toks params value-read))
     (when report-zone?
@@ -1379,41 +1215,3 @@
       (check-time-shift! index toks params time-shift?))
     (when wrong-bin-reason
       (check-granularity! index toks wrong-bin-reason))))
-
-;;; ---------------------------------------------- COUNT on no rows ------------------------------------------------
-
-(defn- located-tokens
-  "The tokens of `sql` with their positions in the text, with no comments."
-  [^String sql]
-  (tokens sql))
-
-(defn- count-call?
-  "True if the call that opens at `open` is a count: COUNT(...), or MEASURE() of a measure that counts."
-  [toks i count-measures]
-  (or (word? (get toks i) "count")
-      (and (word? (get toks i) "measure")
-           (contains? count-measures (:text (get toks (- (or (closing-paren toks (inc i)) 0) 1)))))))
-
-(defn count-on-no-rows
-  "Cube reads a rollup with SUM, so a count over no rows is NULL where SQL has 0. This writes COALESCE around each count of a text with one
-  SELECT and no grouping, the same as a compiled query. With more than one SELECT, the scan cannot show that the text has one row."
-  [cube-meta ^String sql]
-  (let [toks (located-tokens sql)
-        selects (count (filter #(word? % "select") toks))]
-    (if (or (not= 1 selects)
-            (some #(or (word? % "group") (word? % "over") (word? % "union") (word? % "having")) toks))
-      sql
-      (let [index          (cube-index cube-meta)
-            count-measures (into #{} (mapcat #(:count-measures (get index %))) (tables toks))
-            calls          (for [i (range (count toks))
-                                 :when (and (= "(" (:text (get toks (inc i))))
-                                            (count-call? toks i count-measures)
-                                            (not (and (= "(" (:text (get toks (dec i))))
-                                                      (word? (get toks (- i 2)) "coalesce"))))
-                                 :let [close (closing-paren toks (inc i))]
-                                 :when close]
-                             [(:start (get toks i)) (:end (get toks close))])]
-        (reduce (fn [^String text [start end]]
-                  (str (subs text 0 start) "COALESCE(" (subs text start end) ", 0)" (subs text end)))
-                sql
-                (reverse calls))))))

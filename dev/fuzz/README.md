@@ -10,6 +10,7 @@
 | `gen.py` | `generate(seed, index)` gives one spec, a plain JSON value. |
 | `oracle.py` | `truth(spec)` writes the ClickHouse query. It reads no driver code and no Cube output. |
 | `mbql.py` | Writes a spec as a query for `/api/dataset`. |
+| `native.py` | Each third query of a seed: random native SQL in two texts from one tree, one for the SQL API of Cube and one for ClickHouse. It holds the constructs of "Native SQL" in `docs/query-compilation.md`. |
 | `fuzz.py` | Runs a seed, judges each query, reduces each failure and saves it. |
 | `cases/` | The permanent cases: the smallest form of each failure that the generator found. Each run replays them first. |
 | `docker-compose.fuzz.yml` | The small stack: ClickHouse with its stock profile, Cube with the dialect and one Metabase, with compose project `mcd-fuzz`. `CUBE_CLICKHOUSE_FIXES=off` gives stock Cube. |

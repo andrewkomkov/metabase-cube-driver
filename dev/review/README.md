@@ -48,7 +48,7 @@ The `grid.compact.*` checks in `conformance/run.py` run a stable part of the sam
 
 ## Other scripts
 
-`release_cases.py` has the cases of a list of numbers with a fraction, an aggregation of a joined column, and native SQL on a private member. Conformance and `make production` run them. `run_all.sh` runs the whole review in its own compose project. `evidence.py`, `known_wrong.py`, `security_review.py` and `plugin_effect.py` are parts of that review. `/api/dataset` has no cache strategy, so a result from there does not come from the cache. See `security.metabase_cache`.
+`release_cases.py` has the cases of a list of numbers with a fraction, an aggregation of a joined column, a fan-out, a name reference, a long list, native SQL on a private member, and each construct of native SQL that Cube reads with another meaning, each with its truth from ClickHouse. Conformance and `make production` run them. `run_all.sh` runs the whole review in its own compose project. `evidence.py`, `known_wrong.py`, `security_review.py` and `plugin_effect.py` are parts of that review. `/api/dataset` has no cache strategy, so a result from there does not come from the cache. See `security.metabase_cache`.
 
 ## Production mode
 
