@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1341/1383 pass on Cube with the ClickHouse dialect** (1341 pass, 25 partial, 1 blocked, 12 unsupported, 4 fail of 1383)
+**coverage: 1345/1383 pass on Cube with the ClickHouse dialect** (1345 pass, 25 partial, 1 blocked, 12 unsupported, 0 fail of 1383)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `d849ac97bd93`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41368806239), 2026-11-02.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `b9c801210e91`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41373739487), 2026-11-02.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -392,7 +392,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `d849a
 | `inherit.multi_level.add_measure` | pass |  |
 | `inherit.multi_level.override` | pass |  |
 | `inherit.abstract_base` | pass |  |
-| `inherit.join` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-02T00:52:07.917788846Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"lib/type":"mbql/query","stages":[{"lib/type":"mbql.stage/native","native":"SELECT products.category, MEASURE(l |
+| `inherit.join` | pass |  |
 | `inherit.segment` | pass |  |
 | `inherit.pre_aggregation` | pass |  |
 | `inherit.view.members` | pass |  |
@@ -575,7 +575,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `d849a
 | `compile.native.field_filter_empty_is_all_rows` | pass |  |
 | `compile.native.field_filter_multi` | pass |  |
 | `compile.native.field_filter_number_range` | pass |  |
-| `compile.native.field_filter_relative_date` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":true,"started_at":"2026-11-02T00:55:01.262826794Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"lib/type":"mbql/query","stages":[{"lib/type":"mbql.stage/native","template-tags":[{"id":"f","name":"f","display |
+| `compile.native.field_filter_relative_date` | pass |  |
 | `compile.nested.aggregate_of_grouped_rows` | pass |  |
 | `compile.nested.custom_column_on_question` | pass |  |
 | `compile.nested.model_of_a_native_query` | pass |  |
@@ -646,7 +646,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `d849a
 | `compile.filter.backslash_quote_in_value` | pass |  |
 | `compile.filter.quote_in_contains` | pass |  |
 | `compile.filter.backslash_in_case` | pass |  |
-| `compile.native.cross_join` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-02T00:56:23.34490859Z","action_id":null,"transform_id":null,"is_impersonated":false,"error_type":"invalid-query","json_query":{"lib/type":"mbql/query","stages":[{"lib/type":"mbql.stage/native","native":"SELECT u.city, MEASURE(o.revenue) AS |
+| `compile.native.cross_join` | pass |  |
 | `compile.native.join_field` | pass |  |
 | `mcp.agent.list_tables_without_schema` | pass |  |
 | `mcp.agent.find_revenue_by_city` | pass |  |
@@ -1352,7 +1352,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `d849a
 | `compile.two_stages.case_next_to_a_measure` | pass |  |
 | `compile.expr.datetime_diff_from_a_literal` | pass |  |
 | `compile.expr.substring_in_a_breakout` | pass |  |
-| `compile.filter.long_list_of_values` | fail | a list of 6000 values gives: This query has a list of 6000 values. Cube works up to 2000, and it can restart on a longer one. Use a shorter list, a range, or add a segment to the data model. |
+| `compile.filter.long_list_of_values` | pass |  |
 | `compile.expr.function_of_no_plan_gets_a_clear_message` | pass |  |
 | `zone.distinct_time_with_no_repeated_hour` | pass |  |
 | `zone.time_measure_has_an_offset` | pass |  |
