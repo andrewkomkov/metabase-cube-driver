@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 1339,
+    "pass": 1341,
     "partial": 25,
     "blocked": 1,
     "unsupported": 12,
-    "fail": 0,
-    "total": 1377
+    "fail": 4,
+    "total": 1383
   },
-  "coverage": "coverage: 1339/1377 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1341/1383 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -1932,8 +1932,8 @@
     },
     {
       "id": "inherit.join",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-02T00:52:07.917788846Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/native\",\"native\":\"SELECT products.category, MEASURE(l"
     },
     {
       "id": "inherit.segment",
@@ -2847,8 +2847,8 @@
     },
     {
       "id": "compile.native.field_filter_relative_date",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":true,\"started_at\":\"2026-11-02T00:55:01.262826794Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/native\",\"template-tags\":[{\"id\":\"f\",\"name\":\"f\",\"display"
     },
     {
       "id": "compile.nested.aggregate_of_grouped_rows",
@@ -3202,8 +3202,8 @@
     },
     {
       "id": "compile.native.cross_join",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-02T00:56:23.34490859Z\",\"action_id\":null,\"transform_id\":null,\"is_impersonated\":false,\"error_type\":\"invalid-query\",\"json_query\":{\"lib/type\":\"mbql/query\",\"stages\":[{\"lib/type\":\"mbql.stage/native\",\"native\":\"SELECT u.city, MEASURE(o.revenue) AS"
     },
     {
       "id": "compile.native.join_field",
@@ -3642,6 +3642,36 @@
     },
     {
       "id": "isolation.other_driver_sync",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.semantics.each_construct",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.semantics.in_a_stage",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.semantics.parameters_and_snippets",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.join.fan_out_of_each_aggregation",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.stage.name_reference_of_a_joined_column",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.filter.long_lists",
       "status": "pass",
       "reason": ""
     },
@@ -6702,8 +6732,8 @@
     },
     {
       "id": "compile.filter.long_list_of_values",
-      "status": "pass",
-      "reason": ""
+      "status": "fail",
+      "reason": "a list of 6000 values gives: This query has a list of 6000 values. Cube works up to 2000, and it can restart on a longer one. Use a shorter list, a range, or add a segment to the data model."
     },
     {
       "id": "compile.expr.function_of_no_plan_gets_a_clear_message",
