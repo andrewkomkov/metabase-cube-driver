@@ -432,7 +432,7 @@
            (not-in-text node))
     :between (between-text node (not (:not? node)))
     :like (like-text node (not (:not? node)))
-    :is  (or (is-text node (not (:not? node)))
+    :is  (or (is-text node (not (:not? node)) true)
              (format "%s IS %s%s" (emit (:x node)) (if (:not? node) "" "NOT ") (str/upper-case (:what node))))
     :name (if (boolean-column? node)
             (format "%s = 0" (source node))
@@ -468,6 +468,7 @@
     :name      (if (boolean-column? node)
                  (assoc node :text (format "%s = 1" (source node)))
                  node)
+    :is        (if-let [text (is-text node (:not? node) true)] (assoc node :text text) node)
     node))
 
 ;;; True and false. In the database, Cube writes `x IS NOT TRUE` with no NULL: 429 where the truth is 571. And it sends `x = TRUE` or NOT x as the text 'true' to a boolean dimension with its own SQL, and ClickHouse stops
@@ -479,13 +480,16 @@
     (and (= :name (:k node)) (contains? (:booleans *context*) (peek (:parts node))))))
 
 (defn- is-text
-  "The text of the rows where `x IS [NOT] TRUE` or `FALSE` is true, or nil for another form."
-  [{:keys [x what]} negated]
+  "The text of the rows where `x IS [NOT] TRUE` or `FALSE` is true, or nil for another form. `filter?` is true in WHERE and HAVING, where Cube reads a member filter and needs 1 and 0. In other places
+  it plans the comparison itself, and it needs a real boolean."
+  [{:keys [x what]} negated filter?]
   (when-let [column (when (contains? #{"true" "false"} what) (plain-column x))]
-    (let [value (if (= "true" what) 1 0)]
+    (let [word (fn [truth] (if filter? (if truth "1" "0") (if truth "TRUE" "FALSE")))
+          value (= "true" what)]
       (if negated
-        (format "(%s = %d OR %s IS NULL)" column (- 1 value) column)
-        (format "%s = %d" column value)))))
+        (format "(%s = %s OR %s IS NULL)" column (word (not value)) column)
+        ;; IS has two values, also under a NOT that this text does not see, such as inside CASE. So NULL gives false here, and not NULL.
+        (format "(%s = %s AND %s IS NOT NULL)" column (word value) column)))))
 
 ;;; IS DISTINCT FROM. Cube writes `a IS DISTINCT FROM b AND c` with no parentheses, as `a IS DISTINCT FROM (b AND c)`. With a literal, plain comparisons have the same two values.
 
@@ -700,7 +704,7 @@
     :div     (fix-division node)
     :like    (fix-like node)
     :is-distinct (assoc node :text (is-distinct-text node (:not? node)))
-    :is      (if-let [text (is-text node (:not? node))] (assoc node :text text) node)
+    :is      (if-let [text (is-text node (:not? node) false)] (assoc node :text text) node)
     :cast    (let [number (when (and (contains? number-types (:type node)) (literal? (:x node))) (number-of node))]
                (if number (written-number node number) node))
     :call    (do (check-distinct-aggregation! node)
