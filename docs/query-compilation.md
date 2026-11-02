@@ -205,13 +205,15 @@ The SQL API of Cube reads ordinary SQL with another meaning in some forms, and i
 | `GROUP BY ROLLUP(x)`, `CUBE(x)` | Reads a plain `GROUP BY`, so the rows of the totals are not in the result. | Stops. Write the groups and the total with `UNION ALL`. |
 | `GROUP BY GROUPING SETS (...)` | Cannot plan it. | Stops with a message that names it. |
 | `ORDER BY x NULLS FIRST` | Drops `NULLS FIRST`. With `LIMIT`, the result has other rows. | Stops. `NULLS LAST` holds. With no `NULLS`, NULL is last in both directions, as on ClickHouse. SQL leaves this open, and Postgres has NULL first for `DESC`. |
-| `FROM a, b` or `a CROSS JOIN b` with no `__cubeJoinField`, also two subqueries or two `WITH` queries | Ignores the cross product, and reads the sources through the model: 5000 where the truth is 1000000, and a count of 199 where the truth is 200. | Stops. |
+| `FROM a, b` or `a CROSS JOIN b` with no `__cubeJoinField`, also two subqueries or two `WITH` queries | Ignores the cross product, and reads the sources through the model: 5000 where the truth is 1000000, and a count of 199 where the truth is 200. | Stops. `MEASURE()` of two cubes with `CROSS JOIN` is the form of the Cube docs for a join of the model, and `MEASURE()` is not SQL, so it runs. |
 | A join of a cube to itself through `__cubeJoinField` | Joins the cube once. | Stops. |
 | An aggregation of a dimension next to a one to many join, `SUM(u.id)` | See [Fan-out](#fan-out). | Stops. |
 | Two aggregations with one name and no alias in a `UNION`, `SELECT COUNT(*) FROM a UNION ALL SELECT COUNT(*) FROM a` | Gives NULL in each row. | The first branch gets an alias. |
 | `COUNT(*)` on no rows, on a cube with a rollup | NULL. | `COALESCE(x, 0)` around a count in each `SELECT` with no grouping, also in a branch of a `UNION` and over a subquery. |
 | A window function or `DISTINCT ON` over raw rows of a cube with a rolling window measure | Fails, because it reads each measure of the cube. | Stops with a message that names it. The same query runs on a cube with no such measure, and a window function over groups runs on each cube. |
 | A subquery of raw rows over a join or a view, with an aggregation outside it, also a saved native question as a source: `SELECT SUM(id) FROM (SELECT u.id FROM users u CROSS JOIN orders o WHERE ...) t` | Reads both as one query, so each row of `users` counts once: 20100 where the truth is 498050. | `LIMIT 2147483647` on the subquery. `CUBEJS_DB_QUERY_LIMIT` applies to its rows. |
+| `x IS NOT TRUE`, `x IS NOT FALSE` in SQL that the database reads | Writes it with no NULL: 429 where the truth is 571. | `(x = 0 OR x IS NULL)`, and the same for the others. |
+| `x = TRUE`, `x`, `NOT x` in `WHERE`, on a boolean dimension with its own SQL | Sends the text `'true'`, and ClickHouse stops on it. | `x = 1`, `x = 0`. |
 | `x IS DISTINCT FROM v AND y` | Writes it with no parentheses, as `x IS DISTINCT FROM (v AND y)`. | `(x <> v OR x IS NULL)`, with a literal. |
 | `CAST(x AS numeric)` on a column with NULL, a cast of a literal in a list | Stops on the type in the database. | In a comparison with a number, the cast goes away, because the meaning is the same. |
 | `EXISTS`, a subquery in the select next to an aggregation | Cannot plan it, or stops in the database. | Stops with a message that names it. `IN` with a subquery runs. |

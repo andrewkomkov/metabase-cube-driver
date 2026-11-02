@@ -147,6 +147,7 @@
                                        measures)
                  :dimensions (into #{} (map (comp short-name :name)) dimensions)
                  :numbers (into #{} (comp (filter #(= "number" (:type %))) (map (comp short-name :name))) dimensions)
+                 :booleans (into #{} (comp (filter #(= "boolean" (:type %))) (map (comp short-name :name))) dimensions)
                  :switches (cube.meta/switch-dimension-names cube-meta cube-name)
                  :date-only (into #{}
                                   (comp (filter #(cube.probe/date-only? cube-meta (:name %))) (map (comp short-name :name)))
@@ -1137,6 +1138,7 @@
         read    (keep index (tables (tokens sql)))
         numbers (into #{} (mapcat :numbers) read)]
     (correct/correct sql params {:numbers        numbers
+                                 :booleans       (into #{} (mapcat :booleans) read)
                                  :measures       (reduce disj (into #{} (mapcat :measures) read) (mapcat :dimensions read))
                                  :count-measures (into #{} (mapcat :count-measures) read)
                                  :views          (into #{}
@@ -1170,14 +1172,14 @@
     (let [toks       (tokens sql)
           conditions (count (filter #(or (word? % "or") (word? % "and")) toks))]
       (when (> conditions most-conditions)
-        (refuse! (format (str "This query has %d conditions joined with AND or OR. Cube stops on about 50, and a longer text can restart it. Write one column and many values as IN, "
+        (refuse! (format (str "This query has %d conditions joined with AND or OR, and that is too long for the planner of Cube. It stops on about 50, and a longer text can restart it. Write one column and many values as IN, "
                               "use a range, or add a segment to the data model.")
                          conditions))))
     (let [tree (sqltext/parse sql)]
       (when-not (:error tree)
         (doseq [{:keys [items]} (filter #(= :in (:k %)) (sqltext/nodes tree))
                 :when (> (count items) longest-list)]
-          (refuse! (format "This query has a list of %d values. Cube works up to %d, and it can restart on a longer one. Use a shorter list, a range, or add a segment to the data model."
+          (refuse! (format "This query has a list of %d values, and that is too long for the planner of Cube. Cube works up to %d, and it can restart on a longer one. Use a shorter list, a range, or add a segment to the data model."
                            (count items) longest-list)))))))
 
 (defn check-paths!

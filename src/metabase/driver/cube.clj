@@ -3023,7 +3023,7 @@
    ["not found in provided schemas"
     (str "Cube cannot plan this expression in an aggregation. Add a measure to the data model, or use a plain filter.")]
    ["AST node limit"
-    (str "This query has too many conditions for the planner of Cube, which stops at about 10000 nodes. A list in IN or in a filter on one column works up to 2000 values, and conditions joined with OR or AND "
+    (str "This query is too long for the planner of Cube, which stops at about 10000 nodes. A list in IN or in a filter on one column works up to 2000 values, and conditions joined with OR or AND "
          "stop at about 50. Use a shorter list, a range, or add a segment to the data model.")]
    ["Cannot convert NULL value to non-Nullable type"
     (str "Cube writes a cast of a column with no Nullable on ClickHouse, so it stops on a row with NULL. Remove the cast, or write COALESCE(x, 0) inside it.")]

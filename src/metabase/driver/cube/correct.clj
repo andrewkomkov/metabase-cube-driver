@@ -204,6 +204,14 @@
        (not (literal? column))
        (or (not text?) (numeric-node? column))))
 
+(defn- boolean-as-number
+  "`TRUE` or `FALSE` as a number. See the note on true and false."
+  [node]
+  (let [value (unwrapped node)]
+    (if (= :bool (:k value))
+      (assoc node :text (if (= "true" (:v value)) "1" "0"))
+      node)))
+
 (defn- fix-comparison
   [{:keys [l r op quantified] :as node}]
   (if (or quantified (not (contains? #{"=" "<>" "!=" "<" "<=" ">" ">="} op)))
@@ -223,7 +231,7 @@
         (and l-number (reads-number? r l-number) (not= r (without-number-cast r)))
         (assoc node :r (at-place-of (without-number-cast r) r))
 
-        :else node))))
+        :else (assoc node :l (boolean-as-number l) :r (boolean-as-number r))))))
 
 (defn- fix-in
   [{:keys [x items] :as node}]
@@ -333,7 +341,7 @@
 ;;; NULL. Cube reads `x <> v`, `x NOT IN (...)`, `NOT (x = v)` and `x NOT LIKE p` as its operators, and each of them keeps the rows with NULL, where SQL has no such row. In WHERE and HAVING only true
 ;;; counts, so NOT moves down to the comparisons, and each comparison says IS NOT NULL. A comparison that the database reads, such as inside CASE, is right as it is.
 
-(declare positive is-distinct-text fold-chain)
+(declare positive is-distinct-text fold-chain is-text boolean-column?)
 
 (defn- null-free
   "`text` with IS NOT NULL on the column of `column-node`, or `text` if it has no plain column."
@@ -396,6 +404,18 @@
   [{:keys [x lo hi]} negated]
   (format "%s %sBETWEEN %s AND %s" (emit x) (if negated "NOT " "") (emit lo) (emit hi)))
 
+(defn- time-bound?
+  "True if this is `x < t` or the like, with a literal that is not a number. A single bound on a time reads a date range of Cube, and the driver has the form of that in Date bounds in the docs, so NOT stays on it. NULL
+  stays out of NOT of a range, so NOT of this form is right."
+  [{:keys [op l r]}]
+  (and (contains? #{"<" "<=" ">" ">="} op)
+       (let [literal-time (fn [node]
+                            (let [value (unwrapped node)]
+                              (or (= :typed (:k value))
+                                  (and (= :str (:k value)) (nil? (const-value value)))
+                                  (= :param (:k value)))))]
+         (or (literal-time l) (literal-time r)))))
+
 (defn- negative
   "The text of the rows where `node` is false, with no NOT over a comparison."
   [node]
@@ -404,7 +424,7 @@
     :or  (format "(%s AND %s)" (negative (:l node)) (negative (:r node)))
     :not (emit (positive (:x node)))
     :paren (negative (:x node))
-    :cmp (if-let [op (when-not (:quantified node) (opposite-of-comparison (:op node)))]
+    :cmp (if-let [op (when-not (or (:quantified node) (time-bound? node)) (opposite-of-comparison (:op node)))]
            (comparison-text node op)
            (format "NOT (%s)" (emit node)))
     :in  (if (:not? node)
@@ -412,7 +432,11 @@
            (not-in-text node))
     :between (between-text node (not (:not? node)))
     :like (like-text node (not (:not? node)))
-    :is  (format "%s IS %s%s" (emit (:x node)) (if (:not? node) "" "NOT ") (str/upper-case (:what node)))
+    :is  (or (is-text node (not (:not? node)))
+             (format "%s IS %s%s" (emit (:x node)) (if (:not? node) "" "NOT ") (str/upper-case (:what node))))
+    :name (if (boolean-column? node)
+            (format "%s = 0" (source node))
+            (format "NOT %s" (emit node)))
     :is-distinct (is-distinct-text node (not (:not? node)))
     :exists (format "NOT %s" (emit node))
     (format "NOT %s" (emit (if (contains? #{:name :call} (:k node)) node {:k :paren, :s (:s node), :e (:e node), :text (str "(" (emit node) ")")})))))
@@ -441,7 +465,27 @@
     :like      (if (:not? node)
                  (assoc node :text (like-text node true))
                  node)
+    :name      (if (boolean-column? node)
+                 (assoc node :text (format "%s = 1" (source node)))
+                 node)
     node))
+
+;;; True and false. In the database, Cube writes `x IS NOT TRUE` with no NULL: 429 where the truth is 571. And it sends `x = TRUE` or NOT x as the text 'true' to a boolean dimension with its own SQL, and ClickHouse stops
+;;; on it. `x = 1`, `x = 0` and IS NULL are right on each path.
+
+(defn- boolean-column?
+  [node]
+  (let [node (unwrapped node)]
+    (and (= :name (:k node)) (contains? (:booleans *context*) (peek (:parts node))))))
+
+(defn- is-text
+  "The text of the rows where `x IS [NOT] TRUE` or `FALSE` is true, or nil for another form."
+  [{:keys [x what]} negated]
+  (when-let [column (when (contains? #{"true" "false"} what) (plain-column x))]
+    (let [value (if (= "true" what) 1 0)]
+      (if negated
+        (format "(%s = %d OR %s IS NULL)" column (- 1 value) column)
+        (format "%s = %d" column value)))))
 
 ;;; IS DISTINCT FROM. Cube writes `a IS DISTINCT FROM b AND c` with no parentheses, as `a IS DISTINCT FROM (b AND c)`. With a literal, plain comparisons have the same two values.
 
@@ -557,13 +601,22 @@
                         (= "__cubejoinfield" (peek (:parts r)))))
                  (when where (tree-seq #(not (contains? #{:sub :query :exists} (:k %))) sqltext/kids where)))))
 
+(defn- reads-measure?
+  "True if this select has MEASURE(), so its text reads Cube and not plain SQL."
+  [{:keys [items]}]
+  (some #(and (= :call (:k %)) (= "measure" (:name %))) (mapcat sqltext/nodes items)))
+
 (defn- check-from!
-  "Cube ignores a cross product: `orders CROSS JOIN users` gives the count of orders, and two aggregated subqueries read as one query through the data model."
-  [{:keys [from where]}]
+  "Cube ignores a cross product: `orders CROSS JOIN users` gives the count of orders, and two aggregated subqueries read as one query through the data model. MEASURE() of two cubes with CROSS JOIN is the form of
+  the docs of Cube for a join of the data model, so it runs. MEASURE() is not SQL, so the text cannot mean a cross product."
+  [{:keys [from where] :as select}]
   (let [sources (from-sources from)
         tables  (keep :table sources)]
     (when (and (next sources) (not-every? #(= :from-fn (:k %)) (rest sources)))
-      (when (pos? (- (cross-joins from) (model-join-conditions where)))
+      (when (and (pos? (- (cross-joins from) (model-join-conditions where)))
+                 (not (and (reads-measure? select)
+                           (= (count tables) (count sources))
+                           (apply distinct? tables))))
         (refuse! (str "This query has a cross product: a comma in FROM or a CROSS JOIN with no join condition. Cube ignores a cross product, and it reads the sources through the joins of the data model, "
                       "so the number would be wrong. Write a.__cubeJoinField = b.__cubeJoinField in WHERE for a join of the data model, or read each source in its own query.")))
       (when (and (next tables) (not (apply distinct? tables))
@@ -647,6 +700,7 @@
     :div     (fix-division node)
     :like    (fix-like node)
     :is-distinct (assoc node :text (is-distinct-text node (:not? node)))
+    :is      (if-let [text (is-text node (:not? node))] (assoc node :text text) node)
     :cast    (let [number (when (and (contains? number-types (:type node)) (literal? (:x node))) (number-of node))]
                (if number (written-number node number) node))
     :call    (do (check-distinct-aggregation! node)
@@ -668,7 +722,7 @@
                           (sqltext/tokens sql))))))
 
 (defn correct
-  "`sql` with each correction, or the same text if none applies. `context` has :numbers, :measures and :count-measures, each a set of lower case names of the cubes that the text reads."
+  "`sql` with each correction, or the same text if none applies. `context` has :numbers, :booleans, :measures, :count-measures and :views, each a set of lower case names of the cubes that the text reads."
   [^String sql params {:keys [numbers measures] :as context}]
   (let [tree (sqltext/parse sql)]
     (if-let [reason (:error tree)]

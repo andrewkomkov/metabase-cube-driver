@@ -106,8 +106,10 @@ class Runner:
             return dict(out, verdict="pass", rows=len(rows))
         if self.stock and "aggregate_functions_null_for_empty" in n["truth"]:
             # A sum of no rows on stock Cube, see "Known wrong numbers" in docs/query-compilation.md.
-            plain = lib.compare(rows, self.truth(n["truth"].replace(native.NULL_FOR_EMPTY, "")), ordered=ordered, tol=tol)
-            if plain is None:
+            plain = self.truth(n["truth"].replace(native.NULL_FOR_EMPTY, ""))
+            # In one row, an aggregation of a column has the value of no rows of ClickHouse, and an aggregation of CASE has NULL.
+            cells = len(rows) == len(want) == len(plain) == 1 and all(lib.same(g, w, tol) or lib.same(g, p, tol) for g, w, p in zip(rows[0], want[0], plain[0]))
+            if cells or lib.compare(rows, plain, ordered=ordered, tol=tol) is None:
                 return dict(out, verdict="stock_no_rows", rows=len(rows))
         return dict(out, verdict="wrong", diff=diff[:800], got=rows[:4], want=want[:4], rows=len(rows))
 

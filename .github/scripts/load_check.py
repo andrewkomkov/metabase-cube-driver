@@ -62,7 +62,7 @@ def main():
         "token": properties["setup-token"],
         "user": {
             "email": "ci@example.com",
-            "password": secrets.token_urlsafe(24),
+            "password": secrets.token_urlsafe(24) + "-1aA",
             "first_name": "CI",
             "last_name": "Load check",
         },

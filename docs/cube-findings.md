@@ -4861,6 +4861,7 @@ Measured on 2026-11-02 on Cube v1.8.15, on stock Cube, with the dialect and with
 | A window function or DISTINCT ON over raw rows reads each measure, also a rolling one | `SELECT id, ROW_NUMBER() OVER (ORDER BY id) FROM orders LIMIT 1` | `Date range is required for time series` | Runs on a cube with no rolling window measure |
 | LIKE reads an operator that ignores case, see B2 | `SELECT COUNT(*) FROM orders WHERE status LIKE '%SHIP%'` | 1000 | 0 |
 | DATE_TRUNC NOT IN reads `notInDateRange`, and it joins the ranges with OR, so two buckets apart exclude no row | `SELECT COUNT(*) FROM orders WHERE DATE_TRUNC('day', created_at) NOT IN (TIMESTAMP '2025-01-05 00:00:00', TIMESTAMP '2025-03-09 00:00:00')` | 5000 | 4972 |
+| IS NOT TRUE has no NULL in pushed SQL | `SELECT COUNT(*) FROM typed_events WHERE LOWER(lc) <> 'x' AND n_bool IS NOT TRUE` | 429 | 571 |
 | A subquery of raw rows over a join reads as one query with the outer aggregation | `SELECT SUM(id) FROM (SELECT u.id FROM users u CROSS JOIN orders o WHERE u.__cubeJoinField = o.__cubeJoinField) t` | 20100 | 498050 |
 | IS DISTINCT FROM has no parentheses in pushed SQL | `SELECT id FROM orders WHERE status IS DISTINCT FROM 'x' AND quantity_dim = 1 LIMIT 1` | `Illegal type (String) of 1 argument of function and`, from `status IS DISTINCT FROM ('x' AND ...)` | Rows |
 | A long OR restarts Cube, with no message to the client | `SELECT COUNT(*) FROM orders WHERE id = 1 OR id = 2 ...` with 2000 terms, on 2 GiB | The process stops, the connection breaks | 2000 |
