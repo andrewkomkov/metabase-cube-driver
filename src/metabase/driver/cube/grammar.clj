@@ -169,8 +169,8 @@
         qualifier (pop parts)]
     (when (contains? #{"__user" "__cubejoinfield"} column)
       (refuse! (str "the column " column) (if (= "__cubejoinfield" column)
-                                             "It reads only as a.__cubeJoinField = b.__cubeJoinField."
-                                             "A query cannot read as another person: the connection sets the person.")))
+                                            "It reads only as a.__cubeJoinField = b.__cubeJoinField."
+                                            "A query cannot read as another person: the connection sets the person.")))
     (if (seq qualifier)
       (let [source (first (filter #(parts-of-source? % qualifier) sources))]
         (when-not source
