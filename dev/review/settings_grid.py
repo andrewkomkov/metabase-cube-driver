@@ -117,14 +117,17 @@ def zone_shapes(tz):
     out.append({"id": "tz/%s/Date32 filter after" % tz, "table": "typed_events", "agg": ["m:typed_events.count"], "where": [[">", "d:typed_events.day32", "2025-03-09"]], "truth": "SELECT count() FROM typed_events WHERE day32 > '2025-03-09'"})
     out.append({"id": "tz/%s/rollup revenue by month" % tz, "table": "big_orders", "agg": ["m:big_orders.revenue"], "by": ["d:big_orders.created_at@month"],
                 "truth": "SELECT toStartOfMonth(toTimeZone(created_at, '%s')), sum(amount) FROM big_orders GROUP BY 1" % tz})
-    # Native SQL. Two bounds read the zone, and the scan stops each other form.
+    # Native SQL. Two bounds read the zone. A bucket in a filter stops.
     two = "created_at >= '%s' AND created_at < '%s'" % (t1, t2)
     truth_two = "created_at >= %s AND created_at < %s" % (at(t1), at(t2))
     out.append({"id": "tz/%s/native two bounds" % tz, "native": "SELECT MEASURE(count) FROM orders WHERE " + two, "truth": "SELECT count() FROM orders WHERE " + truth_two})
     out.append({"id": "tz/%s/native bucket" % tz, "native": "SELECT DATE_TRUNC('month', created_at), MEASURE(count) FROM orders GROUP BY 1", "truth": "SELECT toStartOfMonth(%s), count() FROM orders GROUP BY 1" % L})
-    for name, where in (("one bound", "created_at >= '%s'" % t1), ("equal", "created_at = '%s'" % t1), ("in or", "created_at >= '%s' OR status = 'shipped'" % t1), ("not", "NOT (created_at >= '%s')" % t1),
-                        ("bucket in filter", "DATE_TRUNC('month', created_at) >= '2025-07-01'")):
-        out.append({"id": "tz/%s/native %s" % (tz, name), "native": "SELECT MEASURE(count) FROM orders WHERE " + where, "truth": None, "expect": "refusal"})
+    # Each other bound is UTC for Cube, so the driver writes it in UTC, in a form that Cube does not merge into a date range.
+    for name, where, truth_where in (("one bound", "created_at >= '%s'" % t1, "created_at >= %s" % at(t1)), ("equal", "created_at = '%s'" % t1, "created_at = %s" % at(t1)),
+                                     ("in or", "created_at >= '%s' OR status = 'shipped'" % t1, "created_at >= %s OR status = 'shipped'" % at(t1)),
+                                     ("not", "NOT (created_at >= '%s')" % t1, "NOT (created_at >= %s)" % at(t1))):
+        out.append({"id": "tz/%s/native %s" % (tz, name), "native": "SELECT MEASURE(count) FROM orders WHERE " + where, "truth": "SELECT count() FROM orders WHERE " + truth_where})
+    out.append({"id": "tz/%s/native bucket in filter" % tz, "native": "SELECT MEASURE(count) FROM orders WHERE DATE_TRUNC('month', created_at) >= '2025-07-01'", "truth": None, "expect": "refusal"})
     out.append({"id": "tz/%s/native rolling" % tz, "native": "SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_mtd) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-05-01' GROUP BY 1",
                 "truth": "SELECT m, %s FROM orders %s" % (windows["revenue_mtd"], months), "stock_refusal": True})
     return out

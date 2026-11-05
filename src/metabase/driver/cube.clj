@@ -1881,7 +1881,8 @@
   [driver same-source clause]
   (let [[compiled alias-form :as selected] (sql.qp/as driver clause)
         field       (stored-field clause)
-        null-column (h2x/cast (physical-type field) nil)]
+        ;; With no cast. Next to an expression, each cast of NULL grows the rewrite graph of Cube: 10 stop on its limit, and 20 restart it. `compile.raw.custom_column_next_to_each_column` holds this for each table.
+        null-column nil]
     (when (and *raw-measures* alias-form (= :measure (member-kind clause))
                (contains? *aggregated-measures* (:name field)))
       (swap! *raw-measures* assoc alias-form compiled)
@@ -2281,10 +2282,10 @@
     (catch Exception _ nil)))
 
 (defn- native-questions
-  "The answers from Cube that the scan of native SQL needs. See cube.native/check-native!."
+  "The answers from Cube that native SQL needs. See cube.native/compile-native."
   [details cube-meta]
   {:keeps-fractions? (cube.probe/keeps-fractions? details cube-meta nil)
-   :report-zone?     (report-zone?)
+   :zone             (when (report-zone?) (java.time.ZoneId/of (str (session-zone))))
    :value-read       (partial cube.probe/value-read-members details cube-meta)
    :rolling-reason   (partial cube.probe/rolling-window-reason details)
    :rolling-zone-reason (when (report-zone?)
@@ -2293,20 +2294,22 @@
    :time-shift?      (partial cube.probe/time-shift? details cube-meta)
    :wrong-bin-reason (partial cube.probe/wrong-bin-reason details cube-meta)})
 
-(defn- check-native-stages!
-  [stages]
-  (when-let [cube-meta (current-meta)]
-    (let [details (:details (driver-api/database (driver-api/metadata-provider)))]
-      (doseq [{:keys [native params]} stages
-              :when (string? native)]
-        (cube.native/check-native-private-member! cube-meta native)
-        (cube.native/check-native! cube-meta native (or params []) (native-questions details cube-meta))))))
+(defn- current-meta-or-refuse
+  "The data model. Native SQL does not run with no data model, because the driver then cannot read its columns."
+  []
+  (or (current-meta)
+      (throw (ex-info "The driver cannot read the data model of Cube from its REST API, so it cannot check this native SQL. Check the Cube REST URL of this database."
+                      {:type :invalid-query}))))
 
 (defn- exact-native-stage
-  "A saved native question as a stage of a query. See cube.native/correct-native."
+  "A saved native question as a stage of a query. See cube.native/compile-native."
   [{:keys [native params] :as stage}]
-  (if-let [cube-meta (when (string? native) (current-meta))]
-    (assoc stage :native (cube.native/correct-native cube-meta native params))
+  (if (string? native)
+    (let [cube-meta (current-meta-or-refuse)
+          details   (:details (driver-api/database (driver-api/metadata-provider)))]
+      (-> stage
+          (assoc :native (cube.native/compile-native cube-meta native (or params []) (native-questions details cube-meta)))
+          (dissoc :params)))
     stage))
 
 (defn- query-with-stages
@@ -2316,27 +2319,12 @@
   (if (:lib/type query)
     (let [preprocessed (vec (sql.qp/preprocess driver query))]
       (check-stages! preprocessed)
-      (check-native-stages! preprocessed)
       [(assoc query :stages (limit-subqueries (mapv exact-native-stage stages)))
        (aggregated-measures preprocessed)
        (named-measures preprocessed)
        (row-measure-names preprocessed)
        (needs-date-ranges preprocessed)])
     [query {} {} #{} nil]))
-
-(defn- inline-params
-  "The SQL with its parameters as literals, for a question to Cube, or nil if a parameter has another type."
-  [sql params]
-  (if (empty? params)
-    sql
-    (when (every? #(or (string? %) (number? %)) params)
-      (reduce (fn [text param]
-                (str/replace-first text "?" (java.util.regex.Matcher/quoteReplacement
-                                             (if (string? param)
-                                               (str "'" (str/replace param "'" "''") "'")
-                                               (str param)))))
-              sql
-              params))))
 
 ;;; A row of a model. A later stage that filters or groups by a measure column reads the value of each row, and the driver gets it with MEASURE() and GROUP BY of the
 ;;; dimensions, see group-raw-stage. If the key has NULL or repeats, and no other dimension tells two rows apart, a group is more than one row: COUNT(*) on the model then
@@ -2348,7 +2336,7 @@
   (let [details (:details (driver-api/database (driver-api/metadata-provider)))
         text    (fn [form]
                   (let [[sql & args] (sql.qp/format-honeysql driver form)]
-                    (inline-params sql args)))]
+                    (cube.native/inline-parameters sql args)))]
     (doseq [{:keys [group-by] :as stage} stages]
       (let [plain      (dissoc stage :limit :order-by :group-by)
             rows-sql   (text (assoc plain :select [[[:count :*] :rows]]))
@@ -2400,13 +2388,13 @@
         cube-meta    (current-meta)
         details      (:details (driver-api/database (driver-api/metadata-provider)))
         zone         (str (session-zone))
-        wrong        (when-let [text (when cube-meta (inline-params sql args))]
+        wrong        (when-let [text (when cube-meta (cube.native/inline-parameters sql args))]
                        (cube.probe/wrong-rollup details cube-meta text zone))]
     (if-not wrong
       [sql args]
       (let [partial-tables       (cube.meta/tables-with-partial-rollups cube-meta)
             [new-sql & new-args] (sql.qp/format-honeysql driver (read-source-in-stages cube-meta wrong partial-tables form))]
-        (when-let [text (inline-params new-sql new-args)]
+        (when-let [text (cube.native/inline-parameters new-sql new-args)]
           (when-let [still (cube.probe/wrong-rollup details cube-meta text zone)]
             (throw (ex-info (format "%s Cube would give a part of the rows with no error, and it does not read the source for this query. Add a date filter in the range of the rollup, or change the rollup."
                                     (:reason still))
@@ -2661,7 +2649,7 @@
             (when-let [split (split-first-stage cube-meta (vec stages) strategy)]
               (try
                 (let [{sql :query, params :params, :as compiled} (compile-stages driver (assoc query :stages split))
-                      text (inline-params sql params)]
+                      text (cube.native/inline-parameters sql params)]
                   (when (and text (not (cube.probe/planning-error details text zone)))
                     compiled))
                 (catch Exception e
@@ -2728,7 +2716,7 @@
           details   (:details (driver-api/database (driver-api/metadata-provider)))]
       (try
         (let [{sql :query, params :params, :as compiled} (compile-stages driver query)
-              text (when (may-fail-to-plan? cube-meta stage) (inline-params sql params))]
+              text (when (may-fail-to-plan? cube-meta stage) (cube.native/inline-parameters sql params))]
           (or (when (and text (cube.probe/planning-error details text (str (session-zone))))
                 (compile-two-stages driver query cube-meta))
               compiled))
@@ -3015,8 +3003,8 @@
     (str "Cube wrote SQL that ClickHouse cannot run for this cube, with a filter inside the first stage and an aggregation in the next. "
          "Put the filter in the last stage, or use one stage.")]
    ["duplicate unqualified field name"
-    (str "Cube cannot plan a bin next to this aggregation, because two parts of the query have one name. Use a measure in place of the "
-         "aggregation, or add a dimension for the bin to the data model.")]
+    (str "Cube cannot plan this query, because two parts of it read as one name, such as two bins or two equal numbers. Use a measure in place of an "
+         "aggregation, or add a dimension with this SQL to the data model.")]
    ["of argument of function"
     (str "ClickHouse cannot run this function on the type of this column, such as a filter that ignores case on an Enum. Add a dimension "
          "with toString(column) to the data model, or use a filter that keeps the case.")]
@@ -3098,12 +3086,11 @@
 
 (defn- check-native-rollup!
   "Native SQL has no stage to add a filter to, so the driver stops it if Cube would read it from a rollup that does not hold each row of the query."
-  [details cube-meta sql params]
-  (when-let [text (inline-params sql params)]
-    (when-let [{:keys [reason]} (cube.probe/wrong-rollup details cube-meta text (str (session-zone)))]
-      (throw (ex-info (format "%s Cube would give a part of the rows with no error. Add a date filter in the range of the rollup that fits its buckets, or a filter on a column that the rollup does not hold, so that Cube reads the source."
-                              reason)
-                      {:type :invalid-query})))))
+  [details cube-meta sql]
+  (when-let [{:keys [reason]} (cube.probe/wrong-rollup details cube-meta sql (str (session-zone)))]
+    (throw (ex-info (format "%s Cube would give a part of the rows with no error. Add a date filter in the range of the rollup that fits its buckets, or a filter on a column that the rollup does not hold, so that Cube reads the source."
+                            reason)
+                    {:type :invalid-query}))))
 
 (defn- check-native-count-of-null-key!
   "See [[check-no-count-of-null-key!]]. MEASURE() names a measure of type count of a table in this text."
@@ -3122,26 +3109,25 @@
                       {:type :invalid-query})))))
 
 (defn- check-sql!
-  "Stop a shape of SQL text that gives a wrong number. Sync reads samples of a table and does not need this."
-  [{{sql :query, params :params} :native, :as query}]
-  (when-not (sync-query? query)
+  "Stops a query that the query builder wrote in a shape that gives a wrong number. Sync reads samples of a table and does not need this."
+  [{{sql :query} :native, :as query}]
+  (when-not (or (sync-query? query) (native-only? query))
     (when-let [cube-meta (current-meta)]
       (cube.native/check-no-private-member! cube-meta sql)
-      (if (native-only? query)
-        (let [details (:details (driver-api/database (driver-api/metadata-provider)))]
-          (cube.native/check-native-private-member! cube-meta sql)
-          (cube.native/check-native! cube-meta sql (or params []) (native-questions details cube-meta))
-          (check-native-rollup! details cube-meta sql params)
-          (check-native-count-of-null-key! details cube-meta sql))
-        (cube.native/check-paths! cube-meta sql)))))
+      (cube.native/check-paths! cube-meta sql))))
 
-(defn- with-native-rewrites
-  "See cube.native/correct-native."
+(defn- with-native-grammar
+  "A native query in the form that goes to Cube, or a refusal. See cube.native/compile-native."
   [{{sql :query, params :params} :native, :as query}]
   (if (and (string? sql) (not (sync-query? query)) (native-only? query))
-    (if-let [cube-meta (current-meta)]
-      (assoc-in query [:native :query] (cube.native/correct-native cube-meta sql params))
-      query)
+    (let [cube-meta (current-meta-or-refuse)
+          details   (:details (driver-api/database (driver-api/metadata-provider)))
+          compiled  (cube.native/compile-native cube-meta sql (or params []) (native-questions details cube-meta))]
+      (check-native-rollup! details cube-meta compiled)
+      (check-native-count-of-null-key! details cube-meta compiled)
+      (-> query
+          (assoc-in [:native :query] compiled)
+          (assoc-in [:native :params] nil)))
     query))
 
 ;;; Numbers above 2^53. The Cube SQL API has the type Double for a number, and the ClickHouse driver of Cube reads JSON numbers, so
@@ -3195,7 +3181,7 @@
   (try
     (binding [*stop-big-numbers* (not (sync-query? query))
               *time-measure-columns* (set (get-in query [:native :cube/time-measure-columns]))]
-      (sql-jdbc.execute/execute-reducible-query driver (with-native-rewrites query) context respond))
+      (sql-jdbc.execute/execute-reducible-query driver (with-native-grammar query) context respond))
     (catch Exception e
       (if-let [text (clear-error (exception-text e) (when (native-only? query) (get-in query [:native :query])))]
         (throw (ex-info text {:type :invalid-query}))

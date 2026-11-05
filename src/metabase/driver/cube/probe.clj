@@ -592,6 +592,17 @@
       (update :timeDimensions (partial mapv #(dissoc % :dateRange)))
       (update :filters (partial filterv (complement filter-bounds)))))
 
+(defn- period-of-build-range
+  "The times of a rollup from its build range, as [start end], or nil if only the database can tell one of its ends. With dev mode off, /v1/load does not name the partitions that Cube reads. Cube builds a partition that a
+  query needs, so a rollup holds each row of its build range. An end that the data or the clock sets holds the bound of the query."
+  [{[start-query end-query] :preAggregationStartEndQueries} zone ^LocalDateTime lower ^LocalDateTime upper]
+  (let [start (range-bound start-query zone)
+        end   (range-bound end-query zone)]
+    (when-not (or (= :unknown start) (= :unknown end))
+      [(if (instance? LocalDateTime start) start lower)
+       ;; A build range ends at a whole second, and it holds that second.
+       (if (instance? LocalDateTime end) (.plusSeconds ^LocalDateTime end 1) (.plusSeconds upper 1))])))
+
 (defn- used-partition-gap
   "A text if the rollups that a request reads do not hold each row of the bounds of the request, or nil. A bound that the request does not have is the
   first or the last time of the source. With no answer about these times, the rollups may not hold the rows."
@@ -606,11 +617,6 @@
                             (sort-by first
                                      (mapcat #(partitions-of (last (str/split tableName #"\.")) partitionGranularity %) tables)))
             used          (targets request)
-            periods       (sort-by first
-                                   (mapcat (fn [rollup]
-                                             (clipped-periods rollup zone (periods-in rollup used)
-                                                              #(periods-in rollup (targets (without-time-bounds request)))))
-                                           partitioned))
             [lower upper] bounds
             id            (:preAggregationId (first partitioned))
             [cube-name rollup-name] (str/split (str id) #"\.")
@@ -618,7 +624,15 @@
             whole         (when-not (and lower upper)
                             (extent details cube-name (:timeDimensionReference entry) zone))
             lower         (or lower (first whole))
-            upper         (or upper (second whole))]
+            upper         (or upper (second whole))
+            periods       (if (and (seq used) (every? nil? used))
+                            (when (and lower upper)
+                              (sort-by first (keep #(period-of-build-range % zone lower upper) partitioned)))
+                            (sort-by first
+                                     (mapcat (fn [rollup]
+                                               (clipped-periods rollup zone (periods-in rollup used)
+                                                                #(periods-in rollup (targets (without-time-bounds request)))))
+                                             partitioned)))]
         (cond
           (empty? used)
           nil

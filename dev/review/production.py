@@ -134,6 +134,31 @@ def run_release_cases(mb, db):
     return problems + native_problems + semantic_problems
 
 
+def run_native_grammar(mb, db):
+    """The queries of an analyst and a sample of the generator on this Cube. With dev mode off, /v1/load does not name the partitions of a rollup, and a daily rollup in its build range must run with the truth."""
+    import analyst
+    import fuzz_native
+
+    results = analyst.run(mb, db)
+    bad = ["%s %s %s" % r for r in results if r[1] not in ("pass", "refused") or (r[1] == "refused" and r[0] not in analyst.LIMITS)]
+    daily = "SELECT DATE_TRUNC('day', created_at) AS d, status, MEASURE(count) FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-04-01' GROUP BY 1, 2"
+    rows, _cols, error = mb.run({"type": "native", "database": db, "native": {"query": daily, "template-tags": {}}})
+    if error:
+        bad.append("daily rollup refused: " + error[:200])
+    else:
+        diff = lib.compare(rows, lib.ch("SELECT toDate(created_at), toString(status), count() FROM orders WHERE created_at >= '2025-03-01' AND created_at < '2025-04-01' GROUP BY 1, 2"))
+        if diff:
+            bad.append("daily rollup: " + diff)
+    runner = fuzz_native.Runner(mb, db, False)
+    report = fuzz_native.run_seed(runner, "production", 200, 2, lambda _text: None)
+    mutations = fuzz_native.run_mutations(runner, "production", 100, 2, lambda _text: None)
+    bad += ["%s %s" % (f["verdict"], f["query"][:200]) for f in report["failures"] + mutations["failures"]]
+    print("native grammar", {"analyst refused": sum(1 for r in results if r[1] == "refused"), "sample": report["counts"], "mutations": mutations["counts"], "problems": len(bad)})
+    for line in bad[:20]:
+        print("  ", line)
+    return bad
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.environ.get("PRODUCTION_OUT", "out-production"))
@@ -154,7 +179,7 @@ def main():
     print("private doors: refused %d, values %d" % (refused, len(leaks)))
     for line in leaks[:10]:
         print("  ", line)
-    release_problems = run_release_cases(mb, have["Cube prod"]["id"])
+    release_problems = run_release_cases(mb, have["Cube prod"]["id"]) + run_native_grammar(mb, have["Cube prod"]["id"])
     runner = [sys.executable, "-u", os.path.join(os.path.dirname(os.path.abspath(lib.__file__)), "gate", "run_gate.py"), "--db", "Cube prod"]
     verdicts = collections.Counter()
     bad = []

@@ -1,15 +1,17 @@
 (ns metabase.driver.cube.sqltext
-  "A reader of SQL text with no dependency on Metabase: the lexer that follows the rules of PostgreSQL, a parser of the SQL that the Cube SQL API reads, and the tree with the place of each part in the text.
-  The driver corrects native SQL on this tree, in `metabase.driver.cube.native`. A text with no correction stays the same, byte for byte."
+  "A reader of SQL text with no dependency on Metabase: the lexer that follows the rules of PostgreSQL, a recursive-descent parser, and the tree with the place of each part in the text. `metabase.driver.cube.grammar` admits a text on
+  this tree, and `metabase.driver.cube.correct` writes it. A text with no correction stays the same, byte for byte."
   (:require
    [clojure.string :as str])
   (:import
-   (java.math BigDecimal)))
+   (java.math BigDecimal)
+   (java.time LocalDate LocalDateTime OffsetDateTime ZoneId ZoneOffset)
+   (java.time.format DateTimeFormatter)))
 
 (set! *warn-on-reflection* true)
 
 ;;; The lexer. It reads the text as the parser of Cube does, which has the rules of PostgreSQL: a string with '' or, with the prefix E, also a backslash; a quoted name with "";
-;;; a string in dollar quotes; a comment with -- or /* */, and these comments nest. A text that the lexer cannot read has a reason in :unreadable. See check-native-private-member!.
+;;; a string in dollar quotes; a comment with -- or /* */, and these comments nest. A text that the lexer cannot read has a reason in :unreadable, and the grammar refuses it.
 
 (defn- word-start?
   [c]
@@ -55,6 +57,7 @@
   [^String sql start end kind]
   (let [inner (subs sql start end)]
     {:kind  :string
+     :form  kind
      :text  (case kind
               :plain  (str/replace (subs inner 1 (dec (count inner))) "''" "'")
               :escape (-> (subs inner 2 (dec (count inner)))
@@ -90,6 +93,7 @@
               (recur (long end) (conj out (assoc (string-of sql i end :escape) :start i :end end)) unreadable)
               {:tokens out, :unreadable (or unreadable "a string with no end")})
 
+            ;; A text with Unicode escapes. `without-unicode-escapes` writes it in plain form first, and a form with UESCAPE stays here.
             (and (#{\U \u} c) (= next-c \&) (< (+ i 2) size) (#{\' \"} (.charAt sql (+ i 2))))
             (let [end (quoted-end sql (+ i 2) (.charAt sql (+ i 2)) false)]
               {:tokens out, :unreadable (or unreadable (if end "a name or a string with Unicode escapes" "a string with no end"))})
@@ -119,7 +123,7 @@
                   {:tokens out, :unreadable (or unreadable "a string in dollar quotes with no end")}
                   (let [end (+ at (count tag))]
                     (recur (long end)
-                           (conj out {:kind :string, :text (subs sql (+ i (count tag)) at), :start i, :end end})
+                           (conj out {:kind :string, :form :dollar, :text (subs sql (+ i (count tag)) at), :start i, :end end})
                            unreadable))))
               (let [end (loop [j (inc i)] (if (and (< j size) (Character/isDigit (.charAt sql j))) (recur (inc j)) j))]
                 (recur (long end) (conj out {:kind :other, :text (subs sql i end), :start i, :end end}) unreadable)))
@@ -143,6 +147,45 @@
             :else
             (recur (inc i) (conj out {:kind :other, :text (str c), :start i, :end (inc i)}) unreadable)))))))
 
+(defn- decode-unicode
+  "The text of a U& string or name: \\XXXX, \\+XXXXXX and \\\\. Nil for another escape."
+  [^String inner]
+  (try
+    (let [out (StringBuilder.)]
+      (loop [i 0]
+        (if (>= i (count inner))
+          (.toString out)
+          (let [c (.charAt inner i)]
+            (cond
+              (not= c \\) (do (.append out c) (recur (inc i)))
+              (.startsWith inner "\\\\" i) (do (.append out \\) (recur (+ i 2)))
+              (.startsWith inner "\\+" i) (do (.appendCodePoint out (Integer/parseInt (subs inner (+ i 2) (+ i 8)) 16)) (recur (+ i 8)))
+              :else (do (.appendCodePoint out (Integer/parseInt (subs inner (inc i) (+ i 5)) 16)) (recur (+ i 5))))))))
+    (catch Exception _ nil)))
+
+(defn without-unicode-escapes
+  "`sql` with each U&'x' and U&\"x\" in plain form, as a real parser prints it, so a name has one spelling. A form that this cannot read stays, and the lexer stops on it."
+  [^String sql]
+  (loop [at 0, out (StringBuilder.)]
+    (let [{:keys [tokens]} (lex (subs sql at))
+          next-end         (:end (peek tokens))
+          stop             (+ at (long (or next-end 0)))
+          found            (when (< stop (count sql))
+                             (let [matcher (re-matcher #"(?s)\s*(?:--[^\n]*\n|/\*.*?\*/\s*)*[Uu]&(['\"])" sql)]
+                               (.region matcher (int stop) (count sql))
+                               (when (.lookingAt matcher) [(.end matcher) (first (.group matcher 1))])))]
+      (if-let [[quote-end quote-char] found]
+        (let [end     (quoted-end sql (dec quote-end) quote-char false)
+              decoded (when end (decode-unicode (str/replace (subs sql quote-end (dec end)) (str quote-char quote-char) (str quote-char))))]
+          (if decoded
+            (do (.append out (subs sql at (- quote-end 3)))
+                (.append out quote-char)
+                (.append out (str/replace decoded (str quote-char) (str quote-char quote-char)))
+                (.append out quote-char)
+                (recur (long end) out))
+            (do (.append out (subs sql at)) (.toString out))))
+        (do (.append out (subs sql at)) (.toString out))))))
+
 (defn tokens
   "The tokens of `sql` as a vector, with no comments. Each `?` has the number of its query parameter."
   [sql]
@@ -159,6 +202,9 @@
 
 (def ^:private ^:dynamic *toks* nil)
 (def ^:private ^:dynamic *at* nil)
+(def ^:private ^:dynamic *special-args*
+  "A volatile that is true if a call has a word between its arguments or ORDER BY. These have a form that the grammar does not read."
+  (volatile! nil))
 
 (defn- parse-error
   [reason]
@@ -265,6 +311,18 @@
           (when (pos? depth) (recur (long depth))))))
     {:s start :e (prev-end)}))
 
+(defn- skip-frame!
+  "Reads the words of a window frame, up to the parenthesis that closes the window."
+  []
+  (loop [depth 0]
+    (let [t (tok)]
+      (when-not t (parse-error "parentheses with no end"))
+      (cond
+        (and (zero? depth) (other-at? ")")) nil
+        (other-at? "(") (do (advance!) (recur (inc depth)))
+        (other-at? ")") (do (advance!) (recur (dec depth)))
+        :else (do (advance!) (recur depth))))))
+
 (defn- parse-order-item!
   []
   (let [start (start-of-tok)
@@ -285,6 +343,25 @@
       (recur (conj out (parse-order-item!)))
       out)))
 
+(defn- parse-over!
+  "The window of a call, after OVER. A frame or a named window has no meaning that the grammar can read, so it has a mark."
+  []
+  (let [start (start-of-tok)]
+    (if-not (accept-other! "(")
+      (do (advance!) (finish start {:k :over, :named? true}))
+      (let [partition (when (word-at? "partition")
+                        (advance!)
+                        (expect-word! "by")
+                        (loop [out [(parse-expr)]]
+                          (if (accept-other! ",")
+                            (recur (conj out (parse-expr)))
+                            out)))
+            order     (when (accept-word! "order") (parse-order-by!))
+            frame?    (not (other-at? ")"))]
+        (when frame? (skip-frame!))
+        (expect-other! ")")
+        (finish start {:k :over, :partition partition, :order order, :frame? frame?})))))
+
 (defn- parse-args!
   "The arguments of a function, after its parenthesis. A word like FROM, FOR, AS or USING can stand between them. ORDER BY in an aggregation is read."
   []
@@ -298,17 +375,16 @@
             out (conj out x)]
         (cond
           (accept-other! ",") (recur out)
-          (some word-at? ["from" "for" "using"]) (do (advance!) (recur out))
-          (word-at? "as") (do (advance!) (type-name!) (recur out))
-          (word-at? "order") (do (advance!) (parse-order-by!) (recur out))
+          (some word-at? ["from" "for" "using"]) (do (vreset! *special-args* true) (advance!) (recur out))
+          (word-at? "as") (do (vreset! *special-args* true) (advance!) (type-name!) (recur out))
+          (word-at? "order") (do (vreset! *special-args* true) (advance!) (parse-order-by!) (recur out))
           :else out)))))
 
-(defn- parse-call!
+(defn- parse-call-body!
   [start fn-name]
-  (expect-other! "(")
   (let [distinct? (boolean (accept-word! "distinct"))
-        _         (accept-word! "all")
-        _         (when (contains? #{"trim" "btrim" "ltrim" "rtrim"} fn-name)
+        all?      (boolean (accept-word! "all"))
+        trim-word (when (contains? #{"trim" "btrim" "ltrim" "rtrim"} fn-name)
                     (or (accept-word! "both") (accept-word! "leading") (accept-word! "trailing")))
         args      (if (= "position" fn-name)
                     (let [needle (parse-add)]
@@ -326,13 +402,17 @@
                       (expect-other! ")")
                       x))
         filter-end (when filter-at (prev-end))
-        window    (when (accept-word! "over")
-                    (if (other-at? "(")
-                      (skip-parens!)
-                      (let [t (advance!)] {:s (:start t) :e (:end t)})))
-        node      (finish start {:k :call, :name fn-name, :args args, :distinct? distinct?, :args-end args-end, :over? (boolean window)})]
+        window    (when (accept-word! "over") (parse-over!))
+        node      (finish start {:k :call, :name fn-name, :args args, :distinct? distinct?, :args-end args-end, :over? (boolean window), :over window
+                                 :all? all?, :trim-word (boolean trim-word), :special-args? (boolean @*special-args*)})]
     (cond-> node
       filter-at (assoc :filter where :filter-at filter-at :filter-end filter-end))))
+
+(defn- parse-call!
+  [start fn-name]
+  (expect-other! "(")
+  (binding [*special-args* (volatile! nil)]
+    (parse-call-body! start fn-name)))
 
 (defn- parse-case!
   [start]
@@ -356,7 +436,7 @@
         text  (:text t)]
     (cond
       (:number? t) (do (advance!) (finish start {:k :num, :v text}))
-      (= :string kind) (do (advance!) (finish start {:k :str, :v text}))
+      (= :string kind) (do (advance!) (finish start {:k :str, :v text, :form (:form t)}))
       (= :param kind) (do (advance!) (finish start {:k :param, :n (:param t)}))
 
       (= "(" (when (= :other kind) text))
@@ -402,13 +482,16 @@
             (finish start {:k :exists, :q q})))
 
       (and (= :word kind) (= "interval" text) (= :string (:kind (tok 1))))
-      (do (advance!) (advance!)
-          (when (and (= :word (:kind (tok))) (contains? #{"second" "minute" "hour" "day" "week" "month" "quarter" "year"} (:text (tok))))
-            (advance!))
-          (finish start {:k :interval}))
+      (let [value (:text (tok 1))]
+        (advance!) (advance!)
+        (let [unit (when (and (= :word (:kind (tok))) (contains? #{"second" "minute" "hour" "day" "week" "month" "quarter" "year"} (:text (tok))))
+                     (:text (advance!)))]
+          (finish start {:k :interval, :v value, :unit unit})))
 
       (and (= :word kind) (contains? #{"timestamp" "timestamptz" "date" "time"} text) (= :string (:kind (tok 1))))
-      (do (advance!) (advance!) (finish start {:k :typed, :type text}))
+      (let [value (:text (tok 1))]
+        (advance!) (advance!)
+        (finish start {:k :typed, :type text, :v value}))
 
       (or (= :ident kind) (and (= :word kind) (not (contains? reserved text))))
       (do (advance!)
@@ -524,11 +607,11 @@
               (finish start {:k :in, :not? negated, :x l, :items items}))))
 
       (accept-word! "between")
-      (let [_   (accept-word! "symmetric")
+      (let [symmetric? (boolean (accept-word! "symmetric"))
             lo  (parse-add)
             _   (expect-word! "and")
             hi  (parse-add)]
-        (finish start {:k :between, :not? negated, :x l, :lo lo, :hi hi}))
+        (finish start {:k :between, :not? negated, :symmetric? symmetric?, :x l, :lo lo, :hi hi}))
 
       (or (word-at? "like") (word-at? "ilike"))
       (let [op (:text (advance!))
@@ -610,17 +693,17 @@
 
 (defn- parse-from-item!
   []
-  (let [start (start-of-tok)]
-    (accept-word! "lateral")
-    (accept-word! "only")
+  (let [start    (start-of-tok)
+        lateral? (boolean (or (accept-word! "lateral") (accept-word! "only")))
+        finish   (fn [at node] (finish at (assoc node :lateral? lateral?)))]
     (cond
       (and (other-at? "(") (subquery-at?))
       (do (advance!)
           (let [q (parse-query)]
             (expect-other! ")")
-            (let [a (alias!)]
-              (skip-column-list!)
-              (finish start {:k :from-sub, :q q, :alias a}))))
+            (let [a       (alias!)
+                  listed? (boolean (skip-column-list!))]
+              (finish start {:k :from-sub, :q q, :alias a, :column-list? listed?}))))
 
       (other-at? "(")
       (do (advance!)
@@ -639,9 +722,9 @@
                 a    (alias!)]
             (skip-column-list!)
             (finish start {:k :from-fn, :call call, :alias a}))
-          (let [a (alias!)]
-            (skip-column-list!)
-            (finish start {:k :from-table, :parts parts, :table (peek parts), :alias a}))))
+          (let [a       (alias!)
+                listed? (boolean (skip-column-list!))]
+            (finish start {:k :from-table, :parts parts, :table (peek parts), :alias a, :column-list? listed?}))))
 
       :else (parse-error (str "cannot read the FROM at " (:text (tok)))))))
 
@@ -710,7 +793,7 @@
                         (skip-parens!)
                         true)
           distinct?   (boolean (accept-word! "distinct"))
-          _           (accept-word! "all")
+          all?        (boolean (accept-word! "all"))
           items       (if (or (word-at? "from") (nil? (tok)))
                         []
                         (loop [out [(parse-select-item!)]]
@@ -719,10 +802,11 @@
                             out)))
           from        (when (accept-word! "from") (parse-from!))
           where       (when (accept-word! "where") (parse-expr))
+          group-all?  (atom false)
           group       (when (word-at? "group")
                         (advance!)
                         (expect-word! "by")
-                        (accept-word! "all")
+                        (when (accept-word! "all") (reset! group-all? true))
                         (loop [out [(parse-group-item!)]]
                           (if (accept-other! ",")
                             (recur (conj out (parse-group-item!)))
@@ -730,7 +814,7 @@
           having      (when (accept-word! "having") (parse-expr))]
       (when (word-at? "window")
         (parse-error "WINDOW"))
-      (finish start {:k :select, :distinct-on? (boolean distinct-on), :distinct? distinct?, :items items, :from from, :where where, :group group, :having having}))))
+      (finish start {:k :select, :distinct-on? (boolean distinct-on), :distinct? distinct?, :all? all?, :group-all? @group-all?, :items items, :from from, :where where, :group group, :having having}))))
 
 (defn- parse-set-term!
   []
@@ -751,27 +835,27 @@
 (defn- parse-with!
   []
   (when (accept-word! "with")
-    (accept-word! "recursive")
-    (loop [out []]
+    (loop [out [], recursive? (boolean (accept-word! "recursive"))]
       (let [start (start-of-tok)
             t     (advance!)]
         (when-not (contains? #{:word :ident} (:kind t))
           (parse-error "WITH with no name"))
-        (skip-column-list!)
-        (expect-word! "as")
-        (when (word-at? "not") (advance!))
-        (accept-word! "materialized")
-        (expect-other! "(")
-        (let [q (parse-query)
-              _ (expect-other! ")")
-              out (conj out (finish start {:k :cte, :name (:text t), :q q}))]
+        (let [listed?   (boolean (skip-column-list!))
+              _         (expect-word! "as")
+              modifier? (boolean (or (when (word-at? "not") (advance!)) (accept-word! "materialized")))
+              _         (accept-word! "materialized")
+              _         (expect-other! "(")
+              q         (parse-query)
+              _         (expect-other! ")")
+              out       (conj out (finish start {:k :cte, :name (:text t), :q q, :recursive? recursive?, :column-list? listed?, :modifier? modifier?}))]
           (if (accept-other! ",")
-            (recur out)
+            (recur out recursive?)
             out))))))
 
 (defn parse-query
   []
-  (let [start (start-of-tok)
+  (let [fetch? (volatile! false)
+        start (start-of-tok)
         withs (parse-with!)
         term  (parse-set-term!)
         terms (loop [out [term], ops []]
@@ -794,12 +878,14 @@
                    x))
         limit2 (when (accept-word! "limit") (parse-add))]
     (when (word-at? "fetch")
-      (advance!)
-      (or (accept-word! "first") (accept-word! "next"))
-      (when-not (word-at? "row") (when-not (word-at? "rows") (parse-add)))
-      (or (accept-word! "row") (accept-word! "rows"))
-      (accept-word! "only"))
-    (finish start {:k :query, :withs withs, :terms (:terms terms), :ops (:ops terms), :order order, :limit (or limit limit2), :offset offset})))
+      (let [fetch-start (start-of-tok)]
+        (advance!)
+        (or (accept-word! "first") (accept-word! "next"))
+        (let [amount (when-not (or (word-at? "row") (word-at? "rows")) (parse-add))]
+          (or (accept-word! "row") (accept-word! "rows"))
+          (when-not (accept-word! "only") (parse-error "FETCH with no ONLY"))
+          (vreset! fetch? {:s fetch-start, :e (prev-end), :amount amount}))))
+    (finish start {:k :query, :withs withs, :terms (:terms terms), :ops (:ops terms), :order order, :limit (or limit limit2), :offset offset, :fetch? @fetch?})))
 
 (defn parse
   "The tree of `sql`, or {:error reason} if the parser cannot read it."
@@ -874,3 +960,38 @@
   (try
     (BigDecimal. (str/trim text))
     (catch NumberFormatException _ nil)))
+
+;;; A time in the text.
+
+(defn parse-time
+  "A time in a text: {:time the clock as written, :offset the offset if the text has one, :date? true for a date with no time}, or nil."
+  [^String text]
+  (let [text (str/trim text)]
+    (try
+      (cond
+        (re-matches #"\d{4}-\d{2}-\d{2}" text)
+        {:time (.atStartOfDay (LocalDate/parse text)), :date? true}
+
+        (re-find #"(Z|[+-]\d{2}(:?\d{2})?)$" text)
+        (let [value (OffsetDateTime/parse (str/replace (str/replace text " " "T") #"([+-]\d{2})$" "$1:00"))]
+          {:time (.toLocalDateTime value), :offset (.getOffset value)})
+
+        :else
+        {:time (LocalDateTime/parse (str/replace text " " "T"))})
+      (catch Exception _ nil))))
+
+(defn time-fraction?
+  [{^LocalDateTime value :time}]
+  (and value (not (zero? (.getNano value)))))
+
+(def ^:private ^DateTimeFormatter whole-second-format (DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm:ss"))
+(def ^:private ^DateTimeFormatter fraction-format (DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm:ss.SSS"))
+
+(defn time-in-zone
+  "The clock of this time in `zone`, as a text for TIMESTAMP. A time with no offset is a time of `written-zone`."
+  ^String [{^LocalDateTime value :time, ^ZoneOffset offset :offset} ^ZoneId written-zone ^ZoneId zone]
+  (let [clock (.toLocalDateTime (.withZoneSameInstant (if offset
+                                                        (.atZone value offset)
+                                                        (.atZone value written-zone))
+                                                      zone))]
+    (.format (if (zero? (.getNano clock)) whole-second-format fraction-format) clock)))

@@ -318,8 +318,9 @@ def grid_joins():
           "SELECT count() FROM shop.orphan_orders o WHERE o.customer_id NOT IN (SELECT id FROM shop.orphan_customers)"),
         s("orphan_not_null_filter", "orphan_orders", ["m:orphan_orders.total"], [], [["not-null", "d:orphan_orders>orphan_customers.name"]],
           "SELECT sum(o.amount) FROM shop.orphan_orders o WHERE o.customer_id IN (SELECT id FROM shop.orphan_customers)"),
-        s("sum_price_refused", "orders", [["sum", "d:orders>products.price"]], [STA], [], None, expect="refusal"),
-        s("avg_price_refused", "orders", [["avg", "d:orders>products.price"]], [], [], None, expect="refusal"),
+        # Two stages give the number of a SQL join. See "Two stages" in docs/query-compilation.md.
+        s("sum_price_refused", "orders", [["sum", "d:orders>products.price"]], [STA], [], "SELECT toString(o.status), sum(p.price) FROM shop.orders o JOIN shop.products p ON o.product_id = p.id GROUP BY 1"),
+        s("avg_price_refused", "orders", [["avg", "d:orders>products.price"]], [], [], "SELECT avg(toFloat64(p.price)) FROM shop.orders o JOIN shop.products p ON o.product_id = p.id"),
         s("sum_price_from_products", "products", [["sum", "d:products.price"]], ["d:products.category"], [], "SELECT category, sum(price) FROM shop.products GROUP BY 1"),
         s("avg_price_measure", "products", ["m:products.avg_price"], ["d:products.category"], [], "SELECT category, avg(toFloat64(price)) FROM shop.products GROUP BY 1"),
         s("min_price_dim", "products", [["min", "d:products.price"]], [], [], "SELECT min(price) FROM shop.products"),
@@ -582,7 +583,7 @@ def grid_native():
         n("rolling_hidden_upper_case", "select date_trunc('month', CREATED_AT), measure(revenue_mtd) from orders where CREATED_AT >= '2025-03-15' and CREATED_AT < '2025-05-01' group by 1", None, expect="refusal"),
         n("switch_star", "SELECT status, display_currency FROM orders WHERE id = 1", None, expect="refusal"),
         n("select_star_rows", "SELECT id FROM orders WHERE id = 1", "SELECT 1"),
-        n("star", "SELECT * FROM orders WHERE id = 1 LIMIT 100", None, expect="refusal"),
+        n("star", "SELECT COUNT(*) FROM (SELECT * FROM orders WHERE id = 1 LIMIT 100) t", "SELECT 1"),
         n("sum_price_join", "SELECT o.status, SUM(p.price) FROM orders o JOIN products p ON o.__cubeJoinField = p.__cubeJoinField GROUP BY 1",
           None, expect="refusal"),
         n("cross_join", "SELECT MEASURE(o.revenue), u.city FROM orders o CROSS JOIN users u GROUP BY 2", "SELECT sum(o.amount), u.city FROM %s GROUP BY 2" % J),
@@ -680,10 +681,11 @@ def grid_followup():
     ]:
         out.append({"id": "follow/subquery_native/" + name, "native": sql, "truth": R if name != "join_having" else "SELECT sum(amount) FROM %s" % O})
     # An equality on a time in native SQL next to a bucket, finding B1.
-    out.append({"id": "follow/eq_native/orders_month", "native": "SELECT DATE_TRUNC('month', created_at), MEASURE(count) FROM orders WHERE created_at = TIMESTAMP '2025-03-01 00:00:00' GROUP BY 1", "truth": None, "expect": "refusal"})
+    out.append({"id": "follow/eq_native/orders_month", "native": "SELECT DATE_TRUNC('month', created_at), MEASURE(count) FROM orders WHERE created_at = TIMESTAMP '2025-03-01 00:00:00' GROUP BY 1",
+                "truth": "SELECT toStartOfMonth(created_at), count() FROM %s WHERE created_at = '2025-03-01 00:00:00' GROUP BY 1" % O})
     out.append({"id": "follow/eq_native/no_bucket", "native": "SELECT MEASURE(count) FROM orders WHERE created_at = TIMESTAMP '2025-03-15 05:00:00'", "truth": "SELECT countIf(created_at = '2025-03-15 05:00:00') FROM %s" % O})
     # Each form that Cube reads as its text operator, and a form with the case kept.
-    for name, cond, tr in [("strpos_gt", "STRPOS(status, 'COMP') > 0", None), ("left", "LEFT(status, 4) = 'COMP'", None), ("right", "RIGHT(status, 2) = 'ED'", None),
+    for name, cond, tr in [("strpos_gt", "STRPOS(status, 'COMP') > 0", "SELECT 0"), ("left", "LEFT(status, 4) = 'COMP'", "SELECT 0"), ("right", "RIGHT(status, 2) = 'ED'", "SELECT 0"),
                            ("strpos_ge", "STRPOS(status, 'COMP') >= 1", "SELECT 0"), ("strpos_start", "STRPOS(status, 'comp') = 1", "SELECT countIf(status LIKE 'comp%%') FROM %s" % O),
                            ("exact_like", "status LIKE 'COMPLETED'", "SELECT 0")]:
         out.append(dict({"id": "follow/case_native/" + name, "native": "SELECT COALESCE(MEASURE(count), 0) FROM orders WHERE " + cond, "truth": tr}, **({} if tr else {"expect": "refusal"})))

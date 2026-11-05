@@ -213,6 +213,8 @@ PRIVATE_SQL = [
     "SELECT MAX(id FROM payments",
 ]
 
+STAR_OF_PUBLIC_COLUMNS = ["SELECT ALL * FROM payments LIMIT 1", "SELECT all * FROM payments LIMIT 1", "SELECT ALL payments.* FROM payments LIMIT 1", "SELECT DISTINCT * FROM payments LIMIT 1", 'SELECT x.* FROM payments "x" LIMIT 1']
+
 # Ordinary native SQL on the same cubes. Each must run and give its truth.
 ORDINARY_SQL = [
     ("SELECT method, COUNT(*) FROM payments GROUP BY 1", "SELECT 'card', 5000 UNION ALL SELECT 'fee', 5000"),
@@ -255,6 +257,8 @@ JOINED_SQL_OK = [
 
 CS = "nullIf(toString(status), 'completed')"
 INTERVAL = "cannot add an interval"
+# A construct that is not on the allow-list of src/metabase/driver/cube/grammar.clj. It may refuse. If it runs, the truth holds.
+GRAMMAR = "Native SQL on Cube:"
 
 # Native SQL that the SQL API of Cube reads with another meaning than SQL, on each construct of "Native SQL" in docs/query-compilation.md. Each row has the text, the truth in direct ClickHouse SQL, and
 # a text of a clear message that may stand for the number. With no such text, only the truth passes.
@@ -397,6 +401,13 @@ NATIVE_SEMANTICS = [
     ("SELECT status, MAX(amount_dim) m FROM orders GROUP BY 1 HAVING MAX(amount_dim) >= 144.001", "SELECT toString(status), max(amount) m FROM orders GROUP BY 1 HAVING m >= 144.001"),
     ("SELECT status, AVG(amount_dim) a FROM orders GROUP BY 1 HAVING AVG(amount_dim) > 64.93", "SELECT toString(status), avg(amount) a FROM orders GROUP BY 1 HAVING a > 64.93"),
     ("SELECT status, COUNT(*) c FROM orders GROUP BY 1 HAVING COUNT(*) > 1000.5", "SELECT toString(status), count() c FROM orders GROUP BY 1 HAVING c > 1000.5"),
+    # STRPOS and LENGTH next to a literal: Cube reads STRPOS(x, 'A') > 0 as a member filter that ignores case.
+    ("SELECT COUNT(*) FROM orders WHERE STRPOS(status, 'COMP') > 0", "SELECT countIf(position(toString(status), 'COMP') > 0) FROM orders"),
+    ("SELECT COUNT(*) FROM orders WHERE STRPOS(status, 'comp') > 0", "SELECT countIf(position(toString(status), 'comp') > 0) FROM orders"),
+    ("SELECT COUNT(*) FROM orders WHERE LENGTH(status) > 7", "SELECT countIf(length(toString(status)) > 7) FROM orders"),
+    # An alias with the name of a column: inside an aggregation in HAVING the name is the column. Alone it stops, see NATIVE_REFUSALS.
+    ("SELECT status, MIN(quantity_dim + 0) AS quantity_dim FROM orders GROUP BY 1 HAVING MAX(quantity_dim + 0) > 3", "SELECT toString(status), min(quantity) FROM orders GROUP BY 1 HAVING max(quantity) > 3"),
+    ("SELECT status, MIN(ROUND(quantity_dim, 1)) AS quantity_dim FROM orders GROUP BY 1 HAVING MIN(ROUND(quantity_dim, 1)) <= 1", "SELECT toString(status), min(quantity) FROM orders GROUP BY 1 HAVING min(quantity) <= 1"),
     ("SELECT status, MEASURE(revenue) r FROM orders GROUP BY 1 HAVING MEASURE(revenue) >= 119940.001", "SELECT 'x', toFloat64(0) WHERE 0"),
     ("SELECT status, MEASURE(revenue) r FROM orders GROUP BY 1 HAVING r >= 119940.001", "SELECT 'x', toFloat64(0) WHERE 0"),
     ("SELECT status, r FROM (SELECT status, SUM(amount_dim) AS r FROM orders GROUP BY 1 LIMIT 100) t WHERE r >= 64950.001", "SELECT toString(status), sum(amount) s FROM orders GROUP BY 1 HAVING s >= 64950.001"),
@@ -448,23 +459,27 @@ NATIVE_SEMANTICS = [
     ("SELECT SUM(CASE WHEN cancel_status LIKE '%ship%' THEN 1 ELSE 0 END) FROM orders", "SELECT countIf(%s LIKE '%%ship%%') FROM orders" % CS),
     ("SELECT cancel_status LIKE '%ship%' b, COUNT(*) FROM orders GROUP BY 1", "SELECT toBool(%s LIKE '%%ship%%') b, count() FROM orders GROUP BY 1" % CS),
     ("SELECT COUNT(*) FROM orders WHERE LOWER(cancel_status) LIKE '%ship%'", "SELECT count() FROM orders WHERE lower(%s) LIKE '%%ship%%'" % CS),
-    ("SELECT COUNT(*) FROM orders WHERE cancel_status ~ 'ship'", "SELECT count() FROM orders WHERE match(%s, 'ship')" % CS),
+    ("SELECT COUNT(*) FROM orders WHERE cancel_status ~ 'ship'", "SELECT count() FROM orders WHERE match(%s, 'ship')" % CS, GRAMMAR),
     # Window functions.
     ("SELECT status, SUM(COUNT(*)) OVER () FROM orders GROUP BY 1", "SELECT toString(status), sum(count()) OVER () FROM orders GROUP BY 1"),
     ("SELECT status, COUNT(*) OVER (PARTITION BY status) FROM orders GROUP BY status", "SELECT toString(status), count() OVER (PARTITION BY status) FROM orders GROUP BY status"),
     ("SELECT status, RANK() OVER (ORDER BY COUNT(*) DESC, status) FROM orders GROUP BY 1", "SELECT toString(status), rank() OVER (ORDER BY count() DESC, toString(status)) FROM orders GROUP BY status"),
-    ("SELECT id, ROW_NUMBER() OVER (ORDER BY id) r FROM typed_events ORDER BY id LIMIT 3", "SELECT id, row_number() OVER (ORDER BY id) r FROM typed_events ORDER BY id LIMIT 3"),
-    ("SELECT id, SUM(n_dec) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) s FROM typed_events ORDER BY id LIMIT 3", "SELECT id, sum(n_dec) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) s FROM typed_events ORDER BY id LIMIT 3"),
-    ("SELECT id, COUNT(*) FILTER (WHERE id > 1) OVER () c FROM typed_events ORDER BY id LIMIT 2", "SELECT id, countIf(id > 1) OVER () c FROM typed_events ORDER BY id LIMIT 2"),
-    ("SELECT id, ROW_NUMBER() OVER (ORDER BY id) r FROM orders ORDER BY id LIMIT 3", "SELECT id, row_number() OVER (ORDER BY id) r FROM orders ORDER BY id LIMIT 3", "over the rows of a cube with a rolling window"),
+    # A window over the rows of a subquery with GROUP BY: each row is a group.
+    ("SELECT status, ROW_NUMBER() OVER (ORDER BY status) AS r FROM (SELECT status FROM orders GROUP BY 1) t", "SELECT toString(status) s, row_number() OVER (ORDER BY s) FROM orders GROUP BY s"),
+    ("SELECT status, c, SUM(c) OVER () AS total FROM (SELECT status, COUNT(*) AS c FROM orders GROUP BY 1) t", "SELECT toString(status), count() c, sum(count()) OVER () FROM orders GROUP BY status"),
+    ("WITH g AS (SELECT status, COUNT(*) AS c FROM orders GROUP BY 1) SELECT status, RANK() OVER (ORDER BY c DESC, status) FROM g", "SELECT toString(status) s, rank() OVER (ORDER BY count() DESC, s) FROM orders GROUP BY s"),
+    ("SELECT id, ROW_NUMBER() OVER (ORDER BY id) r FROM typed_events ORDER BY id LIMIT 3", "SELECT id, row_number() OVER (ORDER BY id) r FROM typed_events ORDER BY id LIMIT 3", GRAMMAR),
+    ("SELECT id, SUM(n_dec) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) s FROM typed_events ORDER BY id LIMIT 3", "SELECT id, sum(n_dec) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) s FROM typed_events ORDER BY id LIMIT 3", GRAMMAR),
+    ("SELECT id, COUNT(*) FILTER (WHERE id > 1) OVER () c FROM typed_events ORDER BY id LIMIT 2", "SELECT id, countIf(id > 1) OVER () c FROM typed_events ORDER BY id LIMIT 2", GRAMMAR),
+    ("SELECT id, ROW_NUMBER() OVER (ORDER BY id) r FROM orders ORDER BY id LIMIT 3", "SELECT id, row_number() OVER (ORDER BY id) r FROM orders ORDER BY id LIMIT 3", GRAMMAR),
     # DISTINCT.
     ("SELECT DISTINCT status FROM orders", "SELECT DISTINCT toString(status) FROM orders"),
     ("SELECT DISTINCT status, quantity_dim FROM orders", "SELECT DISTINCT toString(status), quantity FROM orders"),
     ("SELECT COUNT(DISTINCT status), COUNT(*) FROM orders", "SELECT uniqExact(status), count() FROM orders"),
     ("SELECT COUNT(DISTINCT cancel_status) FROM orders", "SELECT uniqExact(%s) FROM orders" % CS),
-    ("SELECT AVG(DISTINCT quantity_dim) FROM orders", "SELECT avg(DISTINCT quantity) FROM orders"),
+    ("SELECT AVG(DISTINCT quantity_dim) FROM orders", "SELECT avg(DISTINCT quantity) FROM orders", GRAMMAR),
     ("SELECT MIN(DISTINCT quantity_dim), MAX(DISTINCT quantity_dim) FROM orders", "SELECT min(quantity), max(quantity) FROM orders"),
-    ("SELECT DISTINCT ON (lc) lc, id FROM typed_events ORDER BY lc, id LIMIT 2", "SELECT lc, min(id) FROM typed_events GROUP BY lc ORDER BY lc LIMIT 2"),
+    ("SELECT DISTINCT ON (lc) lc, id FROM typed_events ORDER BY lc, id LIMIT 2", "SELECT lc, min(id) FROM typed_events GROUP BY lc ORDER BY lc LIMIT 2", GRAMMAR),
     # COALESCE and NULLIF.
     ("SELECT COALESCE(cancel_status, 'none') s, COUNT(*) FROM orders GROUP BY 1", "SELECT coalesce(%s, 'none') s, count() FROM orders GROUP BY 1" % CS),
     ("SELECT NULLIF(status, 'shipped') s, COUNT(*) FROM orders GROUP BY 1", "SELECT nullIf(toString(status), 'shipped') s, count() FROM orders GROUP BY 1"),
@@ -494,7 +509,7 @@ NATIVE_SEMANTICS = [
     ("WITH t AS (SELECT status, COUNT(*) c FROM orders GROUP BY 1) SELECT AVG(c) FROM t", "SELECT 1250.0"),
     ("WITH t AS (SELECT id, status FROM orders WHERE status = 'completed') SELECT COUNT(*) FROM t", "SELECT countIf(status = 'completed') FROM orders"),
     ("WITH a AS (SELECT status FROM orders), b AS (SELECT status FROM a) SELECT COUNT(*) FROM b", "SELECT count() FROM orders"),
-    ("WITH t AS (SELECT status, COUNT(*) c FROM orders GROUP BY 1) SELECT t.status, t.c, u.c FROM t JOIN t u ON t.status = u.status", "SELECT toString(status), count() c, c FROM orders GROUP BY 1"),
+    ("WITH t AS (SELECT status, COUNT(*) c FROM orders GROUP BY 1) SELECT t.status, t.c, u.c FROM t JOIN t u ON t.status = u.status", "SELECT toString(status), count() c, c FROM orders GROUP BY 1", GRAMMAR),
     # UNION.
     ("SELECT status FROM orders UNION SELECT city FROM users", "SELECT DISTINCT toString(status) FROM orders UNION ALL SELECT DISTINCT city FROM users"),
     ("SELECT COUNT(*) FROM orders UNION ALL SELECT COUNT(*) FROM users", "SELECT count() FROM orders UNION ALL SELECT count() FROM users"),
@@ -502,8 +517,8 @@ NATIVE_SEMANTICS = [
     ("SELECT COUNT(*) FROM orders UNION SELECT COUNT(*) FROM orders", "SELECT count() FROM orders"),
     ("SELECT COUNT(*) FROM orders WHERE status = 'a' UNION ALL SELECT COUNT(*) FROM orders WHERE status = 'shipped'", "SELECT toUInt64(0) UNION ALL SELECT toUInt64(1000)"),
     ("SELECT MAX(quantity_dim) x FROM orders UNION SELECT MAX(quantity_dim) x FROM orders", "SELECT toInt32(4)"),
-    ("SELECT COUNT(*) FROM (SELECT status FROM orders UNION ALL SELECT status FROM orders) t", "SELECT 2 * count() FROM orders"),
-    ("SELECT COUNT(*) FROM (SELECT status FROM orders UNION SELECT status FROM orders) t", "SELECT toUInt64(4)"),
+    ("SELECT COUNT(*) FROM (SELECT status FROM orders UNION ALL SELECT status FROM orders) t", "SELECT 2 * count() FROM orders", GRAMMAR),
+    ("SELECT COUNT(*) FROM (SELECT status FROM orders UNION SELECT status FROM orders) t", "SELECT toUInt64(4)", GRAMMAR),
     # Subqueries and EXISTS.
     ("SELECT COUNT(*) FROM orders WHERE EXISTS (SELECT 1 FROM users WHERE city = 'no such')", "SELECT toUInt64(0)", "EXISTS"),
     ("SELECT COUNT(*) FROM orders WHERE EXISTS (SELECT 1 FROM users WHERE city = 'Austin')", "SELECT count() FROM orders", "EXISTS"),
@@ -511,10 +526,10 @@ NATIVE_SEMANTICS = [
     ("SELECT COUNT(*) FROM orders o WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = o.user_id AND u.city = 'Austin')", "SELECT count() FROM orders WHERE user_id NOT IN (SELECT id FROM users WHERE city = 'Austin')", "EXISTS"),
     ("SELECT COUNT(*) FROM orders WHERE user_id IN (SELECT id FROM users WHERE city = 'Austin')", "SELECT count() FROM orders WHERE user_id IN (SELECT id FROM users WHERE city = 'Austin')"),
     ("SELECT COUNT(*) FROM orders WHERE user_id NOT IN (SELECT id FROM users WHERE city = 'Austin')", "SELECT count() FROM orders WHERE user_id NOT IN (SELECT id FROM users WHERE city = 'Austin')"),
-    ("SELECT COUNT(*) FROM orders WHERE amount_dim > (SELECT AVG(amount_dim) FROM orders)", "SELECT count() FROM orders WHERE amount > (SELECT avg(amount) FROM orders)"),
-    ("SELECT COUNT(*) FROM orders WHERE amount_dim = (SELECT MAX(amount_dim) FROM orders)", "SELECT count() FROM orders WHERE amount = (SELECT max(amount) FROM orders)"),
-    ("SELECT id, (SELECT COUNT(*) FROM users) FROM orders ORDER BY id LIMIT 1", "SELECT 1, 200", "a subquery in the select"),
-    ("SELECT (SELECT COUNT(*) FROM users), COUNT(*) FROM orders", "SELECT 200, count() FROM orders", "a subquery in the select"),
+    ("SELECT COUNT(*) FROM orders WHERE amount_dim > (SELECT AVG(amount_dim) FROM orders)", "SELECT count() FROM orders WHERE amount > (SELECT avg(amount) FROM orders)", GRAMMAR),
+    ("SELECT COUNT(*) FROM orders WHERE amount_dim = (SELECT MAX(amount_dim) FROM orders)", "SELECT count() FROM orders WHERE amount = (SELECT max(amount) FROM orders)", GRAMMAR),
+    ("SELECT id, (SELECT COUNT(*) FROM users) FROM orders ORDER BY id LIMIT 1", "SELECT 1, 200", GRAMMAR),
+    ("SELECT (SELECT COUNT(*) FROM users), COUNT(*) FROM orders", "SELECT 200, count() FROM orders", GRAMMAR),
     # Joins through the data model.
     ("SELECT SUM(o.quantity_dim) FROM orders o CROSS JOIN users u WHERE o.__cubeJoinField = u.__cubeJoinField", "SELECT sum(quantity) FROM orders"),
     ("SELECT COUNT(*) FROM users u CROSS JOIN orders o WHERE u.__cubeJoinField = o.__cubeJoinField", "SELECT count() FROM users u LEFT JOIN orders o ON u.id = o.user_id"),
@@ -542,12 +557,12 @@ NATIVE_SEMANTICS = [
     ("SELECT SUM(CASE WHEN quantity_dim > 2 OR cancel_status IS NULL THEN amount_dim END) FROM orders", "SELECT sumIf(amount, quantity > 2 OR %s IS NULL) FROM orders" % CS),
     ("SELECT id, status = 'shipped' b FROM orders ORDER BY id LIMIT 3", "SELECT id, toBool(status = 'shipped') b FROM orders ORDER BY id LIMIT 3"),
     # Date arithmetic. Stock Cube has no template for an interval in an aggregation.
-    ("SELECT COUNT(*) FROM orders WHERE created_at >= TIMESTAMP '2025-01-01 00:00:00' + INTERVAL '1 day'", "SELECT count() FROM orders WHERE created_at >= toDateTime('2025-01-02 00:00:00', 'UTC')"),
-    ("SELECT COUNT(*) FROM orders WHERE created_at + INTERVAL '1 day' >= TIMESTAMP '2025-01-02 00:00:00'", "SELECT count() FROM orders WHERE created_at + INTERVAL 1 DAY >= toDateTime('2025-01-02 00:00:00', 'UTC')", INTERVAL),
-    ("SELECT MAX(created_at + INTERVAL '1 month') FROM orders", "SELECT max(created_at + INTERVAL 1 MONTH) FROM orders", INTERVAL),
-    ("SELECT MAX(created_at - INTERVAL '1 hour') FROM orders", "SELECT max(created_at - INTERVAL 1 HOUR) FROM orders", INTERVAL),
-    ("SELECT DATE_TRUNC('month', created_at + INTERVAL '1 day') m, COUNT(*) FROM orders GROUP BY 1", "SELECT toStartOfMonth(created_at + INTERVAL 1 DAY) m, count() FROM orders GROUP BY 1", INTERVAL),
-    ("SELECT EXTRACT(YEAR FROM created_at) y, COUNT(*) FROM orders GROUP BY 1", "SELECT toYear(created_at) y, count() FROM orders GROUP BY 1", "rollup"),
+    ("SELECT COUNT(*) FROM orders WHERE created_at >= TIMESTAMP '2025-01-01 00:00:00' + INTERVAL '1 day'", "SELECT count() FROM orders WHERE created_at >= toDateTime('2025-01-02 00:00:00', 'UTC')", GRAMMAR),
+    ("SELECT COUNT(*) FROM orders WHERE created_at + INTERVAL '1 day' >= TIMESTAMP '2025-01-02 00:00:00'", "SELECT count() FROM orders WHERE created_at + INTERVAL 1 DAY >= toDateTime('2025-01-02 00:00:00', 'UTC')", GRAMMAR),
+    ("SELECT MAX(created_at + INTERVAL '1 month') FROM orders", "SELECT max(created_at + INTERVAL 1 MONTH) FROM orders", GRAMMAR),
+    ("SELECT MAX(created_at - INTERVAL '1 hour') FROM orders", "SELECT max(created_at - INTERVAL 1 HOUR) FROM orders", GRAMMAR),
+    ("SELECT DATE_TRUNC('month', created_at + INTERVAL '1 day') m, COUNT(*) FROM orders GROUP BY 1", "SELECT toStartOfMonth(created_at + INTERVAL 1 DAY) m, count() FROM orders GROUP BY 1", GRAMMAR),
+    ("SELECT EXTRACT(YEAR FROM created_at) y, COUNT(*) FROM orders GROUP BY 1", "SELECT toYear(created_at) y, count() FROM orders GROUP BY 1", GRAMMAR),
     ("SELECT DATEDIFF('day', MIN(created_at), MAX(created_at)) FROM orders", "SELECT dateDiff('day', min(created_at), max(created_at)) FROM orders"),
     ("SELECT CAST(created_at AS date) d, COUNT(*) FROM orders GROUP BY 1", "SELECT toDate(created_at) d, count() FROM orders GROUP BY 1"),
     ("SELECT COUNT(*) FROM orders WHERE CAST(created_at AS date) = DATE '2025-01-15'", "SELECT count() FROM orders WHERE toDate(created_at) = '2025-01-15'"),
@@ -590,6 +605,7 @@ NATIVE_REFUSALS = [
     ("SELECT status, COUNT(*) FROM orders GROUP BY CUBE(status)", "GROUP BY CUBE"),
     ("SELECT status, COUNT(*) FROM orders GROUP BY GROUPING SETS ((status), ())", "GROUP BY GROUPING SETS"),
     ("SELECT SUM(DISTINCT quantity_dim) FROM orders", "DISTINCT"),
+    ("SELECT status, MIN(quantity_dim + 0) AS quantity_dim FROM orders GROUP BY 1 HAVING quantity_dim > 3", "which is also a column"),
     ("SELECT status, SUM(DISTINCT quantity_dim) FROM orders GROUP BY 1", "DISTINCT"),
     ("SELECT SUM(DISTINCT quantity_dim + 0) FROM orders", "DISTINCT"),
     ("SELECT STDDEV(DISTINCT quantity_dim) FROM orders", "DISTINCT"),
@@ -613,8 +629,8 @@ NATIVE_REFUSALS = [
     ("SELECT amount_dim / 0 FROM orders LIMIT 1", "divides by zero"),
     ("SELECT SUM(amount_dim / 0.0) FROM orders", "divides by zero"),
     ("SELECT MEASURE(revenue) / 0 FROM orders", "divides by zero"),
-    ("SELECT id, ROW_NUMBER() OVER (ORDER BY id) r FROM orders ORDER BY id LIMIT 3", "over the rows of a cube with a rolling window"),
-    ("SELECT DISTINCT ON (status) status, id FROM orders ORDER BY status, id", "over the rows of a cube with a rolling window"),
+    ("SELECT id, ROW_NUMBER() OVER (ORDER BY id) r FROM orders ORDER BY id LIMIT 3", "a window function over raw rows"),
+    ("SELECT DISTINCT ON (status) status, id FROM orders ORDER BY status, id", "DISTINCT ON"),
     ("SELECT MAX(created_at) - MIN(created_at) FROM orders", "interval"),
     # A text that restarts Cube, or stops it after many seconds, stops first.
     ("SELECT COUNT(*) FROM orders WHERE id IN (%s)" % sql_list(range(1, 2100)), "a list of 2099 values"),
@@ -815,7 +831,8 @@ def run_native(execute, differ, dev_mode=True):
                 problems.append("wrong %r: %s" % (sql, diff[:200]))
     for sql in PRIVATE_SQL + JOINED_SQL:
         rows, error = execute(sql)
-        if error or (sql in PRIVATE_SQL and not dev_mode and not shows_private_value(rows)):
+        # A star is the public columns of the table, written out by the driver, so it gives no private value on each Cube.
+        if error or (sql in PRIVATE_SQL and (not dev_mode or sql in STAR_OF_PUBLIC_COLUMNS) and not shows_private_value(rows)):
             continue
         problems.append("no refusal %r: %s" % (sql, str(rows)[:120]))
     counts = {"rows": len(NATIVE_FRACTIONS) + len(ORDINARY_SQL) + len(JOINED_SQL_OK), "refused": len(PRIVATE_SQL) + len(JOINED_SQL)}

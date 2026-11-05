@@ -72,7 +72,7 @@ The driver asks Cube how it writes a date range, with `/v1/sql`. If Cube keeps t
 
 | Filter | SQL | Reason |
 | --- | --- | --- |
-| `x > t` | `(x > t OR x IS NULL) AND x IS NOT NULL` | Cube does not merge this into a date range, so it reads `t` as it is. |
+| `x > t` | `(x > t OR x IS NULL) AND x IS NOT NULL` | Cube does not merge this into a date range, so it reads `t` as it is. Such a filter makes stock Cube compare a `DateTime64` at whole seconds, see [Known wrong numbers](#known-wrong-numbers). |
 | `x < t` | The same form. With a rollup on this column, or with a rolling window or a time shift, it stays `x < t`. | A rollup, a rolling window and a time shift need a date range. |
 | `x >= t`, `x <= t`, `between` | As they are | The range is exact at a whole second. |
 | A bound with a fraction, `x = t.5` | The driver stops the query | Cube drops the fraction, and this would move the bound on a `DateTime64`. |
@@ -157,7 +157,7 @@ These queries fail with a message that tells what to do. The message includes th
 | A time shift measure with a date range that starts or ends inside a bucket, with a report time zone that is not UTC | Cube moves rows of other periods into the bucket. |
 | A time shift measure with one date bound | Cube reads a time shift only with a date range, so it gives periods outside the filter. |
 | A time shift measure with `x > t` on stock Cube | A date range on stock Cube has no form for this bound that is right for a `DateTime64`. Use `>=` with the next second, or the dialect. |
-| A cube whose SQL reads a filter as a value, as in `v(date_from = ${FILTER_PARAMS.c.t.filter((from, to) => from)})`, when the filter on that dimension is not a lower and an upper bound on a time, or one equal value on another type | Cube writes `1 = 1` in the place of the value, and the database reads it as a value. So the result is empty or wrong, or the database fails with an unclear message. `/v1/sql` shows this form. A cube that reads the filter as a condition, as in `WHERE ${FILTER_PARAMS.c.t.filter('t')}`, has no limit. With a report time zone, a text filter, a part of a date or an expression next to the bounds also stops here, because Cube then reads no date range. |
+| A cube whose SQL reads a filter as a value, as in `v(date_from = ${FILTER_PARAMS.c.t.filter((from, to) => from)})`, when the filter on that dimension is not a lower and an upper bound on a time, or one equal value on another type. In native SQL the lower bound is `>=`, because `>` has a form that is not a date range | Cube writes `1 = 1` in the place of the value, and the database reads it as a value. So the result is empty or wrong, or the database fails with an unclear message. `/v1/sql` shows this form. A cube that reads the filter as a condition, as in `WHERE ${FILTER_PARAMS.c.t.filter('t')}`, has no limit. With a report time zone, a text filter, a part of a date or an expression next to the bounds also stops here, because Cube then reads no date range. |
 | A dimension with `meta: { date_only: true }`, with a report time zone, on stock Cube | Stock Cube reads a `Date` as a time at midnight UTC. The dialect gives the truth. |
 | Another aggregation of a measure column that Cube rejects, such as `max` of a count | Cube fails with `Measure aggregation type doesn't match`. |
 | Filter on a measure column of a table, or of a model with no primary key, or on a rolling window measure | Cube reads this as a filter on the aggregate, so it does not filter rows. |
@@ -185,12 +185,106 @@ If the rollups do not hold each row, the driver adds a filter that holds for eac
 
 ### Native SQL
 
-The SQL API of Cube reads ordinary SQL with another meaning in some forms, and it gives a number with no error. The driver parses the text (`src/metabase/driver/cube/sqltext.clj`) and corrects each such form (`correct.clj`), for a question, a saved question as a stage, a parameter, a field filter and a snippet. A text with none of these forms stays the same, byte for byte. If the parser cannot read a text that has `<>`, `NOT`, `/`, `LIKE`, `FILTER`, `ROLLUP` or a number with a fraction, the query stops with a message, because the driver cannot show that the number is right. A form with no correction stops with a message that names it.
+Native SQL is fail-closed by grammar. The SQL API of Cube reads much of SQL with another meaning, and it gives a number with no error. A list of bad spellings does not end, so the driver has a list of good forms.
 
-`dev/review/release_cases.py` has a case for each row, with the truth in direct ClickHouse SQL. The check `native.semantics.each_construct` runs them on stock Cube and with the dialect, and `make production` runs them with dev mode off.
+1. A template variable, a field filter and a snippet become literals in the text.
+2. The driver parses the text with a recursive-descent parser over its lexer (`src/metabase/driver/cube/sqltext.clj`).
+3. `src/metabase/driver/cube/grammar.clj` walks the tree, and it resolves each column in the sources of its `SELECT`. Each node must match an entry of the allow-list, on the types of the data model. Any other node stops the query. The message starts with `Native SQL on Cube:`, it names the first such construct, and it gives the supported form when one exists.
+4. The driver writes each form that Cube reads otherwise, in `src/metabase/driver/cube/correct.clj`.
+
+A saved native question as a stage reads the same path. With no data model from Cube, native SQL stops.
+
+#### The allow-list
+
+<!-- allow-list:start -->
+| Construct | Form | Proof |
+| --- | --- | --- |
+| `agg/count` | COUNT(*), COUNT(x), COUNT(DISTINCT x) | 632 |
+| `agg/distinct` | MIN and MAX with DISTINCT | 48 |
+| `agg/filter` | FILTER (WHERE p) on an aggregation of a column | 60 |
+| `agg/measure` | MEASURE(x) of a measure | 482 |
+| `agg/min-max` | MIN, MAX on each type | 183 |
+| `agg/number` | SUM, AVG, STDDEV, STDDEV_SAMP and STDDEV_POP, also on an expression | 368 |
+| `agg/of-measure` | The aggregation of a measure column that holds that measure, such as SUM(revenue) for a sum | 14 |
+| `agg/window` | ROW_NUMBER, RANK, DENSE_RANK, LAG, LEAD and an aggregation OVER a window of the groups, or of the rows of a subquery with GROUP BY, with no frame | 42 |
+| `clause/group` | GROUP BY a position, an alias, a column or an expression | 857 |
+| `clause/having` | HAVING on an aggregation, a group or an alias | 94 |
+| `clause/where` | WHERE | 1144 |
+| `fn/date-trunc` | DATE_TRUNC with a unit in a literal, on a time | 211 |
+| `fn/datediff` | DATEDIFF with a unit in a literal, on two times | 19 |
+| `fn/null` | COALESCE, NULLIF | 111 |
+| `fn/number` | ABS, ROUND, FLOOR, CEIL, CEILING | 174 |
+| `fn/text` | LOWER, UPPER, SUBSTRING, SUBSTR, LEFT, RIGHT, CONCAT, LENGTH, STRPOS | 81 |
+| `from/cross-model` | CROSS JOIN or a comma of two cubes, with a.__cubeJoinField = b.__cubeJoinField in WHERE, or with MEASURE() | 38 |
+| `from/join-model` | JOIN or LEFT JOIN of two cubes on the join of the data model, as __cubeJoinField or as the keys of that join | 125 |
+| `from/subquery` | FROM a subquery, with a filter, a star or an aggregation over it | 173 |
+| `param/value` | A template variable or a field filter, as its value | 121 |
+| `pred/between` | BETWEEN and NOT BETWEEN on numbers and on times | 105 |
+| `pred/boolean-column` | A boolean column as a condition | 27 |
+| `pred/compare-boolean` | = <> on a boolean, with TRUE, FALSE, 1 or 0 | 14 |
+| `pred/compare-null` | = and <> with NULL, which keep no row | 27 |
+| `pred/compare-number` | = <> != < <= > >= on numbers, with exact values | 645 |
+| `pred/compare-text` | = <> != < <= > >= on text | 331 |
+| `pred/compare-time` | = <> != < <= > >= on a time | 232 |
+| `pred/constant` | A comparison of two literals, as the 1 = 1 of a field filter with no value | 38 |
+| `pred/in-list` | IN and NOT IN with a list of literals, also NULL | 126 |
+| `pred/in-subquery` | IN and NOT IN with a subquery of one column | 29 |
+| `pred/is-boolean` | IS [NOT] TRUE and IS [NOT] FALSE on a boolean column | 26 |
+| `pred/is-distinct` | IS [NOT] DISTINCT FROM a literal | 28 |
+| `pred/is-null` | IS NULL and IS NOT NULL | 108 |
+| `pred/join-field` | a.__cubeJoinField = b.__cubeJoinField | 125 |
+| `pred/like` | LIKE, ILIKE, NOT LIKE and NOT ILIKE, with a literal pattern | 284 |
+| `pred/logic` | AND, OR, NOT and parentheses | 519 |
+| `query/distinct` | SELECT DISTINCT | 40 |
+| `query/limit` | LIMIT or FETCH FIRST with a whole number | 268 |
+| `query/no-from` | SELECT of literals, with no FROM | 32 |
+| `query/offset` | OFFSET with a whole number | 62 |
+| `query/order` | ORDER BY a position, an alias, a column or an expression, ASC or DESC, NULLS LAST | 316 |
+| `query/select` | SELECT ... FROM one table, a view or a subquery | 1679 |
+| `query/union` | UNION and UNION ALL at the top of a query | 33 |
+| `query/with` | WITH of queries that are not recursive | 71 |
+| `select/alias` | An alias of a column, also with the name of a column | 858 |
+| `select/column` | A dimension, by its name, with or without its table | 964 |
+| `select/segment` | A segment in WHERE | 43 |
+| `select/star` | * or t.*: the public dimensions, written out by the driver | 57 |
+| `value/arithmetic` | + - * % and unary minus on numbers | 165 |
+| `value/case` | CASE WHEN ... THEN ... ELSE ... END, and CASE x WHEN | 151 |
+| `value/cast-date` | CAST(x AS date) of a time: DATE_TRUNC('day', x) | 20 |
+| `value/cast-number` | CAST(x AS numeric, decimal, double precision, real or float), and x::numeric | 196 |
+| `value/cast-text` | CAST(x AS text or varchar) of a text | 31 |
+| `value/cast-time` | CAST(x AS timestamp) of a time column, which is that column | 50 |
+| `value/concat` | \|\| on text | 29 |
+| `value/division` | / on numbers: a real division, and NULL for a divisor of 0 | 73 |
+| `value/literal` | A number, a text, NULL, TRUE or FALSE | 1645 |
+| `value/time-interval` | A time + or - INTERVAL 'n unit', with the dialect and with no report time zone | 25 |
+| `value/time-literal` | A time as a text, as TIMESTAMP 'x', as DATE 'x' or as a cast of a text | 248 |
+<!-- allow-list:end -->
+
+`Proof` counts the queries with this construct in the generator seeds of the last measured run. Each query had a truth from direct ClickHouse SQL, on Cube with the dialect, stock Cube and Cube in production mode. See `dev/fuzz/README.md`.
+
+The acceptance test is `dev/fuzz/analyst.py`: 30 queries of an analyst on the demo model, written before the grammar. The check `native.grammar.analyst_queries` runs it.
+
+#### What the driver writes
 
 | Construct | What Cube does with no driver | What the driver does |
 | --- | --- | --- |
+| `*` or `t.*` | Reads each measure, and each private member in dev mode. | The public dimensions, written out. No measure, no `switch` dimension and no second path of one member. |
+| Any time literal | A date with no time at the end of a date range is the end of that day. | `TIMESTAMP 'x'`, with the meaning of SQL. A fraction of a second stops on stock Cube. |
+| `x BETWEEN a AND b` on a time | Reads the end as above. | `x >= a AND x <= b`. |
+| `x = t` on a time | Next to `DATE_TRUNC`, reads the whole bucket. | `x >= t AND x <= t`. |
+| `x > t`, `x < t` on stock Cube | Moves the bound, see [Date bounds](#date-bounds). | `((x > t OR x IS NULL) AND x IS NOT NULL)`. `x < t` stays on a column with a rollup, a rolling window or a view. |
+| A time under a report time zone | Reads a literal in the zone only in a date range, and as UTC in other forms. | A lower and an upper bound at the top of `WHERE` stay a date range. Each other bound in `WHERE` has the guarded form, with the literal in UTC. A time in `HAVING`, `CASE`, `FILTER`, `IN`, `DATE_TRUNC` in a filter and a filter over a subquery stop. |
+| `LIKE`, `ILIKE` | Ignores case on ClickHouse, and reads `_` as a character. | `(x \|\| '') LIKE 'p'`, which the database reads. A pattern of `'%' \|\| 'x' \|\| '%'` is one literal. |
+| A function of a column next to a literal, such as `LEFT(x, 1) IN ('a')` or `STRPOS(x, 'a') > 0` | Reads some of them as a member filter with another meaning. | A text with `\|\| ''` and a number with the exact factor, so the database compares them. |
+| A subquery with an aggregation | Pushes an outer filter below the aggregation. | `LIMIT 2147483647` on the subquery. |
+| A column with no alias next to an expression | Stops with `Schema contains duplicate qualified field name`. | `x AS x`. |
+| `CAST(NULL AS t)` | Grows the rewrite graph next to an expression. Twenty restart Cube. | `NULL`. |
+| `CAST(x AS numeric)` of a column | Writes it with no Nullable, and a scale that ClickHouse can stop on. | `x`. |
+| `CAST(x AS date)` of a time | Is not on the list of functions for each path. | `DATE_TRUNC('day', x)`. |
+| `a JOIN b ON` the keys of a join of the model | Stops with `Can't detect Cube query`. | `a JOIN b ON a.__cubeJoinField = b.__cubeJoinField`. |
+| `a JOIN b` | Reads a left join, so rows with no match stay: 10 where the truth is 6. | Adds `b.key IS NOT NULL` to `WHERE`. If this key is private, the query stops. |
+| `a CROSS JOIN b WHERE a.__cubeJoinField = b.__cubeJoinField`, also a comma | Next to an expression in `WHERE`, gives no rows: 0 where the truth is 2408. | `a LEFT JOIN b ON ...`, as the docs of Cube read this form. |
+| `FETCH FIRST n ROWS ONLY`, `U&'x'` | | `LIMIT n`, `'x'`. |
 | `COUNT(*) FILTER (WHERE p)`, each aggregation, also before `OVER` | Drops `FILTER`, so 5000 where the truth is 2000. | `COUNT(CASE WHEN p THEN 1 END)`, and the same for the others |
 | `MEASURE(x) FILTER`, `SUM(measure) FILTER`, FILTER on another function | Drops `FILTER`. | Stops. CASE cannot go inside a measure. |
 | `x <> v`, `x NOT IN (...)`, `NOT (x = v)`, `x NOT LIKE p`, in `WHERE` and `HAVING`, on a column or a column of a subquery | Keeps NULL: 4000 where the truth is 2000. | `NOT` moves down to each comparison by De Morgan, and each `<>` gets `AND x IS NOT NULL`. In `WHERE` and `HAVING` only true counts, so this holds for three-valued logic, also under a second `NOT`. Inside `CASE`, in `SELECT` and on an expression, the database reads the comparison, and it is right as it is. |
@@ -199,9 +293,7 @@ The SQL API of Cube reads ordinary SQL with another meaning in some forms, and i
 | `a / b` | Has three meanings: `Decimal / x` keeps the scale in the database, 160.00 / 7 is 22.85. Above a CubeScan, integers divide with no fraction, `COUNT(*) / 7` is 714. In the database, `quantity / 2` is 1.5. | A real division on each path, as on ClickHouse: `a * CAST('1.0' AS double precision) / b`. To cut the fraction, write `FLOOR` or `TRUNC`. |
 | `a / b` where `b` can be 0 | The database gives an error for a `Decimal`, and infinity for a double, which a filter reads as a number. | `b` is `NULLIF(b * CAST('1.0' AS double precision), 0.0)`, so such a row is NULL, as Metabase writes `/` in the query builder. A literal 0 as the divisor stops. |
 | `DATE_TRUNC(u, x) NOT IN (a, b)`, also `NOT (DATE_TRUNC(u, x) IN (a, b))` | Reads `notInDateRange`, and it joins the ranges with OR, so two buckets apart exclude no row. | Each value has its own `<>`. |
-| `x LIKE '%a%'`, also `NOT LIKE` | Reads an operator that ignores case on ClickHouse. | `(x \|\| '') LIKE '%a%'`, which the database reads with its case. |
-| `STRPOS(x, 'a') > 0`, `LEFT(x, n) =`, `RIGHT(x, n) =` | Reads the same operator. | Stops. Write `STRPOS(x, 'a') >= 1`. |
-| `SUM(DISTINCT x)`, `STDDEV(DISTINCT x)`, `VARIANCE(DISTINCT x)` | Drops `DISTINCT`: 12500 where the truth is 10. | Stops. `COUNT`, `AVG`, `MIN` and `MAX` with `DISTINCT` are right. |
+| `SUM(DISTINCT x)`, `AVG(DISTINCT x)`, `STDDEV(DISTINCT x)` | Drops `DISTINCT`: 12500 where the truth is 10, and an average of 4.49 where the truth is 4.5. | Stops. `COUNT`, `MIN` and `MAX` with `DISTINCT` are right. |
 | `GROUP BY ROLLUP(x)`, `CUBE(x)` | Reads a plain `GROUP BY`, so the rows of the totals are not in the result. | Stops. Write the groups and the total with `UNION ALL`. |
 | `GROUP BY GROUPING SETS (...)` | Cannot plan it. | Stops with a message that names it. |
 | `ORDER BY x NULLS FIRST` | Drops `NULLS FIRST`. With `LIMIT`, the result has other rows. | Stops. `NULLS LAST` holds. With no `NULLS`, NULL is last in both directions, as on ClickHouse. SQL leaves this open, and Postgres has NULL first for `DESC`. |
@@ -216,31 +308,23 @@ The SQL API of Cube reads ordinary SQL with another meaning in some forms, and i
 | `x = TRUE`, `x`, `NOT x` in `WHERE`, on a boolean dimension with its own SQL | Sends the text `'true'`, and ClickHouse stops on it. | `x = 1`, `x = 0`. |
 | `x IS DISTINCT FROM v AND y` | Writes it with no parentheses, as `x IS DISTINCT FROM (v AND y)`. | `(x <> v OR x IS NULL)`, with a literal. |
 | `CAST(x AS numeric)` on a column with NULL, a cast of a literal in a list | Stops on the type in the database. | In a comparison with a number, the cast goes away, because the meaning is the same. |
-| `EXISTS`, a subquery in the select next to an aggregation | Cannot plan it, or stops in the database. | Stops with a message that names it. `IN` with a subquery runs. |
 | `x - y` on two times | Fails on the type of the result. | Stops with a message. Use `DATEDIFF`. |
 
-These constructs were measured and they are right as they are: window functions over groups, `COUNT(DISTINCT)`, `AVG(DISTINCT)`, `DISTINCT`, `COALESCE`, `NULLIF`, `IS DISTINCT FROM`, `NOT BETWEEN`, `IN` with a subquery, `LIMIT` and `OFFSET` in a subquery, `WITH`, `UNION`, boolean expressions in `SELECT`, `CASE`, and date arithmetic with an interval. On stock Cube, an interval on a column in an aggregation stops, see above.
+#### What stops, with the reason
 
-The driver also stops these shapes, from a scan of the same text:
+- `IS TRUE` on an expression, `= ANY`, `~`, `SIMILAR TO`, `EXISTS`, a subquery as a value, a function of literals such as `ABS(44.001)`, `IS DISTINCT FROM` a column, `LIKE` with a pattern from a column and `ESCAPE`. Each of these gave a wrong number in some spelling, or Cube has no plan for it. Write the form in the message.
+- `EXTRACT`, an interval, `AT TIME ZONE`, a window frame, a window over raw rows, `DISTINCT ON`, `UNION` in a subquery, a join of a subquery, and a right or a full join. Cube has no plan for these on each path. Use `DATE_TRUNC`, or a dimension or a measure in the data model.
+- A rolling window measure with no `DATE_TRUNC` on a time column, or with a filter inside a bucket, with `OR` or `NOT`, or with a custom granularity as the bucket.
+- A time shift measure with no time bucket and no date filter. A custom granularity that a rollup reads wrong, see the table above. A cube whose SQL reads a filter as a value, with another filter on that dimension.
+- Two columns from one member through different join paths. A raw select of a `switch` dimension.
+- `VARIANCE`, `VAR_SAMP` and `VAR_POP`. The SQL API of Cube has no implementation of them, and it stops with `variance is not implemented`. `STDDEV` runs.
+- `SUM`, `AVG`, `COUNT` or `STDDEV` of a dimension of a joined cube. See [Fan-out](#fan-out).
+- A measure column outside `MEASURE()`, or in an aggregation that does not hold it. A column that is in `SELECT` and not in `GROUP BY`. A segment outside `WHERE`.
+- A private member by name, also through an alias with its name. See [the security docs](security.md).
 
-| Shape | Reason |
-| --- | --- |
-| A rolling window measure with no `DATE_TRUNC` on a time column | Cube returns the total of all rows. Its docs require a time dimension, so this has unclear intent. |
-| A rolling window measure with a filter inside a bucket, with `OR` or `NOT`, or with a custom granularity as the bucket | Cube computes whole buckets, because a date range selects buckets. The result does not agree with the filter, so the driver stops it. The scan cannot show that this filter keeps whole buckets. |
-| `x BETWEEN a AND 'yyyy-mm-dd'`, also `NOT BETWEEN` and a date parameter | This is documented behaviour of Cube: it pads a date with no time at the end of a date range to the end of that day, as [its REST API docs](https://github.com/cube-js/cube/blob/master/docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx) describe. SQL reads it as midnight, and the SQL API docs do not warn about it. Write the time, use `DATE 'yyyy-mm-dd'`, or use `>=` and `<`. |
-| `x > a AND x <= b` or `x < b` | See [Date bounds](#date-bounds). Write `>=` with the next second. |
-| Two columns from one member through different join paths | See the table above. |
-| A rolling window measure that is shorter than the bucket, or with a report time zone on stock Cube | See the table above. |
-| `x = t` next to `DATE_TRUNC` on `x` | Cube returns the whole bucket. Write `x >= t AND x <= t`. |
-| A raw select of a `switch` dimension, also `SELECT *` | Each row comes once for each value. |
-| `SELECT *` on a cube with a rolling window measure | The star reads that measure, and it needs a time bucket and a date filter. |
-| `SUM`, `AVG`, `COUNT`, `STDDEV` or `VARIANCE` of a dimension of a joined cube, with a table or with none, also `COUNT(c)` of a column of a view from another cube | See the table above. Native SQL has no stage that the driver can write. `MIN`, `MAX` and `COUNT(DISTINCT x)` run. |
-| With a report time zone, each filter on a time with no lower and upper bound, or next to `OR` or `NOT`, or with `DATE_TRUNC` | Cube reads a literal in the zone only in a date range, and as UTC in other forms. |
-| A cube whose SQL reads a filter as a value, with another filter on that dimension or none | See the table above. |
+#### The proof
 
-On stock Cube, the scan also stops `x > a` next to an upper bound on the same column, and a bound with a fraction.
-
-The scan also stops an outer filter over a subquery or a `WITH` query with an aggregation and no limit, and a filter on a measure column over a subquery of raw rows. It removes parentheses and casts around a column or a literal, reads an alias of a time column, and reads `column op literal` on either side, `BETWEEN` and `DATE_TRUNC`, outside strings and comments. With a rolling window measure, it stops each other use of the time column, such as `IN` or a function, also `DATE_TRUNC` in a filter and arithmetic on a literal.
+`make fuzz-native` runs `dev/fuzz/native_grammar.py` on the three paths. The generator follows the allow-list, and it writes each query in two texts from one tree, with no driver code. It fails on a wrong number, a raw error, a mutation that ran, and a refusal of a query on the list with no report time zone. A text and its print from libpg_query, the parser of PostgreSQL, must have one answer from the grammar. The workflow `fuzz` runs a new seed each night.
 
 ### Long lists
 
@@ -327,13 +411,12 @@ The driver cannot stop these. Each number comes with no error. [Cube findings](c
 | --- | --- | --- |
 | Stock Cube: a partitioned rollup with no `build_range_end`, with a report time zone that is not UTC | West of UTC, the rows of the last hours are not in the result. The dialect gives the truth. | `preagg.time_zone.partitioned_hit` |
 | A long decimal, such as `Decimal(38, 8)`, below 2^53 | It loses digits, because the Cube SQL API has the type Double. Its value fits a Double, so the driver cannot see this. A dimension with `sql: toString(column)` keeps the digits. | `compile.ch.decimal_above_double` |
-| Stock Cube: native `x >= a AND x < b` on a `DateTime64`, or the same filter from the query builder on a column with a rollup | The range ends at the last whole second before `b`, so the rows of that second are out. Cube does not show the type of a column. [The ClickHouse dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) gives the truth. | `native.bound.datetime64_last_second_limit` |
-| Stock Cube: native `NOT (x > t)` on a `DateTime64` | SQL push-down compares whole seconds, so the rows inside the second of `t` count as not after `t`. The query builder writes `x <= t`. The dialect gives the truth. | None |
+| Stock Cube: `x >= a AND x < b` on a `DateTime64`, on a column with a rollup, from native SQL or the query builder | The range ends at the last whole second before `b`, so the rows of that second are out. Cube does not show the type of a column. [The ClickHouse dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) gives the truth. | `native.bound.datetime64_last_second_limit` |
+| Stock Cube: native `x > t` on a `DateTime64`, with `t` at a whole second | The rows later in the second of `t` are not in the result, and a `<=` on the same column next to it keeps the rows of the second of its bound. Once a filter on the column is not a date range, Cube compares the column at whole seconds. A date range starts 1 ms after `t`, and stock Cube drops that fraction, so it keeps a row of a `DateTime` at `t`. One form must hold for each type, and Cube does not show the type of a column. `<=`, `>=` and `BETWEEN` alone give the truth. [The ClickHouse dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) gives the truth. | `native.bound.datetime64_upper_and_strict_lower` |
 | Stock Cube with a report time zone that is not UTC: a `Date` or `Date32` column | Cube reads it as a time at midnight UTC, so a row can move to another day, in a bucket and in a filter. Cube does not show the type of a column. A dimension with `meta: { date_only: true }` stops. The dialect reads it as midnight in the zone. | `grid.compact.report_zone` |
 | A filter on a time with an offset in its literal, as `2025-06-15T11:00:00Z`, with a report time zone that is not UTC | Metabase core drops the offset of a literal on a `type/DateTime` column before the driver gets the query, so the literal is a local time. Base type `type/DateTimeWithLocalTZ` keeps the offset, but Metabase core then writes the end of a month filter with the offset of its start, so a filter on March gets one hour of April in New York. Postgres with `timestamptz` shows the same. | `grid.compact.report_zone` |
-| Stock Cube, or a ClickHouse user with `readonly`: `sum`, `min` or `max` of no rows | 0, and 1970-01-01 for a time, where SQL and Metabase on Postgres give `NULL`. Cube sends no setting for this, and the driver cannot tell no rows from a total of 0. [The ClickHouse dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) gives `NULL`. | `fuzz.sample` |
+| Stock Cube, or a ClickHouse user with `readonly`: `sum`, `min` or `max` of no rows | 0, and 1970-01-01 for a time, where SQL and Metabase on Postgres give `NULL`. An expression of it in native SQL reads that 0, so `MAX(id - 1)` of no rows is -1. Cube sends no setting for this, and the driver cannot tell no rows from a total of 0. [The ClickHouse dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) gives `NULL`. | `fuzz.sample` |
 | Stock Cube: a rollup with a text dimension that has an empty text | Cube Store reads an empty value of its CSV as `NULL`. So the group of the empty text joins the group of `NULL`, and a filter on the empty text finds no rows. The result does not show which rows were empty. [The dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) gives the truth. | `preagg.empty_text_stays_apart_from_null` |
 | Stock Cube: a raw `DateTime64` value | It shows whole seconds. Buckets are right. The dialect keeps the milliseconds. | `clickhouse.datetime64_millis` |
-| Native SQL on a time, a rolling window or a subquery filter in a shape that the scan does not read. The corrections of [Native SQL](#native-sql) read a parse of the text, and the scan of these shapes reads tokens. | The same wrong numbers that the scan stops in the plain shape. | `native.bound.strict_lower_refused`, `native.subquery_filter_refused` |
 | A value of a time in the repeated hour of a clock change, under a report time zone: a measure with `type: time`, or a raw time column | The value reads 1 hour early, with the offset of the first pass: `01:00:00-04:00` where the truth is `01:00:00-05:00` in New York. The SQL API gives a time with no offset, so the driver cannot tell the two passes apart. | `zone.time_measure_repeated_hour_limit` |
 | Postgres, not the main target: a rolling window with a range that starts inside a month (N1), a custom granularity in months with no rollup | Shifted buckets. See [Cube audit](cube-audit.md). | None. The suite runs on ClickHouse. |

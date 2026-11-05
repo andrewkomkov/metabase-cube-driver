@@ -72,34 +72,32 @@ What gives a value of a private member, on Cube `v1.8.15`:
 | --- | --- | --- |
 | The query builder, `/api/dataset`, a dashboard, a field list, a parameter value, an x-ray and MCP `execute_query`: by field id, by name in each clause and each stage | No. Cube has no such member, and the driver stops the name of a key first. | No. The driver stops it. |
 | Raw rows of a table with a private primary key | No. | No. The column is `NULL`. A later stage, a model or a saved question shows that `NULL`, and it cannot filter, group, sort or aggregate on it, because Cube would read a filter there as a filter on the member. |
-| Native SQL and MCP `execute_sql`, for a person with native permission | No. Cube answers `not found`. | The driver scans the text and stops it, with a clear message. See [The scan of native SQL](#the-scan-of-native-sql). |
-| A saved native question that reads a private member or names a column after one, such as `NULL AS id` | No. | The same scan stops it, also as the source of a query builder question. So a person with the query builder only cannot use it to read or to infer a value. |
+| Native SQL and MCP `execute_sql`, for a person with native permission | No. Cube answers `not found`. | The driver parses the text and stops it, with a clear message. See [The scan of native SQL](#the-scan-of-native-sql). |
+| A saved native question that reads a private member or names a column after one, such as `NULL AS id` | No. | The same grammar stops it, also as the source of a query builder question. So a person with the query builder only cannot use it to read or to infer a value. |
 | The SQL API or the REST API of Cube, past Metabase | No. | **Yes.** Each client that reaches the port reads each member. The driver cannot stop this. |
 
-The only real stop is `CUBEJS_DEV_MODE=false`. The scan below is a defence on top of it, for a mistake in a deployment. It is not a security boundary, so do not rely on it. Metabase refuses native SQL to a person with the query builder only, on both modes.
+The only real stop is `CUBEJS_DEV_MODE=false`. The grammar below is a defence on top of it, for a mistake in a deployment. It is not a security boundary, so do not rely on it. Metabase refuses native SQL to a person with the query builder only, on both modes.
 
 `cube.native/check-no-private-member!` reads the SQL of each query, also a compiled one, so a form of MBQL that a check of the clauses does not see stops there. It reads the model from `/v1/meta`, at most one minute old. If a member becomes private, a Cube in dev mode can read it in that minute.
 
-### The scan of native SQL
+### The grammar of native SQL
 
-`cube.native/check-native-private-member!` reads the text that a person or an agent wrote, and the text of a saved native question. It has a lexer with the rules of PostgreSQL: quoted names, strings with `''`, `E''` strings with a backslash, dollar quotes and nested comments. It has no parser, so each doubt refuses:
+`src/metabase/driver/cube/grammar.clj` reads the text that a person or an agent wrote, and the text of a saved native question, also for a person with the query builder only. It parses the text, and it resolves each column in the sources of its `SELECT`.
 
-- A table counts as read if the text names it anywhere. No form of `FROM` hides it.
-- `a.x` reads `x` of each table that `a` can mean. `a` can mean each table with that alias in each `FROM`, also a quoted alias such as `"limit"`. If the scan does not know `a`, it can mean each table of the text.
-- `x` with no table can mean each table of the text, also in a subquery.
-- `*` stops on a table with a private member in the `FROM` of its own `SELECT`, also `SELECT ALL *`, `SELECT DISTINCT ON (x) *` and `a.*`. A `*` over a subquery stops only if a column of the subquery stops.
-- `NULL AS id` or `x AS id` stops if `id` is private in a table of the text, because Cube reads a filter on that column of a subquery as a filter on the member. So a filter on it counts the rows of the real value.
-- A text that the lexer cannot read stops on a Cube with private members: a string, a name or a comment with no end, a name in the `U&""` form, a backslash before a quote in a plain string, a carriage return in a `--` comment. So does a text that names a table with a private member, with parentheses that do not match, or with another first word than `SELECT` or `WITH`.
+- A name of a private member stops the query, with or without a table, through each alias.
+- An alias with the name of a private member stops the query, because Cube reads a filter on a column of a subquery with this name as a filter on the member.
+- A private cube stops the query. A table that the data model does not have also stops, so system tables stop.
+- `*` and `t.*` read the public dimensions, written out by the driver, so they give no private value.
+- A `SELECT` with no columns stops.
+- A text that the parser cannot read stops.
 
-This has a cost. A query that the scan cannot tell from a read of a private member stops, with a message that names the member. Two examples: `id` with no table next to a table with a private `id`, and `t.id` over a subquery that reads such a table. Write `o.id`, with the alias of the table that has it, or use another column name in the subquery. The ordinary queries of `native.scan.adversarial_private_member` and the native checks of the suite run.
+`native.scan.adversarial_private_member`, `native.grammar.mutations_refuse` and `security.saved_native_question_infers_no_private_member` test this, with the cases in `dev/review/release_cases.py`.
 
-`native.scan.adversarial_private_member` and `security.saved_native_question_infers_no_private_member` test this, with the cases in `dev/review/release_cases.py`. No case of that list gives a value on the pinned Cube.
-
-### What the scan leaves open on a Cube in dev mode
+### What the grammar leaves open on a Cube in dev mode
 
 - **A person who reaches the Cube ports.** See the table above. The driver cannot stop this.
-- **A difference between the lexer and the parser of Cube.** A later version of Cube can read a text in another way than this lexer. The scan reads no plan of Cube. Run `native.scan.adversarial_private_member` on each new version of Cube.
-- **A public member that reads a private one in the model.** The value is public by the choice of the model, and the scan does not read the SQL of the model.
+- **A difference between the lexer and the parser of Cube.** A later version of Cube can read a text in another way than this lexer. The grammar reads no plan of Cube. Run `native.scan.adversarial_private_member` on each new version of Cube.
+- **A public member that reads a private one in the model.** The value is public by the choice of the model, and the grammar does not read the SQL of the model.
 - **A member that became private in the last minute.** See above.
 
 ### A private primary key as the target of a foreign key

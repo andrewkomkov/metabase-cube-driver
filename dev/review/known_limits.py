@@ -13,10 +13,6 @@ LIMITS = [
      "reason": "Stock Cube writes a selected time with precision 0, so a raw DateTime64 shows whole seconds. /v1/meta does not show the column type, so the driver cannot tell it from a DateTime. The dialect is the fix: this shape passes with it."},
     {"id": "stock-unmarked-date", "variants": ("stock",), "shapes": r"^(tz/(America/New_York|Pacific/Apia|Asia/Kathmandu|Europe/Berlin)/Date32 |edge_tz/.*date32)",
      "reason": "Stock Cube reads a Date as a time at midnight UTC under a report time zone. /v1/meta does not show the column type, so the driver can stop this only for a dimension with meta date_only. Date32 here has no mark, as in a model that nobody marked. The dialect is the fix: this shape passes with it."},
-    {"id": "stock-native-half-open-datetime64", "variants": ("stock",), "shapes": r"^edge/ts64_native_half_open$",
-     "reason": "Stock Cube ends the range of native x >= a AND x < b at the last whole second, so a DateTime64 loses the rows of that second. /v1/meta does not show the column type, and the same text is right on a DateTime, so the driver would have to stop each native upper bound on stock Cube. The dialect is the fix: this shape passes with it."},
-    {"id": "stock-native-not-datetime64", "variants": ("stock",), "shapes": r"^edge/ts64_native_not$",
-     "reason": "In native NOT (x > t), SQL push-down of stock Cube compares whole seconds, so the rows inside the second of t count as not after t. /v1/meta does not show the column type, and the same text is right on a DateTime. The query builder writes x <= t, which is right. The dialect is the fix: this shape passes with it."},
 ]
 
 

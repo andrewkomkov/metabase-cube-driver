@@ -1,17 +1,17 @@
 (ns metabase.driver.cube.correct
-  "Corrections of native SQL. The SQL API of Cube reads some ordinary SQL with another meaning, and it gives a number with no error. Each correction writes a form that Cube reads as SQL does, and a
-  construct with no such form stops here with a message that names it. docs/query-compilation.md has the list, and `dev/review/release_cases.py` has a case for each one, with the truth in ClickHouse.
-  A text with no such construct stays the same, byte for byte, so it keeps its way through Cube and its rollup."
+  "Corrections of native SQL that `metabase.driver.cube.grammar` admits. The SQL API of Cube reads some ordinary SQL with another meaning, and it gives a number with no error. Each correction writes a form that Cube reads as SQL
+  does. docs/query-compilation.md has the list, and `dev/fuzz/native_grammar.py` and `dev/review/release_cases.py` have the truth in ClickHouse. A text with no such construct stays the same, byte for byte, so it keeps its way
+  through Cube and its rollup."
   (:require
    [clojure.string :as str]
    [metabase.driver.cube.sqltext :as sqltext])
   (:import
-   (java.math BigDecimal MathContext)))
+   (java.math BigDecimal MathContext)
+   (java.time ZoneId ZoneOffset)))
 
 (set! *warn-on-reflection* true)
 
 (def ^:private ^:dynamic *sql* nil)
-(def ^:private ^:dynamic *params* nil)
 (def ^:private ^:dynamic *context* nil)
 
 (def ^:private exact-factor
@@ -76,23 +76,17 @@
                (.divide ^BigDecimal l ^BigDecimal r MathContext/DECIMAL64)))
       nil)))
 
-(defn- param-value
-  [node]
-  (let [node (unwrapped-number node)]
-    (when (and (= :param (:k node)) (:n node))
-      (nth *params* (:n node) nil))))
-
 (defn- number-of
-  "{:value BigDecimal, :text? true for a text} if this node is a number in the text or a parameter, or nil."
+  "{:value BigDecimal, :text? true for a text} if this node is a number in the text, or nil. A parameter is a literal here."
   [node]
-  (let [value (const-value node)
-        param (param-value node)]
+  (let [value (const-value node)]
     (cond
-      (vector? value)              {:value (first value), :text? true}
-      value                        {:value value}
-      (number? param)              {:value (bigdec param), :param? true}
-      (string? param)              (when-let [number (sqltext/plain-number param)]
-                                     {:value number, :text? true, :param? true}))))
+      (vector? value) {:value (first value), :text? true}
+      value           {:value value})))
+
+(defn- date-trunc-call?
+  [node]
+  (and (= :call (:k node)) (= "date_trunc" (:name node))))
 
 (defn- fraction?
   "True if this number has a part after the point that is not zero."
@@ -137,7 +131,9 @@
       :name (let [column (peek (:parts node))]
               (or (contains? numbers column) (contains? measures column) (contains? numeric-aliases column)))
       :call (or (contains? #{"sum" "avg" "count" "stddev" "stddev_pop" "stddev_samp" "variance" "var_pop" "var_samp"
-                             "abs" "round" "floor" "ceil" "ceiling" "trunc" "sqrt" "power" "ln" "log" "exp" "sign" "measure"} (:name node))
+                             "abs" "round" "floor" "ceil" "ceiling" "trunc" "sqrt" "power" "ln" "log" "exp" "sign" "measure"
+                             ;; STRPOS(x, 'A') > 0 is a member filter `contains` for Cube, which ignores case: 2000 where the truth is 0.
+                             "strpos" "length"} (:name node))
                 (and (contains? #{"min" "max" "coalesce" "nullif" "greatest" "least"} (:name node))
                      (some numeric-node? (:args node))))
       (:div :neg) true
@@ -145,12 +141,17 @@
       false)))
 
 (defn- derived-aliases
-  "The aliases of each select of the text whose value is a number, and those that have an aggregation."
-  [tree numbers measures]
-  (let [items (filter #(and (= :item (:k %)) (:alias %)) (sqltext/nodes tree))]
+  "The aliases of each select of the text whose value is a number, those that have an aggregation, and those of a time."
+  [tree numbers measures times]
+  (let [items (filter #(and (= :item (:k %)) (:alias %)) (sqltext/nodes tree))
+        time? (fn [{:keys [x]}]
+                (let [node (unwrapped x)]
+                  (or (and (= :name (:k node)) (contains? times (peek (:parts node))))
+                      (and (= :call (:k node)) (= "date_trunc" (:name node))))))]
     (binding [*context* {:numbers numbers, :measures measures, :numeric-aliases #{}}]
       {:numeric-aliases (into #{} (comp (filter #(numeric-node? (:x %))) (map :alias)) items)
-       :aggregate-aliases (into #{} (comp (filter #(has-aggregate? (:x %))) (map :alias)) items)})))
+       :aggregate-aliases (into #{} (comp (filter #(has-aggregate? (:x %))) (map :alias)) items)
+       :time-aliases (into #{} (comp (filter time?) (map :alias)) items)})))
 
 (defn- plain-column
   "The text of the column inside this node if the node has a column of rows, or nil. Cube reads a filter on such a column as a member filter. A measure and an alias of an aggregation are not such
@@ -191,11 +192,9 @@
   (assoc new :s (:s old) :e (:e old) :text (emit new)))
 
 (defn- written-number
-  "The node of a number, in the form that SQL writes it. A parameter stays a parameter."
-  [node {:keys [^BigDecimal value param?]}]
-  (if param?
-    node
-    (assoc node :text (.toPlainString value))))
+  "The node of a number, in the form that SQL writes it."
+  [node {:keys [^BigDecimal value]}]
+  (assoc node :text (.toPlainString value)))
 
 (defn- reads-number?
   "True if a comparison of `column` with this number compares numbers. A text compares numbers only with a column of numbers."
@@ -212,12 +211,92 @@
       (assoc node :text (if (= "true" (:v value)) "1" "0"))
       node)))
 
+;;; A function of a column next to a literal. Cube reads some of them as a member filter with another meaning, on a list that it does not publish: LEFT(x, n) = 'a' ignores case on ClickHouse, and STRPOS(x, 'a') > 0 too.
+;;; A text with || '' and a number with the exact factor are expressions for each list, so the database compares them. A filter on a time keeps DATE_TRUNC, and an aggregation is a filter on a group.
+
+(defn- function-of-column?
+  [node]
+  (let [node (unwrapped node)]
+    (and (= :call (:k node))
+         (not (date-trunc-call? node))
+         (not (has-aggregate? node)))))
+
+(defn- text-function?
+  [node]
+  (contains? #{"left" "right" "lower" "upper" "substr" "substring" "concat" "coalesce" "nullif"} (:name (unwrapped node))))
+
+(defn- text-node?
+  [node]
+  (and (text-function? node)
+       (not (numeric-node? node))))
+
+(defn- with-database-text
+  [node]
+  (assoc node :text (str "(" (emit node) " || '')")))
+
+(defn- in-database
+  "`node`, a side of a comparison with a literal on the other side, in a form that the database compares."
+  [node]
+  (cond
+    (not (function-of-column? node)) node
+    (text-node? node)                (with-database-text node)
+    (numeric-node? node)             (with-factor node)
+    :else                            node))
+
+;;; A time literal. Each form of it has one text here, TIMESTAMP 'x', so a date with no time is not the end of that day, as Cube reads it in a date range, and a text reads as a time in the database too.
+
+(defn- time-node?
+  [node]
+  (let [node (unwrapped node)]
+    (or (date-trunc-call? node)
+        (and (= :name (:k node))
+             (let [column (peek (:parts node))]
+               (or (contains? (:times *context*) column)
+                   (contains? (:time-aliases *context*) column)))))))
+
+(defn- literal-time
+  "The time of this literal, or nil."
+  [node]
+  (let [node (unwrapped node)]
+    (case (:k node)
+      :str   (sqltext/parse-time (:v node))
+      :typed (sqltext/parse-time (:v node))
+      :cast  (literal-time (:x node))
+      nil)))
+
+(defn- written-zone
+  ^ZoneId []
+  (or (:zone *context*) ZoneOffset/UTC))
+
+(defn- time-text
+  [parsed ^ZoneId zone]
+  (format "TIMESTAMP '%s'" (sqltext/time-in-zone parsed (written-zone) zone)))
+
+(defn- canonical-time
+  "This literal as TIMESTAMP in the zone of the session. A date range of Cube reads it there."
+  [node]
+  (if-let [parsed (literal-time node)]
+    (assoc node :text (time-text parsed (written-zone)), :time parsed)
+    node))
+
 (defn- fix-comparison
   [{:keys [l r op quantified] :as node}]
-  (if (or quantified (not (contains? #{"=" "<>" "!=" "<" "<=" ">" ">="} op)))
+  (cond
+    (or quantified (not (contains? #{"=" "<>" "!=" "<" "<=" ">" ">="} op)))
     node
+
+    (and (time-node? l) (literal? r))
+    (assoc node :r (canonical-time r))
+
+    (and (time-node? r) (literal? l))
+    (assoc node :l (canonical-time l))
+
+    :else
     (let [l-number (number-of l)
-          r-number (number-of r)]
+          r-number (number-of r)
+          l        (if (literal? r) (in-database l) l)
+          r        (if (literal? l) (in-database r) r)
+          node     (assoc node :l l :r r)]
       (cond
         (and (fraction? r-number) (reads-number? l r-number))
         (assoc node :l (at-place-of (with-factor (without-number-cast l)) l) :r (written-number r r-number))
@@ -231,34 +310,44 @@
         (and l-number (reads-number? r l-number) (not= r (without-number-cast r)))
         (assoc node :r (at-place-of (without-number-cast r) r))
 
-        :else (assoc node :l (boolean-as-number l) :r (boolean-as-number r))))))
+        :else node))))
 
 (defn- fix-in
   [{:keys [x items] :as node}]
-  (let [numbers (map number-of items)]
-    (if (and (seq items)
-             (not (literal? x))
-             (some some? numbers)
-             (every? #(reads-number? x %) (filter some? numbers)))
-      (let [plain (at-place-of (without-number-cast x) x)]
-        (assoc node
-               :x (if (some fraction? numbers) (at-place-of (with-factor plain) x) plain)
+  (let [numbers (map number-of items)
+        x       (in-database x)
+        node    (assoc node :x x)]
+    (if (and (seq items) (time-node? x))
+      (assoc node :items (mapv canonical-time items))
+      (if (and (seq items)
+               (not (literal? x))
+               (some some? numbers)
+               (every? #(reads-number? x %) (filter some? numbers)))
+        (let [plain (at-place-of (without-number-cast x) x)]
+          (assoc node
+                 :x (if (some fraction? numbers) (at-place-of (with-factor plain) x) plain)
                ;; A cast in a list is a type that ClickHouse does not take: `Type mismatch in IN or VALUES section`.
-               :items (mapv (fn [item number] (if number (written-number item number) item)) items numbers)))
-      node)))
+                 :items (mapv (fn [item number] (if number (written-number item number) item)) items numbers)))
+        node))))
 
 (defn- fix-between
   [{:keys [x lo hi] :as node}]
   (let [lo-number (number-of lo)
         hi-number (number-of hi)
-        either    (filter some? [lo-number hi-number])]
-    (if (and (not (literal? x))
-             (some fraction? either)
-             (every? #(reads-number? x %) either))
+        either    (filter some? [lo-number hi-number])
+        node      (assoc node :x (in-database x))]
+    (cond
+      (time-node? x)
+      (assoc node :lo (canonical-time lo) :hi (canonical-time hi))
+
+      (and (not (literal? x))
+           (some fraction? either)
+           (every? #(reads-number? x %) either))
       (cond-> (assoc node :x (at-place-of (with-factor (without-number-cast x)) x))
         lo-number (assoc :lo (written-number lo lo-number))
         hi-number (assoc :hi (written-number hi hi-number)))
-      node)))
+
+      :else node)))
 
 ;;; Division. Cube runs `/` in two places, with other meanings: above a CubeScan it divides integers with no fraction, and in the database `Decimal / x` keeps the scale of the Decimal, so
 ;;; 160.00 / 7 is 22.85. Here `/` is a real division on each path, as it is on ClickHouse. To cut the fraction, write FLOOR or TRUNC.
@@ -281,27 +370,33 @@
   (if (or (contains? #{:interval :typed} (:k (unwrapped l)))
           (str/includes? (emit node) exact-factor))
     node
+    ;; One factor. With a second one in the divisor, Cube reads two columns with one name on raw rows, and it stops with `Schema contains duplicate unqualified field name`.
     (let [divisor (cond
                     (or (number-of r) (has-null-if? r)) r
-                    :else (assoc r :text (format "NULLIF(%s%s, 0.0)" (let [text (emit r)]
-                                                                       (if (contains? #{:name :call :paren :cast} (:k r)) text (str "(" text ")")))
-                                                 exact-factor)))]
+                    :else (assoc r :text (format "NULLIF(%s, 0)" (emit r))))]
       (assoc node
-             :l (assoc l :text (str (emit l) exact-factor))
+             :l (assoc l :text (if (contains? #{:name :call :paren :cast :num} (:k l))
+                                 (str (emit l) exact-factor)
+                                 (str "(" (emit l) ")" exact-factor)))
              :r divisor))))
 
 ;;; LIKE. Cube reads `x LIKE '%a%'` as an operator that ignores case on ClickHouse. A column in an expression keeps the SQL of the text, so the database compares it with its case.
 
-(defn- wildcard-with-letters?
-  [pattern]
-  (and (re-find #"[%_]" pattern) (re-find #"\p{L}" pattern)))
+(defn- pattern-text
+  "The text of a pattern: a string, or strings joined with ||."
+  [node]
+  (let [node (unwrapped node)]
+    (case (:k node)
+      :str (:v node)
+      :bin (str (pattern-text (:l node)) (pattern-text (:r node)))
+      "")))
 
 (defn- fix-like
-  [{:keys [x p op] :as node}]
-  (let [pattern (:v (unwrapped p))]
-    (if (and (= "like" op) pattern (plain-column x) (wildcard-with-letters? pattern))
-      (assoc node :x (assoc x :text (str "(" (emit x) " || '')")))
-      node)))
+  "Each LIKE and ILIKE reads in the database, because Cube reads `_` of a pattern as a character, and a pattern with % as an operator with its own case."
+  [{:keys [x p] :as node}]
+  (assoc node
+         :x (with-database-text x)
+         :p (assoc p :text (str "'" (str/replace (pattern-text p) "'" "''") "'"))))
 
 ;;; FILTER. Cube drops the FILTER of an aggregation, so COUNT(*) FILTER (WHERE p) reads as COUNT(*). CASE stays in the SQL, so this is the same aggregation with CASE.
 
@@ -350,13 +445,64 @@
     (format "(%s AND %s IS NOT NULL)" text column)
     text))
 
+(def ^:private ^:dynamic *range-bounds*
+  "The places of the bounds of WHERE that stay a date range of Cube."
+  #{})
+
+(defn- guarded?
+  "True if Cube must not make a date range from this bound, because it would read it in another way. See \"Date bounds\" in docs/query-compilation.md."
+  [node column op]
+  (let [{:keys [zone keeps-fractions? range-columns]} *context*
+        range? (contains? *range-bounds* (:s node))]
+    (cond
+      zone               (not range?)
+      keeps-fractions?   false
+      (= ">" op)         true
+      ;; `x <= t` stays as it is: Cube reads it exactly. In the guarded form, stock Cube compares a DateTime64 at whole seconds, so it keeps the rows after t in that second.
+      (= "<" op)         (not (contains? range-columns column))
+      :else              false)))
+
+(defn- bound-text
+  "`column op time` in a form that Cube reads as SQL does."
+  [node column-node op parsed]
+  (let [column (source column-node)
+        short  (peek (:parts (unwrapped column-node)))
+        guard? (guarded? node short op)
+        zone   (if (and guard? (:zone *context*)) ZoneOffset/UTC (written-zone))
+        text   (time-text parsed zone)]
+    (if guard?
+      (format "((%s %s %s OR %s IS NULL) AND %s IS NOT NULL)" column op text column column)
+      (format "%s %s %s" column op text))))
+
+(defn- time-comparison
+  "A comparison of a time column with a literal, as [column op time], with the column first. Nil for another form."
+  [{:keys [l r op quantified]}]
+  (when-not quantified
+    (let [plain? (fn [node] (let [node (unwrapped node)] (and (= :name (:k node)) (time-node? node))))
+          flip   {"<" ">", "<=" ">=", ">" "<", ">=" "<=", "=" "=", "<>" "<>", "!=" "!="}]
+      (cond
+        (and (plain? l) (literal-time r)) [l op (literal-time r)]
+        (and (plain? r) (literal-time l)) [r (flip op) (literal-time l)]))))
+
+(defn- time-bound-text
+  "The rows where this comparison on a time is true. `=` is two bounds, because next to DATE_TRUNC on the same column Cube reads it as the whole bucket. `<>` has no NULL."
+  [node [column op parsed]]
+  (case op
+    "="  (format "(%s AND %s)" (bound-text node column ">=" parsed) (bound-text node column "<=" parsed))
+    ("<>" "!=") (let [text (time-text parsed (if (:zone *context*) ZoneOffset/UTC (written-zone)))]
+                  (format "(%s <> %s AND %s IS NOT NULL)" (source column) text (source column)))
+    (bound-text node column op parsed)))
+
 (defn- opposite-of-comparison
   [op]
   (get {"=" "<>", "<>" "=", "!=" "=", "<" ">=", "<=" ">", ">" "<=", ">=" "<"} op))
 
 (defn- comparison-text
+  "A comparison in WHERE or HAVING, where Cube reads a member filter. TRUE and FALSE on a boolean column are 1 and 0 there. See the note on true and false."
   [{:keys [l r]} op]
-  (let [text (format "%s %s %s" (emit l) op (emit r))]
+  (let [l    (boolean-as-number l)
+        r    (boolean-as-number r)
+        text (format "%s %s %s" (emit l) op (emit r))]
     (if (contains? #{"<>" "!="} op)
       (cond
         (= :null (:k (unwrapped r))) text
@@ -400,21 +546,19 @@
                      (if esc (str " ESCAPE " (emit esc)) ""))]
     (if negated (null-free text x) text)))
 
-(defn- between-text
-  [{:keys [x lo hi]} negated]
-  (format "%s %sBETWEEN %s AND %s" (emit x) (if negated "NOT " "") (emit lo) (emit hi)))
+(defn- plain-time?
+  [node]
+  (let [node (unwrapped node)]
+    (and (= :name (:k node)) (time-node? node))))
 
-(defn- time-bound?
-  "True if this is `x < t` or the like, with a literal that is not a number. A single bound on a time reads a date range of Cube, and the driver has the form of that in Date bounds in the docs, so NOT stays on it. NULL
-  stays out of NOT of a range, so NOT of this form is right."
-  [{:keys [op l r]}]
-  (and (contains? #{"<" "<=" ">" ">="} op)
-       (let [literal-time (fn [node]
-                            (let [value (unwrapped node)]
-                              (or (= :typed (:k value))
-                                  (and (= :str (:k value)) (nil? (const-value value)))
-                                  (= :param (:k value)))))]
-         (or (literal-time l) (literal-time r)))))
+(defn- between-text
+  "BETWEEN on a time has two bounds, because Cube reads the end of a date range with no time as the end of that day. The literals here have a time, and the column keeps its form."
+  [{:keys [x lo hi] :as node} negated]
+  (if (and (plain-time? x) (literal-time lo) (literal-time hi))
+    (if negated
+      (format "(%s OR %s)" (bound-text {:s -1} x "<" (literal-time lo)) (bound-text {:s -1} x ">" (literal-time hi)))
+      (format "(%s AND %s)" (bound-text node x ">=" (literal-time lo)) (bound-text (update node :s inc) x "<=" (literal-time hi))))
+    (format "%s %sBETWEEN %s AND %s" (emit x) (if negated "NOT " "") (emit lo) (emit hi))))
 
 (defn- negative
   "The text of the rows where `node` is false, with no NOT over a comparison."
@@ -424,8 +568,12 @@
     :or  (format "(%s AND %s)" (negative (:l node)) (negative (:r node)))
     :not (emit (positive (:x node)))
     :paren (negative (:x node))
-    :cmp (if-let [op (when-not (or (:quantified node) (time-bound? node)) (opposite-of-comparison (:op node)))]
-           (comparison-text node op)
+    :cmp (if-let [op (when-not (:quantified node) (opposite-of-comparison (:op node)))]
+           (if-let [[column own-op parsed] (time-comparison node)]
+             (if (= "=" own-op)
+               (format "(%s OR %s)" (bound-text {:s -1} column "<" parsed) (bound-text {:s -1} column ">" parsed))
+               (time-bound-text {:s -1} [column (opposite-of-comparison own-op) parsed]))
+             (comparison-text node op))
            (format "NOT (%s)" (emit node)))
     :in  (if (:not? node)
            (format "%s IN %s" (emit (:x node)) (list-text node))
@@ -452,12 +600,19 @@
                  (assoc node :l (positive (:l node)) :r (positive (:r node))))
     :paren     (assoc node :x (positive (:x node)))
     :not       (assoc node :text (format "(%s)" (negative (:x node))))
-    :cmp       (if (and (contains? #{"<>" "!="} (:op node)) (not (:quantified node)))
-                 (let [text (comparison-text node (:op node))]
-                   (if (= text (format "%s %s %s" (emit (:l node)) (:op node) (emit (:r node))))
-                     node
-                     (assoc node :text text)))
-                 node)
+    :between   (if (plain-time? (:x node))
+                 (assoc node :text (between-text node (:not? node)))
+                 (if (:not? node)
+                   (assoc node :text (between-text node true))
+                   node))
+    :cmp       (if-let [found (time-comparison node)]
+                 (assoc node :text (time-bound-text node found))
+                 (if (not (:quantified node))
+                   (let [text (comparison-text node (:op node))]
+                     (if (= text (format "%s %s %s" (emit (:l node)) (:op node) (emit (:r node))))
+                       node
+                       (assoc node :text text)))
+                   node))
     :in        (if (:not? node)
                  (let [text (not-in-text node)]
                    (assoc node :text text))
@@ -649,11 +804,52 @@
            (or (next sources)
                (contains? views (:table (first sources))))))))
 
+(defn- aggregated-rows?
+  "True if this query has an aggregation and no limit. Cube pushes a filter of an outer query below such an aggregation, and a limit stops this."
+  [{:keys [terms ops limit]}]
+  (let [{:keys [group items distinct?] :as select} (first terms)]
+    (and (= 1 (count terms))
+         (empty? ops)
+         (nil? limit)
+         (= :select (:k select))
+         (or group distinct? (some #(has-aggregate? (:x %)) items)))))
+
 (defn- with-limit
   [{:keys [q] :as node}]
-  (if (joined-rows? q (:views *context*))
+  (if (or (joined-rows? q (:views *context*)) (aggregated-rows? q))
     (assoc node :q (assoc q :text (format "%s LIMIT %d" (emit q) subquery-limit)))
     node))
+
+(defn- top-conditions
+  "The conditions of a chain of AND at the top of a WHERE."
+  [node]
+  (case (:k node)
+    :and   (concat (top-conditions (:l node)) (top-conditions (:r node)))
+    :paren (top-conditions (:x node))
+    [node]))
+
+(defn- date-range-bounds
+  "The places of the bounds that make a date range of Cube, each pair at the top of a WHERE: a lower and an upper bound on a column, and no other condition on that column. These stay in the zone of the session. See \"Date bounds\" in docs/query-compilation.md."
+  [where]
+  (let [{:keys [zone keeps-fractions?]} *context*
+        bounds (keep (fn [{:keys [k] :as condition}]
+                       (case k
+                         :cmp     (when-let [[column op _] (time-comparison condition)]
+                                    {:column (peek (:parts (unwrapped column))), :ops [op], :places [(:s condition)]})
+                         :between (when (and (not (:not? condition)) (plain-time? (:x condition)) (literal-time (:lo condition)) (literal-time (:hi condition)))
+                                    {:column (peek (:parts (unwrapped (:x condition)))), :ops [">=" "<="], :places [(:s condition) (inc (long (:s condition)))]})
+                         nil))
+                     (top-conditions where))]
+    (into #{}
+          (mapcat (fn [[_ of-column]]
+                    (let [ops (mapcat :ops of-column)]
+                      (when (and zone
+                                 (= 2 (count ops))
+                                 (some #{">=" ">"} ops)
+                                 (some #{"<=" "<"} ops)
+                                 (or keeps-fractions? (not (some #{">"} ops))))
+                        (mapcat :places of-column)))))
+          (group-by :column bounds))))
 
 (defn- fix-select
   [{:keys [group having] :as node}]
@@ -665,7 +861,9 @@
                                                        :from-sub (with-limit item)
                                                        :join (assoc item :l (limit-in (:l item)) :r (limit-in (:r item)))
                                                        item))))))
-    (:where node)  (update :where positive)
+    (:where node)  (update :where (fn [where]
+                                    (binding [*range-bounds* (date-range-bounds where)]
+                                      (positive where))))
     having         (update :having positive)
     (and (nil? group) (nil? having) (not-any? :over? (mapcat sqltext/nodes (:items node)))) (update :items #(mapv with-zero-count %))))
 
@@ -705,40 +903,27 @@
     :like    (fix-like node)
     :is-distinct (assoc node :text (is-distinct-text node (:not? node)))
     :is      (if-let [text (is-text node (:not? node) false)] (assoc node :text text) node)
+    ;; A cast of a column to numeric or decimal has the same value, and Cube writes it with no Nullable and with a scale that ClickHouse can stop on.
     :cast    (let [number (when (and (contains? number-types (:type node)) (literal? (:x node))) (number-of node))]
-               (if number (written-number node number) node))
+               (cond
+                 number (written-number node number)
+                 (and (contains? #{"numeric" "decimal"} (:type node)) (not (literal? (:x node)))) (assoc node :text (emit (:x node)))
+                 :else node))
     :call    (do (check-distinct-aggregation! node)
                  (if (contains? node :filter) (fix-filter node) node))
     :select  (fix-select node)
     :query   (fix-query node)
     node))
 
-(defn- suspect-token
-  "The first word or sign in a text that the parser cannot read, that needs a correction when the driver can read it."
-  [sql]
-  (let [fraction? (fn [{:keys [text number?]}]
-                    (and number? (let [value (sqltext/plain-number text)]
-                                   (and value (pos? (.scale (.stripTrailingZeros ^BigDecimal value)))))))]
-    (:text (first (filter (fn [{:keys [kind text] :as tok}]
-                            (or (fraction? tok)
-                                (and (= :other kind) (contains? #{"<>" "!=" "/"} text))
-                                (and (= :word kind) (contains? #{"not" "filter" "rollup" "cube" "grouping" "like"} text))))
-                          (sqltext/tokens sql))))))
-
 (defn correct
-  "`sql` with each correction, or the same text if none applies. `context` has :numbers, :booleans, :measures, :count-measures and :views, each a set of lower case names of the cubes that the text reads."
-  [^String sql params {:keys [numbers measures] :as context}]
+  "`sql` with each correction. The grammar has read this text. `context` has :numbers, :booleans, :times, :measures, :count-measures and :views, each a set of lower case names of the cubes that the text reads, :zone the
+  report time zone if it is not UTC, :keeps-fractions? and :range-columns."
+  [^String sql {:keys [numbers measures times] :as context}]
   (let [tree (sqltext/parse sql)]
-    (if-let [reason (:error tree)]
-      (do
-        (when-let [token (suspect-token sql)]
-          (refuse! (format (str "The driver cannot read this SQL (%s), and it has `%s`, which Cube reads with another meaning than SQL in some forms. So the driver cannot show that the number would be right. "
-                                "Write the query in plain SQL.")
-                           reason token)))
-        sql)
-      (binding [*sql*     sql
-                *params*  (vec params)
-                *context* (merge context (derived-aliases tree numbers measures))]
-        (let [fixed (sqltext/walk fix-node tree)
-              text  (emit fixed)]
-          (str (subs sql 0 (:s tree)) text (subs sql (:e tree))))))))
+    (when-let [reason (:error tree)]
+      (refuse! (format "The driver cannot read this SQL: %s." reason)))
+    (binding [*sql*     sql
+              *context* (merge context (derived-aliases tree numbers measures times))]
+      (let [fixed (sqltext/walk fix-node tree)
+            text  (emit fixed)]
+        (str (subs sql 0 (:s tree)) text (subs sql (:e tree)))))))
