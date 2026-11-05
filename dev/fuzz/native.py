@@ -140,6 +140,11 @@ def text_atom(rng, src):
     return (("(%s) <> '%s'" % (col[0], value)), ("%s <> '%s'" % (col[1], value)))
 
 
+def text_atom_of(rng, src):
+    """`text_atom` on a source with its own patterns."""
+    return text_atom(rng, src)
+
+
 def bool_atom(rng, src):
     name = rng.choice(list(src["bool"]))
     cube, ch = column(src, name)

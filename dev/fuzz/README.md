@@ -73,6 +73,32 @@ These are the rules of Metabase on Postgres and of the SQL standard, in ClickHou
 | A literal with an offset | See `dev/review/known_limits.py`. |
 | A measure with `min(created_at)` next to a join with users | The SQL of this demo measure names a column that both tables have. |
 
+## Native SQL
+
+`make fuzz-native SEED=n COUNT=n` starts ClickHouse, three Cubes and one Metabase, with compose project `mcd-native`, and it runs on Cube with the dialect, stock Cube and Cube in production mode. `NATIVE_PORT_BASE` moves the ports next to another stack, and `pip install -r dev/fuzz/requirements.txt` installs the real parser.
+
+| File | Job |
+| --- | --- |
+| `native_grammar.py` | `generate(seed, index)` follows the allow-list of `src/metabase/driver/cube/grammar.clj`, and it gives each query in two texts from one tree, with a time in each form and the zones of its block. `mutate(seed, index)` adds a construct outside the list. `zone_cases(zone)` has each shape of a time under a report time zone. |
+| `fuzz_native.py` | Runs a seed and judges each query. See its verdicts below. |
+| `admit.clj` | The grammar with no Cube and no Metabase server. It runs in the image of Metabase. |
+| `analyst.py` | Thirty queries of an analyst, written before the grammar. At most 3 can refuse, each with an entry in `LIMITS`. |
+| `docker-compose.native.yml`, `fuzz_native.sh`, `native_paths.py` | The stack and its steps. |
+
+| Verdict | Meaning | Fails the run |
+| --- | --- | --- |
+| `pass` | Each row is equal to ClickHouse. | No |
+| `refused` | A clear message under a report time zone, or a limit of the data model. | No |
+| `planner` | Cube has no plan, and the driver names this. The log has each one. | No |
+| `stock_no_rows`, `stock_datetime64_second` | On stock Cube, a known wrong number: an aggregation of no rows, or a filter on a `DateTime64` that reads the column at whole seconds. Each gives the truth with the dialect. | No |
+| `refused_on_the_list` | The grammar refuses a query of the generator with no report time zone. | Yes |
+| `wrong` | A number with no error that differs from ClickHouse. | Yes |
+| `raw_error`, `truth_error` | A raw error of Cube, a broken connection, or a truth that ClickHouse cannot run. | Yes |
+| `mutation_ran` | A construct outside the list ran. The script also looks for its seed in the logs of each Cube. | Yes |
+| `leak` | A private column is in a result. | Yes |
+
+With no Cube, each text and its print from libpg_query must have one answer from the grammar, each mutation must refuse, and no text can crash the grammar.
+
 ## CI
 
-The workflow `fuzz` runs a new seed each night. A failure opens one issue, or adds a comment to the issue that is open. The conformance checks `fuzz.cases` and `fuzz.sample` replay the permanent cases and run a fixed seed.
+The workflow `fuzz` runs a new seed each night, for this generator and for the native grammar. A failure opens one issue, or adds a comment to the issue that is open. The conformance checks `fuzz.cases` and `fuzz.sample` replay the permanent cases and run a fixed seed.

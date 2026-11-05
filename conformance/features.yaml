@@ -4621,14 +4621,20 @@
   status: pass
   status_stock: pass
   check: native.bound.alias_in_a_subquery
+- id: native.bound.datetime64_upper_and_strict_lower
+  area: native
+  title: "native SQL with <=, BETWEEN and > at a whole second on a DateTime64"
+  status: pass
+  status_stock: partial
+  check: native.bound.datetime64_upper_and_strict_lower
+  cap_stock: partial
+  reason_stock: "Known wrong number on stock Cube. When a filter on a DateTime64 is not a date range, stock Cube compares the column at whole seconds, so x > t drops the rows later in the second of t, also as x >= t AND x <> t. A date range keeps the bound of > one millisecond after t, and stock Cube drops that fraction, so that form keeps a row of a DateTime at t. One form must hold for each type, and /v1/meta does not show the type. <= and BETWEEN give the truth. cube-clickhouse gives the truth."
 - id: native.bound.datetime64_last_second_limit
   area: native
   title: "native SQL with < on a DateTime64"
   status: pass
-  status_stock: partial
+  status_stock: pass
   check: native.bound.datetime64_last_second_limit
-  cap_stock: partial
-  reason_stock: "Known wrong number on stock Cube. Native x >= a AND x < b on a DateTime64 ends at the last whole second before b, so the rows of that second are out. /v1/meta does not show the type of a column, so the driver cannot stop this and leave the same text on a DateTime column. The query builder has the same limit only on a column with a rollup. cube-clickhouse gives the truth."
 - id: compile.raw.switch_dimension_keeps_one_row
   area: mb.compile.raw
   title: "raw rows with a switch dimension"
@@ -8305,6 +8311,12 @@
   status: pass
   status_stock: pass
   check: filter_params.value.expression_in_a_zone_refused
+- id: filter_params.value.native_strict_lower_refused
+  area: cube.context
+  title: "native > on a time that FILTER_PARAMS reads as a value stops"
+  status: pass
+  status_stock: pass
+  check: filter_params.value.native_strict_lower_refused
 - id: filter_params.value.native_date_range
   area: cube.context
   title: "native SQL with a date range reaches a cube that reads it as a value"
@@ -8529,6 +8541,42 @@
   status: pass
   status_stock: pass
   check: compile.join.no_join_path_has_a_clear_message
+- id: native.grammar.analyst_queries
+  area: mb.native
+  title: "thirty native queries of an analyst, at most three refuse"
+  status: pass
+  status_stock: pass
+  check: native.grammar.analyst_queries
+- id: native.grammar.sample
+  area: mb.native
+  title: "a fixed seed of the generator of the allow-list of native SQL gives the truth"
+  status: pass
+  status_stock: pass
+  check: native.grammar.sample
+- id: native.grammar.new_york_time_shapes
+  area: mb.native
+  title: "each shape of a time under a report time zone gives the truth or a clear refusal"
+  status: pass
+  status_stock: pass
+  check: native.grammar.new_york_time_shapes
+- id: native.grammar.docs_list_each_construct
+  area: mb.native
+  title: "the docs list each construct of the allow-list"
+  status: pass
+  status_stock: pass
+  check: native.grammar.docs_list_each_construct
+- id: native.grammar.mutations_refuse
+  area: mb.native
+  title: "a construct outside the allow-list refuses before it reaches Cube"
+  status: pass
+  status_stock: pass
+  check: native.grammar.mutations_refuse
+- id: compile.raw.custom_column_next_to_each_column
+  area: mb.compile.join
+  title: "all columns of a table and a custom column run on each table with many columns"
+  status: pass
+  status_stock: pass
+  check: compile.raw.custom_column_next_to_each_column
 - id: native.scan.adversarial_private_member
   area: mb.native
   title: "adversarial native SQL on a private member, next to ordinary native SQL"

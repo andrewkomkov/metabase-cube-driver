@@ -3444,10 +3444,18 @@ def _(ctx):
 
 @check("compile.native.error_keeps_cube_text")
 def _(ctx):
-    res = ctx.mb.api("POST", "/api/dataset", {"database": ctx.mb.need_db(), "type": "native", "native": {"query": "SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(unique_customers) FROM orders GROUP BY 1", "template-tags": {}}}, ok=(200, 202, 400, 500))
-    text = str(res.get("error") or "")
-    if "Cube cannot plan this query" not in text or "Can't detect Cube query" not in text:
+    """A query on the list that Cube cannot plan keeps the text of Cube after the meaning. EXTRACT stops before Cube, with the form to use."""
+    ensure_table(ctx, TE)
+
+    def error_of(sql):
+        res = ctx.mb.api("POST", "/api/dataset", {"database": ctx.mb.need_db(), "type": "native", "native": {"query": sql, "template-tags": {}}}, ok=(200, 202, 400, 500))
+        return str(res.get("error") or "")
+    text = error_of("SELECT n_str, COUNT(*) FILTER (WHERE NOT (n_str ILIKE 'alp%')) AS total FROM typed_events WHERE n_int BETWEEN 1 AND 9 GROUP BY 1")
+    if "Cube cannot plan" not in text or "Cube said:" not in text:
         raise Fail("error text: %s" % text[:400])
+    text = error_of("SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(unique_customers) FROM orders GROUP BY 1")
+    if "Native SQL on Cube:" not in text or "DATE_TRUNC" not in text:
+        raise Fail("error text of EXTRACT: %s" % text[:400])
 
 
 N("compile.native.cross_join", "SELECT u.city, MEASURE(o.revenue) AS r FROM orders o CROSS JOIN users u GROUP BY 1", "SELECT u.city, sum(o.amount) FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1")
@@ -4276,8 +4284,11 @@ def _(ctx):
 
 @check("mcp.agent.error_join_on")
 def _(ctx):
-    text = agent_error(ctx, "SELECT u.city, MEASURE(o.revenue) FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1")
-    if "CROSS JOIN" not in text or "__cubeJoinField" not in text:
+    """A JOIN on the keys of a join of the data model runs. A JOIN on other columns stops, and the error shows the join form of Cube."""
+    sql = "SELECT u.city, MEASURE(o.revenue) FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1"
+    assert_rows(ctx.mcp.call("execute_sql", database_id=ctx.mb.need_db(), sql=sql)["rows"], ch(REV_BY_CITY))
+    text = agent_error(ctx, "SELECT u.city, MEASURE(o.revenue) FROM orders o JOIN users u ON o.id = u.id GROUP BY 1")
+    if "__cubeJoinField" not in text:
         raise Fail("the error does not show the join form of Cube: %s" % text[:300])
 
 
@@ -5181,7 +5192,7 @@ def _(ctx):
 
 @check("native.bound.strict_lower_refused")
 def _(ctx):
-    """Finding B1 in native SQL. The driver cannot change the text, so it stops the query. Right forms still run."""
+    """Finding B1 in native SQL. The driver writes each form with the meaning of SQL, on each Cube."""
     x, y = "'2025-03-15 05:00:00'", "'2025-03-16 05:00:00'"
     truth = "SELECT count() FROM orders WHERE created_at %s AND created_at %s"
     shapes = [("created_at > %s AND created_at <= %s" % (x, y), "created_at > %s AND created_at <= %s" % (x, y)),
@@ -5199,10 +5210,7 @@ def _(ctx):
               ("%s >= created_at AND %s < created_at" % (y, x), "created_at > %s AND created_at <= %s" % (x, y))]
     for where, cond in shapes:
         sql = "SELECT MEASURE(count) FROM orders WHERE " + where
-        if DIALECT:
-            expect_native_rows(ctx, sql, "SELECT count() FROM orders WHERE " + cond)
-        else:
-            expect_native_refusal(ctx, sql, "next second")
+        expect_native_rows(ctx, sql, "SELECT count() FROM orders WHERE " + cond)
     for lower, upper in ((">= " + x, "<= " + y), (">= " + x, "< " + y), (">= '2025-03-15 05:00:01'", "<= " + y)):
         expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at %s AND created_at %s" % (lower, upper), truth % (lower, upper))
     expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at > %s" % x, "SELECT count() FROM orders WHERE created_at > %s" % x)
@@ -5551,9 +5559,14 @@ def _(ctx):
                   "created_at >= TIMESTAMP '2025-04-15 00:00:00'", "created_at BETWEEN '2025-04-15 00:00:00' AND '2025-05-31 23:59:59'",
                   "'2025-04-15' <= created_at AND created_at < '2025-06-01'", "(created_at) >= '2025-04-15'"):
         expect_native_refusal(ctx, "SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_trailing_30d) FROM orders WHERE %s GROUP BY 1" % where, "Use a filter on whole months")
-    # The shapes that the scan cannot read as a bound stop too.
+    # The shapes that the scan cannot read as a bound stop too: the grammar stops a function that is not on its list, and the scan stops the others.
     for where in ("created_at IN ('2025-04-15', '2025-05-15')", "toDate(created_at) >= '2025-04-15'", "EXTRACT(MONTH FROM created_at) = 4"):
-        expect_native_refusal(ctx, "SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_trailing_30d) FROM orders WHERE %s GROUP BY 1" % where, "cannot read")
+        sql = "SELECT DATE_TRUNC('month', created_at), MEASURE(revenue_trailing_30d) FROM orders WHERE %s GROUP BY 1" % where
+        rows, error = native_outcome(ctx, sql)
+        if error is None:
+            raise Fail("no refusal for %s: it gave %s" % (sql[:120], rows[:3]))
+        if "cannot read" not in error and "Native SQL on Cube:" not in error:
+            raise Fail("the error for %s is not a refusal of the driver: %s" % (sql[:120], error[:300]))
     res = ctx.mcp.rpc("tools/call", {"name": "execute_sql", "arguments": {"database_id": ctx.mb.need_db(), "sql": "SELECT MEASURE(revenue_trailing_30d) FROM orders"}})
     if not res.get("isError"):
         raise Fail("MCP execute_sql gave no refusal: %s" % str(res)[:200])
@@ -5589,14 +5602,17 @@ def _(ctx):
 
 @check("native.subquery_filter_refused")
 def _(ctx):
-    """B2 and B4 in native SQL: an outer filter over a subquery. The driver cannot change the text, so it stops the query. A limit in the subquery gives the truth."""
+    """B2 and B4 in native SQL: an outer filter over a subquery. The driver adds the limit that gives the truth. A filter on a measure column of raw rows stops."""
     month = "SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue) AS r FROM orders GROUP BY 1"
-    expect_native_refusal(ctx, "SELECT * FROM (%s) AS s WHERE m <= '2025-05-01'" % month, "LIMIT 2147483647")
-    expect_native_refusal(ctx, "SELECT * FROM (%s) s WHERE r > 100" % month, "LIMIT 2147483647")
-    expect_native_refusal(ctx, "WITH c AS (%s) SELECT * FROM c WHERE m <= '2025-05-01'" % month, "LIMIT 2147483647")
+    expect_native_rows(ctx, "SELECT * FROM (%s) AS s WHERE m <= '2025-05-01'" % month,
+                       "SELECT toStartOfMonth(created_at) AS m, sum(amount) FROM orders GROUP BY m HAVING m <= '2025-05-01'")
+    expect_native_rows(ctx, "SELECT * FROM (%s) s WHERE r > 100" % month,
+                       "SELECT toStartOfMonth(created_at) AS m, sum(amount) AS r FROM orders GROUP BY m HAVING r > 100")
+    expect_native_rows(ctx, "WITH c AS (%s) SELECT * FROM c WHERE m <= '2025-05-01'" % month,
+                       "SELECT toStartOfMonth(created_at) AS m, sum(amount) FROM orders GROUP BY m HAVING m <= '2025-05-01'")
     expect_native_rows(ctx, "SELECT * FROM (%s LIMIT 2147483647) AS s WHERE m <= '2025-05-01'" % month,
                        "SELECT toStartOfMonth(created_at) AS m, sum(amount) FROM orders GROUP BY m HAVING m <= '2025-05-01'")
-    expect_native_refusal(ctx, "SELECT SUM(revenue) FROM (SELECT id, revenue FROM orders) AS s WHERE revenue > 100", "filter on the aggregate")
+    expect_native_refusal(ctx, "SELECT MEASURE(revenue) FROM (SELECT id, revenue FROM orders) AS s WHERE revenue > 100", "filter on the aggregate")
     # With no filter on a measure, a subquery of raw rows gives the truth, and so does an outer filter on a dimension.
     expect_native_rows(ctx, "SELECT MEASURE(revenue) FROM (SELECT status, revenue FROM orders) AS s WHERE status = 'shipped'",
                        "SELECT sum(amount) FROM orders WHERE status = 'shipped'")
@@ -5604,37 +5620,56 @@ def _(ctx):
 
 @check("native.bound.alias_in_a_subquery")
 def _(ctx):
-    """The scan reads an alias of a time column too."""
+    """The grammar reads an alias of a time column too."""
     sql = ("SELECT MEASURE(revenue) FROM (SELECT created_at AS c, revenue FROM orders) AS s WHERE c > '2025-03-15 05:00:00' AND c <= '2025-03-16 05:00:00'")
     truth = "SELECT sum(amount) FROM orders WHERE created_at > '2025-03-15 05:00:00' AND created_at <= '2025-03-16 05:00:00'"
-    if DIALECT:
-        expect_native_rows(ctx, sql, truth)
-    else:
-        expect_native_refusal(ctx, sql, "next second")
+    expect_native_rows(ctx, sql, truth)
 
 
 @check("native.bound.datetime64_last_second_limit")
 def _(ctx):
-    """On stock Cube, native `x >= a AND x < b` on a DateTime64 ends at the last whole second before b, and /v1/meta does not show the type. The dialect gives the truth."""
+    """On stock Cube, a date range of `x >= a AND x < b` on a DateTime64 ends at the last whole second before b. The driver writes a form that Cube does not merge, so native SQL gives the truth on each Cube with no rollup on that column."""
     ensure_table(ctx, TE)
     cond = "ts64_berlin >= '2025-03-01 06:00:00' AND ts64_berlin < '2025-03-01 08:00:01'"
     sql = "SELECT MEASURE(count) FROM typed_events WHERE " + cond
     truth = ch("SELECT count() FROM typed_events WHERE ts64_berlin >= toDateTime64('2025-03-01 06:00:00', 3, 'UTC') AND ts64_berlin < toDateTime64('2025-03-01 08:00:01', 3, 'UTC')")
     got = ctx.mb.native(sql)["rows"]
-    if DIALECT:
-        assert_rows(got, truth)
-    elif got[0][0] != truth[0][0] - 1:
-        raise Fail("stock Cube gave %s, truth %s. If this is the truth, give this entry its full status" % (got, truth))
+    assert_rows(got, truth)
+
+
+@check("native.bound.datetime64_upper_and_strict_lower")
+def _(ctx):
+    """A bound at a whole second on a DateTime64, with a row later in that second. `<=` and BETWEEN give the truth on each Cube. Once a filter on the column is not a date range, stock Cube compares the column at
+    whole seconds, so `x > t` drops the rows of the second of t. Each form of `x > t` reads it so on stock Cube, which stays a known wrong number. The dialect gives the truth."""
+    ensure_table(ctx, TE)
+    a, b = "2025-03-09 09:00:00", "2025-03-30 12:00:00"
+    lit = "toDateTime64('%s', 3, 'UTC')"
+    exact = [("ts64_berlin BETWEEN '%s' AND '%s'" % (a, b), "ts64_berlin BETWEEN %s AND %s" % (lit % a, lit % b)),
+             ("ts64_berlin >= '%s' AND ts64_berlin <= '%s'" % (a, b), "ts64_berlin >= %s AND ts64_berlin <= %s" % (lit % a, lit % b)),
+             ("ts64_berlin <= '%s'" % b, "ts64_berlin <= %s" % (lit % b)),
+             ("ts64_berlin <= '%s' AND id > 0" % b, "ts64_berlin <= %s AND id > 0" % (lit % b))]
+    strict = [("ts64_berlin > '%s'" % b, "ts64_berlin > %s" % (lit % b)),
+              ("ts64_berlin > '%s' AND ts64_berlin <= '%s'" % (a, b), "ts64_berlin > %s AND ts64_berlin <= %s" % (lit % a, lit % b))]
+    for select, truth_select in (("MEASURE(count), MAX(id)", "count(), max(id)"), ("COUNT(*), MAX(id + 0)", "count(), max(id + 0)")):
+        for where, cond in exact + (strict if DIALECT else []):
+            expect_native_rows(ctx, "SELECT %s FROM typed_events WHERE %s" % (select, where), "SELECT %s FROM typed_events WHERE %s" % (truth_select, cond))
+        if not DIALECT:
+            for where, cond in strict:
+                got = ctx.mb.native("SELECT %s FROM typed_events WHERE %s" % (select, where))["rows"]
+                want = ch("SELECT %s FROM typed_events WHERE %s" % (truth_select, cond.replace("ts64_berlin", "toStartOfSecond(ts64_berlin)")))
+                assert_rows(got, want)
 
 
 @check("native.between_date_text_refused")
 def _(ctx):
-    """Finding B7: Cube pads a date with no time at the end of a date range, which is documented for its REST API, and SQL reads it as midnight."""
-    needle = "BETWEEN"
+    """Finding B7: Cube pads a date with no time at the end of a date range, which is documented for its REST API, and SQL reads it as midnight. The driver writes the time."""
     a, b = "'2025-03-11'", "'2025-04-13'"
-    for where in ("created_at BETWEEN %s AND %s" % (a, b), "created_at NOT BETWEEN %s AND %s" % (a, b), "created_at between '2025-03-11 00:00:00' and %s" % b,
-                  "(created_at) BETWEEN (%s) AND (%s)" % (a, b), "created_at BETWEEN CAST(%s AS TEXT) AND CAST(%s AS TEXT)" % (a, b)):
-        expect_native_refusal(ctx, "SELECT MEASURE(count) FROM orders WHERE " + where, needle)
+    for where, cond in (("created_at BETWEEN %s AND %s" % (a, b), "created_at BETWEEN %s AND %s" % (a, b)),
+                        ("created_at NOT BETWEEN %s AND %s" % (a, b), "created_at NOT BETWEEN %s AND %s" % (a, b)),
+                        ("created_at between '2025-03-11 00:00:00' and %s" % b, "created_at BETWEEN %s AND %s" % (a, b)),
+                        ("(created_at) BETWEEN (%s) AND (%s)" % (a, b), "created_at BETWEEN %s AND %s" % (a, b)),
+                        ("created_at BETWEEN CAST(%s AS TEXT) AND CAST(%s AS TEXT)" % (a, b), "created_at BETWEEN %s AND %s" % (a, b))):
+        expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE " + where, "SELECT count() FROM orders WHERE " + cond)
     for where in ("created_at BETWEEN '2025-03-11 00:00:00' AND '2025-04-13 00:00:00'", "created_at >= %s AND created_at <= %s" % (a, b),
                   "created_at >= %s AND created_at < %s" % (a, b), "created_at <= %s" % b):
         expect_native_rows(ctx, "SELECT MEASURE(count) FROM orders WHERE " + where, "SELECT count() FROM orders WHERE " + where)
@@ -6021,6 +6056,12 @@ def _(ctx):
     raise Fail("native SQL gave rows: %s" % str(data["rows"])[:200])
 
 
+@check("filter_params.value.native_strict_lower_refused")
+def _(ctx):
+    """`>` on a time that the SQL of a cube reads through FILTER_PARAMS has a form that is not a date range, so Cube gives no value. It stops with the form to use."""
+    expect_native_refusal(ctx, "SELECT MEASURE(revenue) FROM %s WHERE createdAt > '2025-01-01T00:00:00' AND createdAt < '2025-03-10T00:00:00'" % FV, "FILTER_PARAMS")
+
+
 N("filter_params.value.native_date_range", "SELECT MEASURE(revenue) FROM %s WHERE createdAt >= '2025-01-01T00:00:00' AND createdAt < '2025-03-10T00:00:00'" % FV,
   "SELECT sum(amount) FROM orders WHERE " + FV_IN_RANGE % "created_at")
 
@@ -6108,6 +6149,100 @@ def _(ctx):
         raise Fail("%d of %d queries fail: %s" % (len(report["failures"]), report["count"], json.dumps(first)[:600]))
     if report["refusal_rate"] > 0.25:
         raise Fail("the refusal rate is %.1f%%, above the limit of 25%%" % (100 * report["refusal_rate"]))
+
+
+def native_grammar_runner(ctx):
+    compact_context(ctx)
+    sys.path.insert(0, os.path.join(REPO, "dev", "fuzz"))
+    sys.path.insert(0, os.path.join(REPO, "dev", "review"))
+    import fuzz_native  # noqa: PLC0415
+
+    return fuzz_native, fuzz_native.Runner(ctx.review_mb, ctx.mb.need_db(), not DIALECT)
+
+
+@check("native.grammar.analyst_queries")
+def _(ctx):
+    """Thirty native queries of an analyst, written before the grammar. At most three refuse, each for a real limit, and each other one gives the truth."""
+    compact_context(ctx)
+    sys.path.insert(0, os.path.join(REPO, "dev", "fuzz"))
+    import analyst  # noqa: PLC0415
+
+    for table in ("orders", "users", "products", "sales"):
+        ensure_table(ctx, table)
+    results = analyst.run(ctx.review_mb, ctx.mb.need_db())
+    refused = [r for r in results if r[1] == "refused"]
+    print("         %d queries, %d refused: %s" % (len(results), len(refused), ", ".join(r[0] for r in refused)))
+    bad = [r for r in results if r[1] not in ("pass", "refused") or (r[1] == "refused" and r[0] not in analyst.LIMITS)]
+    if bad or len(refused) > analyst.MAX_REFUSALS or len(results) != 30:
+        raise Fail("%d differ: %s" % (len(bad), json.dumps(bad[:4])[:700]))
+
+
+@check("native.grammar.sample")
+def _(ctx):
+    """A fixed seed of the generator of the grammar. Each query gives the truth from ClickHouse. Under a report time zone, a clear refusal also passes."""
+    for table in ("orders", "users", "products", "sales", "payments", "typed_events", "orphan_orders", "orphan_customers"):
+        ensure_table(ctx, table)
+    fuzz_native, runner = native_grammar_runner(ctx)
+    report = fuzz_native.run_seed(runner, "conformance", 150, 2, lambda _text: None)
+    print("         %s" % json.dumps(report["counts"], sort_keys=True))
+    if report["failures"]:
+        first = [{k: f.get(k) for k in ("query", "verdict", "diff", "error")} for f in report["failures"][:4]]
+        raise Fail("%d of %d queries fail: %s" % (len(report["failures"]), report["count"], json.dumps(first)[:900]))
+
+
+@check("native.grammar.new_york_time_shapes")
+def _(ctx):
+    """Each shape of a time under a report time zone, in FILTER, HAVING, a bound, OR, NOT and a list, gives the truth or a clear refusal. Seven of 71 such shapes were wrong through the old scan of tokens."""
+    fuzz_native, runner = native_grammar_runner(ctx)
+    runner.zone = None
+    results = {zone: fuzz_native.run_zone_cases(runner, zone, lambda _text: None) for zone in ("America/New_York", "Asia/Kathmandu")}
+    print("         %s" % json.dumps({zone: result["counts"] for zone, result in results.items()}, sort_keys=True))
+    failures = [f for result in results.values() for f in result["failures"]]
+    if failures:
+        raise Fail("%d fail: %s" % (len(failures), json.dumps([{k: f.get(k) for k in ("query", "verdict", "diff", "error")} for f in failures[:4]])[:900]))
+
+
+@check("native.grammar.mutations_refuse")
+def _(ctx):
+    """A construct outside the allow-list refuses with a clear message before it reaches Cube."""
+    fuzz_native, runner = native_grammar_runner(ctx)
+    report = fuzz_native.run_mutations(runner, "conformance", 200, 2, lambda _text: None)
+    print("         %s" % json.dumps(report["counts"], sort_keys=True))
+    if report["failures"]:
+        raise Fail("%d of %d ran: %s" % (len(report["failures"]), report["count"], json.dumps(report["failures"][:4])[:900]))
+
+
+@check("native.grammar.docs_list_each_construct")
+def _(ctx):
+    """The table of the allow-list in docs/query-compilation.md has each construct of the grammar, and no other one."""
+    fuzz_native, _runner = native_grammar_runner(ctx)
+    with open(os.path.join(REPO, "docs", "query-compilation.md")) as handle:
+        text = handle.read()
+    shown = set(re.findall(r"^\| `([\w-]+/[\w-]+)` \|", text[text.index("<!-- allow-list:start -->"):text.index("<!-- allow-list:end -->")], flags=re.M))
+    print("         %d constructs" % len(shown))
+    if shown != fuzz_native.allow_list():
+        raise Fail("the docs differ: %s" % sorted(shown ^ fuzz_native.allow_list()))
+
+
+@check("compile.raw.custom_column_next_to_each_column")
+def _(ctx):
+    """All columns of `orders` and a custom column restarted Cube, 8 of 8. Next to an expression, each cast of NULL grew the rewrite graph. Ten casts stopped on its limit, and 20 restarted Cube. This holds on each table with many columns."""
+    checked = []
+    for name in ("orders", "sales", "metric_types", "users"):
+        ensure_table(ctx, name)
+        table = ctx.mb.table(name)
+        field = next(f for f in table["fields"] if f["name"].lower() == "id")
+        res = ctx.mb.api("POST", "/api/dataset", {"database": ctx.mb.need_db(), "type": "query", "query": {"source-table": table["id"], "expressions": {"X": ["+", ["field", field["id"], None], 1]}, "limit": 3}}, ok=(200, 202, 400, 500))
+        if res.get("error"):
+            raise Fail("%s: %s" % (name, str(res["error"])[:300]))
+        cols = [c["name"] for c in res["data"]["cols"]]
+        at = cols.index("X")
+        id_at = [c.lower() for c in cols].index("id")
+        for row in res["data"]["rows"]:
+            if row[at] != row[id_at] + 1:
+                raise Fail("%s: X is %s for id %s" % (name, row[at], row[id_at]))
+        checked.append("%s %d" % (name, len(cols)))
+    print("         " + ", ".join(checked))
 
 
 @check("demo.lambda_cube_is_hidden")
@@ -6396,14 +6531,11 @@ _B1_TRUTH = "SELECT count() FROM orders WHERE created_at > '2025-03-15 05:00:00'
 
 @check("dialect.b1_strict_lower_bound")
 def _(ctx):
-    """B1. The driver keeps the query builder right on each Cube. With the dialect, native SQL runs, and on stock Cube the driver stops it."""
+    """B1. The driver keeps the query builder and native SQL right on each Cube."""
     query = ctx.mb.inner(ORD, agg=["m:orders.count"], where=[[">", CRT, "2025-03-15T05:00:00"], ["<=", CRT, "2025-03-16T05:00:00"]])
     expect_rows(ctx, query, _B1_TRUTH, "query builder")
     sql = "SELECT MEASURE(count) FROM orders WHERE created_at > '2025-03-15 05:00:00' AND created_at <= '2025-03-16 05:00:00'"
-    if DIALECT:
-        expect_native_rows(ctx, sql, _B1_TRUTH)
-    else:
-        expect_native_refusal(ctx, sql, "next second")
+    expect_native_rows(ctx, sql, _B1_TRUTH)
 
 
 @check("dialect.interval_in_native_sql")
@@ -8858,9 +8990,12 @@ def _(ctx):
         sql_rows, sql_error = native_outcome(ctx, "SELECT MAX(%s) FROM %s" % (name, table))
         if not sql_error:
             leaks.append("%s native: %s" % (table, sql_rows[:2]))
-        star_rows, star_error = native_outcome(ctx, "SELECT * FROM %s LIMIT 1" % table)
-        if not star_error:
-            leaks.append("%s native star: %s" % (table, star_rows[:1]))
+        # A star is the public columns, written out by the driver: no column of the result has the name of the private member.
+        star = ctx.mb.api("POST", "/api/dataset", {"database": ctx.mb.need_db(), "type": "native", "native": {"query": "SELECT * FROM %s LIMIT 1" % table, "template-tags": {}}}, ok=(200, 202, 400, 403, 500))
+        if not (star.get("error") or star.get("message")):
+            names = [c["name"].lower() for c in star["data"]["cols"]]
+            if name.lower() in names:
+                leaks.append("%s native star has the column %s: %s" % (table, name, star["data"]["rows"][:1]))
         for form in ('SELECT p."%s" FROM %s p LIMIT 1', "WITH c AS (SELECT %s AS v FROM %s) SELECT MAX(v) FROM c"):
             rows2, error2 = native_outcome(ctx, form % (name, table))
             if not error2:

@@ -1,0 +1,2 @@
+# The real parser of the round trip in fuzz_native.py: libpg_query, the parser of PostgreSQL.
+pglast==8.7

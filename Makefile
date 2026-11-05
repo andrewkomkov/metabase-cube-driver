@@ -2,7 +2,7 @@
 package:
 	sh scripts/package.sh
 
-.PHONY: up down load-check conformance conformance-down grid fuzz production tools lint docs
+.PHONY: up down load-check conformance conformance-down grid fuzz fuzz-native production tools lint docs
 up: package
 	cd dev && docker compose up -d --wait clickhouse cube cube-secure mail
 	cd dev && docker compose up -d metabase
@@ -24,6 +24,10 @@ grid:
 # Random queries against a truth from ClickHouse. See dev/fuzz/README.md.
 fuzz:
 	SEED="$(SEED)" COUNT="$(COUNT)" sh dev/fuzz/fuzz.sh $(ARGS)
+
+# The generator of the allow-list of native SQL, on Cube with the dialect, stock Cube and Cube in production mode. See dev/fuzz/README.md.
+fuzz-native:
+	SEED="$(SEED)" COUNT="$(COUNT)" sh dev/fuzz/fuzz_native.sh $(ARGS)
 
 # A sample of the review shapes on Cube with dev mode off and Cube Store. See dev/review/README.md.
 production:
@@ -47,6 +51,7 @@ lint:
 	docker compose -f dev/docker-compose.yml config -q
 	docker compose -f dev/docker-compose.yml -f dev/docker-compose.conformance.yml config -q
 	docker compose -f dev/docker-compose.yml -f dev/docker-compose.production.yml config -q
+	docker compose -f dev/docker-compose.yml -f dev/docker-compose.production.yml -f dev/docker-compose.grid.yml -f dev/fuzz/docker-compose.native.yml config -q
 
 docs:
 	python3 -m pip install -r docs/requirements.txt

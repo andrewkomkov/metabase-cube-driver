@@ -69,3 +69,51 @@ jobs:
       - name: Stop the stack
         if: always()
         run: docker compose -p mcd-fuzz -f dev/docker-compose.yml -f dev/fuzz/docker-compose.fuzz.yml down -v
+
+  # The generator of the allow-list of native SQL, on three paths of Cube, with the mutations and the round trip through a real parser.
+  native-grammar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install the real parser
+        run: python -m pip install -r dev/fuzz/requirements.txt
+      - name: Run the generator
+        id: run
+        env:
+          SEED: ${{ inputs.seed || github.run_id }}
+          COUNT: "1000"
+        run: |
+          echo "seed=$SEED" >> "$GITHUB_OUTPUT"
+          make fuzz-native SEED="$SEED" COUNT="$COUNT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: native-grammar-report
+          path: dev/fuzz/out
+          retention-days: 30
+      - name: Open one issue
+        if: failure() && steps.run.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SEED: ${{ steps.run.outputs.seed }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          body="Seed $SEED of the grammar of native SQL fails: $RUN_URL. The artifact native-grammar-report has the report."
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "fuzz: a native query fails in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "fuzz: a native query fails" --body "$body"
+          fi
+      - name: Stop the stack
+        if: always()
+        run: docker compose -p mcd-native -f dev/docker-compose.yml -f dev/docker-compose.production.yml -f dev/docker-compose.grid.yml -f dev/fuzz/docker-compose.native.yml down -v
