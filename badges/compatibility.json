@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "label": "compatibility",
-  "message": "6 of 6 version pairs pass",
-  "color": "brightgreen"
+  "message": "4 of 12 version pairs pass",
+  "color": "yellow"
 }
