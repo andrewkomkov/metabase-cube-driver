@@ -38,7 +38,7 @@
    :value/cast-text         "CAST(x AS text or varchar) of a text"
    :value/time-interval     "A time + or - INTERVAL 'n unit', with the dialect and with no report time zone"
    :value/cast-time         "CAST(x AS timestamp) of a time column, which is that column"
-   :value/cast-date         "CAST(x AS date) of a time: DATE_TRUNC('day', x)"
+   :value/cast-date         "CAST(x AS date), x::date or DATE(x) of a time: DATE_TRUNC('day', x)"
    :fn/date-trunc           "DATE_TRUNC with a unit in a literal, on a time"
    :fn/number               "ABS, ROUND, FLOOR, CEIL, CEILING"
    :fn/null                 "COALESCE, NULLIF"
@@ -371,6 +371,20 @@
               (refuse! (format "MEASURE() of %s, which is not a measure" (source-text arg)) "Use an aggregation."))
             (swap! (:measures env) conj {:column (:column col), :source (:source col), :col col})
             {:type (or (:kind col) :number), :agg? true, :measure col})))
+
+      ;; DATE(x) is CAST(x AS date) in Postgres. The day of a time, in the report time zone, as for the cast.
+      "date"
+      (do
+        (arity! 1 1)
+        (let [inner (unwrapped (first args))]
+          (when-not (= :name (:k inner))
+            (refuse! (str "DATE of an expression: " (source-text node)) "Use DATE(x) of a time column, or DATE 'yyyy-mm-dd' for a literal."))
+          (let [argument (value inner env)]
+            (when-not (= :time (:type argument))
+              (refuse! (format "DATE of a %s" (name (:type argument)))))
+            (use! :value/cast-date)
+            (edit! (:s node) (:e node) (format "DATE_TRUNC('day', %s)" (source-text inner)))
+            {:type :time})))
 
       "date_trunc"
       (do

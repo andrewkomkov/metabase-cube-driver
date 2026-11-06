@@ -113,6 +113,8 @@ An aggregation of a dimension or a count of rows has the number of a SQL join. C
 
 Native SQL has no stage that the driver can write, so such an aggregation stops with a message. Write the two stages in the text: `SELECT SUM(id * c) FROM (SELECT u.id, COUNT(*) c FROM users u CROSS JOIN orders o WHERE u.__cubeJoinField = o.__cubeJoinField GROUP BY 1 LIMIT 2147483647) t`.
 
+A dimension of a view that comes from a joined cube has the same protection, so `SUM(users_id)` over `paid_sales` would read each user once. In native SQL it stops, and the message gives the exact form with a count measure of the view: `SELECT SUM(users_id * n), SUM(n) FROM (SELECT users_id, MEASURE(count) AS n FROM paid_sales GROUP BY 1) t` gives 199140 and 2000, as ClickHouse does. A `WHERE` goes inside the subquery. The query builder writes this form itself.
+
 A view with a one to many join from the cube where it starts has no one set of rows, because Cube joins only the cubes of the columns of a query. On such a view, a count of rows and an aggregation of a dimension stop with a message. A measure of the view runs.
 
 ### Custom granularities
@@ -249,7 +251,7 @@ A saved native question as a stage reads the same path. With no data model from 
 | `select/star` | * or t.*: the public dimensions, written out by the driver | 57 |
 | `value/arithmetic` | + - * % and unary minus on numbers | 165 |
 | `value/case` | CASE WHEN ... THEN ... ELSE ... END, and CASE x WHEN | 151 |
-| `value/cast-date` | CAST(x AS date) of a time: DATE_TRUNC('day', x) | 20 |
+| `value/cast-date` | CAST(x AS date), x::date or DATE(x) of a time: DATE_TRUNC('day', x) | 20 |
 | `value/cast-number` | CAST(x AS numeric, decimal, double precision, real or float), and x::numeric | 196 |
 | `value/cast-text` | CAST(x AS text or varchar) of a text | 31 |
 | `value/cast-time` | CAST(x AS timestamp) of a time column, which is that column | 50 |
@@ -280,7 +282,7 @@ The acceptance test is `dev/fuzz/analyst.py`: 30 queries of an analyst on the de
 | A column with no alias next to an expression | Stops with `Schema contains duplicate qualified field name`. | `x AS x`. |
 | `CAST(NULL AS t)` | Grows the rewrite graph next to an expression. Twenty restart Cube. | `NULL`. |
 | `CAST(x AS numeric)` of a column | Writes it with no Nullable, and a scale that ClickHouse can stop on. | `x`. |
-| `CAST(x AS date)` of a time | Is not on the list of functions for each path. | `DATE_TRUNC('day', x)`. |
+| `CAST(x AS date)` or `DATE(x)` of a time | Is not on the list of functions for each path. | `DATE_TRUNC('day', x)`. |
 | `a JOIN b ON` the keys of a join of the model | Stops with `Can't detect Cube query`. | `a JOIN b ON a.__cubeJoinField = b.__cubeJoinField`. |
 | `a JOIN b` | Reads a left join, so rows with no match stay: 10 where the truth is 6. | Adds `b.key IS NOT NULL` to `WHERE`. If this key is private, the query stops. |
 | `a CROSS JOIN b WHERE a.__cubeJoinField = b.__cubeJoinField`, also a comma | Next to an expression in `WHERE`, gives no rows: 0 where the truth is 2408. | `a LEFT JOIN b ON ...`, as the docs of Cube read this form. |

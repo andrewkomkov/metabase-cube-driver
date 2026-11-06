@@ -608,6 +608,12 @@ class Mcp:
         self.connect()
         self.next_id += 1
         status, text, _ = http("POST", MB + MCP_PATH, {"jsonrpc": "2.0", "id": self.next_id, "method": method, "params": params or {}}, self.headers)
+        if status == 401 and "Invalid bearer token" in text:
+            # The access token of Metabase expires during a long run. A client gets a new one, as an MCP client does.
+            self.headers = None
+            self.ui = None
+            self.connect()
+            status, text, _ = http("POST", MB + MCP_PATH, {"jsonrpc": "2.0", "id": self.next_id, "method": method, "params": params or {}}, self.headers)
         if status != 200:
             raise Fail("%s: HTTP %s %s" % (method, status, text[:300]))
         msg = _sse(text)
@@ -4611,8 +4617,11 @@ def _(ctx):
     assert_rows(sec.person("alice@example.com").native(sql)["rows"], city_rev("Austin"), label="analyst")
     try:
         rows = sec.person("bob@example.com").native(sql)["rows"]
-    except Fail:
+    except Fail as e:
         rows = []
+        text = getattr(e, "body", str(e))
+        if "hides it from this person" not in text:
+            raise Fail("the message for a person outside the group does not name the cause: %s" % text[:300])
     if rows:
         raise Fail("a person outside the group reads %s" % rows)
     if "analyst_sales" not in sec._admin(SECURE_DB).tables:
@@ -4753,6 +4762,132 @@ def _(ctx):
                     raise Fail("%s got a result from the cache on a dashboard on per-person data" % email)
     finally:
         admin.api("DELETE", "/api/cache", {"model": "root", "model_id": [0]})
+
+
+FINGERPRINT_SQL = "SELECT u.city, MEASURE(o.revenue) AS revenue FROM orders o JOIN users u ON o.user_id = u.id GROUP BY 1"
+FINGERPRINT_ROWS_SQL = "SELECT city, email FROM users"
+
+
+def fingerprints(obj):
+    """Each non-empty fingerprint in an API response, as (column name, fingerprint)."""
+    found = []
+
+    def walk(x):
+        if isinstance(x, dict):
+            for k, v in x.items():
+                if k == "fingerprint":
+                    if v:
+                        found.append((x.get("name"), v))
+                else:
+                    walk(v)
+        elif isinstance(x, list):
+            for i in x:
+                walk(i)
+    walk(obj)
+    return found
+
+
+def assert_no_card_fingerprint(mb, card_id, who):
+    """A person reads the stored metadata of a card with no run. A fingerprint there comes from the rows of the last run."""
+    for path in ("/api/card/%d" % card_id, "/api/table/card__%d/query_metadata" % card_id):
+        found = fingerprints(mb.api("GET", path))
+        if found:
+            raise Fail("%s reads a fingerprint with no run, GET %s: %s" % (who, path, json.dumps(found)[:300]))
+
+
+def fingerprint_cards(admin):
+    db = admin.need_db()
+    return [admin.card("fingerprint", {"database": db, "type": "native", "native": {"query": FINGERPRINT_SQL, "template-tags": {}}})["id"],
+            admin.card("fingerprint rows", {"database": db, "type": "native", "native": {"query": FINGERPRINT_ROWS_SQL, "template-tags": {}}})["id"],
+            admin.mbql_card("fingerprint mbql", "sales", agg=["m:sales.revenue"], by=["d:sales.users_city"])["id"],
+            admin.mbql_card("fingerprint model", "sales", kind="model", agg=["m:sales.revenue"], by=["d:sales.users_city"])["id"]]
+
+
+@check("security.card_fingerprints")
+def _(ctx):
+    """Metabase stores a fingerprint of the result of a saved question: min, max, quartiles, average and distinct counts.
+    Each reader of the card gets it with no run. On per-person data, it holds rows of the person who ran it last."""
+    sec = secure(ctx)
+    admin = sec._admin(SECURE_DB)
+    bob = sec.person("bob@example.com")
+    alice = sec.person("alice@example.com")
+    cards = fingerprint_cards(admin)
+    native, rows, mbql, model = cards
+    for card in cards:
+        res = admin.api("POST", "/api/card/%d/query" % card, {"parameters": []})
+        if res.get("error"):
+            raise Fail("admin run of card %d failed: %s" % (card, str(res["error"])[:300]))
+        found = fingerprints(res["data"].get("results_metadata"))
+        if found:
+            raise Fail("the run of admin returns a fingerprint, and a save posts it back as the card metadata: %s" % json.dumps(found)[:300])
+    for card in cards:
+        assert_no_card_fingerprint(bob, card, "bob after a run of admin")
+    assert_rows(bob.run_card(native)["rows"], city_rev("Boston"), label="bob")
+    for card in cards:
+        bob.run_card(card)
+    for card in cards:
+        assert_no_card_fingerprint(alice, card, "alice after a run of bob")
+    data = bob.raw({"source-table": "card__%d" % model})
+    found = fingerprints(data.get("cols")) + fingerprints(data.get("results_metadata"))
+    if found:
+        raise Fail("a question of bob on the model returns a fingerprint: %s" % json.dumps(found)[:300])
+    assert_rows(data["rows"], city_rev("Boston"), label="bob on the model")
+
+
+@check("security.card_fingerprints_cleared")
+def _(ctx):
+    """A card saved before the driver stopped the fingerprints still has them. Sync removes them."""
+    sec = secure(ctx)
+    admin = sec._admin(SECURE_DB)
+    card = admin.card("old fingerprint", {"database": admin.need_db(), "type": "native", "native": {"query": FINGERPRINT_SQL, "template-tags": {}}})
+    # The driver stores no metadata from a run on this connection now, so the metadata of the run stands for the old card.
+    cols = admin.run_card(card["id"])["results_metadata"]["columns"]
+    if not cols:
+        raise Fail("the run has no result metadata")
+    for col in cols:
+        col["fingerprint"] = {"global": {"distinct-count": 4, "nil%": 0.0}}
+    admin.api("PUT", "/api/card/%d" % card["id"], {"result_metadata": cols})
+    if not fingerprints(admin.api("GET", "/api/card/%d" % card["id"])):
+        raise Fail("Metabase does not keep a fingerprint that the API writes, so this check shows nothing")
+    admin.api("POST", "/api/database/%d/sync_schema" % admin.need_db())
+    deadline = time.time() + 180
+    while fingerprints(admin.api("GET", "/api/card/%d" % card["id"])):
+        if time.time() > deadline:
+            raise Fail("the sync did not remove the stored fingerprint")
+        time.sleep(3)
+
+
+@check("isolation.other_db_card_fingerprint")
+def _(ctx):
+    """On a Cube connection with one user for all people, Metabase keeps the fingerprint of a card as before."""
+    card = ctx.mb.card("fingerprint control", {"database": ctx.mb.need_db(), "type": "native",
+                                               "native": {"query": "SELECT status, MEASURE(revenue) AS revenue FROM orders GROUP BY 1", "template-tags": {}}})
+    ctx.mb.run_card(card["id"])
+    deadline = time.time() + 60
+    while not fingerprints(ctx.mb.api("GET", "/api/card/%d" % card["id"])):
+        if time.time() > deadline:
+            raise Fail("a card on a connection with no per-person data has no fingerprint after a run")
+        time.sleep(2)
+
+
+@check("native.view_joined_dimension_weighted")
+def _(ctx):
+    """SUM of a dimension of a view that comes from a joined cube reads each row of that cube once. Native SQL stops, and
+    the message gives the weighted form, which is exact."""
+    expect_failure(lambda: ctx.mb.native("SELECT SUM(users_id) FROM paid_sales"), "SUM(users_id * n), SUM(n) FROM (SELECT users_id, MEASURE(count) AS n FROM paid_sales")
+    assert_rows(ctx.mb.native("SELECT SUM(users_id * n), SUM(n), SUM(users_id * n) / SUM(n) FROM (SELECT users_id, MEASURE(count) AS n FROM paid_sales GROUP BY 1) t")["rows"],
+                ch("SELECT sum(user_id), count(), avg(user_id) FROM orders WHERE status = 'completed'"), label="weighted")
+    assert_rows(ctx.mb.native("SELECT SUM(users_id * n) FROM (SELECT users_id, MEASURE(count) AS n FROM paid_sales WHERE users_city = 'Austin' GROUP BY 1) t")["rows"],
+                ch("SELECT sum(o.user_id) FROM orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed' AND u.city = 'Austin'"), label="weighted with a filter")
+
+
+@check("native.date_function")
+def _(ctx):
+    """DATE(x) is CAST(x AS date) in Postgres."""
+    sql = "SELECT DATE(created_at) AS d, COUNT(*) AS n FROM orders WHERE DATE(created_at) >= '2025-03-01' GROUP BY 1 ORDER BY 1 LIMIT 5"
+    got = [[str(r[0])[:10], r[1]] for r in ctx.mb.native(sql)["rows"]]
+    want = [[str(r[0])[:10], r[1]] for r in ch("SELECT toDate(created_at, 'UTC') AS d, count() FROM orders WHERE toDate(created_at, 'UTC') >= '2025-03-01' GROUP BY d ORDER BY d LIMIT 5")]
+    assert_rows(got, want, label="DATE(x)")
 
 
 # ----------------------------------------------------------------- review 0.1.0

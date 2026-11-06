@@ -215,6 +215,7 @@ def other_atom(rng, src, zone):
         if not zone:
             day = rng.choice(src["times"])[:10]
             times += [("%s::date = '%s'" % (name, day), "toDate(%s, 'UTC') = '%s'" % (col, day)),
+                      ("DATE(%s) = '%s'" % (name, day), "toDate(%s, 'UTC') = '%s'" % (col, day)),
                       ("DATEDIFF('day', %s, TIMESTAMP '%s 00:00:00') > 30" % (name, day), "dateDiff('day', %s, toDateTime('%s 00:00:00', 'UTC'), 'UTC') > 30" % (col, day))]
         # These forms are the rarest of the list, and each seed must prove each construct, so they come more often than the others here.
         if rng.random() < 0.8:

@@ -87,6 +87,19 @@
         (t2/update! :model/Field {:id [:in field-ids], :has_field_values [:not= "none"]} {:has_field_values "search"})
         (t2/update! :model/FieldUserSettings {:field_id [:in field-ids]} {:has_field_values nil})))))
 
+(defn clear-result-fingerprints-of-person-data!
+  "A card or a model that ran on a connection with `cube-user-attribute` before the driver stopped these fingerprints has
+  a fingerprint of the rows of one person in `result_metadata`. Each reader of the card gets it with no run. This removes
+  each such fingerprint, and keeps the rest of the metadata. See security.card_fingerprints_cleared."
+  [database]
+  (when (cube.identity/attribute (:details database))
+    ;; The Card model needs all of its columns on a select, to upgrade old cards.
+    (doseq [{:keys [id result_metadata]} (t2/select :model/Card
+                                                    :database_id (:id database)
+                                                    :result_metadata [:not= nil])
+            :when (some :fingerprint result_metadata)]
+      (t2/update! :model/Card id {:result_metadata (mapv #(dissoc % :fingerprint) result_metadata)}))))
+
 (defn- clear-stale-foreign-keys!
   "Metabase sync only adds foreign keys. This removes those whose Cube join went away."
   [database field-ids]
@@ -297,4 +310,8 @@
     (try
       (sync-semantics! database)
       (catch Throwable e
-        (log/warnf e "Could not sync the Cube data model to database %s" database-id)))))
+        (log/warnf e "Could not sync the Cube data model to database %s" database-id)))
+    (try
+      (clear-result-fingerprints-of-person-data! database)
+      (catch Throwable e
+        (log/warnf e "Could not clear the result fingerprints of the cards of database %s" database-id)))))

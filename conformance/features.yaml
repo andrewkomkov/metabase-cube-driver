@@ -4059,6 +4059,38 @@
   status: pass
   status_stock: pass
   check: security.metabase_cache
+- id: security.card_fingerprints
+  area: cube.security
+  title: "security card fingerprints"
+  status: pass
+  status_stock: pass
+  check: security.card_fingerprints
+- id: security.card_fingerprints_cleared
+  area: cube.security
+  title: "security card fingerprints cleared"
+  status: pass
+  status_stock: pass
+  check: security.card_fingerprints_cleared
+- id: isolation.other_db_card_fingerprint
+  area: isolation
+  title: "a card on a connection with one user for all people keeps its fingerprint"
+  status: pass
+  status_stock: pass
+  check: isolation.other_db_card_fingerprint
+- id: native.view_joined_dimension_weighted
+  area: native
+  title: "native sum of a joined dimension of a view stops with the exact weighted form"
+  status: partial
+  status_stock: partial
+  check: native.view_joined_dimension_weighted
+  cap: partial
+  reason: "Native SQL stops on SUM of a dimension of a view from a joined cube, because Cube reads each row of that cube once. The message gives the weighted form, which is exact. The driver does not rewrite the native text into it."
+- id: native.date_function
+  area: native
+  title: "native DATE(x) of a time"
+  status: pass
+  status_stock: pass
+  check: native.date_function
 - id: mcp.execute_query.paging_measure
   area: mcp
   title: "mcp execute query paging measure"

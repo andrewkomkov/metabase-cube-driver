@@ -400,9 +400,15 @@
                                   "the number would be wrong. Add a measure to the data model, or start from %s.")
                              (second column) table start table)))
           (when (and (= table start) (cube.meta/joined-member-of-view? cube-meta start-cube (second column)))
-            (refuse! (format (str "Cube cannot add up the column %s of the view %s over the rows of the view, because this column comes from a joined cube, and Cube reads each of "
-                                  "its rows once. So the number would be wrong. Add a measure to the data model, or start from the cube of this column.")
-                             (second column) table))))
+            (let [[row-count] (cube.meta/row-count-measure cube-meta start-cube)]
+              (refuse! (str (format (str "Cube cannot add up the column %s of the view %s over the rows of the view, because this column comes from a joined cube, and Cube reads each of "
+                                         "its rows once. So the number would be wrong. ")
+                                    (second column) table)
+                            (if row-count
+                              (format (str "Weight each value with the count of rows, which gives the exact number: SELECT SUM(%s * n), SUM(n) FROM (SELECT %s, MEASURE(%s) AS n FROM %s "
+                                           "GROUP BY 1) t. A WHERE goes inside the subquery. Or add a measure to the data model.")
+                                      (second column) (second column) row-count table)
+                              "Add a measure to the data model, or start from the cube of this column."))))))
         (doseq [column columns
                 :let  [table (member-table column)
                        own   (cube-name-of table)]

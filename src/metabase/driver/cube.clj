@@ -16,6 +16,7 @@
    [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
    [metabase.driver.sql.query-processor :as sql.qp]
    [metabase.query-processor.middleware.cache :as qp.middleware.cache]
+   [metabase.query-processor.middleware.row-restricted-metadata :as qp.row-restricted-metadata]
    [metabase.util.honey-sql-2 :as h2x]
    [metabase.util.log :as log]
    [toucan2.core :as t2])
@@ -94,11 +95,14 @@
 ;; query. So this wraps the middleware. It skips the cache only for a Cube database with per-person data, and each other
 ;; database goes through the middleware as before, see isolation.other_driver_cache. Metabase rebuilds the query processor
 ;; when this var changes. If a new Metabase has no such var, the driver does not load, which is the safe result.
+(defn- per-person-database?
+  [database]
+  (and (= :cube (:engine database))
+       (some? (cube.identity/attribute (:details database)))))
+
 (defn- per-person-query?
   []
-  (let [database (driver-api/database (driver-api/metadata-provider))]
-    (and (= :cube (:engine database))
-         (some? (cube.identity/attribute (:details database))))))
+  (per-person-database? (driver-api/database (driver-api/metadata-provider))))
 
 (defn- skip-cache-for-per-person-data
   [middleware]
@@ -111,6 +115,32 @@
 
 (defonce cache-wrapped
   (do (alter-var-root #'qp.middleware.cache/maybe-return-cached-results skip-cache-for-per-person-data)
+      true))
+
+;; Metabase stores a fingerprint of the result of a saved question or a model: min, max, quartiles, average and distinct
+;; counts. Each reader of the card gets it with no run, through GET /api/card/:id. On per-person data, it holds values from
+;; the rows of the person who ran the card last, so a live test showed the rows of one person to another. Metabase removes
+;; these fingerprints when a run is row-restricted: a sandbox, impersonation or database routing. A driver has no hook for
+;; this, so this wrap makes a query on a Cube database with per-person data row-restricted. Metabase then stores no
+;; metadata from such a run, and it returns none for a save. Each other database gets the original answer, see
+;; isolation.other_db_card_fingerprint. cube.semantic/clear-result-fingerprints-of-person-data! removes the fingerprints
+;; that a card kept from before.
+(defn- per-person-rows?
+  "True for a query on a Cube database with per-person data. With no database to read, true: a run then keeps no
+  fingerprint, which loses nothing but statistics."
+  [query]
+  (try
+    (per-person-database? (driver-api/database (or (:lib/metadata query) (driver-api/metadata-provider))))
+    (catch Exception _ true)))
+
+(defn- row-restricted-on-per-person-data
+  [row-restricted?]
+  (fn [query]
+    (or (row-restricted? query)
+        (per-person-rows? query))))
+
+(defonce fingerprints-wrapped
+  (do (alter-var-root #'qp.row-restricted-metadata/row-restricted? row-restricted-on-per-person-data)
       true))
 
 ;; On Metabase 0.64 the MCP tool `execute_query` reads each bound of `between` as a whole day, also a bound with a time. The
@@ -159,14 +189,16 @@
     (alter-var-root (requiring-resolve 'metabase.agent-lib.representations.repair/repair) keep-time-on-cube)
     true))
 
-;; A connection that gets the attribute of a person has lists of values for all rows. See cube.semantic/clear-values-of-person-data!.
+;; A connection that gets the attribute of a person has lists of values and card fingerprints for all rows. See
+;; cube.semantic/clear-values-of-person-data! and cube.semantic/clear-result-fingerprints-of-person-data!.
 (defmethod driver/notify-database-updated :cube
   [driver database]
   ((get-method driver/notify-database-updated :postgres) driver database)
   (try
     (cube.semantic/clear-values-of-person-data! database)
+    (cube.semantic/clear-result-fingerprints-of-person-data! database)
     (catch Exception e
-      (log/warnf e "Could not clear the lists of values of database %s" (:id database)))))
+      (log/warnf e "Could not clear the lists of values and result fingerprints of database %s" (:id database)))))
 
 (defmethod sql-jdbc.execute/set-timezone-sql :cube [_] "SET TIME ZONE %s")
 
@@ -3027,6 +3059,12 @@
    ["Date range is required for time series"
     (str "Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the "
          "same time column. Add a date filter.")]
+   ;; Metabase keeps one set of tables for all people. Cube gives this when the security context of the person hides the
+   ;; table, such as the access_policy of a view, or when the table left the data model after the last sync.
+   ["Table or CTE with name"
+    (str "Cube has no such table for this person. The data model hides it from this person, for example with the access_policy "
+         "of a view, or the table left the data model after the last sync of Metabase. Ask the owner of the data model for access, "
+         "or sync the database.")]
    ;; The last entries: each other error of the planner of Cube.
    ["Planning Error"
     "Cube cannot plan this query. A column or a function of it is not on this table for the SQL API. Use another column, or add a dimension with that SQL to the data model."]
