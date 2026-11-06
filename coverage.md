@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1345/1383 pass on Cube with the ClickHouse dialect** (1345 pass, 25 partial, 1 blocked, 12 unsupported, 0 fail of 1383)
+**coverage: 1353/1391 pass on Cube with the ClickHouse dialect** (1353 pass, 25 partial, 1 blocked, 12 unsupported, 0 fail of 1391)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `a6b5e14712c4`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/41376359693), 2026-11-02.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `b461f2eb2305`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42127135177), 2026-11-06.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -749,6 +749,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `a6b5e
 | `dialect.n2_legacy_planner` | pass |  |
 | `native.subquery_filter_refused` | pass |  |
 | `native.bound.alias_in_a_subquery` | pass |  |
+| `native.bound.datetime64_upper_and_strict_lower` | pass |  |
 | `native.bound.datetime64_last_second_limit` | pass |  |
 | `compile.raw.switch_dimension_keeps_one_row` | pass |  |
 | `measure.rolling.window_shorter_than_bucket` | pass |  |
@@ -1327,6 +1328,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `a6b5e
 | `filter_params.value.no_filter_refused` | pass |  |
 | `filter_params.value.or_refused` | pass |  |
 | `filter_params.value.expression_in_a_zone_refused` | pass |  |
+| `filter_params.value.native_strict_lower_refused` | pass |  |
 | `filter_params.value.native_date_range` | pass |  |
 | `filter_params.value.native_one_bound_refused` | pass |  |
 | `filter_params.value.one_text_value` | pass |  |
@@ -1362,6 +1364,12 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `a6b5e
 | `compile.join.each_aggregation_of_a_joined_column` | pass |  |
 | `mcp.query.count_of_a_joined_column` | pass |  |
 | `compile.join.no_join_path_has_a_clear_message` | pass |  |
+| `native.grammar.analyst_queries` | pass |  |
+| `native.grammar.sample` | pass |  |
+| `native.grammar.new_york_time_shapes` | pass |  |
+| `native.grammar.docs_list_each_construct` | pass |  |
+| `native.grammar.mutations_refuse` | pass |  |
+| `compile.raw.custom_column_next_to_each_column` | pass |  |
 | `native.scan.adversarial_private_member` | pass |  |
 | `zone.time_measure_repeated_hour_limit` | partial | The SQL API gives a time as text with no offset, so a value in the repeated hour reads as the first pass: 01:00-04:00 where the truth is 01:00-05:00 in New York. README lists this under Known wrong numbers. |
 | `context.compile_context` | pass |  |

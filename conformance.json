@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 1345,
+    "pass": 1353,
     "partial": 25,
     "blocked": 1,
     "unsupported": 12,
     "fail": 0,
-    "total": 1383
+    "total": 1391
   },
-  "coverage": "coverage: 1345/1383 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1353/1391 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -3716,6 +3716,11 @@
       "reason": ""
     },
     {
+      "id": "native.bound.datetime64_upper_and_strict_lower",
+      "status": "pass",
+      "reason": ""
+    },
+    {
       "id": "native.bound.datetime64_last_second_limit",
       "status": "pass",
       "reason": ""
@@ -6606,6 +6611,11 @@
       "reason": ""
     },
     {
+      "id": "filter_params.value.native_strict_lower_refused",
+      "status": "pass",
+      "reason": ""
+    },
+    {
       "id": "filter_params.value.native_date_range",
       "status": "pass",
       "reason": ""
@@ -6777,6 +6787,36 @@
     },
     {
       "id": "compile.join.no_join_path_has_a_clear_message",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.grammar.analyst_queries",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.grammar.sample",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.grammar.new_york_time_shapes",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.grammar.docs_list_each_construct",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.grammar.mutations_refuse",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "compile.raw.custom_column_next_to_each_column",
       "status": "pass",
       "reason": ""
     },
