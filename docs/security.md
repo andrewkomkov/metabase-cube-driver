@@ -18,7 +18,7 @@ The `security.*` entries in `conformance/features.yaml` test this against `dev/c
 
 ## What Cube offers
 
-| Cube feature | Live result on Cube v1.8.15 | Used |
+| Cube feature | Live result on Cube v1.8.20 | Used |
 | --- | --- | --- |
 | `checkSqlAuth(req, username)` gives the password and the security context | Works. The security context is then fixed for the connection. | Yes |
 | `CUBEJS_SQL_SUPER_USER`, then `SET user = 'x'` | Works. With the default `canSwitchSqlUser`, the session then is `x`, and it cannot go back: `user 'x' is not allowed to switch`. So a connection pool cannot give the connection to the next person. A custom `canSwitchSqlUser` lets it go back, but each person who writes native SQL can then read as anybody. | No |
@@ -68,7 +68,7 @@ The sync of a Cube database writes to `metabase_table`, `metabase_field`, `metab
 
 **A Cube with `CUBEJS_DEV_MODE=true` is unsafe for production.** It accepts each JWT, also one with a wrong signature, and its SQL API and REST API read each cube and member that the model marks `public: false`. Only the demo stack runs in dev mode. A production Cube runs with `CUBEJS_DEV_MODE=false` and Cube Store. See `dev/docker-compose.production.yml`.
 
-What gives a value of a private member, on Cube `v1.8.15`:
+What gives a value of a private member, on Cube `v1.8.20`:
 
 | Door | Dev mode off | Dev mode on |
 | --- | --- | --- |

@@ -28,7 +28,7 @@ Use a tag `<cube-tag>-mcd.<n>`. A higher `n` on the same Cube tag has a changed 
 ```yaml
 services:
   cube:
-    image: ghcr.io/andrewkomkov/cube:v1.8.15-mcd.1
+    image: ghcr.io/andrewkomkov/cube:v1.8.20-mcd.1
 ```
 
 The image has `cubestored` from the same source, and Cube in dev mode starts it. If you run Cube Store as a separate service, the `gran` fix applies only when that service runs this binary.
@@ -77,7 +77,7 @@ A failure opens one issue with the label `cube-image` and the exact error. The c
 CI runs this as part of the gate. To run it on the host of the stack:
 
 ```sh
-sh cube-image/conformance.sh ghcr.io/andrewkomkov/cube:v1.8.15-mcd.1
+sh cube-image/conformance.sh ghcr.io/andrewkomkov/cube:v1.8.20-mcd.1
 ```
 
 `VARIANT=off` runs the image with no dialect.
@@ -87,8 +87,8 @@ sh cube-image/conformance.sh ghcr.io/andrewkomkov/cube:v1.8.15-mcd.1
 These dispatch inputs publish nothing:
 
 ```sh
-gh workflow run cube-image.yml -f tag=v1.8.15 -f test-mode=bad-patch
-gh workflow run cube-image.yml -f tag=v1.8.15 -f test-mode=empty-queue
+gh workflow run cube-image.yml -f tag=v1.8.20 -f test-mode=bad-patch
+gh workflow run cube-image.yml -f tag=v1.8.20 -f test-mode=empty-queue
 ```
 
 Each opens one issue. Close it after the test. The input `clickhouse-version` runs the gate on another ClickHouse, and this run also publishes nothing. `python3 cube-image/test_image.py` tests the decisions with no network.

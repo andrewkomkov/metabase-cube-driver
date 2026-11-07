@@ -27,7 +27,7 @@ prove the whole feature has the status `partial` and a reason. See the [coverage
 | Component  | Pinned version   | Image                         |
 | ---------- | ---------------- | ----------------------------- |
 | Metabase   | `v0.65.2.3`        | `metabase/metabase`           |
-| Cube       | `v1.8.15`        | `cubejs/cube`                 |
+| Cube       | `v1.8.20`        | `cubejs/cube`                 |
 | ClickHouse | `26.10.3-alpine` | `clickhouse/clickhouse-server` |
 
 These are the versions that the demo stack runs. The [compatibility table](https://andrewkomkov.github.io/metabase-cube-driver/compatibility/)

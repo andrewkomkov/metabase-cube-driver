@@ -4,10 +4,10 @@ Each claim in this repository that says Cube has a defect or a limit, checked wi
 
 ## How this was checked
 
-- **Versions:** Cube `v1.8.15`, ClickHouse `26.8.36-alpine`, Postgres `17-alpine`. On 2026-10-30, `v1.8.15` is the newest tag by version number, so the pinned run and the newest run are the same. GitHub marks `v1.6.76` as the latest release, but that is a backport. `master` has 20 more commits. I read their titles and the text of the two that touch joins, #12483 and #12476. Neither names a case here. I did not run `master`.
-- **Configs:** `ch` is ClickHouse and `pg` is Postgres. `on` and `off` are `CUBEJS_TESSERACT_SQL_PLANNER`. The default in v1.8.15 is on, and the demo uses that. The output shows configs that give the same result in one group. A security or read-only entry ran only where the database does not matter, and `claim.json` lists its configs.
+- **Versions:** Cube `v1.8.20`, ClickHouse `26.8.36-alpine`, Postgres `17-alpine`. On 2026-10-30, `v1.8.20` is the newest tag by version number, so the pinned run and the newest run are the same. GitHub marks `v1.6.76` as the latest release, but that is a backport. `master` has 20 more commits. I read their titles and the text of the two that touch joins, #12483 and #12476. Neither names a case here. I did not run `master`.
+- **Configs:** `ch` is ClickHouse and `pg` is Postgres. `on` and `off` are `CUBEJS_TESSERACT_SQL_PLANNER`. The default in v1.8.20 is on, and the demo uses that. The output shows configs that give the same result in one group. A security or read-only entry ran only where the database does not matter, and `claim.json` lists its configs.
 - **Stack:** the compose project `mcd-repro` on `nettop.local`, in `~/mcd-repro`, with ports 4500 and 4501 on the loopback interface. I copied the files with `rsync`, so the checkout `~/metabase-cube-driver` did not change. I removed the project, its volumes and the directory after the runs.
-- **Source:** a read-only clone of `cube-js/cube` at `v1.8.15`. Links go to this tag.
+- **Source:** a read-only clone of `cube-js/cube` at `v1.8.20`. Links go to this tag.
 - **Issues:** about 250 searches on `cube-js/cube`, with several forms of each query. "None found" means no match in these searches, not proof that no report exists.
 
 ## Run
@@ -248,20 +248,20 @@ c	r
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs:5378`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs#L5378): `resolve_time_delta` makes the lower bound of `afterDate` one millisecond later, `...05:00:00.001Z`. This is correct.
-- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:163-175`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L163): `dateTimeCast` uses `parseDateTimeBestEffort`, which returns `DateTime` with whole seconds, so `.001` is lost and `>=` includes the bound.
+- [`rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs:5378`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs#L5378): `resolve_time_delta` makes the lower bound of `afterDate` one millisecond later, `...05:00:00.001Z`. This is correct.
+- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:163-175`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L163): `dateTimeCast` uses `parseDateTimeBestEffort`, which returns `DateTime` with whole seconds, so `.001` is lost and `>=` includes the bound.
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx:642`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx#L642): a date range uses `>=` and `<=`. The inclusive REST result `rest_inDateRange` is documented.
-- [`docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx:385`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx#L385): time filters become date ranges when possible.
+- [`docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx:642`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx#L642): a date range uses `>=` and `<=`. The inclusive REST result `rest_inDateRange` is documented.
+- [`docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx:385`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx#L385): time filters become date ranges when possible.
 
 **Issues:**
 
 - [#10326](https://github.com/cube-js/cube/issues/10326) (open): the same cause, `parseDateTimeBestEffort` truncates to seconds. It is reported through `build_range_end`.
 - [#2536](https://github.com/cube-js/cube/issues/2536) (open): partial, the same function on `DateTime64`.
 - [#11585](https://github.com/cube-js/cube/issues/11585) (closed): close only: `afterDate` is strict, which agrees with `gt_only` here.
-- [PR #12231](https://github.com/cube-js/cube/pull/12231), merged and in v1.8.15, added `parseDateTime64BestEffort` for filter values and `time_in`, but `dateRange` still goes through `dateTimeCast`, so it does not fix this.
+- [PR #12231](https://github.com/cube-js/cube/pull/12231), merged and in v1.8.20, added `parseDateTime64BestEffort` for filter values and `time_in`, but `dateRange` still goes through `dateTimeCast`, so it does not fix this.
 
 **Fix layer and test:** `packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts`, `dateTimeCast`: return `parseDateTime64BestEffort(value, 3, 'UTC')`. Test idea: `gt_and_lte_text` with rows on the bound and one second later, in `clickhouse-time-filters.test.ts`.
 
@@ -290,7 +290,7 @@ services:
     environment: { CLICKHOUSE_DB: repro, CLICKHOUSE_USER: repro, CLICKHOUSE_PASSWORD: repro, CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1" }
     healthcheck: { test: [CMD-SHELL, "clickhouse-client -u repro --password repro -q 'SELECT 1'"], interval: 2s, retries: 40 }
   cube:
-    image: cubejs/cube:v1.8.15
+    image: cubejs/cube:v1.8.20
     depends_on: { db: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
@@ -360,7 +360,7 @@ docker run --rm --network host -e PGPASSWORD=repro postgres:17-alpine psql -h 12
 
 `c = 3`, `r = 1110`. It has the row at the excluded bound. There is no error.
 
-**Version:** v1.8.15, the newest tag on 2026-10-30.
+**Version:** v1.8.20, the newest tag on 2026-10-30.
 
 **Additional context**
 
@@ -424,13 +424,13 @@ m | r
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs:3811`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs#L3811): `// TODO: all other operators need special granularity handlers like Eq`. Only `=` reads the granularity.
-- [`rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs:242`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs#L242): `push-down-filter-projection` moves the outer filter through the projection.
-- [`rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs:5226`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs#L5226): `transform_binary_expr_date_trunc_column_with_literal` handles `date_trunc(col) >= literal` correctly, so the direct form works.
+- [`rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs:3811`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs#L3811): `// TODO: all other operators need special granularity handlers like Eq`. Only `=` reads the granularity.
+- [`rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs:242`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs#L242): `push-down-filter-projection` moves the outer filter through the projection.
+- [`rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs:5226`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs#L5226): `transform_binary_expr_date_trunc_column_with_literal` handles `date_trunc(col) >= literal` correctly, so the direct form works.
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx:385`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx#L385): filters become date ranges. Nothing says that the meaning of the filter changes.
+- [`docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx:385`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx#L385): filters become date ranges. Nothing says that the meaning of the filter changes.
 
 **Issues:**
 
@@ -463,7 +463,7 @@ services:
     environment: { POSTGRES_DB: repro, POSTGRES_USER: repro, POSTGRES_PASSWORD: repro }
     healthcheck: { test: [CMD-SHELL, "pg_isready -U repro -d repro"], interval: 2s, retries: 40 }
   cube:
-    image: cubejs/cube:v1.8.15
+    image: cubejs/cube:v1.8.20
     depends_on: { db: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
@@ -533,7 +533,7 @@ One row: `2025-06-01, 1000`.
 
 Two rows: `2025-05-01, 100` and `2025-06-01, 1000`. The inner query alone gives `2025-05-01, 110`.
 
-**Version:** v1.8.15, the newest tag on 2026-10-30.
+**Version:** v1.8.20, the newest tag on 2026-10-30.
 
 **Additional context**
 
@@ -644,12 +644,12 @@ b | 1
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs:242`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs#L242): `push-down-filter-projection` moves the outer filter through the projection.
-- [`rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs:3697`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs#L3697): the filter rule reads the column as the measure member, and the query then has a measure filter.
+- [`rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs:242`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs#L242): `push-down-filter-projection` moves the outer filter through the projection.
+- [`rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs:3697`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs#L3697): the filter rule reads the column as the measure member, and the query then has a measure filter.
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx): this page does not tell that a `WHERE` on a measure column is a `HAVING`. The REST filter on a measure is a `HAVING`, see `rest_measure_filter`.
+- [`docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx): this page does not tell that a `WHERE` on a measure column is a `HAVING`. The REST filter on a measure is a `HAVING`, see `rest_measure_filter`.
 
 **Issues:**
 
@@ -682,7 +682,7 @@ services:
     environment: { POSTGRES_DB: repro, POSTGRES_USER: repro, POSTGRES_PASSWORD: repro }
     healthcheck: { test: [CMD-SHELL, "pg_isready -U repro -d repro"], interval: 2s, retries: 40 }
   cube:
-    image: cubejs/cube:v1.8.15
+    image: cubejs/cube:v1.8.20
     depends_on: { db: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
@@ -750,7 +750,7 @@ docker run --rm --network host -e PGPASSWORD=repro postgres:17-alpine psql -h 12
 
 `s = 600`, `c = 3`. The generated SQL has `HAVING (sum(amount) > ?)`.
 
-**Version:** v1.8.15, the newest tag on 2026-10-30.
+**Version:** v1.8.20, the newest tag on 2026-10-30.
 
 **Additional context**
 
@@ -847,19 +847,19 @@ West | South | 1
 
 **Code:**
 
-- [`packages/cubejs-schema-compiler/src/compiler/CubeSymbols.ts:1173`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/compiler/CubeSymbols.ts#L1173): a view member resolves by name, so both view members point at one cube alias. The generated SQL has `regions` once.
+- [`packages/cubejs-schema-compiler/src/compiler/CubeSymbols.ts:1173`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/compiler/CubeSymbols.ts#L1173): a view member resolves by name, so both view members point at one cube alias. The generated SQL has `regions` once.
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/joins.mdx:92`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/joins.mdx#L92): `alias` joins one cube more than once, and each alias is a separate copy. It needs Tesseract.
-- [`docs-mintlify/docs/data-modeling/joins.mdx:426`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/docs/data-modeling/joins.mdx#L426): diamond subgraphs. The example uses one path in each view, not two paths in one view.
+- [`docs-mintlify/reference/data-modeling/joins.mdx:92`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/joins.mdx#L92): `alias` joins one cube more than once, and each alias is a separate copy. It needs Tesseract.
+- [`docs-mintlify/docs/data-modeling/joins.mdx:426`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/docs/data-modeling/joins.mdx#L426): diamond subgraphs. The example uses one path in each view, not two paths in one view.
 
 **Issues:**
 
 - [#8896](https://github.com/cube-js/cube/issues/8896) (open): the exact case. A maintainer says that this is not supported and suggests `extends`.
 - [#10265](https://github.com/cube-js/cube/issues/10265) (open): the request for join aliases.
 - [#12424](https://github.com/cube-js/cube/issues/12424) (open): partial, aliases across cubes in a multi-fact view.
-- [PR #12483](https://github.com/cube-js/cube/pull/12483), after v1.8.15, changes joins across several views and not this case.
+- [PR #12483](https://github.com/cube-js/cube/pull/12483), after v1.8.20, changes joins across several views and not this case.
 
 
 ### B6
@@ -924,12 +924,12 @@ HTTP 200 [{"orders.revenue_trailing_30d": "100"}]
 
 **Code:**
 
-- [`packages/cubejs-schema-compiler/test/integration/postgres/rolling-window-offset-no-granularity.test.ts:5`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/test/integration/postgres/rolling-window-offset-no-granularity.test.ts#L5): a date range with no granularity gives one aggregate row, and this is tested on purpose.
-- [`packages/cubejs-schema-compiler/test/integration/postgres/sql-generation.test.ts:1361`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/test/integration/postgres/sql-generation.test.ts#L1361): the same.
+- [`packages/cubejs-schema-compiler/test/integration/postgres/rolling-window-offset-no-granularity.test.ts:5`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/test/integration/postgres/rolling-window-offset-no-granularity.test.ts#L5): a date range with no granularity gives one aggregate row, and this is tested on purpose.
+- [`packages/cubejs-schema-compiler/test/integration/postgres/sql-generation.test.ts:1361`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/test/integration/postgres/sql-generation.test.ts#L1361): the same.
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/measures.mdx:459`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/measures.mdx#L459): a rolling window requires one time dimension with a date range. With Tesseract, the date range can be omitted on some data sources.
+- [`docs-mintlify/reference/data-modeling/measures.mdx:459`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/measures.mdx#L459): a rolling window requires one time dimension with a date range. With Tesseract, the date range can be omitted on some data sources.
 
 **Issues:**
 
@@ -985,13 +985,13 @@ c
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs:5066-5072`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs#L5066): `transform_between_dates` keeps the literal text in `inDateRange`.
-- [`rust/cubesql/cubesql/src/compile/sql_filters/test_suite.rs:2082`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/sql_filters/test_suite.rs#L2082): a test expects `inDateRange` with `2023-01-01`, `2023-12-31`, so this text is intended.
-- [`rust/cubesql/cubesql/src/compile/mod.rs:8100`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/mod.rs#L8100): another test expects the lower bound `2025-01-01` as text.
+- [`rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs:5066-5072`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/rewrite/rules/filters.rs#L5066): `transform_between_dates` keeps the literal text in `inDateRange`.
+- [`rust/cubesql/cubesql/src/compile/sql_filters/test_suite.rs:2082`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/sql_filters/test_suite.rs#L2082): a test expects `inDateRange` with `2023-01-01`, `2023-12-31`, so this text is intended.
+- [`rust/cubesql/cubesql/src/compile/mod.rs:8100`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/mod.rs#L8100): another test expects the lower bound `2025-01-01` as text.
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx:644`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx#L644): a date in `YYYY-MM-DD` format is padded to the start and the end of the day.
+- [`docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx:644`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx#L644): a date in `YYYY-MM-DD` format is padded to the start and the end of the day.
 
 **Issues:**
 
@@ -1047,12 +1047,12 @@ s
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/sql/statement.rs:826`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/sql/statement.rs#L826): at Parse, each placeholder becomes the text `replaced_placeholder`.
-- [`rust/cube/cubesqlplanner/cubesqlplanner/src/planner/time_dimension/date_time_helper.rs:41`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cube/cubesqlplanner/cubesqlplanner/src/planner/time_dimension/date_time_helper.rs#L41): the planner then cannot parse this text as a date.
+- [`rust/cubesql/cubesql/src/sql/statement.rs:826`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/sql/statement.rs#L826): at Parse, each placeholder becomes the text `replaced_placeholder`.
+- [`rust/cube/cubesqlplanner/cubesqlplanner/src/planner/time_dimension/date_time_helper.rs:41`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cube/cubesqlplanner/cubesqlplanner/src/planner/time_dimension/date_time_helper.rs#L41): the planner then cannot parse this text as a date.
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/index.mdx`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/index.mdx): the SQL API takes the Postgres protocol, which has parameters.
+- [`docs-mintlify/reference/core-data-apis/sql-api/index.mdx`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/index.mdx): the SQL API takes the Postgres protocol, which has parameters.
 
 **Issues:**
 
@@ -1062,7 +1062,7 @@ s
 
 **Subclass or package:** No. The cause is in cubesql. The driver in this repository can add the cast.
 
-**Issue draft:** Do not open a new issue. Add this repro to [#12459](https://github.com/cube-js/cube/issues/12459): `SELECT SUM(amount_dim) s FROM (SELECT id, amount_dim, created_at FROM orders) q WHERE created_at >= $1 \bind '2025-05-10 00:00:00' \g` fails on v1.8.15, with ClickHouse and Postgres and with Tesseract on and off. `$1::timestamp` works. See `dev/repro/M1-bind-date-postprocessing`.
+**Issue draft:** Do not open a new issue. Add this repro to [#12459](https://github.com/cube-js/cube/issues/12459): `SELECT SUM(amount_dim) s FROM (SELECT id, amount_dim, created_at FROM orders) q WHERE created_at >= $1 \bind '2025-05-10 00:00:00' \g` fails on v1.8.20, with ClickHouse and Postgres and with Tesseract on and off. `$1::timestamp` works. See `dev/repro/M1-bind-date-postprocessing`.
 
 
 ### M2
@@ -1104,7 +1104,7 @@ w | c
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/sql/statement.rs:826`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/sql/statement.rs#L826): the same path as M1.
+- [`rust/cubesql/cubesql/src/sql/statement.rs:826`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/sql/statement.rs#L826): the same path as M1.
 
 **Issues:**
 
@@ -1169,7 +1169,7 @@ r | c
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/sql/statement.rs:826`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/sql/statement.rs#L826): the same path as M1, for the forms with `GROUP BY` and `ORDER BY`.
+- [`rust/cubesql/cubesql/src/sql/statement.rs:826`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/sql/statement.rs#L826): the same path as M1, for the forms with `GROUP BY` and `ORDER BY`.
 
 **Issues:**
 
@@ -1228,7 +1228,7 @@ r
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/compile/rewrite/converter.rs:1953`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/rewrite/converter.rs#L1953): the error is written on purpose.
+- [`rust/cubesql/cubesql/src/compile/rewrite/converter.rs:1953`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/rewrite/converter.rs#L1953): the error is written on purpose.
 
 **Issues:**
 
@@ -1286,7 +1286,7 @@ s
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/joins.mdx:15`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/joins.mdx#L15): Cube solves fan and chasm traps based on the selected dimensions.
+- [`docs-mintlify/reference/core-data-apis/sql-api/joins.mdx:15`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/joins.mdx#L15): Cube solves fan and chasm traps based on the selected dimensions.
 
 **Issues:**
 
@@ -1349,7 +1349,7 @@ c
 
 **Code:**
 
-- [`packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts:4274-4275`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts#L4274): a count measure on a rollup is `sum(column)`, and a `sum` of no rows is NULL.
+- [`packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts:4274-4275`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts#L4274): a count measure on a rollup is `sum(column)`, and a `sum` of no rows is NULL.
 
 **Issues:**
 
@@ -1382,7 +1382,7 @@ services:
     environment: { POSTGRES_DB: repro, POSTGRES_USER: repro, POSTGRES_PASSWORD: repro }
     healthcheck: { test: [CMD-SHELL, "pg_isready -U repro -d repro"], interval: 2s, retries: 40 }
   cube:
-    image: cubejs/cube:v1.8.15
+    image: cubejs/cube:v1.8.20
     depends_on: { db: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
@@ -1458,7 +1458,7 @@ curl -s -X POST http://127.0.0.1:4000/cubejs-api/v1/load -H 'Content-Type: appli
 
 `"orders.count": null`.
 
-**Version:** v1.8.15, the newest tag on 2026-10-30.
+**Version:** v1.8.20, the newest tag on 2026-10-30.
 
 **Additional context**
 
@@ -1506,11 +1506,11 @@ m | c
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/compile/rewrite/rules/members.rs:2868`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/rewrite/rules/members.rs#L2868): the documented error. This path does not reach it for a rolling measure.
+- [`rust/cubesql/cubesql/src/compile/rewrite/rules/members.rs:2868`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/rewrite/rules/members.rs#L2868): the documented error. This path does not reach it for a rolling measure.
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx:70`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx#L70): the documented error.
+- [`docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx:70`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx#L70): the documented error.
 
 **Issues:**
 
@@ -1543,7 +1543,7 @@ services:
     environment: { POSTGRES_DB: repro, POSTGRES_USER: repro, POSTGRES_PASSWORD: repro }
     healthcheck: { test: [CMD-SHELL, "pg_isready -U repro -d repro"], interval: 2s, retries: 40 }
   cube:
-    image: cubejs/cube:v1.8.15
+    image: cubejs/cube:v1.8.20
     depends_on: { db: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
@@ -1614,7 +1614,7 @@ docker run --rm --network host -e PGPASSWORD=repro postgres:17-alpine psql -h 12
 
 `missing FROM-clause entry for table \"orders\"`. ClickHouse gives `Unknown expression or function identifier`.
 
-**Version:** v1.8.15, the newest tag on 2026-10-30.
+**Version:** v1.8.20, the newest tag on 2026-10-30.
 
 **Additional context**
 
@@ -1702,13 +1702,13 @@ matching lines: 10
 
 **Code:**
 
-- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:289-292`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L289): `preAggregationLoadSql` needs an index and writes `ORDER BY` with `evaluateIndexColumns`.
-- [`packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts:4695`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts#L4695): `evaluateIndexColumns` gives the member alias `cube__status`. An `original_sql` table keeps the cube `sql` columns, so this name does not exist.
+- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:289-292`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L289): `preAggregationLoadSql` needs an index and writes `ORDER BY` with `evaluateIndexColumns`.
+- [`packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts:4695`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts#L4695): `evaluateIndexColumns` gives the member alias `cube__status`. An `original_sql` table keeps the cube `sql` columns, so this name does not exist.
 
 **Docs:**
 
-- [`docs-mintlify/admin/connect-to-data/data-sources/clickhouse.mdx:48`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/admin/connect-to-data/data-sources/clickhouse.mdx#L48): ClickHouse pre-aggregations must have indexes.
-- [`docs-mintlify/reference/data-modeling/pre-aggregations.mdx:146`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/pre-aggregations.mdx#L146): `original_sql` is stored in the data source.
+- [`docs-mintlify/admin/connect-to-data/data-sources/clickhouse.mdx:48`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/admin/connect-to-data/data-sources/clickhouse.mdx#L48): ClickHouse pre-aggregations must have indexes.
+- [`docs-mintlify/reference/data-modeling/pre-aggregations.mdx:146`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/pre-aggregations.mdx#L146): `original_sql` is stored in the data source.
 
 **Issues:**
 
@@ -1741,7 +1741,7 @@ services:
     environment: { CLICKHOUSE_DB: repro, CLICKHOUSE_USER: repro, CLICKHOUSE_PASSWORD: repro, CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1" }
     healthcheck: { test: [CMD-SHELL, "clickhouse-client -u repro --password repro -q 'SELECT 1'"], interval: 2s, retries: 40 }
   cube:
-    image: cubejs/cube:v1.8.15
+    image: cubejs/cube:v1.8.20
     depends_on: { db: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
@@ -1894,7 +1894,7 @@ The pre-aggregation builds, and `a 300`, `b 400` are returned.
 
 `Missing columns: 'only_base_idx__status'`.
 
-**Version:** v1.8.15, the newest tag on 2026-10-30.
+**Version:** v1.8.20, the newest tag on 2026-10-30.
 
 **Additional context**
 
@@ -1949,11 +1949,11 @@ HTTP 500 ERROR Error: You requested hidden member: 'secret_audit.count'. Please 
 
 **Code:**
 
-- [`packages/cubejs-api-gateway/src/gateway.ts:822`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-api-gateway/src/gateway.ts#L822): `isDevMode || ... || item.isVisible`: dev mode shows hidden members.
+- [`packages/cubejs-api-gateway/src/gateway.ts:822`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-api-gateway/src/gateway.ts#L822): `isDevMode || ... || item.isVisible`: dev mode shows hidden members.
 
 **Docs:**
 
-- [`docs-mintlify/docs/data-modeling/dev-mode.mdx`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/docs/data-modeling/dev-mode.mdx): dev mode is an authentication bypass, see the warning in `snippets/dev-mode-warning.mdx`.
+- [`docs-mintlify/docs/data-modeling/dev-mode.mdx`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/docs/data-modeling/dev-mode.mdx): dev mode is an authentication bypass, see the warning in `snippets/dev-mode-warning.mdx`.
 
 **Issues:**
 
@@ -2014,12 +2014,12 @@ Code: 403. DB::Exception: Received from localhost:9000. DB::Exception: Cannot de
 
 **Code:**
 
-- [`rust/cube/cubesqlplanner/cubesqlplanner/src/physical_plan_builder/processors/multi_stage_rolling_window.rs:29`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cube/cubesqlplanner/cubesqlplanner/src/physical_plan_builder/processors/multi_stage_rolling_window.rs#L29): the join condition of the window.
-- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:353`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L353): the time series of ClickHouse.
+- [`rust/cube/cubesqlplanner/cubesqlplanner/src/physical_plan_builder/processors/multi_stage_rolling_window.rs:29`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cube/cubesqlplanner/cubesqlplanner/src/physical_plan_builder/processors/multi_stage_rolling_window.rs#L29): the join condition of the window.
+- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:353`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L353): the time series of ClickHouse.
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/measures.mdx:459`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/measures.mdx#L459): rolling windows are documented with no such limit on ClickHouse.
+- [`docs-mintlify/reference/data-modeling/measures.mdx:459`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/measures.mdx#L459): rolling windows are documented with no such limit on ClickHouse.
 
 **Issues:**
 
@@ -2054,7 +2054,7 @@ services:
     environment: { CLICKHOUSE_DB: repro, CLICKHOUSE_USER: repro, CLICKHOUSE_PASSWORD: repro, CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1" }
     healthcheck: { test: [CMD-SHELL, "clickhouse-client -u repro --password repro -q 'SELECT 1'"], interval: 2s, retries: 40 }
   cube:
-    image: cubejs/cube:v1.8.15
+    image: cubejs/cube:v1.8.20
     depends_on: { db: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
@@ -2125,7 +2125,7 @@ docker run --rm --network host -e PGPASSWORD=repro postgres:17-alpine psql -h 12
 
 `Cannot determine join keys in JOIN ON expression lessOrEquals(...)`.
 
-**Version:** v1.8.15, the newest tag on 2026-10-30.
+**Version:** v1.8.20, the newest tag on 2026-10-30.
 
 **Additional context**
 
@@ -2140,7 +2140,7 @@ docker run --rm --network host -e PGPASSWORD=repro postgres:17-alpine psql -h 12
 
 - **Claims:** `dimension.type.geo.view`
 - **Verdict:** `cube-bug`
-- **Claim text:** Matrix: Cube v1.8.15 fails each query on a geo dimension of a view, also on the REST API: `Cannot read properties of undefined (reading 'sql')`.
+- **Claim text:** Matrix: Cube v1.8.20 fails each query on a geo dimension of a view, also on the REST API: `Cannot read properties of undefined (reading 'sql')`.
 - **Command:** `python3 run.py geo-dimension-in-view`
 
 **Output:**
@@ -2171,14 +2171,14 @@ psql:<stdin>:1: ERROR:  Database Execution Error: TypeError: Cannot read propert
 
 **Code:**
 
-- [`packages/cubejs-schema-compiler/src/compiler/CubeSymbols.ts:1199-1216`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/compiler/CubeSymbols.ts#L1199): a view dimension copies `sql` and other fields, but not `latitude` and `longitude`.
-- [`packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts:3724-3726`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts#L3724): the geo branch reads `symbol.latitude.sql`.
-- [`rust/cube/cubesqlplanner/cubesqlplanner/src/planner/symbols/dimension_symbol.rs:497`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cube/cubesqlplanner/cubesqlplanner/src/planner/symbols/dimension_symbol.rs#L497): Tesseract has the same branch.
+- [`packages/cubejs-schema-compiler/src/compiler/CubeSymbols.ts:1199-1216`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/compiler/CubeSymbols.ts#L1199): a view dimension copies `sql` and other fields, but not `latitude` and `longitude`.
+- [`packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts:3724-3726`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts#L3724): the geo branch reads `symbol.latitude.sql`.
+- [`rust/cube/cubesqlplanner/cubesqlplanner/src/planner/symbols/dimension_symbol.rs:497`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cube/cubesqlplanner/cubesqlplanner/src/planner/symbols/dimension_symbol.rs#L497): Tesseract has the same branch.
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/dimensions.mdx:960`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/dimensions.mdx#L960): `geo` is a dimension type.
-- [`docs-mintlify/reference/data-modeling/view.mdx`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/view.mdx): nothing excludes geo.
+- [`docs-mintlify/reference/data-modeling/dimensions.mdx:960`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/dimensions.mdx#L960): `geo` is a dimension type.
+- [`docs-mintlify/reference/data-modeling/view.mdx`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/view.mdx): nothing excludes geo.
 
 **Issues:**
 
@@ -2211,7 +2211,7 @@ services:
     environment: { POSTGRES_DB: repro, POSTGRES_USER: repro, POSTGRES_PASSWORD: repro }
     healthcheck: { test: [CMD-SHELL, "pg_isready -U repro -d repro"], interval: 2s, retries: 40 }
   cube:
-    image: cubejs/cube:v1.8.15
+    image: cubejs/cube:v1.8.20
     depends_on: { db: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
@@ -2281,7 +2281,7 @@ Rows as for `users.location`: `10.5,20.5` and `30.5,40.5`.
 
 HTTP 500, `TypeError: Cannot read properties of undefined (reading 'sql')`.
 
-**Version:** v1.8.15, the newest tag on 2026-10-30.
+**Version:** v1.8.20, the newest tag on 2026-10-30.
 
 **Additional context**
 
@@ -2326,12 +2326,12 @@ HTTP 200 [{"orders.created_at.fiscal_quarter_old_origin": "2024-11-01T00:00:00.0
 
 **Code:**
 
-- [`rust/cubestore/cubestore/src/queryplanner/udfs.rs:218-233`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubestore/cubestore/src/queryplanner/udfs.rs#L218): `calc_intervals` divides with `/`. It rounds a negative month count toward zero, so a time before the origin goes to the next bin.
-- [`rust/cubestore/cubestore/src/queryplanner/udfs.rs:237`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubestore/cubestore/src/queryplanner/udfs.rs#L237): `calc_bin_timestamp_ym` uses that count.
+- [`rust/cubestore/cubestore/src/queryplanner/udfs.rs:218-233`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubestore/cubestore/src/queryplanner/udfs.rs#L218): `calc_intervals` divides with `/`. It rounds a negative month count toward zero, so a time before the origin goes to the next bin.
+- [`rust/cubestore/cubestore/src/queryplanner/udfs.rs:237`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubestore/cubestore/src/queryplanner/udfs.rs#L237): `calc_bin_timestamp_ym` uses that count.
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/dimensions.mdx:1103`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/dimensions.mdx#L1103): `offset` and `origin` shift the intervals, so a time belongs to the interval that holds it.
+- [`docs-mintlify/reference/data-modeling/dimensions.mdx:1103`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/dimensions.mdx#L1103): `offset` and `origin` shift the intervals, so a time belongs to the interval that holds it.
 
 **Issues:**
 
@@ -2364,7 +2364,7 @@ services:
     environment: { POSTGRES_DB: repro, POSTGRES_USER: repro, POSTGRES_PASSWORD: repro }
     healthcheck: { test: [CMD-SHELL, "pg_isready -U repro -d repro"], interval: 2s, retries: 40 }
   cube:
-    image: cubejs/cube:v1.8.15
+    image: cubejs/cube:v1.8.20
     depends_on: { db: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
@@ -2450,7 +2450,7 @@ curl -s -X POST http://127.0.0.1:4000/cubejs-api/v1/load -H 'Content-Type: appli
 
 `2025-02-01: 1111`, `2025-05-01: 110000`.
 
-**Version:** v1.8.15, the newest tag on 2026-10-30.
+**Version:** v1.8.20, the newest tag on 2026-10-30.
 
 **Additional context**
 
@@ -2504,7 +2504,7 @@ HTTP 200 {"sql":{"external":true,"sql":["SELECT \"users__state\" \"users__state\
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/pre-aggregations.mdx:433`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/pre-aggregations.mdx#L433): `rollup_join` is not required for one data source. It does not say that it is refused.
+- [`docs-mintlify/reference/data-modeling/pre-aggregations.mdx:433`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/pre-aggregations.mdx#L433): `rollup_join` is not required for one data source. It does not say that it is refused.
 
 **Issues:**
 
@@ -2537,7 +2537,7 @@ HTTP 200 [{"orders.status": "a", "orders.created_at.month": "2025-05-01T00:00:00
 
 **Docs:**
 
-- [`docs-mintlify/docs/pre-aggregations/lambda-pre-aggregations.mdx`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/docs/pre-aggregations/lambda-pre-aggregations.mdx): the batch needs a time dimension and a partition granularity, and the lambda comes first in the list. An ordinary table is enough.
+- [`docs-mintlify/docs/pre-aggregations/lambda-pre-aggregations.mdx`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/docs/pre-aggregations/lambda-pre-aggregations.mdx): the batch needs a time dimension and a partition granularity, and the lambda comes first in the list. An ordinary table is enough.
 
 **Issues:**
 
@@ -2579,7 +2579,7 @@ total=2
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx:652`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx#L652): `compareDateRange` is a REST option. The SQL API pages have no such form.
+- [`docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx:652`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/rest-api/query-format.mdx#L652): `compareDateRange` is a REST option. The SQL API pages have no such form.
 
 **Issues:**
 
@@ -2624,11 +2624,11 @@ p
 
 **Code:**
 
-- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:326`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L326): `delete templates.functions.PERCENTILECONT`.
+- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:326`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L326): `delete templates.functions.PERCENTILECONT`.
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/reference.mdx:558`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/reference.mdx#L558): `PERCENTILE_CONT` pushdown is not supported with ClickHouse.
+- [`docs-mintlify/reference/core-data-apis/sql-api/reference.mdx:558`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/reference.mdx#L558): `PERCENTILE_CONT` pushdown is not supported with ClickHouse.
 
 **Issues:**
 
@@ -2690,13 +2690,13 @@ d | r
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/compile/router.rs:618`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/router.rs#L618): `SET TIME ZONE` stores `query_timezone`.
-- [`rust/cubesql/cubesql/src/compile/rewrite/converter.rs:1690`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/rewrite/converter.rs#L1690): the CubeScan takes `query.timezone` from the session.
-- [`rust/cubesql/cubesql/src/compile/mod.rs:19187`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/mod.rs#L19187): `test_set_time_zone`.
+- [`rust/cubesql/cubesql/src/compile/router.rs:618`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/router.rs#L618): `SET TIME ZONE` stores `query_timezone`.
+- [`rust/cubesql/cubesql/src/compile/rewrite/converter.rs:1690`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/rewrite/converter.rs#L1690): the CubeScan takes `query.timezone` from the session.
+- [`rust/cubesql/cubesql/src/compile/mod.rs:19187`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/mod.rs#L19187): `test_set_time_zone`.
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/reference.mdx:211`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/reference.mdx#L211): `SET TIME ZONE` sets the session time zone.
+- [`docs-mintlify/reference/core-data-apis/sql-api/reference.mdx:211`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/reference.mdx#L211): `SET TIME ZONE` sets the session time zone.
 
 **Issues:**
 
@@ -2744,11 +2744,11 @@ QUERY: DELETE FROM orders
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/compile/router.rs:256`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/router.rs#L256): `Unsupported query type`.
+- [`rust/cubesql/cubesql/src/compile/router.rs:256`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/router.rs#L256): `Unsupported query type`.
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/reference.mdx:267`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/reference.mdx#L267): the SQL API is a read-only data source.
+- [`docs-mintlify/reference/core-data-apis/sql-api/reference.mdx:267`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/reference.mdx#L267): the SQL API is a read-only data source.
 
 **Issues:**
 
@@ -2798,11 +2798,11 @@ x
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/transport/ext.rs:117`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/transport/ext.rs#L117): a `min` measure has the type Double in the SQL API.
+- [`rust/cubesql/cubesql/src/transport/ext.rs:117`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/transport/ext.rs#L117): a `min` measure has the type Double in the SQL API.
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/measures.mdx:372`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/measures.mdx#L372): `min` takes a non-aggregated numeric expression.
+- [`docs-mintlify/reference/data-modeling/measures.mdx:372`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/measures.mdx#L372): `min` takes a non-aggregated numeric expression.
 
 **Issues:**
 
@@ -2863,9 +2863,9 @@ big_int | big_dec
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/transport/ext.rs:105`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/transport/ext.rs#L105): a `number` dimension is `ColumnType::Double` in the SQL API.
-- [`rust/cubesql/cubesql/src/transport/ext.rs:115`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/transport/ext.rs#L115): a `sum` measure too.
-- [`packages/cubejs-clickhouse-driver/src/ClickHouseDriver.ts:354`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-clickhouse-driver/src/ClickHouseDriver.ts#L354): the driver reads `JSONCompact`, and ClickHouse writes 64-bit values as JSON numbers, so JavaScript rounds them.
+- [`rust/cubesql/cubesql/src/transport/ext.rs:105`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/transport/ext.rs#L105): a `number` dimension is `ColumnType::Double` in the SQL API.
+- [`rust/cubesql/cubesql/src/transport/ext.rs:115`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/transport/ext.rs#L115): a `sum` measure too.
+- [`packages/cubejs-clickhouse-driver/src/ClickHouseDriver.ts:354`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-clickhouse-driver/src/ClickHouseDriver.ts#L354): the driver reads `JSONCompact`, and ClickHouse writes 64-bit values as JSON numbers, so JavaScript rounds them.
 
 **Issues:**
 
@@ -2899,7 +2899,7 @@ services:
     environment: { POSTGRES_DB: repro, POSTGRES_USER: repro, POSTGRES_PASSWORD: repro }
     healthcheck: { test: [CMD-SHELL, "pg_isready -U repro -d repro"], interval: 2s, retries: 40 }
   cube:
-    image: cubejs/cube:v1.8.15
+    image: cubejs/cube:v1.8.20
     depends_on: { db: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
@@ -2965,7 +2965,7 @@ docker run --rm --network host -e PGPASSWORD=repro postgres:17-alpine psql -h 12
 
 `9007199254740996 | 3000000000000`. REST on Postgres gives the correct text. On ClickHouse REST also rounds, because the driver reads JSON numbers.
 
-**Version:** v1.8.15, the newest tag on 2026-10-30.
+**Version:** v1.8.20, the newest tag on 2026-10-30.
 
 **Additional context**
 
@@ -3076,12 +3076,12 @@ id | lifetime | filtered
 
 **Code:**
 
-- [`rust/cube/cubesqlplanner/cubesqlplanner/src/physical_plan_builder/builder.rs:213`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cube/cubesqlplanner/cubesqlplanner/src/physical_plan_builder/builder.rs#L213): `find_reference_for_member` finds the column by the measure, and both dimensions have the measure `{orders.count}`, so the first subquery wins.
-- [`rust/cube/cubesqlplanner/cubesqlplanner/src/planner/planners/dimension_subquery_planner.rs:116`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cube/cubesqlplanner/cubesqlplanner/src/planner/planners/dimension_subquery_planner.rs#L116): the filter reaches the second subquery correctly.
+- [`rust/cube/cubesqlplanner/cubesqlplanner/src/physical_plan_builder/builder.rs:213`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cube/cubesqlplanner/cubesqlplanner/src/physical_plan_builder/builder.rs#L213): `find_reference_for_member` finds the column by the measure, and both dimensions have the measure `{orders.count}`, so the first subquery wins.
+- [`rust/cube/cubesqlplanner/cubesqlplanner/src/planner/planners/dimension_subquery_planner.rs:116`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cube/cubesqlplanner/cubesqlplanner/src/planner/planners/dimension_subquery_planner.rs#L116): the filter reaches the second subquery correctly.
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/dimensions.mdx:787`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/dimensions.mdx#L787): filters pass to the subquery.
+- [`docs-mintlify/reference/data-modeling/dimensions.mdx:787`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/dimensions.mdx#L787): filters pass to the subquery.
 
 **Issues:**
 
@@ -3114,7 +3114,7 @@ services:
     environment: { POSTGRES_DB: repro, POSTGRES_USER: repro, POSTGRES_PASSWORD: repro }
     healthcheck: { test: [CMD-SHELL, "pg_isready -U repro -d repro"], interval: 2s, retries: 40 }
   cube:
-    image: cubejs/cube:v1.8.15
+    image: cubejs/cube:v1.8.20
     depends_on: { db: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
@@ -3190,7 +3190,7 @@ curl -s -X POST http://127.0.0.1:4000/cubejs-api/v1/load -H 'Content-Type: appli
 
 `lifetime_orders: 2`, `paid_orders: 2`. With the dimensions swapped, both are 1.
 
-**Version:** v1.8.15, the newest tag on 2026-10-30.
+**Version:** v1.8.20, the newest tag on 2026-10-30.
 
 **Additional context**
 
@@ -3250,7 +3250,7 @@ multiStage: 0
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/measures.mdx`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/measures.mdx): `time_shift` is documented with a time dimension.
+- [`docs-mintlify/reference/data-modeling/measures.mdx`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/measures.mdx): `time_shift` is documented with a time dimension.
 
 **Issues:**
 
@@ -3322,8 +3322,8 @@ c
 
 **Code:**
 
-- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:91`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L91): `convertTz` writes `toDateTime64(field, 0)`, so a selected time has whole seconds.
-- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:163-175`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L163): the same `parseDateTimeBestEffort` as in B1 for a filter.
+- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:91`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L91): `convertTz` writes `toDateTime64(field, 0)`, so a selected time has whole seconds.
+- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:163-175`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L163): the same `parseDateTimeBestEffort` as in B1 for a filter.
 
 **Issues:**
 
@@ -3368,11 +3368,11 @@ HTTP 200 [{"orders.created_at.month": "2025-04-01T00:00:00.000", "orders.rev_mtd
 
 **Code:**
 
-- [`packages/cubejs-schema-compiler/src/compiler/CubeValidator.ts:467`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/compiler/CubeValidator.ts#L467): the validator still takes the old type.
+- [`packages/cubejs-schema-compiler/src/compiler/CubeValidator.ts:467`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/compiler/CubeValidator.ts#L467): the validator still takes the old type.
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/measures.mdx:532`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/measures.mdx#L532): Tesseract does not recognize them.
+- [`docs-mintlify/reference/data-modeling/measures.mdx:532`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/measures.mdx#L532): Tesseract does not recognize them.
 
 **Issues:**
 
@@ -3452,8 +3452,8 @@ psql:<stdin>:1: ERROR:  Database Execution Error: You cannot change security con
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/security.mdx:156`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/security.mdx#L156): `__user` changes the security context for a query.
-- [`docs-mintlify/reference/core-data-apis/sql-api/security.mdx:152`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/security.mdx#L152): `canSwitchSqlUser` defines the rule.
+- [`docs-mintlify/reference/core-data-apis/sql-api/security.mdx:156`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/security.mdx#L156): `__user` changes the security context for a query.
+- [`docs-mintlify/reference/core-data-apis/sql-api/security.mdx:152`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/security.mdx#L152): `canSwitchSqlUser` defines the rule.
 
 **Issues:**
 
@@ -3478,8 +3478,8 @@ No run. This is a claim about the docs.
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/view.mdx:240`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/view.mdx#L240): `auto_run` is for workbooks in the Cube cloud platform.
-- [`docs-mintlify/docs/explore-analyze/workbooks/querying-data.mdx`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/docs/explore-analyze/workbooks/querying-data.mdx): `default_ui_filters`.
+- [`docs-mintlify/reference/data-modeling/view.mdx:240`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/view.mdx#L240): `auto_run` is for workbooks in the Cube cloud platform.
+- [`docs-mintlify/docs/explore-analyze/workbooks/querying-data.mdx`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/docs/explore-analyze/workbooks/querying-data.mdx): `default_ui_filters`.
 
 **Issues:**
 
@@ -3525,8 +3525,8 @@ HTTP 200 [{"orders.count": "1"}]
 
 **Docs:**
 
-- [`docs-mintlify/reference/configuration/environment-variables.mdx:1647`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/configuration/environment-variables.mdx#L1647): the default is `true`.
-- [`docs-mintlify/reference/data-modeling/pre-aggregations.mdx`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/pre-aggregations.mdx): `allow_non_strict_date_range_match`.
+- [`docs-mintlify/reference/configuration/environment-variables.mdx:1647`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/configuration/environment-variables.mdx#L1647): the default is `true`.
+- [`docs-mintlify/reference/data-modeling/pre-aggregations.mdx`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/pre-aggregations.mdx): `allow_non_strict_date_range_match`.
 
 **Issues:**
 
@@ -3563,8 +3563,8 @@ c
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx:397`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx#L397): the row limit edge case, with the same warning.
-- [`docs-mintlify/reference/configuration/environment-variables.mdx:1250`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/configuration/environment-variables.mdx#L1250): the default is 50000.
+- [`docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx:397`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx#L397): the row limit edge case, with the same warning.
+- [`docs-mintlify/reference/configuration/environment-variables.mdx:1250`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/configuration/environment-variables.mdx#L1250): the default is 50000.
 
 **Issues:**
 
@@ -3603,11 +3603,11 @@ id
 
 **Code:**
 
-- [`packages/cubejs-query-orchestrator/src/orchestrator/QueryQueue.ts:243`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-query-orchestrator/src/orchestrator/QueryQueue.ts#L243): the error is written on purpose.
+- [`packages/cubejs-query-orchestrator/src/orchestrator/QueryQueue.ts:243`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-query-orchestrator/src/orchestrator/QueryQueue.ts#L243): the error is written on purpose.
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx:451`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx#L451): stream mode is a workaround for the limit, with no word on rollups.
+- [`docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx:451`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx#L451): stream mode is a workaround for the limit, with no word on rollups.
 
 **Issues:**
 
@@ -3664,7 +3664,7 @@ id | vip
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/joins.mdx:83`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/joins.mdx#L83): `CROSS JOIN` or `__cubeJoinField` joins as in the data model.
+- [`docs-mintlify/reference/core-data-apis/sql-api/joins.mdx:83`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/joins.mdx#L83): `CROSS JOIN` or `__cubeJoinField` joins as in the data model.
 
 **Issues:**
 
@@ -3712,7 +3712,7 @@ id | vip
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/joins.mdx:83`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/joins.mdx#L83)
+- [`docs-mintlify/reference/core-data-apis/sql-api/joins.mdx:83`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/joins.mdx#L83)
 
 **Issues:**
 
@@ -3762,8 +3762,8 @@ id | c
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/joins.mdx:83`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/joins.mdx#L83): the join is as in the data model.
-- [`docs-mintlify/docs/data-modeling/joins.mdx:424`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/docs/data-modeling/joins.mdx#L424): the direction comes from the path.
+- [`docs-mintlify/reference/core-data-apis/sql-api/joins.mdx:83`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/joins.mdx#L83): the join is as in the data model.
+- [`docs-mintlify/docs/data-modeling/joins.mdx:424`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/docs/data-modeling/joins.mdx#L424): the direction comes from the path.
 
 **Issues:**
 
@@ -3821,7 +3821,7 @@ id | d
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/reference.mdx:483`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/reference.mdx#L483): `DATEDIFF` comes from Redshift, which counts boundaries.
+- [`docs-mintlify/reference/core-data-apis/sql-api/reference.mdx:483`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/reference.mdx#L483): `DATEDIFF` comes from Redshift, which counts boundaries.
 
 **Issues:**
 
@@ -3868,12 +3868,12 @@ d | c
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/transport/service.rs:951`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/transport/service.rs#L951): it needs the template `expressions/interval` or `expressions/interval_single_date_part`.
-- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:322`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L322): ClickHouse defines only `DATE_ADD`, with no interval expression.
+- [`rust/cubesql/cubesql/src/transport/service.rs:951`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/transport/service.rs#L951): it needs the template `expressions/interval` or `expressions/interval_single_date_part`.
+- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:322`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L322): ClickHouse defines only `DATE_ADD`, with no interval expression.
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/reference.mdx:481`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/reference.mdx#L481): `DATE_ADD` and intervals are listed as supported.
+- [`docs-mintlify/reference/core-data-apis/sql-api/reference.mdx:481`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/reference.mdx#L481): `DATE_ADD` and intervals are listed as supported.
 
 **Issues:**
 
@@ -3906,7 +3906,7 @@ services:
     environment: { CLICKHOUSE_DB: repro, CLICKHOUSE_USER: repro, CLICKHOUSE_PASSWORD: repro, CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1" }
     healthcheck: { test: [CMD-SHELL, "clickhouse-client -u repro --password repro -q 'SELECT 1'"], interval: 2s, retries: 40 }
   cube:
-    image: cubejs/cube:v1.8.15
+    image: cubejs/cube:v1.8.20
     depends_on: { db: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
@@ -3976,7 +3976,7 @@ Each `created_at` plus one day, as on Postgres.
 
 `Can't generate SQL for interval ... template not found`.
 
-**Version:** v1.8.15, the newest tag on 2026-10-30.
+**Version:** v1.8.20, the newest tag on 2026-10-30.
 
 **Additional context**
 
@@ -4039,11 +4039,11 @@ m | a
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/compile/rewrite/rules/wrapper/extract.rs:76`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/rewrite/rules/wrapper/extract.rs#L76): the rule needs the template `expressions/extract`, and the ClickHouse dialect has none.
+- [`rust/cubesql/cubesql/src/compile/rewrite/rules/wrapper/extract.rs:76`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/rewrite/rules/wrapper/extract.rs#L76): the rule needs the template `expressions/extract`, and the ClickHouse dialect has none.
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/reference.mdx:484`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/reference.mdx#L484): `EXTRACT` is listed as supported.
+- [`docs-mintlify/reference/core-data-apis/sql-api/reference.mdx:484`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/reference.mdx#L484): `EXTRACT` is listed as supported.
 
 **Issues:**
 
@@ -4077,7 +4077,7 @@ services:
     environment: { CLICKHOUSE_DB: repro, CLICKHOUSE_USER: repro, CLICKHOUSE_PASSWORD: repro, CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1" }
     healthcheck: { test: [CMD-SHELL, "clickhouse-client -u repro --password repro -q 'SELECT 1'"], interval: 2s, retries: 40 }
   cube:
-    image: cubejs/cube:v1.8.15
+    image: cubejs/cube:v1.8.20
     depends_on: { db: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
@@ -4147,7 +4147,7 @@ docker run --rm --network host -e PGPASSWORD=repro postgres:17-alpine psql -h 12
 
 `Can't detect Cube query and it may be not supported yet`.
 
-**Version:** v1.8.15, the newest tag on 2026-10-30.
+**Version:** v1.8.20, the newest tag on 2026-10-30.
 
 **Additional context**
 
@@ -4187,7 +4187,7 @@ m | r
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/measures.mdx:466`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/measures.mdx#L466): omitting the date range works on a list of sources, with Postgres and with no ClickHouse.
+- [`docs-mintlify/reference/data-modeling/measures.mdx:466`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/measures.mdx#L466): omitting the date range works on a list of sources, with Postgres and with no ClickHouse.
 
 **Issues:**
 
@@ -4229,11 +4229,11 @@ x
 
 **Code:**
 
-- [`rust/cubesql/cubesql/src/compile/rewrite/rules/members.rs:2868`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cubesql/cubesql/src/compile/rewrite/rules/members.rs#L2868)
+- [`rust/cubesql/cubesql/src/compile/rewrite/rules/members.rs:2868`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cubesql/cubesql/src/compile/rewrite/rules/members.rs#L2868)
 
 **Docs:**
 
-- [`docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx:70`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx#L70): the same error text.
+- [`docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx:70`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/core-data-apis/sql-api/query-format.mdx#L70): the same error text.
 
 **Issues:**
 
@@ -4273,11 +4273,11 @@ HTTP 400 ERROR Error: function hll_hash_any(text) does not exist
 
 **Code:**
 
-- [`packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts:4292`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts#L4292): the error.
+- [`packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts:4292`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/adapter/BaseQuery.ts#L4292): the error.
 
 **Docs:**
 
-- [`docs-mintlify/admin/connect-to-data/data-sources/clickhouse.mdx:51`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/admin/connect-to-data/data-sources/clickhouse.mdx#L51): it cannot be used in pre-aggregations on ClickHouse.
+- [`docs-mintlify/admin/connect-to-data/data-sources/clickhouse.mdx:51`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/admin/connect-to-data/data-sources/clickhouse.mdx#L51): it cannot be used in pre-aggregations on ClickHouse.
 
 **Issues:**
 
@@ -4322,7 +4322,7 @@ a
 
 **Docs:**
 
-- [`docs-mintlify/docs/pre-aggregations/matching-pre-aggregations.mdx`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/docs/pre-aggregations/matching-pre-aggregations.mdx): additive measures and matching.
+- [`docs-mintlify/docs/pre-aggregations/matching-pre-aggregations.mdx`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/docs/pre-aggregations/matching-pre-aggregations.mdx): additive measures and matching.
 
 **Issues:**
 
@@ -4358,7 +4358,7 @@ a
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/dimensions.mdx:226`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/dimensions.mdx#L226): `public`. The error `primaryKey fields are public: false by default` says the same.
+- [`docs-mintlify/reference/data-modeling/dimensions.mdx:226`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/dimensions.mdx#L226): `public`. The error `primaryKey fields are public: false by default` says the same.
 
 **Issues:**
 
@@ -4391,11 +4391,11 @@ w | r
 
 **Code:**
 
-- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:94`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L94): `toMonday`.
+- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:94`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L94): `toMonday`.
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/dimensions.mdx:1063`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/dimensions.mdx#L1063): `week` starts on Monday.
+- [`docs-mintlify/reference/data-modeling/dimensions.mdx:1063`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/dimensions.mdx#L1063): `week` starts on Monday.
 
 **Issues:**
 
@@ -4431,7 +4431,7 @@ HTTP 200 {"cubes":[{"name":"orders","type":"cube","title":"Orders","isVisible":t
 
 **Code:**
 
-- [`packages/cubejs-api-gateway/src/gateway.ts:3164`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-api-gateway/src/gateway.ts#L3164): it throws only with `enforceSecurityChecks`.
+- [`packages/cubejs-api-gateway/src/gateway.ts:3164`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-api-gateway/src/gateway.ts#L3164): it throws only with `enforceSecurityChecks`.
 
 **Docs:**
 
@@ -4471,7 +4471,7 @@ matching lines: 1
 
 **Code:**
 
-- [`packages/cubejs-api-gateway/src/gateway.ts:3318`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-api-gateway/src/gateway.ts#L3318): `token` is in the log entry for an auth error.
+- [`packages/cubejs-api-gateway/src/gateway.ts:3318`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-api-gateway/src/gateway.ts#L3318): `token` is in the log entry for an auth error.
 
 **Issues:**
 
@@ -4555,12 +4555,12 @@ PARAMS: ["2025-03-02T00:00:00.000", "2025-06-30T23:59:58.999"]
 
 **Code:**
 
-- [`packages/cubejs-schema-compiler/src/adapter/PostgresQuery.ts:106`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/adapter/PostgresQuery.ts#L106): `generate_series` starts at the first day of the date range.
-- [`rust/cube/cubesqlplanner/cubesqlplanner/src/physical_plan/time_series.rs:121`](https://github.com/cube-js/cube/blob/v1.8.15/rust/cube/cubesqlplanner/cubesqlplanner/src/physical_plan/time_series.rs#L121): the generated series gets the raw start.
+- [`packages/cubejs-schema-compiler/src/adapter/PostgresQuery.ts:106`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/adapter/PostgresQuery.ts#L106): `generate_series` starts at the first day of the date range.
+- [`rust/cube/cubesqlplanner/cubesqlplanner/src/physical_plan/time_series.rs:121`](https://github.com/cube-js/cube/blob/v1.8.20/rust/cube/cubesqlplanner/cubesqlplanner/src/physical_plan/time_series.rs#L121): the generated series gets the raw start.
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/measures.mdx:466`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/measures.mdx#L466): Postgres generates the series in SQL.
+- [`docs-mintlify/reference/data-modeling/measures.mdx:466`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/measures.mdx#L466): Postgres generates the series in SQL.
 
 **Issues:**
 
@@ -4593,7 +4593,7 @@ services:
     environment: { POSTGRES_DB: repro, POSTGRES_USER: repro, POSTGRES_PASSWORD: repro }
     healthcheck: { test: [CMD-SHELL, "pg_isready -U repro -d repro"], interval: 2s, retries: 40 }
   cube:
-    image: cubejs/cube:v1.8.15
+    image: cubejs/cube:v1.8.20
     depends_on: { db: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
@@ -4664,7 +4664,7 @@ Buckets `2025-04-01` and `2025-05-01`, as on ClickHouse.
 
 Buckets `2025-04-15` and `2025-05-15`.
 
-**Version:** v1.8.15, the newest tag on 2026-10-30.
+**Version:** v1.8.20, the newest tag on 2026-10-30.
 
 **Additional context**
 
@@ -4715,11 +4715,11 @@ m | c
 
 **Code:**
 
-- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:274`](https://github.com/cube-js/cube/blob/v1.8.15/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L274): `seriesSql` writes two independent `arrayJoin` calls, so `date_from` and `date_to` make a cross product, and each bucket also joins the wrong end.
+- [`packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts:274`](https://github.com/cube-js/cube/blob/v1.8.20/packages/cubejs-schema-compiler/src/adapter/ClickHouseQuery.ts#L274): `seriesSql` writes two independent `arrayJoin` calls, so `date_from` and `date_to` make a cross product, and each bucket also joins the wrong end.
 
 **Docs:**
 
-- [`docs-mintlify/reference/data-modeling/measures.mdx:459`](https://github.com/cube-js/cube/blob/v1.8.15/docs-mintlify/reference/data-modeling/measures.mdx#L459): the rolling window is defined per bucket.
+- [`docs-mintlify/reference/data-modeling/measures.mdx:459`](https://github.com/cube-js/cube/blob/v1.8.20/docs-mintlify/reference/data-modeling/measures.mdx#L459): the rolling window is defined per bucket.
 
 **Issues:**
 
@@ -4752,7 +4752,7 @@ services:
     environment: { CLICKHOUSE_DB: repro, CLICKHOUSE_USER: repro, CLICKHOUSE_PASSWORD: repro, CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1" }
     healthcheck: { test: [CMD-SHELL, "clickhouse-client -u repro --password repro -q 'SELECT 1'"], interval: 2s, retries: 40 }
   cube:
-    image: cubejs/cube:v1.8.15
+    image: cubejs/cube:v1.8.20
     depends_on: { db: { condition: service_healthy } }
     environment:
       CUBEJS_DEV_MODE: "true"
@@ -4823,7 +4823,7 @@ docker run --rm --network host -e PGPASSWORD=repro postgres:17-alpine psql -h 12
 
 `2025-04-01, 1100` and `2025-05-01, 1100`.
 
-**Version:** v1.8.15, the newest tag on 2026-10-30.
+**Version:** v1.8.20, the newest tag on 2026-10-30.
 
 **Additional context**
 
@@ -4834,7 +4834,7 @@ This needs the legacy planner.
 
 ## Native SQL that the SQL API reads with another meaning
 
-Measured on 2026-11-02 on Cube v1.8.15, on stock Cube, with the dialect and with dev mode off, on the demo model. Each row is one text on the SQL API with no driver, and the truth is direct SQL on ClickHouse. Each number is the same on the three. These wait for a later pull request. The driver corrects or stops each one, see [Native SQL](query-compilation.md#native-sql).
+Measured on 2026-11-02 on Cube v1.8.20, on stock Cube, with the dialect and with dev mode off, on the demo model. Each row is one text on the SQL API with no driver, and the truth is direct SQL on ClickHouse. Each number is the same on the three. These wait for a later pull request. The driver corrects or stops each one, see [Native SQL](query-compilation.md#native-sql).
 
 | Defect | Repro on the SQL API | Cube | Truth |
 | --- | --- | --- | --- |

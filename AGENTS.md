@@ -26,7 +26,7 @@ ClickHouse behaviour reaches it through Cube SQL generation.
 ## Pinned versions
 
 - Metabase `v0.65.2.3`, OSS image `metabase/metabase`.
-- Cube `v1.8.15`, image `cubejs/cube`.
+- Cube `v1.8.20`, image `cubejs/cube`.
 - ClickHouse `26.10.3-alpine`, image `clickhouse/clickhouse-server`.
 
 Read Metabase code at tag `v0.65.2.3`. A clone is at `/Volumes/SanDisk2Tb/PycharmProjects/metabase`.
