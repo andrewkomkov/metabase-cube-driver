@@ -82,13 +82,15 @@ services:
     volumes: ["./cube-secure/cube.js:/cube/conf/cube.js:ro", "./cube-secure/model:/cube/conf/model:ro", "../cube-clickhouse:/cube/conf/cube-clickhouse:ro"]
     ports: ["127.0.0.1:4401:4000", "127.0.0.1:15434:15432"]
     restart: unless-stopped
-  # The legacy planner, for the check of N2. It reads the same model.
+  # The legacy planner, for the check of N2 and for reviews of that planner. It reads the same model with the settings of the
+  # service cube. With dev mode off and no Cube Store, each query that Cube reads from a rollup failed with
+  # "externalDriverFactory is not provided", and the default CUBEJS_DB_QUERY_LIMIT of 50000 gave wrong numbers with no error.
   cube-legacy:
     image: cubejs/cube:${CUBE_VERSION:-v1.8.15}
     depends_on: { clickhouse: { condition: service_healthy } }
-    mem_limit: 512m
+    mem_limit: 1g
     environment:
-      CUBEJS_DEV_MODE: "false"
+      CUBEJS_DEV_MODE: "true"
       CUBEJS_CACHE_AND_QUEUE_DRIVER: memory
       CUBEJS_API_SECRET: cube-legacy-dev-only-secret-0123456789
       CUBEJS_DB_TYPE: clickhouse
@@ -109,6 +111,10 @@ services:
       CUBEJS_SQL_PASSWORD: cube-dev-only
       CUBEJS_TELEMETRY: "false"
       CUBEJS_TESSERACT_SQL_PLANNER: "false"
+      # Its own schema: each Cube in dev mode drops the rollup tables of its schema that it does not know.
+      CUBEJS_PRE_AGGREGATIONS_SCHEMA: dev_pre_aggregations_legacy
+      CUBEJS_PRE_AGGREGATIONS_ALLOW_NON_STRICT_DATE_RANGE_MATCH: "false"
+      CUBEJS_DB_QUERY_LIMIT: "2000000"
       CUBE_CLICKHOUSE_FIXES: ${CUBE_CLICKHOUSE_FIXES:-on}
     volumes: ["./cube/model:/cube/conf/model:ro", "./cube/cube.js:/cube/conf/cube.js:ro", "../cube-clickhouse:/cube/conf/cube-clickhouse:ro"]
     ports: ["127.0.0.1:4402:4000", "127.0.0.1:15436:15432"]

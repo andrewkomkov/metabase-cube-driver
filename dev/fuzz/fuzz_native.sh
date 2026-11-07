@@ -21,6 +21,16 @@ wait_for() {
     sleep 3
   done
 }
+# The round trip needs pglast. With no pglast in python3, the script makes a venv once and reuses it. NATIVE_VENV moves it.
+py=python3
+if ! python3 -c 'import pglast' 2>/dev/null; then
+  venv=${NATIVE_VENV:-$HOME/.cache/metabase-cube-driver/fuzz-venv}
+  if ! "$venv/bin/python" -c 'import pglast' 2>/dev/null; then
+    python3 -m venv "$venv"
+    "$venv/bin/python" -m pip install -q -r "$root/dev/fuzz/requirements.txt"
+  fi
+  py="$venv/bin/python"
+fi
 sh "$root/scripts/package.sh"
 compose up -d --wait clickhouse cube cube-stock cubestore cube-prod
 wait_for "http://127.0.0.1:${base}4400/readyz"
@@ -36,9 +46,9 @@ python3 "$root/dev/fuzz/native_paths.py" connect "http://127.0.0.1:${base}4400" 
 image=$(compose config --format json | python3 -c 'import json, sys; print(json.load(sys.stdin)["services"]["metabase"]["image"])')
 export NATIVE_ADMIT="docker run --rm -i -v $root/src:/s:ro -v $root/dev/fuzz:/f:ro -v /tmp:/tmp --entrypoint java $image -cp /s:/app/metabase.jar clojure.main /f/admit.clj /f/meta.json {queries} {variant} {zone}"
 status=0
-python3 -u "$root/dev/fuzz/fuzz_native.py" --seed "$seed" --count "$count" --db Cube --path dialect "$@" || status=1
-python3 -u "$root/dev/fuzz/fuzz_native.py" --seed "$seed" --count "$count" --db Stock --path stock --stock --no-offline "$@" || status=1
-python3 -u "$root/dev/fuzz/fuzz_native.py" --seed "$seed" --count "$count" --db Prod --path production --no-offline "$@" || status=1
+"$py" -u "$root/dev/fuzz/fuzz_native.py" --seed "$seed" --count "$count" --db Cube --path dialect "$@" || status=1
+"$py" -u "$root/dev/fuzz/fuzz_native.py" --seed "$seed" --count "$count" --db Stock --path stock --stock --no-offline "$@" || status=1
+"$py" -u "$root/dev/fuzz/fuzz_native.py" --seed "$seed" --count "$count" --db Prod --path production --no-offline "$@" || status=1
 # A mutation has its seed in a comment. The driver refuses it before Cube, so no log of Cube has this text.
 for service in cube cube-stock cube-prod; do
   if compose logs "$service" 2>&1 | grep -q "mut-$seed"; then

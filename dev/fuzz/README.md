@@ -75,7 +75,7 @@ These are the rules of Metabase on Postgres and of the SQL standard, in ClickHou
 
 ## Native SQL
 
-`make fuzz-native SEED=n COUNT=n` starts ClickHouse, three Cubes and one Metabase, with compose project `mcd-native`, and it runs on Cube with the dialect, stock Cube and Cube in production mode. `NATIVE_PORT_BASE` moves the ports next to another stack, and `pip install -r dev/fuzz/requirements.txt` installs the real parser.
+`make fuzz-native SEED=n COUNT=n` starts ClickHouse, three Cubes and one Metabase, with compose project `mcd-native`, and it runs on Cube with the dialect, stock Cube and Cube in production mode. `NATIVE_PORT_BASE` moves the ports next to another stack, and the real parser comes from `dev/fuzz/requirements.txt`. If `python3` has no `pglast`, the script makes a venv in `~/.cache/metabase-cube-driver/fuzz-venv` once, and `NATIVE_VENV` moves it.
 
 | File | Job |
 | --- | --- |
