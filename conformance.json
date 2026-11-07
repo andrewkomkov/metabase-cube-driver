@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 1357,
+    "pass": 1361,
     "partial": 26,
     "blocked": 1,
     "unsupported": 12,
     "fail": 0,
-    "total": 1396
+    "total": 1400
   },
-  "coverage": "coverage: 1357/1396 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1361/1400 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -3266,6 +3266,16 @@
       "reason": ""
     },
     {
+      "id": "isolation.other_db_field_fingerprint",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "native.not_like_in_select",
+      "status": "pass",
+      "reason": ""
+    },
+    {
       "id": "isolation.other_db_card_fingerprint",
       "status": "pass",
       "reason": ""
@@ -3274,6 +3284,11 @@
       "id": "native.view_joined_dimension_weighted",
       "status": "partial",
       "reason": "Native SQL stops on SUM of a dimension of a view from a joined cube, because Cube reads each row of that cube once. The message gives the weighted form, which is exact. The driver does not rewrite the native text into it."
+    },
+    {
+      "id": "native.row_limit",
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "native.date_function",
@@ -6962,6 +6977,11 @@
     },
     {
       "id": "security.card_fingerprints_cleared",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "security.field_fingerprints",
       "status": "pass",
       "reason": ""
     },

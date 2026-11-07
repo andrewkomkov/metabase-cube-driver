@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1357/1396 pass on Cube with the ClickHouse dialect** (1357 pass, 26 partial, 1 blocked, 12 unsupported, 0 fail of 1396)
+**coverage: 1361/1400 pass on Cube with the ClickHouse dialect** (1361 pass, 26 partial, 1 blocked, 12 unsupported, 0 fail of 1400)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `b88e0416b2dc`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42362384202), 2026-11-07.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `d59f299d6cd1`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42374974625), 2026-11-07.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -659,8 +659,11 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `b88e0
 | `mcp.agent.filter_values` | pass |  |
 | `mcp.agent.error_unknown_column` | pass |  |
 | `mcp.agent.error_join_on` | pass |  |
+| `isolation.other_db_field_fingerprint` | pass |  |
+| `native.not_like_in_select` | pass |  |
 | `isolation.other_db_card_fingerprint` | pass |  |
 | `native.view_joined_dimension_weighted` | partial | Native SQL stops on SUM of a dimension of a view from a joined cube, because Cube reads each row of that cube once. The message gives the weighted form, which is exact. The driver does not rewrite the native text into it. |
+| `native.row_limit` | pass |  |
 | `native.date_function` | pass |  |
 | `mcp.execute_query.paging_measure` | pass |  |
 | `dimension.opt.propagate_filters_next_to_another_sub_query` | partial | Cube with the Tesseract planner reads the first subquery for two sub_query dimensions with equal SQL when the query has a filter. The driver stops a query that groups by both, and raw rows show NULL in the later column. With other SQL, such as {orders.count} + 0, both work, and each is right alone, see dimension.opt.propagate_filters. |
@@ -1399,6 +1402,7 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `b88e0
 | `security.metabase_cache` | pass |  |
 | `security.card_fingerprints` | pass |  |
 | `security.card_fingerprints_cleared` | pass |  |
+| `security.field_fingerprints` | pass |  |
 | `security.dev_mode_warning_for_hidden_members` | partial | Limit of Cube: with CUBEJS_DEV_MODE=true the SQL API reads hidden cubes and members (m6). A Cube with dev mode off refuses this query. docs/security.md warns about it. |
 | `security.validate_echoes_the_request_limit` | partial | Limit of Metabase: this admin endpoint repeats the request body with the secret that the admin sent, for each driver (m7). No driver hook applies. Each read of a stored database gives the mask. |
 | `security.private_member_gives_no_value` | pass |  |
