@@ -87,6 +87,17 @@
         (t2/update! :model/Field {:id [:in field-ids], :has_field_values [:not= "none"]} {:has_field_values "search"})
         (t2/update! :model/FieldUserSettings {:field_id [:in field-ids]} {:has_field_values nil})))))
 
+(defn clear-field-fingerprints-of-person-data!
+  "Sync stores a fingerprint of each field: min, max, quartiles, average and distinct counts of a sample of rows. A
+  connection that gets `cube-user-attribute` after its first sync keeps the fingerprints of all rows, and each person reads
+  them with no query, through GET /api/field/:id. This removes them. The driver does not fingerprint such a connection
+  again, see the method of `driver/database-supports?` for `:fingerprint`. See security.field_fingerprints."
+  [database]
+  (when (cube.identity/attribute (:details database))
+    (let [table-ids (t2/select-pks-set :model/Table :db_id (:id database))]
+      (when (seq table-ids)
+        (t2/update! :model/Field {:table_id [:in table-ids], :fingerprint [:not= nil]} {:fingerprint nil})))))
+
 (defn clear-result-fingerprints-of-person-data!
   "A card or a model that ran on a connection with `cube-user-attribute` before the driver stopped these fingerprints has
   a fingerprint of the rows of one person in `result_metadata`. Each reader of the card gets it with no run. This removes
@@ -312,6 +323,7 @@
       (catch Throwable e
         (log/warnf e "Could not sync the Cube data model to database %s" database-id)))
     (try
+      (clear-field-fingerprints-of-person-data! database)
       (clear-result-fingerprints-of-person-data! database)
       (catch Throwable e
-        (log/warnf e "Could not clear the result fingerprints of the cards of database %s" database-id)))))
+        (log/warnf e "Could not clear the field and result fingerprints of database %s" database-id)))))

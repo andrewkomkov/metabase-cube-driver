@@ -901,6 +901,11 @@
     :between (fix-between node)
     :div     (fix-division node)
     :like    (fix-like node)
+    ;; Cube has no plan for NOT over LIKE in a CASE or a FILTER: "Rewrite Error: Column #CASE WHEN NOT ... not found". NOT (x LIKE p) is x NOT LIKE p, also for NULL. See native.not_like_in_select.
+    :not     (let [inner (unwrapped (:x node))]
+               (if (= :like (:k inner))
+                 (assoc node :text (format "(%s)" (like-text inner (not (:not? inner)))))
+                 node))
     :is-distinct (assoc node :text (is-distinct-text node (:not? node)))
     :is      (if-let [text (is-text node (:not? node) false)] (assoc node :text text) node)
     ;; A cast of a column to numeric or decimal has the same value, and Cube writes it with no Nullable and with a scale that ClickHouse can stop on.

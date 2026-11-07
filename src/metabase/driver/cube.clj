@@ -16,6 +16,7 @@
    [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
    [metabase.driver.sql.query-processor :as sql.qp]
    [metabase.query-processor.middleware.cache :as qp.middleware.cache]
+   [metabase.query-processor.middleware.limit :as qp.limit]
    [metabase.query-processor.middleware.row-restricted-metadata :as qp.row-restricted-metadata]
    [metabase.util.honey-sql-2 :as h2x]
    [metabase.util.log :as log]
@@ -189,16 +190,18 @@
     (alter-var-root (requiring-resolve 'metabase.agent-lib.representations.repair/repair) keep-time-on-cube)
     true))
 
-;; A connection that gets the attribute of a person has lists of values and card fingerprints for all rows. See
-;; cube.semantic/clear-values-of-person-data! and cube.semantic/clear-result-fingerprints-of-person-data!.
+;; A connection that gets the attribute of a person has lists of values, field fingerprints and card fingerprints for all
+;; rows. See cube.semantic/clear-values-of-person-data!, cube.semantic/clear-field-fingerprints-of-person-data! and
+;; cube.semantic/clear-result-fingerprints-of-person-data!.
 (defmethod driver/notify-database-updated :cube
   [driver database]
   ((get-method driver/notify-database-updated :postgres) driver database)
   (try
     (cube.semantic/clear-values-of-person-data! database)
+    (cube.semantic/clear-field-fingerprints-of-person-data! database)
     (cube.semantic/clear-result-fingerprints-of-person-data! database)
     (catch Exception e
-      (log/warnf e "Could not clear the lists of values and result fingerprints of database %s" (:id database)))))
+      (log/warnf e "Could not clear the lists of values and the fingerprints of database %s" (:id database)))))
 
 (defmethod sql-jdbc.execute/set-timezone-sql :cube [_] "SET TIME ZONE %s")
 
@@ -239,6 +242,12 @@
               (mapcat cube.meta/cube->fields)
               (map cube.meta/sync-field))
         (sort-by :name (cube.meta/public-cubes (cube.meta/fetch-meta (:details database))))))
+
+;; Metabase keeps one fingerprint of a field for all people. On per-person data it would show the rows of one person, or of
+;; all rows, to each person. With no database to read, false. See security.field_fingerprints.
+(defmethod driver/database-supports? [:cube :fingerprint]
+  [_driver _feature database]
+  (and (some? database) (nil? (cube.identity/attribute (:details database)))))
 
 ;; Fingerprinting wraps each text column in SUBSTRING. On a wide cube or view, this makes the SQL API fail with
 ;; "Can't find rewrite due to AST node limit reached".
@@ -2989,6 +2998,20 @@
    ["Can't generate SQL for interval"
     (str "Cube cannot add an interval to a time in an aggregated query on this data source. Remove the date arithmetic, "
          "or add a dimension with that SQL to the data model.")]
+   ["MessageTooLargeError"
+    "Cube Store cannot send this many rows in one message. Add a filter or an aggregation, or add LIMIT to the query."]
+   ["Queue storage error"
+    (str "The queue of Cube failed on this query. A result with about a million rows or more is the common cause on Cube Store. Add a filter, an "
+         "aggregation or a LIMIT.")]
+   ["externalDriverFactory is not provided"
+    (str "Cube reads this query from a rollup, and this Cube has no Cube Store to hold rollups. Run Cube with Cube Store, or in dev mode, "
+         "or remove the rollup from the data model.")]
+   ["clientFactory is not a function"
+    (str "Cube reads this query from a rollup, and this Cube has no Cube Store to hold rollups. Run Cube with Cube Store, or in dev "
+         "mode, or remove the rollup from the data model.")]
+   ["numberAgg does not exist"
+    (str "The legacy planner of Cube has no form for this measure. Run Cube with CUBEJS_TESSERACT_SQL_PLANNER=true, or change the measure in "
+         "the data model.")]
    ["required to be pushed down"
     (str "Cube cannot run this query, because it needs MEASURE() and post-processing at the same time. Use a plain "
          "aggregation in the first stage, or add a measure to the data model.")]
@@ -3154,6 +3177,15 @@
       (cube.native/check-no-private-member! cube-meta sql)
       (cube.native/check-paths! cube-meta sql))))
 
+(defn- native-row-limit
+  "The number of rows that Metabase keeps of this native query, or nil if it keeps each row."
+  [query]
+  (try
+    (qp.limit/determine-query-max-rows query)
+    (catch Exception e
+      (log/debugf e "Could not read the row limit of a native query")
+      nil)))
+
 (defn- with-native-grammar
   "A native query in the form that goes to Cube, or a refusal. See cube.native/compile-native."
   [{{sql :query, params :params} :native, :as query}]
@@ -3164,7 +3196,7 @@
       (check-native-rollup! details cube-meta compiled)
       (check-native-count-of-null-key! details cube-meta compiled)
       (-> query
-          (assoc-in [:native :query] compiled)
+          (assoc-in [:native :query] (cube.native/with-row-limit compiled (native-row-limit query)))
           (assoc-in [:native :params] nil)))
     query))
 

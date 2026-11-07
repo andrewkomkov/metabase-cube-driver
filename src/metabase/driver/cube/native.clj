@@ -554,6 +554,17 @@
       (when wrong-bin-reason (check-granularity! select wrong-bin-reason)))
     (correct/correct checked (correction-context cube-meta selects {:zone zone, :keeps-fractions? keeps-fractions?, :value-read value-read}))))
 
+(defn with-row-limit
+  "`sql` with LIMIT `n` at the top, if the top of the query has no LIMIT, FETCH or OFFSET. Metabase reads at most `n` rows
+  of a native query and drops the rest, so the result that a person sees is the same. Cube Store sends all rows of a query in
+  one message, and with about a million rows the message is too large: Cube then retries with no end, and the query hangs.
+  See native.row_limit."
+  [^String sql n]
+  (let [tree (sqltext/parse sql)]
+    (if (or (nil? n) (:error tree) (not= :query (:k tree)) (:limit tree) (:offset tree) (:fetch? tree))
+      sql
+      (str (str/replace sql #"[\s;]+$" "") "\nLIMIT " (long n)))))
+
 (defn admit-native
   "The result of [[compile-native]] with no question to Cube, for `dev/fuzz/admit.clj`: {:sql, :used} or a refusal."
   [cube-meta ^String sql params opts]

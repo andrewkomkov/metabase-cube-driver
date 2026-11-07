@@ -3456,7 +3456,8 @@ def _(ctx):
     def error_of(sql):
         res = ctx.mb.api("POST", "/api/dataset", {"database": ctx.mb.need_db(), "type": "native", "native": {"query": sql, "template-tags": {}}}, ok=(200, 202, 400, 500))
         return str(res.get("error") or "")
-    text = error_of("SELECT n_str, COUNT(*) FILTER (WHERE NOT (n_str ILIKE 'alp%')) AS total FROM typed_events WHERE n_int BETWEEN 1 AND 9 GROUP BY 1")
+    # NOT over ILIKE in FILTER had no plan, and the driver now writes NOT ILIKE. See native.not_like_in_select.
+    text = error_of("SELECT DATE_TRUNC('week', created_at) AS w, COUNT(*) FILTER (WHERE created_at IN ('2025-06-15 10:30:00'::timestamp, '2025-03-09 12:00:00')) AS n FROM orders GROUP BY 1")
     if "Cube cannot plan" not in text or "Cube said:" not in text:
         raise Fail("error text: %s" % text[:400])
     text = error_of("SELECT EXTRACT(MONTH FROM created_at) m, MEASURE(unique_customers) FROM orders GROUP BY 1")
@@ -4870,6 +4871,65 @@ def _(ctx):
         time.sleep(2)
 
 
+FIELD_FINGERPRINT_COLUMNS = (("orders", "amount_dim"), ("orders", "created_at"), ("users", "city"), ("users", "email"))
+
+
+def field_fingerprints(mb, db_id):
+    """Each stored fingerprint of the fields above, as a person reads it with no query."""
+    tables = {t["name"]: t for t in mb.api("GET", "/api/database/%d/metadata" % db_id)["tables"]}
+    found = []
+    for table, column in FIELD_FINGERPRINT_COLUMNS:
+        if table not in tables:
+            raise Fail("no table %s" % table)
+        field = [f for f in tables[table]["fields"] if f["name"] == column]
+        if not field:
+            raise Fail("no field %s.%s" % (table, column))
+        found += [("GET /api/field/%s.%s" % (table, column), fp) for _n, fp in fingerprints(mb.api("GET", "/api/field/%d" % field[0]["id"]))]
+        meta = mb.api("GET", "/api/table/%d/query_metadata" % tables[table]["id"])
+        found += [("query_metadata %s.%s" % (table, n), fp) for n, fp in fingerprints(meta.get("fields")) if n == column]
+    return found
+
+
+@check("security.field_fingerprints")
+def _(ctx):
+    """Sync stores a fingerprint of each field from a sample of rows: min, max, quartiles, average, distinct counts. A
+    connection that gets the attribute after its first sync keeps the fingerprints of all rows, and each person reads them
+    with no query. They go when the connection changes, and sync does not make them again."""
+    sec = secure(ctx)
+    name = "Cube attribute later fingerprints"
+    details = {k: v for k, v in SECURE_DETAILS.items() if k != "cube-user-attribute"}
+    db_id = sec.ensure_db(name, details)
+    admin = sec._admin(name)
+    deadline = time.time() + 240
+    while len(field_fingerprints(admin, db_id)) < 2 * len(FIELD_FINGERPRINT_COLUMNS):
+        if time.time() > deadline:
+            raise Fail("the first sync with no attribute stored no fingerprints, so this shows nothing: %s" % field_fingerprints(admin, db_id))
+        time.sleep(3)
+    current = admin.api("GET", "/api/database/%d" % db_id)
+    admin.api("PUT", "/api/database/%d" % db_id, {"details": dict(current["details"], **{"cube-user-attribute": "email"})})
+    bob = sec.person("bob@example.com", name)
+    found = field_fingerprints(bob, db_id)
+    if found:
+        raise Fail("bob reads fingerprints of all rows after the attribute: %s" % json.dumps(found)[:400])
+    admin.api("POST", "/api/database/%d/sync_schema" % db_id)
+    admin.api("POST", "/api/database/%d/rescan_values" % db_id)
+    time.sleep(60)
+    found = field_fingerprints(bob, db_id)
+    if found:
+        raise Fail("a sync stores fingerprints again on per-person data: %s" % json.dumps(found)[:400])
+    rows = bob.native("SELECT city FROM users GROUP BY 1")["rows"]
+    if rows != [["Boston"]]:
+        raise Fail("bob sees %s" % rows)
+
+
+@check("isolation.other_db_field_fingerprint")
+def _(ctx):
+    """On a Cube connection with one user for all people, sync keeps the fingerprints of fields as before."""
+    found = field_fingerprints(ctx.mb, ctx.mb.need_db())
+    if len(found) < 2 * len(FIELD_FINGERPRINT_COLUMNS):
+        raise Fail("a connection with no per-person data lacks fingerprints: %s" % json.dumps(found)[:300])
+
+
 @check("native.view_joined_dimension_weighted")
 def _(ctx):
     """SUM of a dimension of a view that comes from a joined cube reads each row of that cube once. Native SQL stops, and
@@ -4879,6 +4939,41 @@ def _(ctx):
                 ch("SELECT sum(user_id), count(), avg(user_id) FROM orders WHERE status = 'completed'"), label="weighted")
     assert_rows(ctx.mb.native("SELECT SUM(users_id * n) FROM (SELECT users_id, MEASURE(count) AS n FROM paid_sales WHERE users_city = 'Austin' GROUP BY 1) t")["rows"],
                 ch("SELECT sum(o.user_id) FROM orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'completed' AND u.city = 'Austin'"), label="weighted with a filter")
+
+
+@check("native.not_like_in_select")
+def _(ctx):
+    """NOT over LIKE in a CASE or a FILTER. Cube has no plan for this form, so the driver writes x NOT LIKE p."""
+    cases = [
+        ("SELECT CASE WHEN NOT (status LIKE 'c%') THEN 1 ELSE 0 END AS a, COUNT(*) FROM orders GROUP BY 1 ORDER BY 1",
+         "SELECT toInt8(NOT (status LIKE 'c%')) AS a, count() FROM orders GROUP BY a ORDER BY a"),
+        ("SELECT CASE WHEN NOT (n_str NOT ILIKE '%a%') THEN 1 ELSE 0 END AS a, COUNT(*) FROM typed_events GROUP BY 1 ORDER BY 1",
+         "SELECT toInt8(ifNull(n_str ILIKE '%a%', false)) AS a, count() FROM typed_events GROUP BY a ORDER BY a"),
+        ("SELECT COUNT(*) FILTER (WHERE NOT (status LIKE '%')) FROM orders",
+         "SELECT countIf(NOT (status LIKE '%')) FROM orders"),
+        ("SELECT COUNT(*) FILTER (WHERE NOT (n_str LIKE '%a%')) FROM typed_events",
+         "SELECT countIf(ifNull(NOT (n_str LIKE '%a%'), false)) FROM typed_events"),
+    ]
+    for sql, truth in cases:
+        assert_rows(ctx.mb.native(sql)["rows"], ch(truth), label=sql)
+
+
+@check("native.row_limit")
+def _(ctx):
+    """Metabase keeps at most 2000 rows of a native question, and the driver sends that LIMIT to Cube. Cube Store sends the
+    whole result in one message, and with about a million rows Cube retried with no end. An aggregation inside the query
+    still reads each row, and a LIMIT of the question stays."""
+    start = time.time()
+    data = ctx.mb.native("SELECT id, amount_dim, status FROM big_orders")
+    took = time.time() - start
+    if len(data["rows"]) != 2000:
+        raise Fail("%d rows, where Metabase keeps 2000" % len(data["rows"]))
+    if took > 60:
+        raise Fail("ten million raw rows took %.0f s for 2000 rows" % took)
+    assert_rows(ctx.mb.native("SELECT COUNT(*) FROM (SELECT id FROM big_orders WHERE created_at < '2024-04-01') t")["rows"],
+                ch("SELECT count() FROM big_orders WHERE created_at < toDateTime('2024-04-01 00:00:00', 'UTC')"), label="count over a subquery")
+    assert_rows(ctx.mb.native("SELECT id FROM orders ORDER BY id DESC LIMIT 3")["rows"], ch("SELECT id FROM orders ORDER BY id DESC LIMIT 3"), label="own limit")
+    assert_rows(ctx.mb.native("SELECT id FROM orders ORDER BY id DESC")["rows"][:5], ch("SELECT id FROM orders ORDER BY id DESC LIMIT 5"), label="order")
 
 
 @check("native.date_function")

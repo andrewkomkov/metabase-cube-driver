@@ -4071,6 +4071,24 @@
   status: pass
   status_stock: pass
   check: security.card_fingerprints_cleared
+- id: security.field_fingerprints
+  area: cube.security
+  title: "security field fingerprints"
+  status: pass
+  status_stock: pass
+  check: security.field_fingerprints
+- id: isolation.other_db_field_fingerprint
+  area: isolation
+  title: "isolation other db field fingerprint"
+  status: pass
+  status_stock: pass
+  check: isolation.other_db_field_fingerprint
+- id: native.not_like_in_select
+  area: native
+  title: "native not like in select"
+  status: pass
+  status_stock: pass
+  check: native.not_like_in_select
 - id: isolation.other_db_card_fingerprint
   area: isolation
   title: "a card on a connection with one user for all people keeps its fingerprint"
@@ -4085,6 +4103,12 @@
   check: native.view_joined_dimension_weighted
   cap: partial
   reason: "Native SQL stops on SUM of a dimension of a view from a joined cube, because Cube reads each row of that cube once. The message gives the weighted form, which is exact. The driver does not rewrite the native text into it."
+- id: native.row_limit
+  area: native
+  title: "native row limit of Metabase reaches Cube"
+  status: pass
+  status_stock: pass
+  check: native.row_limit
 - id: native.date_function
   area: native
   title: "native DATE(x) of a time"
