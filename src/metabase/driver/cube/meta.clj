@@ -60,6 +60,19 @@
                       {:status (:status response)})))
     response))
 
+(defn accepts-wrong-token?
+  "True if the REST API answers a JWT with a wrong signature, as Cube does in dev mode."
+  [details path query-params]
+  (let [now      (quot (System/currentTimeMillis) 1000)
+        token    (jwt/sign {:iat now, :exp (+ now 60)} "metabase-cube-driver: not the key of this Cube" {:alg :hs256})
+        response (http/get (api-url details path) {:headers            {"Accept" "application/json", "Authorization" (str "Bearer " token)}
+                                                   :query-params       query-params
+                                                   :as                 :text
+                                                   :throw-exceptions   false
+                                                   :socket-timeout     http-timeout-ms
+                                                   :connection-timeout http-timeout-ms})]
+    (= 200 (:status response))))
+
 (defn- api-get
   "GET a path of the Cube REST API. Returns the decoded body."
   [details path query-params]

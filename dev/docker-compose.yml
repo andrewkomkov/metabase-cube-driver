@@ -88,7 +88,8 @@ services:
   cube-legacy:
     image: cubejs/cube:${CUBE_VERSION:-v1.8.15}
     depends_on: { clickhouse: { condition: service_healthy } }
-    mem_limit: 1g
+    # The same as cube: with a query limit of 2000000 rows in memory, 1 GB restarted this service in a long run.
+    mem_limit: 2g
     environment:
       CUBEJS_DEV_MODE: "true"
       CUBEJS_CACHE_AND_QUEUE_DRIVER: memory

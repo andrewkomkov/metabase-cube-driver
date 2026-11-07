@@ -159,13 +159,65 @@ def run_native_grammar(mb, db):
     return bad
 
 
+def run_large_results(mb, db):
+    """A result larger than one message of Cube Store. Cube then retries with no end, so each query here must end in a minute, with the rows that Metabase keeps or with a
+    message. See native.row_limit and "A download of more rows" in docs/query-compilation.md."""
+    bad = []
+    raw = "SELECT id, amount_dim, status FROM big_orders WHERE created_at < '2024-04-01'"
+
+    def timed(label, call):
+        start = time.time()
+        out = call()
+        took = time.time() - start
+        if took > 60:
+            bad.append("%s took %.0f s" % (label, took))
+        return out
+
+    for label, sql in (("raw rows", raw), ("own large LIMIT", raw + " ORDER BY id LIMIT 1500000"), ("OFFSET", raw + " ORDER BY id OFFSET 10")):
+        rows, _cols, error = timed(label, lambda: mb.run({"type": "native", "database": db, "native": {"query": sql, "template-tags": {}}}))
+        if error or len(rows) != 2000:
+            bad.append("%s: %s" % (label, error or "%d rows" % len(rows)))
+    first = lib.ch("SELECT id FROM big_orders WHERE created_at < toDateTime('2024-04-01 00:00:00', 'UTC') ORDER BY id LIMIT 3")
+    rows, _cols, error = mb.run({"type": "native", "database": db, "native": {"query": raw + " ORDER BY id LIMIT 1500000", "template-tags": {}}})
+    if not error and [[r[0]] for r in rows[:3]] != [[int(r[0])] for r in first]:
+        bad.append("own large LIMIT: first rows %s, truth %s" % (rows[:3], first))
+    for label, sql in (("download", raw), ("download of a star", "SELECT * FROM big_orders WHERE created_at < '2024-04-01'")):
+        query = json.dumps({"type": "native", "database": db, "native": {"query": sql, "template-tags": {}}})
+        status, text, _h = timed(label, lambda: lib.http("POST", mb.url + "/api/dataset/csv", {"query": query, "format_rows": "false"},
+                                                          {"X-Metabase-Session": mb.sid}, form=True, timeout=600))
+        if "Cube Store" not in text:
+            bad.append("%s: HTTP %s, no message about Cube Store: %s" % (label, status, text[:200]))
+    table = {t["name"]: t["id"] for t in mb.api("GET", "/api/database/%d/metadata" % db)["tables"]}["big_orders"]
+    query = json.dumps({"type": "query", "database": db, "query": {"source-table": table}})
+    status, text, _h = timed("download from the query builder", lambda: lib.http("POST", mb.url + "/api/dataset/csv", {"query": query, "format_rows": "false"},
+                                                                               {"X-Metabase-Session": mb.sid}, form=True, timeout=600))
+    if "Cube Store" not in text:
+        bad.append("download from the query builder: HTTP %s, no message about Cube Store: %s" % (status, text[:200]))
+    small = "SELECT id, status FROM big_orders WHERE created_at < '2024-01-15'"
+    query = json.dumps({"type": "native", "database": db, "native": {"query": small, "template-tags": {}}})
+    status, text, _h = timed("small download", lambda: lib.http("POST", mb.url + "/api/dataset/csv", {"query": query, "format_rows": "false"},
+                                                                {"X-Metabase-Session": mb.sid}, form=True, timeout=600))
+    want = int(lib.ch("SELECT count() FROM big_orders WHERE created_at < toDateTime('2024-01-15 00:00:00', 'UTC')")[0][0])
+    got = len(text.strip().splitlines()) - 1
+    if status != 200 or got != min(want, 1048575):
+        bad.append("small download: HTTP %s, %d rows, truth %d: %s" % (status, got, want, text[:200]))
+    print("large results", {"problems": len(bad), "small download rows": got})
+    for line in bad:
+        print("  ", line)
+    return bad
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.environ.get("PRODUCTION_OUT", "out-production"))
     ap.add_argument("--every", type=int, default=10)
+    ap.add_argument("--large-only", default=None, help="Only the large results, on the connection with this name.")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     mb = lib.Metabase().login()
+    if a.large_only:
+        db = {d["name"]: d["id"] for d in mb.api("GET", "/api/database")["data"]}[a.large_only]
+        return 1 if run_large_results(mb, db) else 0
     have = connect(mb)
     dev, _ = model(mb, have["Cube"]["id"])
     prod, tables = model(mb, have["Cube prod"]["id"])
@@ -179,7 +231,7 @@ def main():
     print("private doors: refused %d, values %d" % (refused, len(leaks)))
     for line in leaks[:10]:
         print("  ", line)
-    release_problems = run_release_cases(mb, have["Cube prod"]["id"]) + run_native_grammar(mb, have["Cube prod"]["id"])
+    release_problems = run_release_cases(mb, have["Cube prod"]["id"]) + run_native_grammar(mb, have["Cube prod"]["id"]) + run_large_results(mb, have["Cube prod"]["id"])
     runner = [sys.executable, "-u", os.path.join(os.path.dirname(os.path.abspath(lib.__file__)), "gate", "run_gate.py"), "--db", "Cube prod"]
     verdicts = collections.Counter()
     bad = []

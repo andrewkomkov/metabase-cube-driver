@@ -794,3 +794,64 @@
                     groups   (count-of groups-sql)]
                 (or (nil? rows) (nil? groups) (= (bigdec rows) (bigdec groups))))
               (catch Exception _ true)))))
+
+;;; The planner. With CUBEJS_TESSERACT_SQL_PLANNER=false, Cube plans with its legacy planner, which drops the default_filters of a view: a count of paid_sales gives 5000 where
+;;; the filter keeps 2000. /v1/meta does not list default_filters, so the driver cannot tell which views have them. The two planners write SQL in two forms: Tesseract
+;;; writes `SELECT x` and GROUP BY a position, and the legacy planner writes `SELECT` on its own line, or GROUP BY a name.
+
+(defn legacy-planner-text?
+  "True if Cube wrote `text` with its legacy planner."
+  [text]
+  (boolean (or (re-find #"\A\s*SELECT\s*\n" text)
+               (re-find #"(?i)\bGROUP BY\s+[`\"]" text))))
+
+(defn legacy-planner?
+  "True if this Cube plans with its legacy planner. The answer is at most one minute old. With no answer this is false."
+  [details cube-meta]
+  (let [cube      (first (filter #(and (not= "view" (:type %)) (seq (:measures %)) (some (fn [d] (= "string" (:type d))) (:dimensions %)))
+                                 (:cubes cube-meta)))
+        dimension (first (filter #(= "string" (:type %)) (:dimensions cube)))]
+    (boolean
+     (when cube
+       (cached details [:legacy-planner]
+               (fn []
+                 (try
+                   (legacy-planner-text? (:text (sql-of details {:measures   [(:name (first (:measures cube)))]
+                                                                 :dimensions [(:name dimension)]
+                                                                 :filters    [{:member (:name dimension), :operator "set"}]})))
+                   (catch Exception _ false))))))))
+
+;;; The size of a result on Cube Store. With dev mode off, Cube keeps each result in its queue in Cube Store, and Cube Store takes one message of at most 100 MB. A larger result
+;;; gives MessageTooLargeError in the log of Cube, and Cube retries with no end, so the query hangs and no error reaches the driver. 1.3 million rows of three columns made a
+;;; message of 118.4 MB, about three times their JSON.
+
+(def ^:private message-bytes-per-json-byte 3.5)
+
+(def ^:private largest-message-bytes (* 80 1024 1024))
+
+(defn dev-mode?
+  "True if Cube accepts a JWT with a wrong signature, as it does in dev mode. The answer is at most one minute old. With no answer this is true, so nothing stops."
+  [details cube-meta]
+  (let [measure (some #(:name (first (:measures %))) (:cubes cube-meta))]
+    (boolean
+     (or (nil? measure)
+         (cached details [:dev-mode]
+                 (fn []
+                   (try
+                     (cube.meta/accepts-wrong-token? details "/v1/sql" {"query" (json/encode {:measures [measure]})})
+                     (catch Exception _ true))))))))
+
+(defn too-large-result
+  "{:rows, :bytes, :rows-that-fit} if the result of `sql` is too large for one message of Cube Store, or nil. `sql` is the text that goes to Cube, with its LIMIT. With no
+  answer this is nil."
+  [details sql]
+  (try
+    (let [[[rows]] (cube.meta/rest-sql details (format "SELECT COUNT(*) FROM (%s) AS mb_rows" sql) "UTC")
+          sample   (cube.meta/rest-sql details (format "SELECT * FROM (%s) AS mb_rows LIMIT 100" sql) "UTC")
+          per-row  (/ (double (reduce + 0 (map (comp count json/encode) sample))) (max 1 (count sample)))
+          ;; The SQL API gives a count as text.
+          rows     (or (some-> rows str parse-long) 0)
+          bytes    (* rows per-row message-bytes-per-json-byte)]
+      (when (> bytes largest-message-bytes)
+        {:rows rows, :bytes (long bytes), :rows-that-fit (long (/ largest-message-bytes (max 1.0 (* per-row message-bytes-per-json-byte))))}))
+    (catch Exception _ nil)))

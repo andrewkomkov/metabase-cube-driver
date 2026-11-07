@@ -3009,9 +3009,14 @@
    ["clientFactory is not a function"
     (str "Cube reads this query from a rollup, and this Cube has no Cube Store to hold rollups. Run Cube with Cube Store, or in dev "
          "mode, or remove the rollup from the data model.")]
-   ["numberAgg does not exist"
+   ;; Cube says "Function with name `numberAgg` does not exist".
+   ["numberAgg"
     (str "The legacy planner of Cube has no form for this measure. Run Cube with CUBEJS_TESSERACT_SQL_PLANNER=true, or change the measure in "
          "the data model.")]
+   ;; The legacy planner on a measure of a cube that it cannot join, such as nk_count of the demo.
+   ["Cannot read properties of null (reading 'joins')"
+    (str "The legacy planner of Cube cannot plan this measure. Run Cube with CUBEJS_TESSERACT_SQL_PLANNER=true, the default since Cube v1.7.0, or change the "
+         "measure in the data model.")]
    ["required to be pushed down"
     (str "Cube cannot run this query, because it needs MEASURE() and post-processing at the same time. Use a plain "
          "aggregation in the first stage, or add a measure to the data model.")]
@@ -3145,6 +3150,23 @@
   [query]
   (contains? #{:table-rows-sample :fingerprint} (-> query :info :context)))
 
+(defn- check-view-on-legacy-planner!
+  "Stops a query on a view when Cube plans with its legacy planner, which drops the default_filters of a view. The driver cannot see which views have them. See
+  cube.probe/legacy-planner?."
+  [query]
+  (when-not (sync-query? query)
+    (when-let [cube-meta (current-meta)]
+      (let [tables (set (map (comp str/lower-case second)
+                             (re-seq #"(?i)\b(?:from|join)\s+(?:\"?\w+\"?\s*\.\s*)?\"?(\w+)\"?" (str (get-in query [:native :query])))))
+            views  (filter #(and (= "view" (:type %)) (tables (str/lower-case (:name %)))) (:cubes cube-meta))]
+        (when (and (seq views)
+                   (cube.probe/legacy-planner? (:details (driver-api/database (driver-api/metadata-provider))) cube-meta))
+          (throw (ex-info (format (str "This Cube plans with its legacy planner (CUBEJS_TESSERACT_SQL_PLANNER=false), which drops the default_filters of a view, so a number of the "
+                                       "view %s could count rows outside its filter with no error. Run Cube with the Tesseract planner, the default since Cube v1.7.0, or query the cube "
+                                       "of the view.")
+                                  (:name (first views)))
+                          {:type :invalid-query})))))))
+
 (defn- check-native-rollup!
   "Native SQL has no stage to add a filter to, so the driver stops it if Cube would read it from a rollup that does not hold each row of the query."
   [details cube-meta sql]
@@ -3200,6 +3222,25 @@
           (assoc-in [:native :params] nil)))
     query))
 
+(def ^:private download-rows
+  "Fewer rows than this fit in one message of Cube Store. Metabase asks for 2000 rows on screen and for about a million in a download."
+  100000)
+
+(defn- check-result-size!
+  "Stops a query with a result that is too large for Cube Store, which would hang. See cube.probe/too-large-result."
+  [query]
+  (let [n (native-row-limit query)]
+    (when (and (not (sync-query? query)) (or (nil? n) (> n download-rows)))
+      (when-let [cube-meta (current-meta)]
+        (let [details (:details (driver-api/database (driver-api/metadata-provider)))
+              sql     (cube.native/inline-parameters (get-in query [:native :query]) (get-in query [:native :params]))]
+          (when-not (cube.probe/dev-mode? details cube-meta)
+            (when-let [{:keys [rows bytes rows-that-fit]} (cube.probe/too-large-result details sql)]
+              (throw (ex-info (format (str "This Cube runs with dev mode off, so it keeps each result in Cube Store, as one message of at most 100 MB. This result has %d rows, about %d MB, "
+                                           "so Cube would retry it with no end and the query would hang. Add a filter or an aggregation, or LIMIT the rows to about %d.")
+                                      rows (quot bytes (* 1024 1024)) rows-that-fit)
+                              {:type :invalid-query})))))))))
+
 ;;; Numbers above 2^53. The Cube SQL API has the type Double for a number, and the ClickHouse driver of Cube reads JSON numbers, so
 ;;; these lost digits before they reach this driver. The driver cannot get them back, so it stops the query.
 
@@ -3248,10 +3289,13 @@
   [driver query context respond]
   (cube.identity/assert-person! (:details (driver-api/database (driver-api/metadata-provider))))
   (check-sql! query)
+  (check-view-on-legacy-planner! query)
   (try
     (binding [*stop-big-numbers* (not (sync-query? query))
               *time-measure-columns* (set (get-in query [:native :cube/time-measure-columns]))]
-      (sql-jdbc.execute/execute-reducible-query driver (with-native-grammar query) context respond))
+      (let [query (with-native-grammar query)]
+        (check-result-size! query)
+        (sql-jdbc.execute/execute-reducible-query driver query context respond)))
     (catch Exception e
       (if-let [text (clear-error (exception-text e) (when (native-only? query) (get-in query [:native :query])))]
         (throw (ex-info text {:type :invalid-query}))
