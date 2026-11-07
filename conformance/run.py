@@ -4943,19 +4943,57 @@ def _(ctx):
 
 @check("native.not_like_in_select")
 def _(ctx):
-    """NOT over LIKE in a CASE or a FILTER. Cube has no plan for this form, so the driver writes x NOT LIKE p."""
+    """NOT over LIKE in FILTER. Cube has no plan for this form in CASE, so FILTER gets the text of WHERE: x NOT LIKE p AND x IS NOT NULL. In CASE it stops."""
     cases = [
-        ("SELECT CASE WHEN NOT (status LIKE 'c%') THEN 1 ELSE 0 END AS a, COUNT(*) FROM orders GROUP BY 1 ORDER BY 1",
-         "SELECT toInt8(NOT (status LIKE 'c%')) AS a, count() FROM orders GROUP BY a ORDER BY a"),
-        ("SELECT CASE WHEN NOT (n_str NOT ILIKE '%a%') THEN 1 ELSE 0 END AS a, COUNT(*) FROM typed_events GROUP BY 1 ORDER BY 1",
-         "SELECT toInt8(ifNull(n_str ILIKE '%a%', false)) AS a, count() FROM typed_events GROUP BY a ORDER BY a"),
         ("SELECT COUNT(*) FILTER (WHERE NOT (status LIKE '%')) FROM orders",
          "SELECT countIf(NOT (status LIKE '%')) FROM orders"),
         ("SELECT COUNT(*) FILTER (WHERE NOT (n_str LIKE '%a%')) FROM typed_events",
          "SELECT countIf(ifNull(NOT (n_str LIKE '%a%'), false)) FROM typed_events"),
+        ("SELECT COUNT(*) FILTER (WHERE NOT (n_str NOT ILIKE '%a%')) FROM typed_events",
+         "SELECT countIf(ifNull(n_str ILIKE '%a%', false)) FROM typed_events"),
     ]
     for sql, truth in cases:
         assert_rows(ctx.mb.native(sql)["rows"], ch(truth), label=sql)
+    for sql in ("SELECT CASE WHEN NOT (status LIKE 'c%') THEN 1 ELSE 0 END AS a, COUNT(*) FROM orders GROUP BY 1",
+                "SELECT CASE WHEN n_str NOT ILIKE '%a%' THEN 1 ELSE 0 END AS a, COUNT(*) FROM typed_events GROUP BY 1"):
+        expect_native_refusal(ctx, sql, "only at the top of WHERE, HAVING or FILTER")
+
+
+@check("native.not_like_three_values")
+def _(ctx):
+    """B3 of release review 3. NOT of a condition with a NULL column is NULL, and Cube reads NOT and the forms of NULL with another meaning. The driver corrects them only at the
+    top of WHERE, HAVING and FILTER, also under a second NOT, and each of these forms stops in CASE, as a value, in a function and in GROUP BY or ORDER BY. typed_events.n_str
+    has 150 rows LIKE 's1%', 600 other rows and 250 NULL."""
+    runs = [
+        ("SELECT COUNT(*) FILTER (WHERE NOT (NOT (n_str LIKE 's1%'))) FROM typed_events",
+         "SELECT countIf(ifNull(n_str LIKE 's1%', false)) FROM typed_events"),
+        ("SELECT COUNT(*) FILTER (WHERE NOT (NOT (NOT (lc_n ILIKE 'H%')))) FROM typed_events",
+         "SELECT countIf(ifNull(NOT (lc_n ILIKE 'H%'), false)) FROM typed_events"),
+        ("SELECT COUNT(*) FILTER (WHERE NOT (n_str LIKE 's1%' AND n_int > 2)) FROM typed_events",
+         "SELECT countIf(ifNull(NOT (n_str LIKE 's1%' AND n_int > 2), false)) FROM typed_events"),
+        ("SELECT COUNT(*) FROM typed_events WHERE NOT (NOT (NOT (n_str LIKE 's1%')))",
+         "SELECT count() FROM typed_events WHERE NOT (n_str LIKE 's1%')"),
+        ("SELECT lc, COUNT(*) FROM typed_events GROUP BY 1 HAVING COUNT(*) FILTER (WHERE NOT (n_str <> 's1')) > 0",
+         "SELECT lc, count() FROM typed_events GROUP BY lc HAVING countIf(ifNull(n_str = 's1', false)) > 0"),
+        ("SELECT CASE WHEN n_str LIKE 's1%' THEN 'yes' WHEN n_str IS NULL THEN 'unknown' ELSE 'no' END AS a, COUNT(*) FROM typed_events GROUP BY 1",
+         "SELECT multiIf(ifNull(n_str LIKE 's1%', false), 'yes', n_str IS NULL, 'unknown', 'no') AS a, count() FROM typed_events GROUP BY a"),
+        ("SELECT n_str LIKE 's1%' AS b, COUNT(*) FROM typed_events GROUP BY 1",
+         "SELECT toBool(n_str LIKE 's1%') AS b, count() FROM typed_events GROUP BY b"),
+    ]
+    for sql, truth in runs:
+        assert_rows(ctx.mb.native(sql)["rows"], ch(truth), label=sql)
+    stops = [
+        "SELECT CASE WHEN NOT (NOT (n_str LIKE 's1%')) THEN 'yes' ELSE 'no' END AS a, COUNT(*) FROM typed_events GROUP BY 1",
+        "SELECT NOT (n_str LIKE 's1%') AS b, COUNT(*) FROM typed_events GROUP BY 1",
+        "SELECT CASE WHEN NOT (NOT (lc_n ILIKE 'H%')) THEN 1 ELSE 0 END AS a, COUNT(*) FROM typed_events GROUP BY 1",
+        "SELECT SUM(CASE WHEN n_str <> 's1' THEN 1 ELSE 0 END) FROM typed_events",
+        "SELECT n_int NOT IN (1, 2) AS b, COUNT(*) FROM typed_events GROUP BY 1",
+        "SELECT COUNT(*) FROM typed_events WHERE (CASE WHEN n_bool IS NOT TRUE THEN 1 ELSE 0 END) = 1",
+        "SELECT lc, COUNT(*) FROM typed_events GROUP BY lc, n_str IS DISTINCT FROM 's1'",
+        "SELECT id FROM typed_events ORDER BY n_int <> 2 LIMIT 3",
+    ]
+    for sql in stops:
+        expect_native_refusal(ctx, sql, "only at the top of WHERE, HAVING or FILTER")
 
 
 @check("native.row_limit")
@@ -6825,6 +6863,35 @@ def _(ctx):
                 raise Fail("native on the legacy planner with the dialect: %s, truth %s" % (assert_close, truth))
         elif "CUBEJS_TESSERACT_SQL_PLANNER" not in str(error):
             raise Fail("stock Cube on the legacy planner did not stop: %s" % str(error or res["data"]["rows"])[:300])
+    finally:
+        ctx.mb.api("DELETE", "/api/database/%d" % db["id"])
+
+
+@check("legacy.view_default_filters")
+def _(ctx):
+    """M3 of release review 3. The legacy planner drops the default_filters of a view: a count of paid_sales gave 5000 where its filter keeps 2000. The driver sees the
+    planner from the SQL of Cube, so each query on a view stops there, in native SQL and in the query builder, and a query on a cube runs. Cube errors of this planner have a
+    message. On cube-legacy."""
+    details = {"host": os.environ.get("CUBE_LEGACY_SQL_HOST", "cube-legacy"), "port": 15432, "dbname": "cube", "user": "cube", "password": "cube-dev-only",
+               "cube-rest-url": os.environ.get("CUBE_LEGACY_REST_INTERNAL_URL", "http://cube-legacy:4000"), "cube-api-secret-value": CUBE_LEGACY_SECRET, "ssl": False}
+    db = ctx.mb.api("POST", "/api/database", {"engine": "cube", "name": "Cube legacy views", "details": details})
+
+    def native(sql):
+        res = ctx.mb.api("POST", "/api/dataset", {"database": db["id"], "type": "native", "native": {"query": sql, "template-tags": {}}}, ok=(200, 202, 400, 403, 500))
+        return res.get("error") or res.get("message"), (res.get("data") or {}).get("rows")
+
+    try:
+        for sql in ("SELECT COUNT(*) FROM paid_sales", "SELECT users_city, MEASURE(net_sales) FROM paid_sales GROUP BY 1"):
+            error, rows = native(sql)
+            if not error or "legacy planner" not in str(error) or "default_filters" not in str(error):
+                raise Fail("%s on the legacy planner: %s" % (sql, str(error or rows)[:300]))
+        error, rows = native("SELECT COUNT(*) FROM orders WHERE status = 'completed'")
+        if error:
+            raise Fail("a cube on the legacy planner: %s" % str(error)[:300])
+        assert_rows(rows, ch("SELECT count() FROM orders WHERE status = 'completed'"), label="a cube on the legacy planner")
+        error, _rows = native("SELECT MEASURE(p50_amount) FROM orders")
+        if not error or "Cube said:" not in str(error) or "TESSERACT" not in str(error):
+            raise Fail("p50_amount on the legacy planner has no message: %s" % str(error)[:300])
     finally:
         ctx.mb.api("DELETE", "/api/database/%d" % db["id"])
 

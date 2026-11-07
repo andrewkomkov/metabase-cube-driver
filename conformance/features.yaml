@@ -4089,6 +4089,22 @@
   status: pass
   status_stock: pass
   check: native.not_like_in_select
+- id: native.not_like_three_values
+  area: native
+  title: "native NOT and the forms of NULL: corrected at the top of WHERE, HAVING and FILTER, and stopped in CASE, as a value, in a function and in GROUP BY or ORDER BY"
+  status: partial
+  status_stock: partial
+  cap: partial
+  reason: "Cube reads NOT, <>, NOT IN, NOT LIKE, NOT BETWEEN, IS TRUE and IS DISTINCT FROM with another meaning for NULL. The driver proved its corrections only at the top of WHERE, HAVING and FILTER, so these forms stop with a message in CASE, as a value, in a function and in GROUP BY or ORDER BY. The same condition in FILTER or WHERE gives the truth."
+  check: native.not_like_three_values
+- id: legacy.view_default_filters
+  area: cube.views
+  title: "on the legacy planner, which drops the default_filters of a view, a query on a view stops with a message"
+  status: partial
+  status_stock: partial
+  cap: partial
+  reason: "With CUBEJS_TESSERACT_SQL_PLANNER=false, Cube drops the default_filters of a view with no error, and /v1/meta does not show which views have them, so the driver stops each query on a view there, also on a view with no default_filters. The Tesseract planner, the default since Cube v1.7.0, has none of this."
+  check: legacy.view_default_filters
 - id: isolation.other_db_card_fingerprint
   area: isolation
   title: "a card on a connection with one user for all people keeps its fingerprint"
