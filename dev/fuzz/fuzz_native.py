@@ -30,6 +30,25 @@ PASSWORD = os.environ.get("REVIEW_PASSWORD", "fuzz-dev-only-1")
 SEMANTIC_REFUSAL = re.compile(r"join paths|rolling window|time shift|FILTER_PARAMS|counts the primary key|too long for the planner")
 
 
+def round_half(sql, rows, want):
+    """True if each cell that differs is a ROUND that is one unit of its last digit away, in a query with ROUND of an aggregation."""
+    if not re.search(r"ROUND\((AVG|SUM|MIN|MAX|STDDEV\w*)\(", sql, re.I) or len(rows) != len(want):
+        return False
+    differ = 0
+    for a, b in zip(sorted(rows, key=lib.key), sorted(want, key=lib.key)):
+        for x, y in zip(a, b):
+            if lib.same(x, y, 1e-6):
+                continue
+            try:
+                gap = abs(float(x) - float(y))
+            except (TypeError, ValueError):
+                return False
+            if not any(abs(gap - 10 ** -k) < 10 ** -k * 1e-6 for k in range(0, 7)):
+                return False
+            differ += 1
+    return differ > 0
+
+
 class Runner:
     def __init__(self, mb, db, stock):
         self.mb, self.db, self.stock = mb, db, stock
@@ -117,6 +136,10 @@ class Runner:
             seconds = lib.ch(spec["truth"].replace("ts64_berlin", "toStartOfSecond(ts64_berlin)"))
             if lib.compare(rows, seconds, ordered=spec.get("ordered", False), tol=tol) is None:
                 return dict(out, verdict="stock_datetime64_second")
+        if round_half(spec["sql"], rows, want):
+            # ROUND of an aggregation that lands on a half: Cube rounds the Double above the database, and the Double of 125.025 is below the half. See "Known wrong numbers" in
+            # docs/query-compilation.md.
+            return dict(out, verdict="round_half_double", diff=diff[:300])
         return dict(out, verdict="wrong", diff=diff[:800], got=rows[:4], want=want[:4])
 
     def check(self, spec):
@@ -178,6 +201,29 @@ def admit_all(queries, variant, zone, admit_cmd):
     if len(lines) != len(queries):
         raise RuntimeError("admit: %d answers for %d texts: %s" % (len(lines), len(queries), (out.stderr or out.stdout)[-800:]))
     return [json.loads(line) for line in lines]
+
+
+def run_permanent(runner, log):
+    """The permanent cases of native_grammar.permanent_cases."""
+    counts = {}
+    failures = []
+    runner.apply_zone(None)
+    for spec in grammar.permanent_cases():
+        if spec["truth"] is None:
+            r = runner.check_mutation(dict(spec, construct="a permanent case that must refuse"))
+            r["verdict"] = "refused" if r["verdict"] == "refused" else "mutation_ran"
+            counts[r["verdict"]] = counts.get(r["verdict"], 0) + 1
+            if r["verdict"] != "refused":
+                failures.append(r)
+                log("PERMANENT FAIL %s\n  %s" % (r["verdict"], r["query"]))
+            continue
+        r = runner.check(spec)
+        counts[r["verdict"]] = counts.get(r["verdict"], 0) + 1
+        if r["verdict"] in FAILURES or r["verdict"] in ("refused", "planner"):
+            failures.append(r)
+            log("PERMANENT FAIL %s\n  %s\n  %s" % (r["verdict"], r["query"], str(r.get("diff") or r.get("error"))[:300]))
+    log(json.dumps({"permanent": counts}))
+    return {"counts": counts, "failures": failures}
 
 
 def run_seed(runner, seed, count, workers, log):
@@ -286,6 +332,7 @@ def main():
         mb = lib.Metabase(lib.MB, PASSWORD, ADMIN).login()
         db = {d["name"]: d["id"] for d in mb.api("GET", "/api/database")["data"]}[args.db]
         runner = Runner(mb, db, args.stock)
+        report["permanent"] = run_permanent(runner, log)
         report["live"] = run_seed(runner, args.seed, args.count, args.workers, log)
         report["mutations"] = run_mutations(runner, args.seed, mutations, args.workers, log)
         report["zones"] = {zone: run_zone_cases(runner, zone, log) for zone in ("America/New_York", "Asia/Kathmandu")}
@@ -296,6 +343,7 @@ def main():
         json.dump(report, handle, indent=1, default=str)
     bad = len(report.get("live", {}).get("failures", [])) + len(report.get("mutations", {}).get("failures", []))
     bad += sum(len(result["failures"]) for result in report.get("zones", {}).values())
+    bad += len(report.get("permanent", {}).get("failures", []))
     off = report.get("offline")
     if off:
         bad += off["round_trip"]["differ"] + off["mutations"]["admitted"] + off["crashes"] + len(off["not_proven"])

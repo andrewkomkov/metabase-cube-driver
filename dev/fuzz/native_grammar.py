@@ -2,6 +2,7 @@
 same meaning in direct ClickHouse SQL. It reads no driver code and no Cube output. `mutate` adds a construct that is not on the list to such a query, and the driver must refuse it and not run it. See README.md.
 """
 import random
+import re
 
 import native as base
 from native import fmt, pair
@@ -250,6 +251,20 @@ def predicate(rng, src, zone, depth=2):
     return base.number_atom(rng, src)
 
 
+# NOT, <>, NOT IN, NOT LIKE, NOT BETWEEN, IS [NOT] TRUE or FALSE and IS [NOT] DISTINCT FROM need a correction for NULL, which the driver makes only at the top of WHERE, HAVING and
+# FILTER. In CASE, as a value, in a function and in GROUP BY or ORDER BY they refuse, so there the generator writes only the other forms, and `mutate` puts these forms there.
+NULL_LOGIC = re.compile(r"\bNOT\b(?!\s+NULL)|<>|!=|\bIS\s+(?:NOT\s+)?(?:TRUE|FALSE)\b|\bDISTINCT\s+FROM\b", re.I)
+
+
+def plain_predicate(rng, src, zone, depth=1):
+    """A condition with no form of NULL_LOGIC, for CASE and for a value."""
+    for _ in range(200):
+        pred = predicate(rng, src, zone, depth)
+        if not NULL_LOGIC.search(pred[0]):
+            return pred
+    return base.number_atom_of_equals(rng, src) if hasattr(base, "number_atom_of_equals") else ("1 = 1", "1 = 1")
+
+
 NO_ROWS = base.NULL_FOR_EMPTY
 
 
@@ -300,6 +315,7 @@ def aggregate(rng, src, zone):
         tname = rng.choice(list(src["text"]))
         text = (tname, src["text"][tname])
     pred = predicate(rng, src, zone, 1)
+    plain = plain_predicate(rng, src, zone, 1)
     if kind == 3:
         return ("COUNT(*)", "count()")
     if kind == 4 and text:
@@ -316,7 +332,7 @@ def aggregate(rng, src, zone):
     if kind == 9:
         return ("COUNT(*) FILTER (WHERE %s)" % pred[0], "countIf(ifNull(%s, false))" % pred[1])
     if kind == 10:
-        return ("SUM(CASE WHEN %s THEN 1 ELSE 0 END)" % pred[0], "sum(if(ifNull(%s, false), 1, 0))" % pred[1])
+        return ("SUM(CASE WHEN %s THEN 1 ELSE 0 END)" % plain[0], "sum(if(ifNull(%s, false), 1, 0))" % plain[1])
     return ("ROUND(AVG(%s), 2)" % expression[0], "round(avg(toFloat64(%s)), 2)" % expression[1])
 
 
@@ -495,9 +511,123 @@ def shape_window(rng, src, zone):
 
 
 def shape_case_select(rng, src, zone):
-    pred = predicate(rng, src, zone, 1)
+    pred = plain_predicate(rng, src, zone, 1)
     return spec("SELECT CASE WHEN %s THEN 'yes' ELSE 'no' END AS answer, COUNT(*) FROM %s GROUP BY 1" % (pred[0], src["from"]),
                 "SELECT if(ifNull(%s, false), 'yes', 'no') AS a, count() FROM %s GROUP BY a" % (pred[1], src["ch"]))
+
+
+# Three-valued logic. A condition on a column with NULL is true, false or NULL. WHERE, HAVING, FILTER and CASE WHEN keep only true. These shapes put NOT up to three levels deep
+# over the atoms of the list on the sources with NULL, in WHERE, HAVING and FILTER, where the driver corrects NULL. In CASE and as a value they use AND and OR over the plain atoms.
+
+LOGIC_SOURCES = [TYPED, TYPED, TYPED, ORDERS, USERS, PRODUCTS]
+
+
+def logic_predicate(rng, src, zone, depth=3, plain=False):
+    """A condition with NOT, AND and OR to `depth` levels over the atoms of `predicate`. `plain` has no NOT and no form of NULL_LOGIC."""
+    roll = rng.random()
+    if depth > 0 and roll < 0.4 and not plain:
+        return fmt("NOT (%s)", logic_predicate(rng, src, zone, depth - 1))
+    if depth > 0 and roll < 0.55:
+        return fmt("(%s AND %s)", logic_predicate(rng, src, zone, depth - 1, plain), logic_predicate(rng, src, zone, depth - 1, plain))
+    if depth > 0 and roll < 0.7:
+        return fmt("(%s OR %s)", logic_predicate(rng, src, zone, depth - 1, plain), logic_predicate(rng, src, zone, depth - 1, plain))
+    return plain_predicate(rng, src, zone, 0) if plain else predicate(rng, src, zone, 0)
+
+
+def as_truth_value(ch):
+    """A condition of ClickHouse as true, false or NULL, as the SQL API of Cube shows it."""
+    return "toBool(%s)" % ch
+
+
+def shape_logic_value(rng, src, zone):
+    """A condition as a value: a group by its three values, or raw rows with it."""
+    src = rng.choice(LOGIC_SOURCES)
+    pred = logic_predicate(rng, src, zone, plain=True)
+    if rng.random() < 0.7:
+        cube, ch = with_where(("SELECT %s AS b, COUNT(*) FROM %s" % (pred[0], src["from"]), "SELECT %s AS b, count() FROM %s" % (as_truth_value(pred[1]), src["ch"])),
+                              where_of(rng, src, zone, 0.3))
+        return spec(cube + " GROUP BY 1", ch + " GROUP BY b")
+    ordered = src.get("order", "id")
+    return spec("SELECT %s, %s AS b FROM %s ORDER BY %s LIMIT 7" % (ordered, pred[0], src["from"], ordered),
+                "SELECT %s, %s AS b FROM %s ORDER BY %s LIMIT 7" % (ordered, as_truth_value(pred[1]), src["ch"], ordered), ordered=True)
+
+
+def shape_logic_case(rng, src, zone):
+    """CASE WHEN p THEN ... WHEN q THEN ... ELSE ..., with AND and OR over the plain atoms."""
+    src = rng.choice(LOGIC_SOURCES)
+    p, q = logic_predicate(rng, src, zone, plain=True), logic_predicate(rng, src, zone, plain=True)
+    cube = "SELECT CASE WHEN %s THEN 'yes' WHEN %s THEN 'no' ELSE 'unknown' END AS a, COUNT(*) FROM %s GROUP BY 1" % (p[0], q[0], src["from"])
+    ch = "SELECT multiIf(ifNull(%s, false), 'yes', ifNull(%s, false), 'no', 'unknown') AS a, count() FROM %s GROUP BY a" % (p[1], q[1], src["ch"])
+    return spec(cube, ch)
+
+
+def shape_logic_aggregate(rng, src, zone):
+    """Deep conditions in FILTER, in WHERE and in HAVING, and plain ones in CASE inside an aggregation."""
+    src = rng.choice(LOGIC_SOURCES)
+    parts = []
+    for _ in range(rng.choice([1, 2, 3])):
+        pred = logic_predicate(rng, src, zone)
+        plain = logic_predicate(rng, src, zone, plain=True)
+        parts.append(rng.choice([("COUNT(*) FILTER (WHERE %s)" % pred[0], "countIf(ifNull(%s, false))" % pred[1]),
+                                 ("COUNT(*) FILTER (WHERE %s)" % pred[0], "countIf(ifNull(%s, false))" % pred[1]),
+                                 ("SUM(CASE WHEN %s THEN 1 ELSE 0 END)" % plain[0], "sum(if(ifNull(%s, false), 1, 0))" % plain[1]),
+                                 ("COUNT(CASE WHEN %s THEN 1 END)" % plain[0], "countIf(ifNull(%s, false))" % plain[1])]))
+    where = logic_predicate(rng, src, zone) if rng.random() < 0.5 else None
+    if rng.random() < 0.5:
+        cube, ch = with_where(("SELECT %s FROM %s" % (", ".join(p[0] for p in parts), src["from"]), "SELECT %s FROM %s" % (", ".join(p[1] for p in parts), src["ch"])), where)
+        return spec(cube, ch + NO_ROWS)
+    key = group_key(rng, src)
+    cube, ch = with_where(("SELECT %s AS k, %s FROM %s" % (key[0], ", ".join(p[0] for p in parts), src["from"]),
+                           "SELECT %s AS k, %s FROM %s" % (key[1], ", ".join(p[1] for p in parts), src["ch"])), where)
+    cube += " GROUP BY 1"
+    ch += " GROUP BY k"
+    if rng.random() < 0.5:
+        having = logic_predicate(rng, src, zone, 1)
+        cube += " HAVING COUNT(*) FILTER (WHERE %s) > 0" % having[0]
+        ch += " HAVING countIf(ifNull(%s, false)) > 0" % having[1]
+    return spec(cube, ch + NO_ROWS)
+
+
+def logic_mutation(rng):
+    """A form of NULL_LOGIC where its value with NULL can show: in CASE, as a value, under NOT in CASE, in a function, in GROUP BY or in ORDER BY. Each one must refuse."""
+    src = rng.choice(LOGIC_SOURCES)
+    for _ in range(200):
+        pred = logic_predicate(rng, src, None)
+        if NULL_LOGIC.search(pred[0]):
+            break
+    else:
+        pred = ("NOT (%s)" % plain_predicate(rng, src, None, 0)[0], None)
+    p = pred[0]
+    table = src["from"]
+    key = group_key(rng, src)[0]
+    sql = rng.choice(["SELECT CASE WHEN %s THEN 1 ELSE 0 END AS a, COUNT(*) FROM %s GROUP BY 1" % (p, table),
+                      "SELECT %s AS b, COUNT(*) FROM %s GROUP BY 1" % (p, table),
+                      "SELECT SUM(CASE WHEN %s THEN 1 ELSE 0 END) FROM %s" % (p, table),
+                      "SELECT COUNT(CASE WHEN NOT (%s) THEN 1 END) FROM %s" % (p, table),
+                      "SELECT COALESCE(%s, FALSE) AS b FROM %s LIMIT 3" % (p, table),
+                      "SELECT %s, COUNT(*) FROM %s GROUP BY %s, %s" % (key, table, key, p),
+                      "SELECT %s FROM %s ORDER BY %s LIMIT 3" % (key, table, p),
+                      "SELECT COUNT(*) FROM %s WHERE (CASE WHEN %s THEN 1 ELSE 0 END) = 1" % (table, p)])
+    return sql, "NULL logic outside the top of WHERE: " + p
+
+
+def permanent_cases():
+    """The queries of each wrong number that a review found in native SQL, with their truth. Each run replays them first, with no report time zone. A case with no truth must refuse."""
+    like = ("n_str LIKE 's1%'", "n_str LIKE 's1%'")
+    cases = [
+        # Release review 3, B3: NOT over LIKE turned NULL into true or false under a second NOT and as a value. In FILTER and WHERE the driver corrects NULL.
+        spec("SELECT COUNT(*) FILTER (WHERE NOT (NOT (%s))) FROM typed_events" % like[0], "SELECT countIf(ifNull(%s, false)) FROM typed_events" % like[1] + NO_ROWS),
+        spec("SELECT COUNT(*) FILTER (WHERE NOT (NOT (NOT (lc_n ILIKE 'H%')))) FROM typed_events", "SELECT countIf(ifNull(NOT (lc_n ILIKE 'H%'), false)) FROM typed_events" + NO_ROWS),
+        spec("SELECT COUNT(*) FILTER (WHERE NOT (%s AND n_int > 2)) FROM typed_events" % like[0], "SELECT countIf(ifNull(NOT (%s AND n_int > 2), false)) FROM typed_events" % like[1] + NO_ROWS),
+        spec("SELECT COUNT(*) FROM typed_events WHERE NOT (NOT (NOT (%s)))" % like[0], "SELECT count() FROM typed_events WHERE NOT (%s)" % like[1]),
+        # In CASE and as a value, these forms refuse.
+        spec("SELECT CASE WHEN NOT (NOT (%s)) THEN 'yes' ELSE 'no' END AS a, COUNT(*) FROM typed_events GROUP BY 1" % like[0], None),
+        spec("SELECT NOT (%s) AS b, COUNT(*) FROM typed_events GROUP BY 1" % like[0], None),
+        spec("SELECT CASE WHEN NOT (NOT (lc_n ILIKE 'H%')) THEN 1 ELSE 0 END AS a, COUNT(*) FROM typed_events GROUP BY 1", None),
+    ]
+    for case in cases:
+        case["zone"] = None
+    return cases
 
 
 JOINS = [
@@ -691,7 +821,7 @@ def shape_measure_over_raw(rng, src, zone):
 
 
 SHAPES = [(shape_no_from, 1), (shape_segment, 1), (shape_interval, 1), (shape_measure_over_raw, 1), (shape_total, 8), (shape_group, 8), (shape_raw, 4), (shape_star, 1), (shape_subquery, 3), (lambda r, s, z: shape_subquery(r, s, z, True), 2), (shape_union, 1), (shape_in_subquery, 1), (shape_distinct, 1), (shape_window, 1), (shape_case_select, 2),
-          (shape_join, 3), (shape_view, 2), (shape_rollup, 2), (shape_parameter, 3)]
+          (shape_join, 3), (shape_view, 2), (shape_rollup, 2), (shape_parameter, 3), (shape_logic_value, 3), (shape_logic_case, 2), (shape_logic_aggregate, 3)]
 ZONES = [None, None, None, "America/New_York", "Asia/Kathmandu"]
 BLOCK = 30
 
@@ -745,7 +875,7 @@ def mutate(seed, index):
     values = values_of(src)
     table = src["from"]
     base_query = "SELECT %(t)s, COUNT(*) AS n FROM " % values + table
-    kind = rng.randrange(6)
+    kind = rng.randrange(7)
     if kind == 0:
         construct = rng.choice(SELECT_ADDITIONS) % values
         sql = "SELECT %s AS added, %s FROM %s" % (construct, values["t"], table)
@@ -762,8 +892,10 @@ def mutate(seed, index):
     elif kind == 4:
         construct = rng.choice(GROUP_MUTATIONS) % values
         sql = base_query + construct
-    else:
+    elif kind == 5:
         construct = sql = rng.choice(WHOLE)
+    else:
+        sql, construct = logic_mutation(rng)
     return {"sql": "/* mut-%s */ %s" % (seed, sql), "construct": construct}
 
 

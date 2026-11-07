@@ -79,7 +79,7 @@ These are the rules of Metabase on Postgres and of the SQL standard, in ClickHou
 
 | File | Job |
 | --- | --- |
-| `native_grammar.py` | `generate(seed, index)` follows the allow-list of `src/metabase/driver/cube/grammar.clj`, and it gives each query in two texts from one tree, with a time in each form and the zones of its block. `mutate(seed, index)` adds a construct outside the list. `zone_cases(zone)` has each shape of a time under a report time zone. |
+| `native_grammar.py` | `generate(seed, index)` follows the allow-list of `src/metabase/driver/cube/grammar.clj`, and it gives each query in two texts from one tree, with a time in each form and the zones of its block. Three shapes test three-valued logic on the sources with NULL: `NOT` to three levels over the atoms in `WHERE`, `HAVING` and `FILTER`, and `AND` and `OR` over the atoms with no form of `NULL_LOGIC` as a value in `SELECT` and `GROUP BY` and in `CASE WHEN p ... WHEN q ... ELSE`. `mutate(seed, index)` adds a construct outside the list, also a form of `NULL_LOGIC` (`NOT`, `<>`, `NOT IN`, `NOT LIKE`, `IS TRUE`, `IS DISTINCT FROM`) in `CASE`, as a value, in a function, in `GROUP BY` or in `ORDER BY`, where it must refuse. `zone_cases(zone)` has each shape of a time under a report time zone. `permanent_cases()` has each wrong number that a review found, and each run replays them first: a case with a truth must give it, and a case with no truth must refuse. |
 | `fuzz_native.py` | Runs a seed and judges each query. See its verdicts below. |
 | `admit.clj` | The grammar with no Cube and no Metabase server. It runs in the image of Metabase. |
 | `analyst.py` | Thirty queries of an analyst, written before the grammar. At most 3 can refuse, each with an entry in `LIMITS`. |
@@ -90,6 +90,7 @@ These are the rules of Metabase on Postgres and of the SQL standard, in ClickHou
 | `pass` | Each row is equal to ClickHouse. | No |
 | `refused` | A clear message under a report time zone, or a limit of the data model. | No |
 | `planner` | Cube has no plan, and the driver names this. The log has each one. | No |
+| `round_half_double` | `ROUND` of an aggregation that lands on a half is one unit of its last digit off, because Cube rounds the Double. See "Known wrong numbers" in `docs/query-compilation.md`. | No |
 | `stock_no_rows`, `stock_datetime64_second` | On stock Cube, a known wrong number: an aggregation of no rows, or a filter on a `DateTime64` that reads the column at whole seconds. Each gives the truth with the dialect. | No |
 | `refused_on_the_list` | The grammar refuses a query of the generator with no report time zone. | Yes |
 | `wrong` | A number with no error that differs from ClickHouse. | Yes |
