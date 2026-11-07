@@ -26,7 +26,7 @@ prove the whole feature has the status `partial` and a reason. See the [coverage
 
 | Component  | Pinned version   | Image                         |
 | ---------- | ---------------- | ----------------------------- |
-| Metabase   | `v0.65.2.3`        | `metabase/metabase`           |
+| Metabase   | `v0.65.3.6`        | `metabase/metabase`           |
 | Cube       | `v1.8.15`        | `cubejs/cube`                 |
 | ClickHouse | `26.10.3-alpine` | `clickhouse/clickhouse-server` |
 
@@ -104,7 +104,7 @@ A Cube with `CUBEJS_DEV_MODE=true` reads each private member. Dev mode off is th
 
 ## Use with an AI agent
 
-Metabase has an [MCP server](https://github.com/metabase/metabase/blob/v0.65.2.3/docs/ai/mcp.md) at
+Metabase has an [MCP server](https://github.com/metabase/metabase/blob/v0.65.3.6/docs/ai/mcp.md) at
 `/api/metabase-mcp`. The agent signs in with OAuth and acts with the permissions of that person. The
 client brings the model, so Metabase needs no AI provider. **Disable all AI features** in
 **Admin > AI** must be off.
@@ -119,7 +119,7 @@ Then run `/mcp` in Claude Code and authenticate. Site URL in Metabase must be an
 client can reach. The demo stack sets it with `MB_SITE_URL`.
 
 The aim of this driver is that an agent can use the
-[MCP tools](https://github.com/metabase/metabase/blob/v0.65.2.3/docs/ai/mcp-tools.md) with no knowledge
+[MCP tools](https://github.com/metabase/metabase/blob/v0.65.3.6/docs/ai/mcp-tools.md) with no knowledge
 of Cube:
 
 1. Find data with `search` and `browse_data`.
