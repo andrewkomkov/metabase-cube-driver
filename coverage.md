@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1361/1400 pass on Cube with the ClickHouse dialect** (1361 pass, 26 partial, 1 blocked, 12 unsupported, 0 fail of 1400)
+**coverage: 1361/1402 pass on Cube with the ClickHouse dialect** (1361 pass, 28 partial, 1 blocked, 12 unsupported, 0 fail of 1402)
 
-Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `d59f299d6cd1`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42374974625), 2026-11-07.
+Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `eb8fea1ec0e5`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42414356819), 2026-11-07.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -661,6 +661,8 @@ Metabase `v0.65.2.3`, Cube `v1.8.15`, ClickHouse `26.10.3-alpine`, commit `d59f2
 | `mcp.agent.error_join_on` | pass |  |
 | `isolation.other_db_field_fingerprint` | pass |  |
 | `native.not_like_in_select` | pass |  |
+| `native.not_like_three_values` | partial | Cube reads NOT, <>, NOT IN, NOT LIKE, NOT BETWEEN, IS TRUE and IS DISTINCT FROM with another meaning for NULL. The driver proved its corrections only at the top of WHERE, HAVING and FILTER, so these forms stop with a message in CASE, as a value, in a function and in GROUP BY or ORDER BY. The same condition in FILTER or WHERE gives the truth. |
+| `legacy.view_default_filters` | partial | With CUBEJS_TESSERACT_SQL_PLANNER=false, Cube drops the default_filters of a view with no error, and /v1/meta does not show which views have them, so the driver stops each query on a view there, also on a view with no default_filters. The Tesseract planner, the default since Cube v1.7.0, has none of this. |
 | `isolation.other_db_card_fingerprint` | pass |  |
 | `native.view_joined_dimension_weighted` | partial | Native SQL stops on SUM of a dimension of a view from a joined cube, because Cube reads each row of that cube once. The message gives the weighted form, which is exact. The driver does not rewrite the native text into it. |
 | `native.row_limit` | pass |  |

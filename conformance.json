@@ -2,13 +2,13 @@
   "schema": 1,
   "counts": {
     "pass": 1361,
-    "partial": 26,
+    "partial": 28,
     "blocked": 1,
     "unsupported": 12,
     "fail": 0,
-    "total": 1400
+    "total": 1402
   },
-  "coverage": "coverage: 1361/1400 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1361/1402 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -3274,6 +3274,16 @@
       "id": "native.not_like_in_select",
       "status": "pass",
       "reason": ""
+    },
+    {
+      "id": "native.not_like_three_values",
+      "status": "partial",
+      "reason": "Cube reads NOT, <>, NOT IN, NOT LIKE, NOT BETWEEN, IS TRUE and IS DISTINCT FROM with another meaning for NULL. The driver proved its corrections only at the top of WHERE, HAVING and FILTER, so these forms stop with a message in CASE, as a value, in a function and in GROUP BY or ORDER BY. The same condition in FILTER or WHERE gives the truth."
+    },
+    {
+      "id": "legacy.view_default_filters",
+      "status": "partial",
+      "reason": "With CUBEJS_TESSERACT_SQL_PLANNER=false, Cube drops the default_filters of a view with no error, and /v1/meta does not show which views have them, so the driver stops each query on a view there, also on a view with no default_filters. The Tesseract planner, the default since Cube v1.7.0, has none of this."
     },
     {
       "id": "isolation.other_db_card_fingerprint",
