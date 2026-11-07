@@ -398,7 +398,11 @@
          :x (with-database-text x)
          :p (assoc p :text (str "'" (str/replace (pattern-text p) "'" "''") "'"))))
 
-;;; FILTER. Cube drops the FILTER of an aggregation, so COUNT(*) FILTER (WHERE p) reads as COUNT(*). CASE stays in the SQL, so this is the same aggregation with CASE.
+;;; FILTER. Cube drops the FILTER of an aggregation, so COUNT(*) FILTER (WHERE p) reads as COUNT(*). CASE stays in the SQL, so this is the same aggregation with CASE. FILTER keeps
+;;; the rows where p is true, as WHERE does, so p gets the corrections of WHERE: CASE WHEN also keeps only true. These forms are exact inside CASE too, and Cube can plan them,
+;;; where it has no plan for NOT over LIKE in CASE. The grammar refuses NOT, <> and the other forms of NULL in CASE and in a value. See native.not_like_in_select.
+
+(declare positive)
 
 (def ^:private filter-aggregations
   #{"count" "sum" "avg" "min" "max" "stddev" "stddev_pop" "stddev_samp" "variance" "var_pop" "var_samp"})
@@ -421,7 +425,7 @@
                        function)))
     (let [arg      (first args)
           value    (if (= :star (:k arg)) "1" (emit arg))
-          where    (emit (:filter node))
+          where    (emit (positive (:filter node)))
           over     (subs *sql* filter-end e)]
       (assoc node :text (format "%s(%sCASE WHEN %s THEN %s END)%s" function (if distinct? "DISTINCT " "") where value over)))))
 
@@ -434,9 +438,10 @@
                      (source node)))))
 
 ;;; NULL. Cube reads `x <> v`, `x NOT IN (...)`, `NOT (x = v)` and `x NOT LIKE p` as its operators, and each of them keeps the rows with NULL, where SQL has no such row. In WHERE and HAVING only true
-;;; counts, so NOT moves down to the comparisons, and each comparison says IS NOT NULL. A comparison that the database reads, such as inside CASE, is right as it is.
+;;; counts, so NOT moves down to the comparisons, and each comparison says IS NOT NULL. FILTER gets the same text. These corrections hold only at the top of WHERE, HAVING and FILTER,
+;;; joined with AND, OR and NOT, so the grammar refuses these forms in each other place. See check-top-null-logic! in metabase.driver.cube.grammar.
 
-(declare positive is-distinct-text fold-chain is-text boolean-column?)
+(declare is-distinct-text fold-chain is-text boolean-column?)
 
 (defn- null-free
   "`text` with IS NOT NULL on the column of `column-node`, or `text` if it has no plain column."
@@ -901,11 +906,6 @@
     :between (fix-between node)
     :div     (fix-division node)
     :like    (fix-like node)
-    ;; Cube has no plan for NOT over LIKE in a CASE or a FILTER: "Rewrite Error: Column #CASE WHEN NOT ... not found". NOT (x LIKE p) is x NOT LIKE p, also for NULL. See native.not_like_in_select.
-    :not     (let [inner (unwrapped (:x node))]
-               (if (= :like (:k inner))
-                 (assoc node :text (format "(%s)" (like-text inner (not (:not? inner)))))
-                 node))
     :is-distinct (assoc node :text (is-distinct-text node (:not? node)))
     :is      (if-let [text (is-text node (:not? node) false)] (assoc node :text text) node)
     ;; A cast of a column to numeric or decimal has the same value, and Cube writes it with no Nullable and with a scale that ClickHouse can stop on.

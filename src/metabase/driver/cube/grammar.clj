@@ -69,7 +69,7 @@
    :pred/is-boolean         "IS [NOT] TRUE and IS [NOT] FALSE on a boolean column"
    :pred/is-distinct        "IS [NOT] DISTINCT FROM a literal"
    :pred/boolean-column     "A boolean column as a condition"
-   :pred/logic              "AND, OR, NOT and parentheses"
+   :pred/logic              "AND, OR, NOT and parentheses. NOT, <>, NOT IN, NOT LIKE, NOT BETWEEN, IS TRUE and IS DISTINCT FROM only at the top of WHERE, HAVING or FILTER"
    :pred/join-field         "a.__cubeJoinField = b.__cubeJoinField"
    :param/value             "A template variable or a field filter, as its value"})
 
@@ -550,7 +550,7 @@
     (use! :agg/filter)
     (when-not (or (contains? count-kinds fn-name) (contains? number-aggregations fn-name) (contains? #{"min" "max"} fn-name))
       (refuse! (format "%s with FILTER" (str/upper-case fn-name)) "Use WHERE, or CASE inside the aggregation."))
-    (predicate (:filter node) (assoc env :clause :case, :aggs? false, :in-aggregate? true)))
+    (predicate (:filter node) (assoc env :clause :case, :aggs? false, :in-aggregate? true, :top? true)))
   (cond
     over?
     (window-call node env)
@@ -685,7 +685,7 @@
                                         (let [v (value c env)]
                                           (when-not (or (= (:type v) (:type operand-type)) (contains? #{:null :any} (:type v)) (= :any (:type operand-type)))
                                             (refuse! (format "CASE on a %s with WHEN of a %s" (name (:type operand-type)) (name (:type v))))))
-                                        (predicate c (assoc env :clause :case)))
+                                        (predicate c (assoc env :clause :case, :top? false)))
                                       (value r env))
                                     whens)
                  results      (cond-> results else (conj (value else env)))
@@ -698,7 +698,7 @@
                (refuse! (str "CASE x WHEN on a " (name (:type operand-type))) "Write CASE WHEN x = v."))
              {:type (or (first kinds) :any), :agg? (boolean (or (some :agg? results) (:agg? operand-type)))})
     (:cmp :in :between :like :is :is-distinct :not :and :or)
-    (do (predicate node (assoc env :clause (if (contains? #{:where :having} (:clause env)) (:clause env) :case)))
+    (do (predicate node (assoc env :clause (if (contains? #{:where :having} (:clause env)) (:clause env) :case), :top? false))
         {:type :bool})
     :interval (refuse! (str "the interval " (source-text node)) "Write the bound of the time as a literal, or use DATEDIFF.")
     :sub (refuse! "a subquery as a value" "Read it in FROM, or use IN with a subquery.")
@@ -826,9 +826,34 @@
   (let [node (unwrapped node)]
     (and (= :name (:k node)) (= "__cubejoinfield" (peek (:parts node))))))
 
+(defn- null-logic
+  "The name of the form of `node` if its value with NULL needs a correction for Cube, or nil. See the note on NULL in metabase.driver.cube.correct."
+  [node]
+  (case (:k node)
+    :not         "NOT"
+    :cmp         (when (contains? #{"<>" "!="} (:op node)) (:op node))
+    :in          (when (:not? node) "NOT IN")
+    :like        (when (:not? node) (str "NOT " (str/upper-case (:op node))))
+    :between     (when (:not? node) "NOT BETWEEN")
+    :is          (when (contains? #{"true" "false"} (:what node)) (str "IS " (when (:not? node) "NOT ") (str/upper-case (:what node))))
+    :is-distinct (str "IS " (when-not (:not? node) "NOT ") "DISTINCT FROM")
+    nil))
+
+(defn- check-top-null-logic!
+  "Cube reads NOT, <>, NOT IN, NOT LIKE, NOT BETWEEN, IS TRUE and IS DISTINCT FROM with another meaning for NULL, and the driver corrects them only where it proved the form: at
+  the top of WHERE and HAVING and in FILTER, joined with AND, OR and NOT. In CASE, as a value, in a function or in GROUP BY or ORDER BY the value with NULL can show, so these
+  forms refuse there."
+  [node env]
+  (when-not (:top? env)
+    (when-let [form (null-logic node)]
+      (refuse! (format "%s inside CASE, as a value, in a function, or in GROUP BY or ORDER BY: %s" form (source-text node))
+               (str "The driver corrects the meaning of NULL for this form only at the top of WHERE, HAVING or FILTER. Write it there, such as "
+                    "COUNT(*) FILTER (WHERE x NOT LIKE 'a%'), or use =, LIKE, IN, BETWEEN or IS NULL here.")))))
+
 (defn predicate
   "A condition of WHERE, HAVING, CASE or FILTER. Each other form refuses."
   [node env]
+  (check-top-null-logic! node env)
   (case (:k node)
     :paren (predicate (:x node) env)
     :and   (do (use! :pred/logic) (predicate (:l node) env) (predicate (:r node) env))
@@ -1242,7 +1267,7 @@
         (edit! (:e item) (:e item) (str " AS " (quoted (peek (:parts plain)))))))
     (when where
       (use! :clause/where)
-      (predicate where (assoc env :clause :where, :aggs? false)))
+      (predicate where (assoc env :clause :where, :aggs? false, :top? true)))
     (when (seq group)
       (use! :clause/group)
       (doseq [node group
@@ -1253,7 +1278,7 @@
       (use! :clause/having)
       (when-not grouped?
         (refuse! "HAVING with no aggregation and no GROUP BY" "Use WHERE."))
-      (predicate having (assoc env :clause :having, :aggs? true)))
+      (predicate having (assoc env :clause :having, :aggs? true, :top? true)))
     (check-alias-collision! select sources)
     (when grouped?
       (binding [*one-source?* (not (next sources))]
