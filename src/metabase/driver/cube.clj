@@ -3017,6 +3017,9 @@
    ["Cannot read properties of null (reading 'joins')"
     (str "The legacy planner of Cube cannot plan this measure. Run Cube with CUBEJS_TESSERACT_SQL_PLANNER=true, the default since Cube v1.7.0, or change the "
          "measure in the data model.")]
+   ["Time series queries without dateRange aren't supported"
+    (str "The legacy planner of Cube needs a date range for a rolling window or a time bucket of this measure. Add a filter on the time column, "
+         "such as WHERE created_at >= '2025-01-01' AND created_at < '2026-01-01', or run Cube with CUBEJS_TESSERACT_SQL_PLANNER=true.")]
    ["required to be pushed down"
     (str "Cube cannot run this query, because it needs MEASURE() and post-processing at the same time. Use a plain "
          "aggregation in the first stage, or add a measure to the data model.")]
@@ -3229,16 +3232,22 @@
 (defn- check-result-size!
   "Stops a query with a result that is too large for Cube Store, which would hang. See cube.probe/too-large-result."
   [query]
-  (let [n (native-row-limit query)]
-    (when (and (not (sync-query? query)) (or (nil? n) (> n download-rows)))
+  (let [n     (native-row-limit query)
+        own   (some-> (get-in query [:native :query]) cube.native/top-limit)
+        limit (if (and n own) (min n own) (or n own))]
+    (when (and (not (sync-query? query)) (or (nil? limit) (> limit download-rows)))
       (when-let [cube-meta (current-meta)]
         (let [details (:details (driver-api/database (driver-api/metadata-provider)))
               sql     (cube.native/inline-parameters (get-in query [:native :query]) (get-in query [:native :params]))]
           (when-not (cube.probe/dev-mode? details cube-meta)
-            (when-let [{:keys [rows bytes rows-that-fit]} (cube.probe/too-large-result details sql)]
-              (throw (ex-info (format (str "This Cube runs with dev mode off, so it keeps each result in Cube Store, as one message of at most 100 MB. This result has %d rows, about %d MB, "
-                                           "so Cube would retry it with no end and the query would hang. Add a filter or an aggregation, or LIMIT the rows to about %d.")
-                                      rows (quot bytes (* 1024 1024)) rows-that-fit)
+            (when-let [{:keys [rows bytes rows-that-fit unknown]} (cube.probe/too-large-result details cube-meta sql)]
+              (throw (ex-info (if unknown
+                                (str "This Cube runs with dev mode off, so it keeps each result in Cube Store, as one message of at most 64 MiB. The driver counts the rows of a large "
+                                     "result first, and Cube gave no answer to that count (" unknown "), so the query did not run: a result that is too large hangs with no end. "
+                                     "Add a filter, an aggregation or a LIMIT of at most 100000 rows, or try again when Cube is less busy.")
+                                (format (str "This Cube runs with dev mode off, so it keeps each result in Cube Store, as one message of at most 64 MiB. This result has %d rows, about %d MB, "
+                                             "so Cube would retry it with no end and the query would hang. Add a filter or an aggregation, or LIMIT the rows to about %d.")
+                                        rows (quot bytes (* 1024 1024)) rows-that-fit))
                               {:type :invalid-query})))))))))
 
 ;;; Numbers above 2^53. The Cube SQL API has the type Double for a number, and the ClickHouse driver of Cube reads JSON numbers, so

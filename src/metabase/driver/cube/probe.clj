@@ -821,13 +821,17 @@
                                                                  :filters    [{:member (:name dimension), :operator "set"}]})))
                    (catch Exception _ false))))))))
 
-;;; The size of a result on Cube Store. With dev mode off, Cube keeps each result in its queue in Cube Store, and Cube Store takes one message of at most 100 MB. A larger result
-;;; gives MessageTooLargeError in the log of Cube, and Cube retries with no end, so the query hangs and no error reaches the driver. 1.3 million rows of three columns made a
-;;; message of 118.4 MB, about three times their JSON.
+;;; The size of a result on Cube Store. With dev mode off, Cube keeps each result in its queue in Cube Store. Cube Store takes one message of at most 64 MiB, the default of CUBESTORE_TRANSPORT_MAX_MESSAGE_SIZE. A larger result gives "Websocket message too large: Request of 93138728 bytes exceeds the maximum message size of 67108864 bytes" in the log of Cube Store
+;;; and "Queue storage error" in the log of Cube, and Cube retries with no end, so the query hangs and no error reaches the driver. Cube keeps each row as a JSON object: each value is text, with the alias
+;;; cube__member as its key. 1048575 rows of id, user_id and quantity_dim of big_orders made 93138728 bytes, 88.8 bytes a row, and this form gives 89.
 
-(def ^:private message-bytes-per-json-byte 3.5)
+(def ^:private largest-message-bytes
+  "64 MiB, with a margin of a tenth."
+  (long (* 0.9 64 1024 1024)))
 
-(def ^:private largest-message-bytes (* 80 1024 1024))
+(def ^:private shortest-value
+  "The length that the estimate gives at least to each value. The first rows of a sample can have short numbers, and an id of a later row has more digits."
+  10)
 
 (defn dev-mode?
   "True if Cube accepts a JWT with a wrong signature, as it does in dev mode. The answer is at most one minute old. With no answer this is true, so nothing stops."
@@ -841,17 +845,38 @@
                      (cube.meta/accepts-wrong-token? details "/v1/sql" {"query" (json/encode {:measures [measure]})})
                      (catch Exception _ true))))))))
 
+(defn- longest-alias
+  "The length of the longest alias cube__member of the cubes and views that `sql` names, or of all of them if it names none. Cube writes this alias as the key of each value."
+  [cube-meta sql]
+  (let [text    (str/lower-case sql)
+        cubes   (:cubes cube-meta)
+        named   (filter #(re-find (re-pattern (str "(?<![a-z0-9_])" (java.util.regex.Pattern/quote (str/lower-case (str (:name %)))) "(?![a-z0-9_])")) text) cubes)
+        lengths (for [cube (if (seq named) named cubes)
+                      member (concat (:dimensions cube) (:measures cube))]
+                  ;; cube.member becomes cube__member.
+                  (inc (count (str (:name member)))))]
+    (reduce max 16 lengths)))
+
+(defn row-bytes
+  "The bytes of one row of `sample` in a message of Cube Store, at least. Each value is text with the key `alias`: {\"alias\":\"value\",...},"
+  [sample alias]
+  (let [columns (count (first sample))
+        widths  (for [i (range columns)]
+                  (reduce max shortest-value (map #(count (json/encode (nth % i nil))) sample)))]
+    (+ 3 (reduce + 0 (map #(+ alias 4 2 %) widths)))))
+
 (defn too-large-result
   "{:rows, :bytes, :rows-that-fit} if the result of `sql` is too large for one message of Cube Store, or nil. `sql` is the text that goes to Cube, with its LIMIT. With no
-  answer this is nil."
-  [details sql]
+  answer this is {:unknown message}: a Cube that retries a too large result with no end also gives no answer to this count, and the query would hang."
+  [details cube-meta sql]
   (try
     (let [[[rows]] (cube.meta/rest-sql details (format "SELECT COUNT(*) FROM (%s) AS mb_rows" sql) "UTC")
           sample   (cube.meta/rest-sql details (format "SELECT * FROM (%s) AS mb_rows LIMIT 100" sql) "UTC")
-          per-row  (/ (double (reduce + 0 (map (comp count json/encode) sample))) (max 1 (count sample)))
+          per-row  (row-bytes sample (longest-alias cube-meta sql))
           ;; The SQL API gives a count as text.
           rows     (or (some-> rows str parse-long) 0)
-          bytes    (* rows per-row message-bytes-per-json-byte)]
+          bytes    (* rows per-row)]
       (when (> bytes largest-message-bytes)
-        {:rows rows, :bytes (long bytes), :rows-that-fit (long (/ largest-message-bytes (max 1.0 (* per-row message-bytes-per-json-byte))))}))
-    (catch Exception _ nil)))
+        {:rows rows, :bytes (long bytes), :rows-that-fit (long (quot largest-message-bytes (max 1 per-row)))}))
+    (catch Exception e
+      {:unknown (or (ex-message e) (str e))})))

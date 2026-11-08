@@ -574,6 +574,14 @@
           :else
           (str (str/replace sql #"[\s;]+$" "") "\nLIMIT " (long n)))))))
 
+(defn top-limit
+  "The number of the LIMIT or FETCH at the top of `sql`, or nil."
+  [^String sql]
+  (let [tree (sqltext/parse sql)
+        own  (when (and (not (:error tree)) (= :query (:k tree))) (or (:limit tree) (some-> (:fetch? tree) :amount)))]
+    (when (and own (= :num (:k own)) (re-matches #"\d+" (:v own)))
+      (long (bigint (:v own))))))
+
 (defn admit-native
   "The result of [[compile-native]] with no question to Cube, for `dev/fuzz/admit.clj`: {:sql, :used} or a refusal."
   [cube-meta ^String sql params opts]

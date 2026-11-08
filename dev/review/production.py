@@ -167,7 +167,10 @@ def run_large_results(mb, db):
 
     def timed(label, call):
         start = time.time()
-        out = call()
+        try:
+            out = call()
+        except Exception as e:  # a hang ends in the time-out of the client
+            out = (0, "error: %s" % e, {})
         took = time.time() - start
         if took > 60:
             bad.append("%s took %.0f s" % (label, took))
@@ -181,7 +184,10 @@ def run_large_results(mb, db):
     rows, _cols, error = mb.run({"type": "native", "database": db, "native": {"query": raw + " ORDER BY id LIMIT 1500000", "template-tags": {}}})
     if not error and [[r[0]] for r in rows[:3]] != [[int(r[0])] for r in first]:
         bad.append("own large LIMIT: first rows %s, truth %s" % (rows[:3], first))
-    for label, sql in (("download", raw), ("download of a star", "SELECT * FROM big_orders WHERE created_at < '2024-04-01'")):
+    # Narrow rows of small numbers: Cube Store keeps each value as text with the key cube__member, so three integer columns of 1048575 rows made a message of 93 MB.
+    narrow = "SELECT id, user_id, quantity_dim FROM big_orders WHERE created_at < '2024-04-01'"
+    for label, sql in (("download", raw), ("download of a star", "SELECT * FROM big_orders WHERE created_at < '2024-04-01'"),
+                       ("download of three integer columns", narrow), ("download of three integer columns with LIMIT 900000", narrow + " LIMIT 900000")):
         query = json.dumps({"type": "native", "database": db, "native": {"query": sql, "template-tags": {}}})
         status, text, _h = timed(label, lambda: lib.http("POST", mb.url + "/api/dataset/csv", {"query": query, "format_rows": "false"},
                                                           {"X-Metabase-Session": mb.sid}, form=True, timeout=600))
@@ -193,6 +199,16 @@ def run_large_results(mb, db):
                                                                                {"X-Metabase-Session": mb.sid}, form=True, timeout=600))
     if "Cube Store" not in text:
         bad.append("download from the query builder: HTTP %s, no message about Cube Store: %s" % (status, text[:200]))
+    one = "SELECT id FROM big_orders WHERE created_at < '2024-04-01'"
+    query = json.dumps({"type": "native", "database": db, "native": {"query": one, "template-tags": {}}})
+    start = time.time()
+    status, text, _h = lib.http("POST", mb.url + "/api/dataset/csv", {"query": query, "format_rows": "false"}, {"X-Metabase-Session": mb.sid}, form=True, timeout=600)
+    took = time.time() - start
+    want = int(lib.ch("SELECT count() FROM big_orders WHERE created_at < toDateTime('2024-04-01 00:00:00', 'UTC')")[0][0])
+    got = len(text.strip().splitlines()) - 1
+    # One column fits in one message: it must give the rows that Metabase keeps, or a message, in a bounded time.
+    if took > 300 or not ((status == 200 and got == min(want, 1048575)) or "Cube Store" in text):
+        bad.append("download of one column: HTTP %s, %d rows, truth %d, %.0f s: %s" % (status, got, want, took, text[:200]))
     small = "SELECT id, status FROM big_orders WHERE created_at < '2024-01-15'"
     query = json.dumps({"type": "native", "database": db, "native": {"query": small, "template-tags": {}}})
     status, text, _h = timed("small download", lambda: lib.http("POST", mb.url + "/api/dataset/csv", {"query": query, "format_rows": "false"},
