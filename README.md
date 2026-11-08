@@ -91,7 +91,6 @@ On stock Cube with no dialect, also:
 
 - With a report time zone that is not UTC, a `Date` or `Date32` column is a time at midnight UTC, so a row can move to another day. West of UTC, `2025-03-01` goes to February. Cube does not show the type of a column. The driver stops this query for a dimension with `meta: { date_only: true }`. The dialect gives the truth for each date column.
 - Native `x >= a AND x < b` on a `DateTime64` leaves out the last second before `b`. The query builder has this only on a column with a rollup.
-- A raw `DateTime64` value shows whole seconds.
 - A rollup with a text dimension that has an empty text: the group of the empty text joins the group of `NULL`. Cube Store reads an empty value of its CSV as `NULL`, and the result does not show which rows were empty, so the driver cannot see it. The dialect sends these rows with `INSERT`.
 
 `make grid` and the `grid.compact.*` checks test each entry. `dev/review/known_limits.py` has the list, with the reason for each entry.

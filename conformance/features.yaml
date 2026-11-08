@@ -4695,10 +4695,8 @@
   area: native
   title: "native SQL with <=, BETWEEN and > at a whole second on a DateTime64"
   status: pass
-  status_stock: partial
+  status_stock: pass
   check: native.bound.datetime64_upper_and_strict_lower
-  cap_stock: partial
-  reason_stock: "Known wrong number on stock Cube. When a filter on a DateTime64 is not a date range, stock Cube compares the column at whole seconds, so x > t drops the rows later in the second of t, also as x >= t AND x <> t. A date range keeps the bound of > one millisecond after t, and stock Cube drops that fraction, so that form keeps a row of a DateTime at t. One form must hold for each type, and /v1/meta does not show the type. <= and BETWEEN give the truth. cube-clickhouse gives the truth."
 - id: native.bound.datetime64_last_second_limit
   area: native
   title: "native SQL with < on a DateTime64"
