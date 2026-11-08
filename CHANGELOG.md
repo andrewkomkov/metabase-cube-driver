@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.1](https://github.com/andrewkomkov/metabase-cube-driver/compare/v0.1.0...v0.1.1) (2026-11-08)
+
+
+### Bug fixes
+
+* **ci:** change only the files that state the current pins on a pin update ([8502600](https://github.com/andrewkomkov/metabase-cube-driver/commit/85026009f704348082180d28653921bc73a74b74))
+* **cube-image:** keep the index clean after a failed patch and skip patches released in another pull request ([4fb36e6](https://github.com/andrewkomkov/metabase-cube-driver/commit/4fb36e6de6438142b268c3755e131a9a8c640ba2))
+
 ## 0.1.0 (2026-11-08)
 
 
