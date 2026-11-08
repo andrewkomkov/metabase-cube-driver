@@ -62,7 +62,7 @@
    :pred/compare-null       "= and <> with NULL, which keep no row"
    :pred/constant           "A comparison of two literals, as the 1 = 1 of a field filter with no value"
    :pred/in-list            "IN and NOT IN with a list of literals, also NULL"
-   :pred/in-subquery        "IN and NOT IN with a subquery of one column"
+   :pred/in-subquery        "IN with a subquery of one column, and NOT IN with one that has column IS NOT NULL in its WHERE"
    :pred/between            "BETWEEN and NOT BETWEEN on numbers and on times"
    :pred/like               "LIKE, ILIKE, NOT LIKE and NOT ILIKE, with a literal pattern"
    :pred/is-null            "IS NULL and IS NOT NULL"
@@ -850,6 +850,34 @@
                (str "The driver corrects the meaning of NULL for this form only at the top of WHERE, HAVING or FILTER. Write it there, such as "
                     "COUNT(*) FILTER (WHERE x NOT LIKE 'a%'), or use =, LIKE, IN, BETWEEN or IS NULL here.")))))
 
+(defn- conjuncts
+  [node]
+  (let [node (unwrapped node)]
+    (if (= :and (:k node)) (concat (conjuncts (:l node)) (conjuncts (:r node))) [node])))
+
+(defn- non-null-output?
+  "True if the one column of the subquery `q` cannot be NULL, because its WHERE has `column IS NOT NULL` at the top."
+  [{:keys [withs terms ops]}]
+  (let [term (first terms)
+        x    (some-> term :items first :x unwrapped)]
+    (boolean
+     (and (empty? withs) (empty? ops) (= 1 (count terms)) (= :select (:k term)) (= 1 (count (:items term)))
+          (= :name (:k x))
+          (some (fn [c]
+                  (let [y (some-> c :x unwrapped)]
+                    (and (= :is (:k c)) (= "null" (:what c)) (:not? c) (= :name (:k y))
+                         (= (str/lower-case (peek (:parts y))) (str/lower-case (peek (:parts x)))))))
+                (some-> (:where term) conjuncts))))))
+
+(defn- check-not-in-subquery!
+  "SQL gives no row for x NOT IN (subquery) when the subquery gives NULL. Cube and ClickHouse read the NULL as a value and give rows, so this form refuses unless the column of
+  the subquery cannot be NULL."
+  [node env]
+  (when (and (:q node) (not= (boolean (:not? node)) (boolean (:negated? env))) (not (non-null-output? (:q node))))
+    (refuse! (str "NOT IN with a subquery that can give NULL: " (source-text node))
+             (str "SQL gives no row when the subquery gives NULL, and Cube gives rows. Add WHERE column IS NOT NULL to the subquery, such as "
+                  "x NOT IN (SELECT y FROM t WHERE y IS NOT NULL), or use IN."))))
+
 (defn predicate
   "A condition of WHERE, HAVING, CASE or FILTER. Each other form refuses."
   [node env]
@@ -858,7 +886,7 @@
     :paren (predicate (:x node) env)
     :and   (do (use! :pred/logic) (predicate (:l node) env) (predicate (:r node) env))
     :or    (do (use! :pred/logic) (predicate (:l node) env) (predicate (:r node) env))
-    :not   (do (use! :pred/logic) (predicate (:x node) env))
+    :not   (do (use! :pred/logic) (predicate (:x node) (update env :negated? not)))
     :cmp   (let [{:keys [l r op quantified]} node]
              (when quantified
                (refuse! (format "%s %s" op (str/upper-case quantified)) "Use IN or a join of the data model."))
@@ -885,7 +913,8 @@
              (when (and (:zone? *opts*) (= :time (:type a)))
                (refuse! (format "IN on a time under a report time zone: %s" (source-text node)) "Write x >= a AND x < b, or remove the report time zone."))
              (if q
-               (let [outputs (check-query! q (assoc env :in-subquery? true))]
+               (let [_       (check-not-in-subquery! node env)
+                     outputs (check-query! q (assoc env :in-subquery? true, :negated? false))]
                  (use! :pred/in-subquery)
                  (when-not (= 1 (count outputs))
                    (refuse! "IN with a subquery of more than one column")))

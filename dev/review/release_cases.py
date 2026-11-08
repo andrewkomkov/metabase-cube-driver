@@ -259,6 +259,7 @@ CS = "nullIf(toString(status), 'completed')"
 INTERVAL = "cannot add an interval"
 # A construct that is not on the allow-list of src/metabase/driver/cube/grammar.clj. It may refuse. If it runs, the truth holds.
 GRAMMAR = "Native SQL on Cube:"
+NOT_IN_SUBQUERY = "NOT IN with a subquery that can give NULL"
 
 # Native SQL that the SQL API of Cube reads with another meaning than SQL, on each construct of "Native SQL" in docs/query-compilation.md. Each row has the text, the truth in direct ClickHouse SQL, and
 # a text of a clear message that may stand for the number. With no such text, only the truth passes.
@@ -318,7 +319,8 @@ NATIVE_SEMANTICS = [
     ("WITH t AS (SELECT cancel_status AS x FROM orders) SELECT COUNT(*) FROM t WHERE x <> 'shipped'", "SELECT count() FROM orders WHERE %s <> 'shipped'" % CS),
     ("SELECT COUNT(*) FROM orders o CROSS JOIN users u WHERE o.__cubeJoinField = u.__cubeJoinField AND o.cancel_status <> 'shipped'", "SELECT count() FROM orders WHERE %s <> 'shipped'" % CS),
     ("SELECT COUNT(*) FROM orders o WHERE o.id IN (SELECT id FROM orders WHERE cancel_status <> 'shipped')", "SELECT count() FROM orders WHERE %s <> 'shipped'" % CS),
-    ("SELECT COUNT(*) FROM orders o WHERE o.id NOT IN (SELECT id FROM orders WHERE cancel_status = 'shipped')", "SELECT count() FROM orders WHERE id NOT IN (SELECT id FROM orders WHERE %s = 'shipped')" % CS),
+    ("SELECT COUNT(*) FROM orders o WHERE o.id NOT IN (SELECT id FROM orders WHERE cancel_status = 'shipped')", "SELECT count() FROM orders WHERE id NOT IN (SELECT id FROM orders WHERE %s = 'shipped')" % CS, NOT_IN_SUBQUERY),
+    ("SELECT COUNT(*) FROM orders o WHERE o.id NOT IN (SELECT id FROM orders WHERE cancel_status = 'shipped' AND id IS NOT NULL)", "SELECT count() FROM orders WHERE id NOT IN (SELECT id FROM orders WHERE %s = 'shipped')" % CS),
     ("SELECT COUNT(*) FROM typed_events WHERE n_int <> 1", "SELECT count() FROM typed_events WHERE n_int <> 1"),
     ("SELECT COUNT(*) FROM typed_events WHERE NOT (n_int = 1)", "SELECT count() FROM typed_events WHERE NOT (n_int = 1)"),
     ("SELECT COUNT(*) FROM typed_events WHERE n_int NOT BETWEEN 1 AND 2", "SELECT count() FROM typed_events WHERE n_int NOT BETWEEN 1 AND 2"),
@@ -524,7 +526,10 @@ NATIVE_SEMANTICS = [
     ("SELECT COUNT(*) FROM orders o WHERE EXISTS (SELECT 1 FROM users u WHERE u.id = o.user_id AND u.city = 'Austin')", "SELECT count() FROM orders WHERE user_id IN (SELECT id FROM users WHERE city = 'Austin')", "EXISTS"),
     ("SELECT COUNT(*) FROM orders o WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = o.user_id AND u.city = 'Austin')", "SELECT count() FROM orders WHERE user_id NOT IN (SELECT id FROM users WHERE city = 'Austin')", "EXISTS"),
     ("SELECT COUNT(*) FROM orders WHERE user_id IN (SELECT id FROM users WHERE city = 'Austin')", "SELECT count() FROM orders WHERE user_id IN (SELECT id FROM users WHERE city = 'Austin')"),
-    ("SELECT COUNT(*) FROM orders WHERE user_id NOT IN (SELECT id FROM users WHERE city = 'Austin')", "SELECT count() FROM orders WHERE user_id NOT IN (SELECT id FROM users WHERE city = 'Austin')"),
+    ("SELECT COUNT(*) FROM orders WHERE user_id NOT IN (SELECT id FROM users WHERE city = 'Austin')", "SELECT count() FROM orders WHERE user_id NOT IN (SELECT id FROM users WHERE city = 'Austin')", NOT_IN_SUBQUERY),
+    ("SELECT COUNT(*) FROM orders WHERE user_id NOT IN (SELECT id FROM users WHERE city = 'Austin' AND id IS NOT NULL)", "SELECT count() FROM orders WHERE user_id NOT IN (SELECT id FROM users WHERE city = 'Austin')"),
+    # Release review 4: with NULL in the subquery, Cube gave 265, the answer of ClickHouse, and SQL gives no row. So the form stops.
+    ("SELECT COUNT(*) FROM typed_events WHERE n_int NOT IN (SELECT n_int FROM typed_events WHERE id < 10)", "SELECT toUInt64(0)", NOT_IN_SUBQUERY),
     ("SELECT COUNT(*) FROM orders WHERE amount_dim > (SELECT AVG(amount_dim) FROM orders)", "SELECT count() FROM orders WHERE amount > (SELECT avg(amount) FROM orders)", GRAMMAR),
     ("SELECT COUNT(*) FROM orders WHERE amount_dim = (SELECT MAX(amount_dim) FROM orders)", "SELECT count() FROM orders WHERE amount = (SELECT max(amount) FROM orders)", GRAMMAR),
     ("SELECT id, (SELECT COUNT(*) FROM users) FROM orders ORDER BY id LIMIT 1", "SELECT 1, 200", GRAMMAR),

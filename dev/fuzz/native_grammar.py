@@ -492,8 +492,10 @@ def shape_in_subquery(rng, src, zone):
     where = predicate(rng, _no_time(src), None, 1)
     ordered = src.get("order", "id")
     op = rng.choice(["IN", "NOT IN"])
-    cube = "SELECT COUNT(*) FROM %s WHERE %s %s (SELECT %s FROM %s WHERE %s)" % (src["from"], ordered, op, ordered, src["from"], where[0])
-    ch = "SELECT count() FROM %s WHERE %s %s (SELECT %s FROM %s WHERE %s)" % (src["ch"], ordered, op, ordered, src["ch"], where[1])
+    # NOT IN needs a subquery with no NULL: with a NULL, SQL gives no row and Cube gives rows, so the driver refuses it.
+    guard = " AND %s IS NOT NULL" % ordered if op == "NOT IN" else ""
+    cube = "SELECT COUNT(*) FROM %s WHERE %s %s (SELECT %s FROM %s WHERE %s%s)" % (src["from"], ordered, op, ordered, src["from"], where[0], guard)
+    ch = "SELECT count() FROM %s WHERE %s %s (SELECT %s FROM %s WHERE %s%s)" % (src["ch"], ordered, op, ordered, src["ch"], where[1], guard)
     return spec(cube, ch)
 
 
@@ -600,6 +602,10 @@ def logic_mutation(rng):
     p = pred[0]
     table = src["from"]
     key = group_key(rng, src)[0]
+    if rng.random() < 0.15:
+        column = next(iter(src.get("number") or {}), "id")
+        form = rng.choice(["%(c)s NOT IN (SELECT %(c)s FROM %(t)s WHERE %(p)s)", "NOT (%(c)s IN (SELECT %(c)s FROM %(t)s WHERE %(p)s))"]) % {"c": column, "t": table, "p": plain_predicate(rng, src, None, 0)[0]}
+        return "SELECT COUNT(*) FROM %s WHERE %s" % (table, form), "NOT IN with a subquery that can give NULL: " + form
     sql = rng.choice(["SELECT CASE WHEN %s THEN 1 ELSE 0 END AS a, COUNT(*) FROM %s GROUP BY 1" % (p, table),
                       "SELECT %s AS b, COUNT(*) FROM %s GROUP BY 1" % (p, table),
                       "SELECT SUM(CASE WHEN %s THEN 1 ELSE 0 END) FROM %s" % (p, table),
@@ -624,6 +630,11 @@ def permanent_cases():
         spec("SELECT CASE WHEN NOT (NOT (%s)) THEN 'yes' ELSE 'no' END AS a, COUNT(*) FROM typed_events GROUP BY 1" % like[0], None),
         spec("SELECT NOT (%s) AS b, COUNT(*) FROM typed_events GROUP BY 1" % like[0], None),
         spec("SELECT CASE WHEN NOT (NOT (lc_n ILIKE 'H%')) THEN 1 ELSE 0 END AS a, COUNT(*) FROM typed_events GROUP BY 1", None),
+        # Release review 4: NOT IN with a subquery that gives NULL gave 265, the answer of ClickHouse. SQL gives no row. It refuses, and with IS NOT NULL in the subquery it holds.
+        spec("SELECT COUNT(*) FROM typed_events WHERE n_int NOT IN (SELECT n_int FROM typed_events WHERE id < 10)", None),
+        spec("SELECT COUNT(*) FROM typed_events WHERE NOT (n_int IN (SELECT n_int FROM typed_events WHERE id < 10))", None),
+        spec("SELECT COUNT(*) FROM typed_events WHERE n_int NOT IN (SELECT n_int FROM typed_events WHERE id < 10 AND n_int IS NOT NULL)",
+             "SELECT count() FROM typed_events WHERE n_int NOT IN (SELECT n_int FROM typed_events WHERE id < 10 AND n_int IS NOT NULL)"),
     ]
     for case in cases:
         case["zone"] = None
