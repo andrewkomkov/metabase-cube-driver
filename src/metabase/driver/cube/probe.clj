@@ -339,8 +339,9 @@
       (cached details [:dates-stay-in-zone (:name cube)]
               (fn []
                 (try
-                  (let [text (:text (sql-of details {:timeDimensions [{:dimension (:name time-dimension), :granularity "day"
-                                                                        :dateRange ["2025-01-01" "2025-01-02"]}]
+                  ;; A rollup does not serve a bucket of a minute, so Cube writes the SQL of the column.
+                  (let [text (:text (sql-of details {:timeDimensions [{:dimension (:name time-dimension), :granularity "minute"
+                                                                       :dateRange ["2025-01-01T00:00:00" "2025-01-01T00:59:59"]}]
                                                      :timezone       "America/New_York"
                                                      :limit          1}))]
                     (and (str/includes? text "'America/New_York'")
