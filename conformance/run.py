@@ -6894,7 +6894,8 @@ def _(ctx):
             raise Fail("p50_amount on the legacy planner has no message: %s" % str(error)[:300])
         # Release review 4: a rolling window by a time bucket with no date filter gave the raw "Time series queries without dateRange aren't supported".
         error, rows = native("SELECT DATE_TRUNC('month', created_at) AS m, MEASURE(revenue_trailing_30d) FROM orders GROUP BY 1")
-        if not error or "date range" not in str(error).lower():
+        # On stock Cube the driver stops this rolling window before Cube, with its own message.
+        if not error or not ("date range" in str(error).lower() or "rolling window" in str(error).lower()):
             raise Fail("a rolling window with no date range on the legacy planner has no message: %s" % str(error or rows)[:300])
     finally:
         ctx.mb.api("DELETE", "/api/database/%d" % db["id"])
