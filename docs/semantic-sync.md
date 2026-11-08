@@ -65,10 +65,10 @@ Each Measure and Segment has a fixed `entity_id`, a hash of the Metabase databas
 **A sync never replaces an edit by a person.** A person can always edit an object in Metabase. The next sync
 keeps the edit and does not ask.
 
-- **Tables and fields.** Metabase stores a user value in `metabase_table_user_settings` and
-  `metabase_field_user_settings`, and shows it over the synced value. The driver writes only the synced
-  columns. Each edited attribute stays, and the other attributes still follow Cube. To follow Cube again, clear the
-  value in Metabase.
+- **Tables and fields.** `metabase_table_user_settings` and `metabase_field_user_settings` record which
+  attributes a person set. The driver does not write those attributes. Each edited attribute stays, and the
+  other attributes still follow Cube. Metabase v0.65.2 shows the user value over the synced value, and v0.65.3
+  keeps it in the table or field row itself. To follow Cube again, clear the value in Metabase.
 - **Measures and segments.** Metabase has no such tables for these objects, but each edit through the UI, the API
   or MCP adds a Revision, and the driver adds no Revision. If an object has a Revision, the driver treats the whole object
   as owned by a person: it does not change the name, the description, the definition or the archived state. The log
