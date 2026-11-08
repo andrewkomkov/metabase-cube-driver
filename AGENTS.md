@@ -25,12 +25,12 @@ ClickHouse behaviour reaches it through Cube SQL generation.
 
 ## Pinned versions
 
-- Metabase `v0.65.2.3`, OSS image `metabase/metabase`.
+- Metabase `v0.65.3.6`, OSS image `metabase/metabase`.
 - Cube `v1.8.20`, image `cubejs/cube`.
 - ClickHouse `26.10.3-alpine`, image `clickhouse/clickhouse-server`.
 
-Read Metabase code at tag `v0.65.2.3`. A clone is at `/Volumes/SanDisk2Tb/PycharmProjects/metabase`.
-Use `git show v0.65.2.3:<path>` there, because its checkout is `master`. Do not change that clone.
+Read Metabase code at tag `v0.65.3.6`. A clone is at `/Volumes/SanDisk2Tb/PycharmProjects/metabase`.
+Use `git show v0.65.3.6:<path>` there, because its checkout is `master`. Do not change that clone.
 
 ## Layout
 
