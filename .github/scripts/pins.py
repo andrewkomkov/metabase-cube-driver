@@ -15,7 +15,8 @@ from install_tools import TOOLS, asset_url
 USAGE = "usage: pins.py read | resolve | matrix | updates | set NAME VERSION | set-tool NAME TAG"
 ROOT = Path(__file__).resolve().parents[2]
 COMPOSE = ROOT / "dev" / "docker-compose.yml"
-DOCS = ["AGENTS.md", "README.md", "CONTRIBUTING.md", "docs", ".claude"]
+# The files that state the current pins. The files in docs/ record what ran on a version, so a new pin does not change them.
+DOCS = ["AGENTS.md", "README.md", "CONTRIBUTING.md", ".claude"]
 IMAGES = {
     "metabase": "metabase/metabase",
     "cube": "cubejs/cube",
