@@ -534,15 +534,18 @@
                                  member)))}))
 
 (defn compile-native
-  "The SQL that goes to Cube for this native text, or a refusal. `questions` has the answers that need Cube: :keeps-fractions? a boolean, :zone the report time zone if it is not UTC, :time-shift? a function of the cube and the full
+  "The SQL that goes to Cube for this native text, or a refusal. `questions` has the answers that need Cube: :keeps-fractions? and :dates-stay-in-zone? booleans, :zone the report time zone if it is not UTC, :time-shift? a function of the cube and the full
   name of a measure, :wrong-bin-reason a function of the cube, the time member, the granularity and the full names of the measures, :rolling-reason a function of the full names of a measure and a time member and the unit,
   :rolling-zone-reason, and :value-read a function of a cube that gives `cube.probe/value-read-members`."
-  [cube-meta ^String sql params {:keys [keeps-fractions? zone time-shift? value-read wrong-bin-reason] :as questions}]
+  [cube-meta ^String sql params {:keys [keeps-fractions? dates-stay-in-zone? zone time-shift? value-read wrong-bin-reason] :as questions}]
   (let [text  (inline-parameters sql params)
         _     (check-conditions! text)
-        tables (with-groups (catalog cube-meta (not keeps-fractions?)) cube-meta)
+        tables (with-groups (catalog cube-meta (not dates-stay-in-zone?)) cube-meta)
         {checked :sql, :keys [selects tree]} (grammar/check text tables {:zone?            (some? zone)
                                                                          :keeps-fractions? keeps-fractions?
+                                                                         ;; No released Cube has the interval template (#12534). The dialect has it, and only the dialect
+                                                                         ;; reads a Date in the zone, so that answer tells this one too.
+                                                                         :interval?        dates-stay-in-zone?
                                                                          :join-pairs       (join-pairs cube-meta)})]
     (check-fan-out! cube-meta (with-index tables) tree)
     (doseq [select selects]
@@ -586,7 +589,7 @@
   "The result of [[compile-native]] with no question to Cube, for `dev/fuzz/admit.clj`: {:sql, :used} or a refusal."
   [cube-meta ^String sql params opts]
   (let [text   (inline-parameters sql params)
-        tables (with-groups (catalog cube-meta (not (:keeps-fractions? opts))) cube-meta)
+        tables (with-groups (catalog cube-meta (not (:dates-stay-in-zone? opts))) cube-meta)
         {checked :sql, :keys [used]} (grammar/check text tables (assoc opts :join-pairs (join-pairs cube-meta)))]
     {:sql checked, :used used}))
 

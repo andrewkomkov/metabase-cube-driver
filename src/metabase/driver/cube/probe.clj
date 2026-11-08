@@ -327,6 +327,26 @@
 
 ;;; Date columns.
 
+(defn dates-stay-in-zone?
+  "True if Cube reads a Date at midnight of the report time zone, as the ClickHouse dialect does with `toDateTime64(x, 3, zone)`. Stock Cube writes
+  `toTimeZone(toDateTime64(x, n), zone)`, which reads a Date as midnight UTC, so west of UTC the row moves to the day before. Stock Cube v1.8.19 keeps the
+  fraction of a bound, so [[keeps-fractions?]] does not tell the two apart. With no answer this is false, because then the driver does more to keep the number right."
+  [details cube-meta]
+  (let [cube           (first (filter (comp seq real-time-dimensions) (:cubes cube-meta)))
+        time-dimension (first (real-time-dimensions cube))]
+    (if-not time-dimension
+      true
+      (cached details [:dates-stay-in-zone (:name cube)]
+              (fn []
+                (try
+                  (let [text (:text (sql-of details {:timeDimensions [{:dimension (:name time-dimension), :granularity "day"
+                                                                        :dateRange ["2025-01-01" "2025-01-02"]}]
+                                                     :timezone       "America/New_York"
+                                                     :limit          1}))]
+                    (and (str/includes? text "'America/New_York'")
+                         (not (re-find #"toTimeZone\(\s*toDateTime64\(" text))))
+                  (catch Exception _ false)))))))
+
 (defn date-only?
   "True if the data model marks the dimension with this full name with `meta: { date_only: true }`. Cube does not show the type of a column."
   [cube-meta full-name]

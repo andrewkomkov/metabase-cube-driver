@@ -73,8 +73,6 @@ BY_UNIT = {
     "month": ["m_rev_trailing_1m", "m_rev_trailing_3m", "m_rev_leading_1m", "m_rev_offset_end", "m_rev_offset_start", "m_rev_mtd", "m_rev_qtd", "m_rev_ytd", "m_rev_running"],
     "year": ["m_rev_ytd", "m_rev_running"],
 }
-# These read rows in days by a week. See rolling_truth.
-SIZED = ("m_rev_trailing_7d", "m_rev_trailing_1m", "m_rev_trailing_3m", "m_rev_leading_1m", "m_rev_offset_end", "m_rev_offset_start")
 # Both days with a clock change, the ends of a month and of a year in the zone, and a week that starts in the range.
 WINDOWS = {
     "day": [("2025-03-07", "2025-03-11"), ("2025-10-31", "2025-11-04"), ("2024-12-30", "2025-01-02"), ("2025-02-27", "2025-03-02"), ("2025-03-30", "2025-04-02")],
@@ -348,15 +346,15 @@ class Grid:
         only("b_mom", self.sql_rows("SELECT d, (%s - %s) / nullIf(%s, 0) %s" % (this, prior, prior, cross), ["b_mom"], 1), unit="day", lo=lo, hi=hi)
         only("c_to_prior", self.sql_rows("SELECT d, %s / nullIf(%s, 0) %s" % (this, prior, cross), ["c_to_prior"], 1), unit="day", lo=lo, hi=hi)
 
-    def rolling_truth(self, zone, unit, lo, hi, members, spans=None, week_start="toMonday"):
-        """Cube reads the rows of a window in buckets, and it compares the start of a bucket with the bounds of the window. By a month a window holds whole months. By a week a window of a size
-        reads days, and a window to date reads weeks. The same rule holds with no time zone, see the plain path."""
+    def rolling_truth(self, zone, unit, lo, hi, members, spans=None):
+        """Cube reads the rows of a window in buckets, and it compares the start of a bucket with the bounds of the window. By a month a window holds whole months. By a week each window
+        reads days: from Cube v1.8.17 (#12549) a window to date reads days too, not weeks. The same rule holds with no time zone, see the plain path."""
         spans = spans or buckets(unit, lo, hi)
         array = ", ".join("('%s', '%s')" % s for s in spans)
 
         def row_bucket(member):
             if unit == "week":
-                return day_of(zone) if member in SIZED else "%s(%s)" % (week_start, day_of(zone))
+                return day_of(zone)
             return "%s(%s)" % (UNIT_START[unit], day_of(zone))
         select = ", ".join("sumIf(toFloat64(amount), %s)" % re.sub(r"\bD\b", row_bucket(m), ROLLING[m]) for m in members)
         sql = "SELECT b, %s FROM zone_events CROSS JOIN (SELECT toDate(x.1) AS b, toDate(x.2) AS e FROM (SELECT arrayJoin([%s]) AS x)) AS w GROUP BY b, e" % (select, array)
@@ -743,7 +741,6 @@ OTHER = {"stored_day_other_zone": "stored_day_other_zone", "time_measure": "time
 REASON_DATE = "Stock Cube reads a Date as a time at midnight UTC under a time zone, so a day moves. The driver stops this in Metabase for a dimension with meta date_only. A Cube request gets the moved day. The dialect fixes it."
 REASON_ROLLING = "Stock Cube reads the bounds of a rolling window in UTC under a time zone and adds the wrong months. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
 REASON_SHIFT = "Stock Cube adds the interval of a time shift in UTC, so next to a clock change a row moves to another day. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
-REASON_SECONDS = "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
 REASON_ROLLUP = "Stock Cube reads a Date as a time at midnight UTC, and it filters the rollup of a window with the offset of today. The driver stops these in Metabase. A Cube request gets the wrong number. The dialect fixes them."
 
 
@@ -763,9 +760,8 @@ def stock_limit(fid):
             return REASON_SHIFT if part == "stages" else None
         if date_form:
             return REASON_DATE if p == "ny" else None
-        if form == "a64" and part in ("day", "filter"):
-            return REASON_SECONDS
-        return REASON_SHIFT if part == "stages" and form in ("a", "a64") and (p == "ny" or form == "a64") else None
+        # From v1.8.19 (#12596) stock Cube keeps the fraction of a DateTime64, so it is not compared in whole seconds.
+        return REASON_SHIFT if part == "stages" and form in ("a", "a64") and p == "ny" else None
     return STOCK_OTHER.get(".".join(parts[2:]))
 
 

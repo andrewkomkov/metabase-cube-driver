@@ -2326,6 +2326,7 @@
   "The answers from Cube that native SQL needs. See cube.native/compile-native."
   [details cube-meta]
   {:keeps-fractions? (cube.probe/keeps-fractions? details cube-meta nil)
+   :dates-stay-in-zone? (cube.probe/dates-stay-in-zone? details cube-meta)
    :zone             (when (report-zone?) (java.time.ZoneId/of (str (session-zone))))
    :value-read       (partial cube.probe/value-read-members details cube-meta)
    :rolling-reason   (partial cube.probe/rolling-window-reason details)

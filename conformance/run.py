@@ -3605,7 +3605,7 @@ C("compile.ch.date_part_on_ny", TE, "SELECT toHour(ts_ny, 'UTC'), count() FROM t
 
 @check("clickhouse.datetime64_millis")
 def _(ctx):
-    """Stock Cube reads a time as whole seconds. The dialect keeps the milliseconds."""
+    """The dialect keeps the milliseconds, and stock Cube keeps them from v1.8.19 (#12596)."""
     ensure_table(ctx, TE)
     truth = ch("SELECT toString(toTimeZone(ts64_berlin, 'UTC')) FROM typed_events WHERE id = 7")[0][0]
     if not truth.endswith(".007"):
@@ -3613,14 +3613,9 @@ def _(ctx):
     got = ctx.mb.mbql(TE, fields=["d:typed_events.ts64_berlin"], where=[["=", "d:typed_events.id", 7]])["rows"]
     assert_rows(ctx.mb.mbql(TE, agg=["m:typed_events.count"], by=["d:typed_events.ts64_berlin@hour"], where=[["=", "d:typed_events.id", 7]])["rows"],
                 ch("SELECT toStartOfHour(ts64_berlin, 'UTC'), count() FROM typed_events WHERE id = 7 GROUP BY 1"), label="hour bucket")
-    if DIALECT:
-        assert_rows(got, [[truth + "Z"]], label="milliseconds")
-        filtered = ctx.mb.native("SELECT MEASURE(count) AS n FROM typed_events WHERE ts64_berlin >= '%s' AND ts64_berlin < '%s8'" % (truth, truth[:-1]))["rows"]
-        assert_rows(filtered, [[1]], label="filter on milliseconds")
-        return
-    if norm(got[0][0]) == norm(truth + "Z"):
-        raise Fail("Cube now keeps milliseconds. Give this entry its full status")
-    assert_rows(got, [[truth[:-4] + "Z"]], label="whole seconds")
+    assert_rows(got, [[truth + "Z"]], label="milliseconds")
+    filtered = ctx.mb.native("SELECT MEASURE(count) AS n FROM typed_events WHERE ts64_berlin >= '%s' AND ts64_berlin < '%s8'" % (truth, truth[:-1]))["rows"]
+    assert_rows(filtered, [[1]], label="filter on milliseconds")
 
 
 @check("granularity.custom.offset")
@@ -5409,15 +5404,11 @@ def _(ctx):
 
 @check("compile.bound.fraction_of_a_second")
 def _(ctx):
-    """Stock Cube drops the fraction of a bound, so the driver stops a bound with a fraction. With the dialect it is the truth, on whole seconds and on a DateTime64."""
+    """A Cube that drops the fraction of a bound gets a refusal from the driver, see probe/keeps-fractions?. The dialect and stock Cube from v1.8.19 (#12597)
+    keep it, so this is the truth on each, on whole seconds and on a DateTime64."""
     x, y = "2025-03-15T05:00:00.500", "2025-03-16T05:00:00.500"
     forms = ((">=", [">=", CRT, x]), (">", [">", CRT, x]), ("<", ["<", CRT, y]), ("<=", ["<=", CRT, y]), ("=", ["=", CRT, x]),
              (">= and <=", ["and", [">=", CRT, x], ["<=", CRT, y]]), ("> and <", ["and", [">", CRT, x], ["<", CRT, y]]), ("between", ["between", CRT, x, y]))
-    if not DIALECT:
-        for _label, where in forms:
-            expect_clear_error(ctx, ctx.mb.inner(ORD, agg=["m:orders.count"], where=[where]), "fraction of a second")
-        expect_native_refusal(ctx, "SELECT MEASURE(count) FROM orders WHERE created_at >= '2025-03-15 05:00:00.500'", "fraction of a second")
-        return
     a, b = "toDateTime64('2025-03-15 05:00:00.500', 3, 'UTC')", "toDateTime64('2025-03-16 05:00:00.500', 3, 'UTC')"
     grid = Grid(ctx)
     for label, where, cond in ((">=", forms[0][1], "created_at >= %s" % a), (">", forms[1][1], "created_at > %s" % a), ("<", forms[2][1], "created_at < %s" % b),
@@ -5907,8 +5898,8 @@ def _(ctx):
 
 @check("native.bound.datetime64_upper_and_strict_lower")
 def _(ctx):
-    """A bound at a whole second on a DateTime64, with a row later in that second. `<=` and BETWEEN give the truth on each Cube. Once a filter on the column is not a date range, stock Cube compares the column at
-    whole seconds, so `x > t` drops the rows of the second of t. Each form of `x > t` reads it so on stock Cube, which stays a known wrong number. The dialect gives the truth."""
+    """A bound at a whole second on a DateTime64, with a row later in that second. Each form gives the truth on the dialect and on stock Cube from v1.8.19 (#12596).
+    Before, stock Cube compared the column at whole seconds once a filter was not a date range, so `x > t` dropped the rows of the second of t."""
     ensure_table(ctx, TE)
     a, b = "2025-03-09 09:00:00", "2025-03-30 12:00:00"
     lit = "toDateTime64('%s', 3, 'UTC')"
@@ -5919,13 +5910,8 @@ def _(ctx):
     strict = [("ts64_berlin > '%s'" % b, "ts64_berlin > %s" % (lit % b)),
               ("ts64_berlin > '%s' AND ts64_berlin <= '%s'" % (a, b), "ts64_berlin > %s AND ts64_berlin <= %s" % (lit % a, lit % b))]
     for select, truth_select in (("MEASURE(count), MAX(id)", "count(), max(id)"), ("COUNT(*), MAX(id + 0)", "count(), max(id + 0)")):
-        for where, cond in exact + (strict if DIALECT else []):
+        for where, cond in exact + strict:
             expect_native_rows(ctx, "SELECT %s FROM typed_events WHERE %s" % (select, where), "SELECT %s FROM typed_events WHERE %s" % (truth_select, cond))
-        if not DIALECT:
-            for where, cond in strict:
-                got = ctx.mb.native("SELECT %s FROM typed_events WHERE %s" % (select, where))["rows"]
-                want = ch("SELECT %s FROM typed_events WHERE %s" % (truth_select, cond.replace("ts64_berlin", "toStartOfSecond(ts64_berlin)")))
-                assert_rows(got, want)
 
 
 @check("native.between_date_text_refused")
@@ -6789,7 +6775,8 @@ def _(ctx):
     query = urllib.parse.quote(json.dumps({"dimensions": ["orders.status"],
                                            "timeDimensions": [{"dimension": "orders.created_at", "dateRange": ["2025-01-01", "2025-01-02"]}], "limit": 1}))
     _s, text, _h = http("GET", CUBE + "/cubejs-api/v1/sql?query=" + query)
-    has_fix = "parseDateTime64BestEffort" in text
+    # Stock Cube from v1.8.19 writes parseDateTime64BestEffort(?, 3) too. The dialect adds the zone of the query.
+    has_fix = re.search(r"parseDateTime64BestEffort\([^()]*,\s*\d+,\s*'", text) is not None
     if has_fix != DIALECT:
         raise Fail("this run is for %s, and Cube writes: %s" % (VARIANT_NAME, text[:300]))
 
