@@ -12,7 +12,6 @@ KNOWN = [
     (r"^time/revenue_mtd/quarter", "M1 month to date by a quarter"),
     (r"^core/.*/week_of_year/", "M2 week of year differs from Metabase on Postgres"),
     (r"^edge/berlin_not_gt", "known: stock NOT (x > t) on a DateTime64"),
-    (r"^edge/raw_ts64", "known: stock raw DateTime64"),
     (r"^native/count_star_empty", "known: native COUNT(*) on no rows"),
     (r"^native/switch_star", "known: raw select of a switch"),
     (r"^native/sum_price_join", "known: native sum of a joined dimension"),

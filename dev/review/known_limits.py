@@ -9,8 +9,6 @@ LIMITS = [
      "reason": "The Cube SQL API has the type Double for each number, so a long decimal below 2^53 loses digits before the driver reads it. The value fits a Double and /v1/meta does not show the column type, so the driver cannot see this, and a dialect does not change the type of the SQL API."},
     {"id": "stock-aggregate-of-no-rows", "variants": ("stock",), "shapes": r"^core/(revenue|min_amount|max_amount|first_order_at|last_order_at)/.*/(first_second|out_of_data|empty_value)$",
      "reason": "Stock Cube sends no query setting for this, so ClickHouse gives 0 and 1970-01-01 for an aggregate of no rows, and SQL and Metabase on Postgres give NULL. The driver cannot tell no rows from a total of 0. The dialect is the fix: these shapes pass with it."},
-    {"id": "stock-raw-datetime64", "variants": ("stock",), "shapes": r"^edge/raw_ts64$",
-     "reason": "Stock Cube writes a selected time with precision 0, so a raw DateTime64 shows whole seconds. /v1/meta does not show the column type, so the driver cannot tell it from a DateTime. The dialect is the fix: this shape passes with it."},
     {"id": "stock-unmarked-date", "variants": ("stock",), "shapes": r"^(tz/(America/New_York|Pacific/Apia|Asia/Kathmandu|Europe/Berlin)/Date32 |edge_tz/.*date32)",
      "reason": "Stock Cube reads a Date as a time at midnight UTC under a report time zone. /v1/meta does not show the column type, so the driver can stop this only for a dimension with meta date_only. Date32 here has no mark, as in a model that nobody marked. The dialect is the fix: this shape passes with it."},
 ]
