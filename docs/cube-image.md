@@ -46,6 +46,8 @@ A tag `<cube-tag>-mcd-candidate.<id>` did not pass the gate. Do not use it. A ta
 
 The branches of open pull requests do not change. If #12502 closes with no merge, `propagate` uses the fallback commit on `mcd/patch-queue`.
 
+Cube sometimes releases the same fix in another pull request. Then `released_by` names that pull request and its merge commit, and a tag that has this commit skips the patch. Cube v1.8.19 has #12597 and #12596, which replace B1 and datetime64. Cube v1.8.18 has #12569, which replaces propagate.
+
 To add a patch, push its commit to `mcd/patch-queue` and add a line to `queue.json`. The order of the lines is the order of application. `exclude` leaves out a path, for example a test file that the tag does not have.
 
 ## The workflow
@@ -53,7 +55,7 @@ To add a patch, push its commit to `mcd/patch-queue` and add a line to `queue.js
 [`cube-image.yml`](https://github.com/andrewkomkov/metabase-cube-driver/blob/main/.github/workflows/cube-image.yml) runs each day and on dispatch. All jobs run on GitHub-hosted runners.
 
 1. It finds the new stable tags from `first_tag` in the queue. A tag waits until `cubejs/cube` has its image, because the gate needs that image.
-2. It applies the queue on the tag. If the tag has the merged pull request of a patch, the workflow skips this patch. A commit then removes the patch from the queue.
+2. It applies the queue on the tag. The workflow skips a patch when the tag has its merged pull request or a commit in `released_by`. A commit then removes the patch from the queue. A patch that does not apply leaves the index as it was before, so the next patches still apply.
 3. It makes a fingerprint from the patched source tree, the build recipe and the platforms. It compares this value with the label of the last published image. If they are equal, the run makes no image.
 4. It builds the native module with cubesql and the Tesseract planner from source, in `rust:<channel>-trixie`. It builds Cube Store from source only if the queue changes `rust/cubestore/`. If not, it takes the released binary.
 5. It builds `packages/cubejs-docker/dev.Dockerfile` of the tag, plus `cube-image/image.tail.Dockerfile`, and pushes the candidate tag. A check compares the checksums of the two binaries in the image with the build.

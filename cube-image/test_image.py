@@ -115,6 +115,23 @@ class Fixture(unittest.TestCase):
         self.assertIn("package.json", result["failures"][0]["error"])
         self.assertEqual([p["id"] for p in result["applied"]], ["open"])
 
+    def test_a_three_way_conflict_leaves_no_conflict_in_the_index(self):
+        result = self.apply("v1.0.0", [
+            {"id": "conflict", "pr": "https://github.com/x/y/pull/9"},
+            {"id": "open", "pr": "https://github.com/x/y/pull/7"},
+        ])
+        self.assertEqual([f["cause"] for f in result["failures"]], ["patch-conflict"])
+        self.assertEqual([p["id"] for p in result["applied"]], ["open"])
+        self.assertTrue(result["tree"])
+        diff = (Path(self.tmp.name) / "out" / "queue.diff").read_text()
+        self.assertIn("2 changed", diff)
+        self.assertNotIn("conflict", diff)
+
+    def test_skips_a_patch_that_another_pull_request_released(self):
+        patches = [{"id": "o", "pr": "https://github.com/x/y/pull/7", "released_by": [{"pr": 8, "commit": self.merge_sha}]}]
+        self.assertEqual(self.apply("v1.0.1", patches)["released"], ["o"])
+        self.assertEqual(self.apply("v1.0.0", patches)["released"], [])
+
     def test_same_input_gives_the_same_tree(self):
         patches = [{"id": "open", "pr": "https://github.com/x/y/pull/7"}]
         self.assertEqual(self.apply("v1.0.0", patches)["tree"], self.apply("v1.0.0", patches)["tree"])

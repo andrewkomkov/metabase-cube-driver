@@ -230,9 +230,12 @@ class Source:
     def apply(self, patch, index_file):
         """Applies a patch to the index only. Returns the error text, or None."""
         env = {**os.environ, "GIT_INDEX_FILE": index_file}
+        # A failed --3way apply leaves the conflict stages in the index. They would break the next patches and write-tree, so the index goes back to its state before this patch.
+        before = Path(index_file).read_bytes()
         done = subprocess.run(["git", "-C", self.path, "apply", "--cached", "--3way", "--whitespace=nowarn", "-"], input=patch, env=env, capture_output=True)
         if done.returncode == 0:
             return None
+        Path(index_file).write_bytes(before)
         return (done.stderr + done.stdout).decode(errors="replace").strip() or f"git apply exited with {done.returncode}"
 
 
@@ -249,6 +252,11 @@ def resolve_patch(source, patch, tag, pr_lookup=github_pr):
         source.fetch_commit(merge)
         if source.contains(merge, tag):
             return {"status": "released", "note": f"#{number} is merged and in {tag}"}
+    # Cube can release the same fix in another pull request. Then the tag has that merge commit.
+    for other in patch.get("released_by", ()):
+        source.fetch_commit(other["commit"])
+        if source.contains(other["commit"], tag):
+            return {"status": "released", "note": f"#{other['pr']} fixes the same and is in {tag}"}
     if patch.get("diff_file"):
         return {"status": "diff", "diff": (HERE / patch["diff_file"]).read_bytes(), "source": patch["diff_file"], "note": "test patch"}
     exclude = patch.get("exclude", ())
