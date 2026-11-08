@@ -3,8 +3,8 @@
   again after the analysis, on `:event/sync-end`.
 
   Tables and fields: this namespace writes titles, descriptions, semantic types and format settings to `metabase_table`
-  and `metabase_field`. Metabase keeps edits of a user in the user-settings tables and shows them over these columns, so
-  a write here never hides an edit.
+  and `metabase_field`. The user-settings tables say which columns a person set, and a write here leaves those columns.
+  Metabase v0.65.2 shows the user-settings value over the column, and v0.65.3 shows the column itself.
 
   Measures and segments: each public Cube measure and segment gets one Measure or Segment. The creator is the Metabase
   internal user. The key is a fixed `entity_id` made from the database and the member name. Metabase has no user-settings
@@ -54,16 +54,49 @@
     (cube.meta/managed-semantic-types semantic_type)       nil
     :else                                                  semantic_type))
 
+(def ^:private model-keys
+  #{:id :field_id :table_id :created_at :updated_at :entity_id})
+
+(defn- user-set-columns
+  "The columns that a person set, from a row of `metabase_field_user_settings` or `metabase_table_user_settings`. A column with a
+  `<column>_set` flag is set when the flag is true, which also covers a person who cleared the value. Another column is set when it has a value."
+  [settings]
+  (into #{}
+        (keep (fn [[k v]]
+                (let [flag (keyword (str (name k) "_set"))]
+                  (when-not (or (model-keys k) (str/ends-with? (name k) "_set"))
+                    (when (if (contains? settings flag) (true? (get settings flag)) (some? v))
+                      k)))))
+        settings))
+
+(defn- user-settings-by-id
+  "The user-set columns of each row, by the id of the field or the table. From Metabase v0.65.3 the shown value is the
+  column of `metabase_field` or `metabase_table` itself, and these rows only say which columns a person set."
+  [model id-key ids]
+  (if (seq ids)
+    (try
+      (into {} (map (juxt id-key user-set-columns)) (t2/select model id-key [:in ids]))
+      (catch Exception e
+        (log/warnf e "Could not read %s" model)
+        {}))
+    {}))
+
+;; A person can edit these, and the driver keeps such an edit.
+(def ^:private editable-field-columns #{:description :semantic_type :settings :display_name})
+(def ^:private editable-table-columns #{:description :display_name})
+
 (defn- sync-field!
   "With per-user data, a dimension has no stored list of values, because Metabase keeps one list for all people. A filter
-  then asks Cube as the person who uses it."
-  [database field {::cube.meta/keys [title kind settings], :keys [field-comment], :as member}]
+  then asks Cube as the person who uses it. A title, a description, a format or a semantic type that a person set stays."
+  [database field user-set {::cube.meta/keys [title kind settings], :keys [field-comment], :as member}]
   (update-when-changed!
    :model/Field (:id field) field
-   (cond-> {:description   field-comment
-            :semantic_type (wanted-semantic-type field member)
-            :settings      settings}
-     title                           (assoc :display_name title)
+   (cond-> (apply dissoc
+                  (cond-> {:description   field-comment
+                           :semantic_type (wanted-semantic-type field member)
+                           :settings      settings}
+                    title (assoc :display_name title))
+                  (filter editable-field-columns user-set))
      (#{:measure :segment} kind)     (assoc :has_field_values :none)
      ;; Sync sets this only on a new field, and a member can become private later.
      (= cube.meta/private-key-type (:database-type member)) (assoc :visibility_type :hidden, :has_field_values :none)
@@ -285,6 +318,7 @@
         fields      (when (seq active)
                       (t2/select :model/Field :table_id [:in (map :id active)] :active true))
         table-id->fields (group-by :table_id fields)
+        table-user-set (user-settings-by-id :model/TableUserSettings :table_id (map :id active))
         table+members
         (vec
          (for [{table-id :id, table-name :name, :as table} active
@@ -292,18 +326,21 @@
                :when cube]
            (let [name->field (into {} (map (juxt :name identity)) (table-id->fields table-id))]
              (update-when-changed! :model/Table table-id table
-                                   (cond-> {:description (cube.meta/cube-description cube)}
-                                     (not (str/blank? (:title cube))) (assoc :display_name (:title cube))))
+                                   (apply dissoc
+                                          (cond-> {:description (cube.meta/cube-description cube)}
+                                            (not (str/blank? (:title cube))) (assoc :display_name (:title cube)))
+                                          (filter editable-table-columns (table-user-set table-id))))
              [table (vec (for [member (cube.meta/cube->fields cube)
                                :let  [field (name->field (:name member))]
                                :when field]
                            (assoc member :field-id (:id field))))])))]
     (clear-stale-foreign-keys! database (map :id fields))
     ;; Read the fields again, because the step above and Metabase FK sync change them.
-    (let [fresh (when (seq fields) (into {} (map (juxt :id identity)) (t2/select :model/Field :id [:in (map :id fields)])))]
+    (let [fresh    (when (seq fields) (into {} (map (juxt :id identity)) (t2/select :model/Field :id [:in (map :id fields)])))
+          user-set (user-settings-by-id :model/FieldUserSettings :field_id (keys fresh))]
       (doseq [[_table members] table+members
               {:keys [field-id] :as member} members]
-        (sync-field! database (fresh field-id) member))
+        (sync-field! database (fresh field-id) (user-set field-id) member))
       (remove-stored-field-values! database (keys fresh)))
     (let [table-ids (map :id tables)]
       (doseq [spec entity-kinds]
