@@ -7,11 +7,11 @@
     "clickhouse_fixes": "on",
     "load": "success",
     "conformance": "success",
-    "coverage": "coverage: 1357/1396 pass on Cube with the ClickHouse dialect",
+    "coverage": "coverage: 1361/1402 pass on Cube with the ClickHouse dialect",
     "ok": true,
-    "sha": "b88e0416b2dc6e54b7fa01bb5ef170c3e16918ba",
-    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42362384202",
-    "date": "2026-11-07"
+    "sha": "eb8fea1ec0e526071908e9d2d7b9675b8b569d31",
+    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42470858827",
+    "date": "2026-11-08"
   },
   {
     "metabase": "v0.65.2.3",
@@ -21,11 +21,11 @@
     "clickhouse_fixes": "off",
     "load": "success",
     "conformance": "success",
-    "coverage": "coverage: 1257/1396 pass on stock Cube",
+    "coverage": "coverage: 1261/1402 pass on stock Cube",
     "ok": true,
-    "sha": "b88e0416b2dc6e54b7fa01bb5ef170c3e16918ba",
-    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42362384202",
-    "date": "2026-11-07"
+    "sha": "eb8fea1ec0e526071908e9d2d7b9675b8b569d31",
+    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42470858827",
+    "date": "2026-11-08"
   },
   {
     "metabase": "v0.64.5.5",
@@ -35,11 +35,11 @@
     "clickhouse_fixes": "on",
     "load": "success",
     "conformance": "failure",
-    "coverage": "coverage: 1356/1396 pass on Cube with the ClickHouse dialect",
+    "coverage": "coverage: 1360/1402 pass on Cube with the ClickHouse dialect",
     "ok": false,
-    "sha": "b88e0416b2dc6e54b7fa01bb5ef170c3e16918ba",
-    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42362384202",
-    "date": "2026-11-07"
+    "sha": "eb8fea1ec0e526071908e9d2d7b9675b8b569d31",
+    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42470858827",
+    "date": "2026-11-08"
   },
   {
     "metabase": "v0.64.5.5",
@@ -49,11 +49,11 @@
     "clickhouse_fixes": "off",
     "load": "success",
     "conformance": "failure",
-    "coverage": "coverage: 1256/1396 pass on stock Cube",
+    "coverage": "coverage: 1260/1402 pass on stock Cube",
     "ok": false,
-    "sha": "b88e0416b2dc6e54b7fa01bb5ef170c3e16918ba",
-    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42362384202",
-    "date": "2026-11-07"
+    "sha": "eb8fea1ec0e526071908e9d2d7b9675b8b569d31",
+    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42470858827",
+    "date": "2026-11-08"
   },
   {
     "metabase": "v0.64.5.5",
@@ -63,11 +63,11 @@
     "clickhouse_fixes": "on",
     "load": "success",
     "conformance": "failure",
-    "coverage": "coverage: 1319/1396 pass on Cube with the ClickHouse dialect",
+    "coverage": "coverage: 1324/1402 pass on Cube with the ClickHouse dialect",
     "ok": false,
-    "sha": "b88e0416b2dc6e54b7fa01bb5ef170c3e16918ba",
-    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42362384202",
-    "date": "2026-11-07"
+    "sha": "eb8fea1ec0e526071908e9d2d7b9675b8b569d31",
+    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42470858827",
+    "date": "2026-11-08"
   },
   {
     "metabase": "v0.64.5.5",
@@ -77,11 +77,11 @@
     "clickhouse_fixes": "off",
     "load": "success",
     "conformance": "failure",
-    "coverage": "coverage: 1238/1396 pass on stock Cube",
+    "coverage": "coverage: 1242/1402 pass on stock Cube",
     "ok": false,
-    "sha": "b88e0416b2dc6e54b7fa01bb5ef170c3e16918ba",
-    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42362384202",
-    "date": "2026-11-07"
+    "sha": "eb8fea1ec0e526071908e9d2d7b9675b8b569d31",
+    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42470858827",
+    "date": "2026-11-08"
   },
   {
     "metabase": "v0.65.0.14-beta",
@@ -89,27 +89,27 @@
     "clickhouse": "26.10.3-alpine",
     "required": false,
     "clickhouse_fixes": "on",
+    "load": "success",
+    "conformance": "cancelled",
+    "coverage": null,
+    "ok": false,
+    "sha": "eb8fea1ec0e526071908e9d2d7b9675b8b569d31",
+    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42470858827",
+    "date": "2026-11-08"
+  },
+  {
+    "metabase": "v0.65.0.14-beta",
+    "cube": "v1.8.15",
+    "clickhouse": "26.10.3-alpine",
+    "required": false,
+    "clickhouse_fixes": "off",
     "load": "success",
     "conformance": "success",
-    "coverage": "coverage: 1357/1396 pass on Cube with the ClickHouse dialect",
+    "coverage": "coverage: 1261/1402 pass on stock Cube",
     "ok": true,
-    "sha": "b88e0416b2dc6e54b7fa01bb5ef170c3e16918ba",
-    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42362384202",
-    "date": "2026-11-07"
-  },
-  {
-    "metabase": "v0.65.0.14-beta",
-    "cube": "v1.8.15",
-    "clickhouse": "26.10.3-alpine",
-    "required": false,
-    "clickhouse_fixes": "off",
-    "load": "success",
-    "conformance": "success",
-    "coverage": "coverage: 1257/1396 pass on stock Cube",
-    "ok": true,
-    "sha": "b88e0416b2dc6e54b7fa01bb5ef170c3e16918ba",
-    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42362384202",
-    "date": "2026-11-07"
+    "sha": "eb8fea1ec0e526071908e9d2d7b9675b8b569d31",
+    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42470858827",
+    "date": "2026-11-08"
   },
   {
     "metabase": "v0.65.0.14-beta",
@@ -119,11 +119,11 @@
     "clickhouse_fixes": "on",
     "load": "success",
     "conformance": "failure",
-    "coverage": "coverage: 1321/1396 pass on Cube with the ClickHouse dialect",
+    "coverage": "coverage: 1325/1402 pass on Cube with the ClickHouse dialect",
     "ok": false,
-    "sha": "b88e0416b2dc6e54b7fa01bb5ef170c3e16918ba",
-    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42362384202",
-    "date": "2026-11-07"
+    "sha": "eb8fea1ec0e526071908e9d2d7b9675b8b569d31",
+    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42470858827",
+    "date": "2026-11-08"
   },
   {
     "metabase": "v0.65.0.14-beta",
@@ -133,11 +133,11 @@
     "clickhouse_fixes": "off",
     "load": "success",
     "conformance": "failure",
-    "coverage": "coverage: 1239/1396 pass on stock Cube",
+    "coverage": "coverage: 1243/1402 pass on stock Cube",
     "ok": false,
-    "sha": "b88e0416b2dc6e54b7fa01bb5ef170c3e16918ba",
-    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42362384202",
-    "date": "2026-11-07"
+    "sha": "eb8fea1ec0e526071908e9d2d7b9675b8b569d31",
+    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42470858827",
+    "date": "2026-11-08"
   },
   {
     "metabase": "v0.65.2.3",
@@ -147,11 +147,11 @@
     "clickhouse_fixes": "on",
     "load": "success",
     "conformance": "failure",
-    "coverage": "coverage: 1321/1396 pass on Cube with the ClickHouse dialect",
+    "coverage": "coverage: 1325/1402 pass on Cube with the ClickHouse dialect",
     "ok": false,
-    "sha": "b88e0416b2dc6e54b7fa01bb5ef170c3e16918ba",
-    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42362384202",
-    "date": "2026-11-07"
+    "sha": "eb8fea1ec0e526071908e9d2d7b9675b8b569d31",
+    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42470858827",
+    "date": "2026-11-08"
   },
   {
     "metabase": "v0.65.2.3",
@@ -161,10 +161,10 @@
     "clickhouse_fixes": "off",
     "load": "success",
     "conformance": "failure",
-    "coverage": "coverage: 1239/1396 pass on stock Cube",
+    "coverage": "coverage: 1243/1402 pass on stock Cube",
     "ok": false,
-    "sha": "b88e0416b2dc6e54b7fa01bb5ef170c3e16918ba",
-    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42362384202",
-    "date": "2026-11-07"
+    "sha": "eb8fea1ec0e526071908e9d2d7b9675b8b569d31",
+    "run_url": "https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/42470858827",
+    "date": "2026-11-08"
   }
 ]
