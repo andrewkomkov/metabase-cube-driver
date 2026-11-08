@@ -1,7 +1,9 @@
 info:
   name: Metabase Cube Driver
-  version: 0.1.0-SNAPSHOT
-  description: Connects Metabase to Cube Core through the Cube SQL API and the Cube REST API.
+  version: 0.1.0
+  description: >-
+    Connects Metabase to Cube Core through the Cube SQL API and the Cube REST
+    API.
 driver:
   name: cube
   display-name: Cube
@@ -32,12 +34,18 @@ driver:
       type: secret
       secret-kind: password
       required: false
-      helper-text: The value of CUBEJS_API_SECRET. The driver signs a short-lived JWT with it for the REST API.
+      helper-text: >-
+        The value of CUBEJS_API_SECRET. The driver signs a short-lived JWT with
+        it for the REST API.
     - name: cube-user-attribute
       display-name: Cube SQL user for each person
       placeholder: email
       required: false
-      helper-text: Leave this empty to use the user above for all people. Write email, or the name of a Metabase user attribute, to run each query in Cube as that person. Your cube.js must have checkSqlAuth. Read docs/security.md first.
+      helper-text: >-
+        Leave this empty to use the user above for all people. Write email, or
+        the name of a Metabase user attribute, to run each query in Cube as that
+        person. Your cube.js must have checkSqlAuth. Read docs/security.md
+        first.
     - ssl
     - advanced-options-start
     - merge:
