@@ -47,7 +47,7 @@ Set `CUBEJS_PRE_AGGREGATIONS_ALLOW_NON_STRICT_DATE_RANGE_MATCH=false` and raise 
 
 Keep the Tesseract planner of Cube, the default since Cube v1.7.0. With `CUBEJS_TESSERACT_SQL_PLANNER=false`, the driver stops each query on a view, because that planner drops the `default_filters` of a view with no error.
 
-With dev mode off, Cube keeps each result in Cube Store, as one message of at most 100 MB, about a million rows of a few columns. The driver stops a larger download with a message, so add a filter or an aggregation for it.
+With dev mode off, Cube keeps each result in Cube Store, as one message of at most 64 MiB (`CUBESTORE_TRANSPORT_MAX_MESSAGE_SIZE`): about a million rows of one column, or a few hundred thousand rows of a few columns. The driver stops a larger download with a message, so add a filter or an aggregation for it.
 
 Run a production Cube with `CUBEJS_DEV_MODE=false`. Dev mode is unsafe for production, see [Private members and dev mode](security.md#private-members-and-dev-mode). `dev/docker-compose.production.yml` has such a Cube with Cube Store and a refresh worker, and `make production` tests it.
 
