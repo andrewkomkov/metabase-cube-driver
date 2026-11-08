@@ -4155,10 +4155,8 @@
   area: cube.clickhouse
   title: "DateTime64 milliseconds"
   status: pass
-  status_stock: partial
+  status_stock: pass
   check: clickhouse.datetime64_millis
-  cap_stock: partial
-  reason_stock: "Stock Cube reads a time as whole seconds. A raw value has no milliseconds. Buckets of a second and above are right. A dimension with sql: toString(column) keeps the text. cube-clickhouse keeps the milliseconds."
 - id: compile.rolling.by_day_on_boundaries
   area: mb.compile.rolling
   title: "rolling window by day"
@@ -4697,10 +4695,8 @@
   area: native
   title: "native SQL with <=, BETWEEN and > at a whole second on a DateTime64"
   status: pass
-  status_stock: partial
+  status_stock: pass
   check: native.bound.datetime64_upper_and_strict_lower
-  cap_stock: partial
-  reason_stock: "Known wrong number on stock Cube. When a filter on a DateTime64 is not a date range, stock Cube compares the column at whole seconds, so x > t drops the rows later in the second of t, also as x >= t AND x <> t. A date range keeps the bound of > one millisecond after t, and stock Cube drops that fraction, so that form keeps a row of a DateTime at t. One form must hold for each type, and /v1/meta does not show the type. <= and BETWEEN give the truth. cube-clickhouse gives the truth."
 - id: native.bound.datetime64_last_second_limit
   area: native
   title: "native SQL with < on a DateTime64"
@@ -7043,10 +7039,8 @@
   area: cube.zone_day
   title: "New York day from a UTC DateTime64, Cube request with a time zone: each metric by day"
   status: pass
-  status_stock: partial
+  status_stock: pass
   check: zone.ny.a64.rest.day
-  cap_stock: partial
-  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
 - id: zone.ny.a64.rest.coarse
   area: cube.zone_day
   title: "New York day from a UTC DateTime64, Cube request with a time zone: week, month, quarter and year"
@@ -7057,10 +7051,8 @@
   area: cube.zone_day
   title: "New York day from a UTC DateTime64, Cube request with a time zone: a date filter"
   status: pass
-  status_stock: partial
+  status_stock: pass
   check: zone.ny.a64.rest.filter
-  cap_stock: partial
-  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
 - id: zone.ny.a64.rest.stages
   area: cube.zone_day
   title: "New York day from a UTC DateTime64, Cube request with a time zone: multi-stage metrics"
@@ -7667,10 +7659,8 @@
   area: cube.zone_day
   title: "Kolkata day from a UTC DateTime64, Cube request with a time zone: each metric by day"
   status: pass
-  status_stock: partial
+  status_stock: pass
   check: zone.kol.a64.rest.day
-  cap_stock: partial
-  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
 - id: zone.kol.a64.rest.coarse
   area: cube.zone_day
   title: "Kolkata day from a UTC DateTime64, Cube request with a time zone: week, month, quarter and year"
@@ -7681,18 +7671,14 @@
   area: cube.zone_day
   title: "Kolkata day from a UTC DateTime64, Cube request with a time zone: a date filter"
   status: pass
-  status_stock: partial
+  status_stock: pass
   check: zone.kol.a64.rest.filter
-  cap_stock: partial
-  reason_stock: "Stock Cube compares a DateTime64 in whole seconds, so a row in the last second of a day or a range leaves the result. /v1/meta does not show the column type. The dialect fixes it."
 - id: zone.kol.a64.rest.stages
   area: cube.zone_day
   title: "Kolkata day from a UTC DateTime64, Cube request with a time zone: multi-stage metrics"
   status: pass
-  status_stock: partial
+  status_stock: pass
   check: zone.kol.a64.rest.stages
-  cap_stock: partial
-  reason_stock: "Stock Cube adds the interval of a time shift in UTC, so next to a clock change a row moves to another day. The driver stops this in Metabase. A Cube request gets the wrong number. The dialect fixes it."
 - id: zone.kol.a64.rest.rolling
   area: cube.zone_day
   title: "Kolkata day from a UTC DateTime64, Cube request with a time zone: rolling and to-date windows"

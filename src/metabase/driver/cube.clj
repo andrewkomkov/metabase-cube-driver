@@ -1447,7 +1447,8 @@
               :let   [field (column-field earlier clause)]
               :when  (and field
                           (cube.probe/date-only? cube-meta (full-member-name field))
-                          (not (exact-bounds? clause)))]
+                          ;; Stock Cube v1.8.19 keeps the fraction of a bound too, so this asks how Cube reads a Date.
+                          (not (cube.probe/dates-stay-in-zone? (:details (driver-api/database (driver-api/metadata-provider))) cube-meta)))]
         (throw (ex-info (format (str "%s is a Date column, and stock Cube reads it as a time at midnight UTC. With a report time zone "
                                      "that is not UTC, each row can move to another day, so the number would be wrong. Remove the report "
                                      "time zone, or install the ClickHouse dialect, see cube-clickhouse/README.md.")
@@ -2326,6 +2327,7 @@
   "The answers from Cube that native SQL needs. See cube.native/compile-native."
   [details cube-meta]
   {:keeps-fractions? (cube.probe/keeps-fractions? details cube-meta nil)
+   :dates-stay-in-zone? (cube.probe/dates-stay-in-zone? details cube-meta)
    :zone             (when (report-zone?) (java.time.ZoneId/of (str (session-zone))))
    :value-read       (partial cube.probe/value-read-members details cube-meta)
    :rolling-reason   (partial cube.probe/rolling-window-reason details)

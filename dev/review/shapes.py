@@ -502,7 +502,7 @@ def grid_boundary():
         s("raw_decimal_row", None, None, [["=", d + "id", 8]], "SELECT id, dec_amount, f32, n_int, n_str, lc FROM %s WHERE id = 8" % T,
           fields=[d + "id", d + "dec_amount", d + "f32", d + "n_int", d + "n_str", d + "lc"]),
         s("raw_times", None, None, [["=", d + "id", 7]], "SELECT id, toTimeZone(ts_ny, 'UTC'), day, day32 FROM %s WHERE id = 7" % T, fields=[d + "id", d + "ts_ny", d + "day", d + "day32"]),
-        s("raw_ts64", None, None, [["=", d + "id", 7]], "SELECT id, toTimeZone(ts64_berlin, 'UTC') FROM %s WHERE id = 7" % T, fields=[d + "id", d + "ts64_berlin"], expect="stock_whole_seconds"),
+        s("raw_ts64", None, None, [["=", d + "id", 7]], "SELECT id, toTimeZone(ts64_berlin, 'UTC') FROM %s WHERE id = 7" % T, fields=[d + "id", d + "ts64_berlin"]),
         s("raw_ui64_big", None, None, [["=", d + "id", 2]], None, fields=[d + "id", d + "ui64"], expect="refusal"),
         s("raw_ui64_text", None, None, [["=", d + "id", 2]], "SELECT id, toString(ui64) FROM %s WHERE id = 2" % T, fields=[d + "id", d + "ui64_text"]),
         s("sum_ui64_big", ["m:typed_events.sum_ui64"], [], [], None, expect="refusal"),

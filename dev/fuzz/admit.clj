@@ -7,7 +7,7 @@
 
 (let [[meta-file queries-file variant zone] *command-line-args*
       cube-meta (json/decode+kw (slurp meta-file))
-      opts      {:keeps-fractions? (not= "stock" variant), :zone? (some? zone)}]
+      opts      {:keeps-fractions? (not= "stock" variant), :dates-stay-in-zone? (not= "stock" variant), :interval? (not= "stock" variant), :zone? (some? zone)}]
   (with-open [reader (io/reader queries-file)]
     (doseq [line (line-seq reader)]
       (let [sql (json/decode line)]

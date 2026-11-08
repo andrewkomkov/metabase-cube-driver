@@ -19,7 +19,7 @@ services:
     healthcheck: { test: [CMD-SHELL, "clickhouse-client -h $(hostname -i) -u shop --password shop-dev-only -q 'SELECT count() FROM shop.orders' | grep -q 5000"], interval: 3s, retries: 60 }
     restart: unless-stopped
   cube:
-    image: cubejs/cube:${CUBE_VERSION:-v1.8.15}
+    image: cubejs/cube:${CUBE_VERSION:-v1.8.20}
     depends_on: { clickhouse: { condition: service_healthy } }
     mem_limit: 2g
     environment:
@@ -59,7 +59,7 @@ services:
     restart: unless-stopped
   # A second Cube for per-user data. It has a row-level rule. See docs/security.md.
   cube-secure:
-    image: cubejs/cube:${CUBE_VERSION:-v1.8.15}
+    image: cubejs/cube:${CUBE_VERSION:-v1.8.20}
     depends_on: { clickhouse: { condition: service_healthy } }
     mem_limit: 1g
     environment:
@@ -86,7 +86,7 @@ services:
   # service cube. With dev mode off and no Cube Store, each query that Cube reads from a rollup failed with
   # "externalDriverFactory is not provided", and the default CUBEJS_DB_QUERY_LIMIT of 50000 gave wrong numbers with no error.
   cube-legacy:
-    image: cubejs/cube:${CUBE_VERSION:-v1.8.15}
+    image: cubejs/cube:${CUBE_VERSION:-v1.8.20}
     depends_on: { clickhouse: { condition: service_healthy } }
     # The same as cube: with a query limit of 2000000 rows in memory, 1 GB restarted this service in a long run.
     mem_limit: 2g

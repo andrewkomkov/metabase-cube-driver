@@ -27,7 +27,7 @@ prove the whole feature has the status `partial` and a reason. See the [coverage
 | Component  | Pinned version   | Image                         |
 | ---------- | ---------------- | ----------------------------- |
 | Metabase   | `v0.65.2.3`        | `metabase/metabase`           |
-| Cube       | `v1.8.15`        | `cubejs/cube`                 |
+| Cube       | `v1.8.20`        | `cubejs/cube`                 |
 | ClickHouse | `26.10.3-alpine` | `clickhouse/clickhouse-server` |
 
 These are the versions that the demo stack runs. The [compatibility table](https://andrewkomkov.github.io/metabase-cube-driver/compatibility/)
@@ -91,7 +91,6 @@ On stock Cube with no dialect, also:
 
 - With a report time zone that is not UTC, a `Date` or `Date32` column is a time at midnight UTC, so a row can move to another day. West of UTC, `2025-03-01` goes to February. Cube does not show the type of a column. The driver stops this query for a dimension with `meta: { date_only: true }`. The dialect gives the truth for each date column.
 - Native `x >= a AND x < b` on a `DateTime64` leaves out the last second before `b`. The query builder has this only on a column with a rollup.
-- A raw `DateTime64` value shows whole seconds.
 - A rollup with a text dimension that has an empty text: the group of the empty text joins the group of `NULL`. Cube Store reads an empty value of its CSV as `NULL`, and the result does not show which rows were empty, so the driver cannot see it. The dialect sends these rows with `INSERT`.
 
 `make grid` and the `grid.compact.*` checks test each entry. `dev/review/known_limits.py` has the list, with the reason for each entry.

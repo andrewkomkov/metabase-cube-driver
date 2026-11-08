@@ -601,7 +601,7 @@
     :bin   (let [{:keys [op l r]} node]
              (if (and (contains? #{"+" "-"} op) (interval-node? r))
                (let [a (value l env)]
-                 (when-not (:keeps-fractions? *opts*)
+                 (when-not (:interval? *opts*)
                    (refuse! (str "the interval in " (source-text node) " on stock Cube") "The ClickHouse dialect of stock Cube has no template for an interval. Install the ClickHouse dialect, see cube-clickhouse/README.md."))
                  (when (:zone? *opts*)
                    (refuse! (str "the interval in " (source-text node) " under a report time zone") "Remove the report time zone."))
@@ -1420,7 +1420,7 @@
 
 (defn check
   "Reads `sql`. Returns {:sql the text with its stars and its join keys written out, :tree, :selects, :used the set of constructs}, or it stops with a message. `catalog` is a map from a lower case table to
-  {:columns {name col}, :privates #{names}, :private? boolean, :view? boolean, :dimension-order [col]}. `opts` has :zone?, :keeps-fractions?, :join-pairs and :longest-list."
+  {:columns {name col}, :privates #{names}, :private? boolean, :view? boolean, :dimension-order [col]}. `opts` has :zone?, :keeps-fractions?, :interval?, :join-pairs and :longest-list."
   [^String sql catalog opts]
   (loop [text (sqltext/without-unicode-escapes sql), used #{}, tries 0]
     (let [tree (sqltext/parse text)]
