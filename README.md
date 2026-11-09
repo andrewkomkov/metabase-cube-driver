@@ -35,7 +35,7 @@ shows the other versions that CI tests. Other Cube data sources are a second pri
 
 ## Install
 
-No release exists yet, so this download fails until the first release. Install the jar, make the directory
+Download the jar from the latest release, make the directory
 writable, then restart Metabase:
 
 ```sh
