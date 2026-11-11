@@ -10024,12 +10024,19 @@ def _(ctx):
 
 @check("mcp.browse.get_fields_values")
 def _(ctx):
-    """The detailed reply carries the values of a list field, so an agent writes a filter with a value that exists."""
-    reply = ctx.mcp.call("browse_data", action="get_fields", table_ids=[ctx.mb.table(ORD)["id"]], response_format="detailed")
-    tables = reply.get("tables") or reply.get("data") or []
-    field = next((f for f in (tables[0].get("fields") or []) if f.get("name") == "status"), None) if tables else None
-    if not field or not field.get("values"):
-        raise Fail("get_fields gives no values for orders.status. The field has: %s" % sorted(field or []))
+    """The detailed reply carries the values of a list field, so an agent writes a filter with a value that exists. Metabase gives only the
+    values that its scan stored, so the check starts the scan of this field as an admin does, and waits for it."""
+    ctx.mb.api("POST", "/api/field/%d/rescan_values" % ctx.mb.field(ORD, "status")["id"])
+    deadline = time.time() + 180
+    while True:
+        reply = ctx.mcp.call("browse_data", action="get_fields", table_ids=[ctx.mb.table(ORD)["id"]], response_format="detailed")
+        tables = reply.get("tables") or reply.get("data") or []
+        field = next((f for f in (tables[0].get("fields") or []) if f.get("name") == "status"), None) if tables else None
+        if field and field.get("values"):
+            break
+        if time.time() > deadline:
+            raise Fail("get_fields gives no values for orders.status after a scan. The field has: %s" % sorted(field or []))
+        time.sleep(5)
     assert_rows(values_of(field["values"]), ch("SELECT DISTINCT status FROM orders"))
 
 

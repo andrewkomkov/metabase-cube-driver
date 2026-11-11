@@ -2230,6 +2230,16 @@
     (throw (ex-info "This relative date is before the year 1900, and ClickHouse has no such date. Use a shorter relative date, or a fixed date."
                     {:type :invalid-query}))))
 
+;; Cube has no template for NOW() on ClickHouse, so it computes the function after the query, and that fails on a cube with a rolling
+;; window measure. The time of the query is a literal here, as for a relative date.
+(defmethod sql.qp/->honeysql [:cube :now]
+  [_driver _clause]
+  (time-literal (.truncatedTo (LocalDateTime/now (session-zone)) ChronoUnit/SECONDS)))
+
+(defmethod sql.qp/->honeysql [:cube :today]
+  [_driver _clause]
+  (h2x/cast "date" (time-literal (.truncatedTo (LocalDateTime/now (session-zone)) ChronoUnit/DAYS))))
+
 ;; A relative date in weeks has no column, so it cannot use a custom granularity, and a week number is not a time. The time
 ;; of its first day is a plain literal on each first day of the week.
 (defmethod sql.qp/->honeysql [:cube :relative-datetime]
