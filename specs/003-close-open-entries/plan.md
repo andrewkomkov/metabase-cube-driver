@@ -2,7 +2,7 @@
 
 **Branch**: `003-close-open-entries` | **Date**: 2026-11-11 | **Spec**: [spec.md](spec.md)
 
-## Summary
+## Summary <!-- slop: the heading is from the spec-kit template -->
 
 Read the reason of each of the 41 open entries. Find the layer that stops the feature. Where a
 layer of this repository can close the limit, change it and prove the result on nettop. Where
@@ -50,8 +50,9 @@ specs/003-close-open-entries/     spec.md, plan.md, research.md, tasks.md
 ## Phases
 
 1. Research: one decision for each entry, in `research.md`.
-2. Fixes, in order of value: median and percentile, the geo dimension of a view, the REST-only
-   query forms, the number formats, the x-rays, then the other entries.
+2. Fixes, in order of value. Median and percentile come first. The geo dimension of a view,
+   the query forms of the REST API, the number formats and the x-rays follow. The other
+   entries are last.
 3. Reasons: each entry that stays open gets the layer and the evidence.
 4. The Cube Store pin.
 5. The full suite on both variants, the adversarial review, and the statuses of that run.

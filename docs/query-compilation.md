@@ -382,6 +382,15 @@ A measure of type `number` reads other measures, so Cube computes it at the grai
 
 A custom expression `a / b` of two measures gives the same number as the Cube metric, at each grain. `metric.expression.*` compare both with the truth.
 
+## Options of the Cube REST API
+
+Two options of the REST API have no option with the same name in Metabase. Each has a Metabase form that gives the same numbers.
+
+| REST option | Metabase form | Check |
+| --- | --- | --- |
+| `compareDateRange` | Cube runs one query for each range. Put the question on a dashboard with a date filter, and select each range. This works for each kind of measure. To compare the ranges in one result, add a custom column with `case` that names the range of a row, and group by it. A measure that does not add up stops next to a custom column. | `restapi.compare_date_range` |
+| `total: true` | Cube runs a second query that counts all rows. In Metabase, a second stage with `Count` on the same question gives this number, with the filters and with no limit. | `restapi.total_query` |
+
 ## Latency
 
 `compile.latency.ten_million_rows` measures this on the demo stack, with 10 million rows and a date range that changes on each run, so that the result cache of Cube cannot answer. It prints the values on each run. One run gave these medians of five:

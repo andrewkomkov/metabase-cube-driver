@@ -5,7 +5,7 @@
 A task for an entry is done when its result is in `conformance/features.yaml` and a live run on
 nettop showed that status. The result line after each task gives the status before and after.
 
-## Phase 1: Setup
+## Phase 1: Setup <!-- slop: the heading is from the spec-kit template -->
 
 - [x] T001 Create `specs/003-close-open-entries/` and point `.specify/feature.json` at it
 - [x] T002 Start a scratch Cube on nettop (`mcd-003-cube`) to test a change of `cube-clickhouse/index.js` before a commit
@@ -57,9 +57,9 @@ nettop showed that status. The result line after each task gives the status befo
 - [ ] T042 [US2] `preagg.type.original_sql_in_cube_store_with_an_index_stops`
 - [ ] T043 [US2] `zone.time_measure_repeated_hour_limit`
 
-For each task of this phase: read the reason, test the limit on Cube `v1.8.20` or read the code
-of the pinned version, and then close the entry or put the layer and the evidence into the reason
-in `conformance/features.yaml`.
+Each task of this phase has the same steps. Read the reason. Test the limit on Cube `v1.8.20`,
+or read the code of the pinned version. Then close the entry, or put the layer and the evidence
+into the reason in `conformance/features.yaml`.
 
 ## Phase 4: User Story 3 - the Cube Store pin (P3)
 
