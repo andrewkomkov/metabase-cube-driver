@@ -1,0 +1,58 @@
+cubes:
+  - name: ledger
+    title: Ledger
+    description: Booked entries, one for each row of shop.orders. It uses the model options that the other cubes do not use.
+    sql_table: shop.orders
+    joins:
+      # belongs_to is the legacy name of many_to_one.
+      - { name: users, relationship: belongs_to, sql: "{CUBE}.user_id = {users.id}" }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true, title: Entry ID }
+      - { name: user_id, sql: user_id, type: number, description: Holder of the entry. }
+      - { name: state_of_entry, sql: status, type: string, description: "The state: completed, shipped, cancelled or in process." }
+      - { name: units, sql: quantity, type: number, description: Units in the entry. }
+      - { name: booked_at, sql: created_at, type: time, description: When the entry was booked. }
+      - { name: open_state, sql: "nullIf(status, 'completed')", type: string, description: "State of the entry, or NULL for a completed entry." }
+      # A dimension of a joined cube, read through the join.
+      - { name: holder_city, sql: "{users.city}", type: string, description: City of the holder of the entry. }
+    measures:
+      - { name: entries, type: count, description: Number of entries. }
+      - { name: booked_amount, sql: amount, type: sum, format: currency, description: Booked amount in USD. }
+      # A count with sql counts the rows where the expression is not NULL.
+      - { name: open_entries, sql: "nullIf(status, 'completed')", type: count, description: Entries that are not completed. }
+      - name: booked_trailing_7d
+        sql: amount
+        type: sum
+        rolling_window: { trailing: 7 day }
+        description: Booked amount over 7 days before each point.
+    segments:
+      - name: settled
+        sql: "{CUBE}.status IN ('completed','shipped')"
+        title: Settled
+        description: Completed or shipped entries.
+        meta: { owner: treasury, ai_hint: "Use for cash that arrived." }
+      - { name: audit_only, sql: "{CUBE}.status = 'cancelled'", public: false }
+    hierarchies:
+      - { name: holder_place, title: Holder place, levels: [users.state, holder_city] }
+
+  - name: ledger_fees
+    title: Ledger fees
+    description: Fee rows only. Its SQL reads the SQL of the cube payments through the sql() function.
+    sql: "SELECT p.* FROM ({payments.sql()}) AS p WHERE p.method = 'fee'"
+    dimensions:
+      - { name: id, sql: payment_id, type: number, primary_key: true, public: false }
+      - { name: method, sql: method, type: string, description: Method of the fee row. }
+    measures:
+      - { name: fee_rows, type: count, description: Number of fee rows. }
+      - { name: fee_total, sql: paid, type: sum, format: currency, description: Total of the fees. }
+
+views:
+  - name: ledger_view
+    title: Ledger view
+    description: Curated view of the ledger, with a segment, a hierarchy and a rolling measure.
+    cubes:
+      - join_path: ledger
+        includes: [id, state_of_entry, units, booked_at, holder_city, entries, booked_amount, booked_trailing_7d, settled]
+      - join_path: ledger.users
+        prefix: true
+        includes: [state]
