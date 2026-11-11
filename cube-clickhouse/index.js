@@ -247,6 +247,7 @@ class ClickHouseFixes extends ClickHouseQuery {
       ') AS dates';
     // percentile: no pull request yet, see docs/cube-findings.md#percentile. Stock Cube removes this function for ClickHouse, so a median and a
     // percentile fail with `Can't detect Cube query`. quantileExactInclusive is the linear form of PERCENTILE_CONT, and quantile is an estimate.
+    // Only the ascending order has a form here. A DESC order stops in ClickHouse with a syntax error, and it gives no number.
     templates.functions.PERCENTILECONT = 'quantileExactInclusive({{ args[0] }})';
     templates.expressions.within_group = "{{ fun_sql }}(toFloat64({{ within_group_concat | replace(' ASC NULLS LAST', '') }}))";
     // split_part and regexp_substr: no pull request yet. Stock Cube has no template for them on ClickHouse, so it computes them after the

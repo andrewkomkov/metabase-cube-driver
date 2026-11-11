@@ -1049,16 +1049,20 @@
   check: sqlapi.where_like
 - id: restapi.compare_date_range
   area: cube.rest_api
-  title: "restapi compare date range: one card with a date filter for each range, and one question with a custom column"
+  title: "restapi compare date range"
   status: todo
   status_stock: todo
   check: restapi.compare_date_range
+  cap: partial
+  reason: "compareDateRange is an option of the REST API, and Metabase has no request that gives one result for each range. The check proves the two Metabase forms of it. A dashboard date filter gives each range from one card, for each kind of measure. One question with a custom column compares ranges that do not overlap, and only for measures that add up, because the driver stops a distinct count next to a custom column."
 - id: restapi.total_query
   area: cube.rest_api
-  title: "restapi total query: a second stage counts all rows of a query with a limit"
+  title: "restapi total query"
   status: todo
   status_stock: todo
   check: restapi.total_query
+  cap: partial
+  reason: "total: true is an option of the REST API, and Metabase has no request that gives a page of rows and the number of all rows together. The check proves the Metabase form of it: a second stage with a count on the same query gives the number of all rows, with the filters and with no limit, also over a saved question and through MCP."
 - id: clickhouse.bool
   area: clickhouse
   title: "clickhouse bool"

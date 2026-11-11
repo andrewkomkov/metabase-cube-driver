@@ -1543,6 +1543,14 @@ def percentile_check(check_id, clause, levels):
             assert_rows(ctx.mb.mbql(ORD, agg=[clause("d:orders.quantity_dim", level)], by=["d:orders.status"])["rows"],
                         ch("SELECT status, quantileExactInclusive(%s)(toFloat64(quantity)) FROM orders GROUP BY 1" % level))
             mcp_rows(ctx, ORD, "SELECT status, %s FROM orders GROUP BY 1" % amount, agg=agg, by=["d:orders.status"])
+            assert_rows(ctx.mb.mbql(ORD, agg=agg, where=[[">", "d:orders.quantity_dim", 2]])["rows"], ch("SELECT %s FROM orders WHERE quantity > 2" % amount), label="total with a filter")
+            # PERCENTILE_CONT of no rows is NULL in SQL.
+            if ch("SELECT count() FROM orders WHERE quantity > 100000") != [[0]]:
+                raise Fail("the filter of the case with no rows finds rows")
+            assert_rows(ctx.mb.mbql(ORD, agg=agg, where=[[">", "d:orders.quantity_dim", 100000]])["rows"], [[None]], label="no rows")
+            other = 0.25 if level != 0.25 else 0.75
+            assert_rows(ctx.mb.mbql(ORD, agg=agg + [["percentile", "d:orders.amount_dim", other]], by=["d:orders.status"])["rows"],
+                        ch("SELECT status, %s, quantileExactInclusive(%s)(toFloat64(amount)) FROM orders GROUP BY 1" % (amount, other)), label="two levels in one question")
 
 
 percentile_check("mb.agg.median", lambda column, _level: ["median", column], [0.5])
@@ -2021,8 +2029,9 @@ def _(ctx):
 
 @check("restapi.compare_date_range")
 def _(ctx):
-    """compareDateRange is an option of the REST API, and Cube runs one query for each range. Metabase has two forms of it. A dashboard gives one card a date filter, and each
-    range is one run of that card, for each kind of measure. One question with a custom column that names the range compares the ranges in one result, for measures that add up."""
+    """compareDateRange is an option of the REST API, and Cube runs one query for each range. Metabase has no request with one result for each range, so this check can prove
+    only a part. A dashboard gives one card a date filter, and each range is one run of that card, for each kind of measure. One question with a custom column that names the
+    range compares ranges that do not overlap in one result, for measures that add up."""
     ranges = [("2025-02-01", "2025-03-31"), ("2025-05-01", "2025-06-30")]
     measures = [("revenue", "sum(amount)"), ("count", "count()"), ("avg_order_value", "avg(amount)"), ("unique_customers", "uniqExact(user_id)")]
     in_range = "toDate(created_at) BETWEEN '%s' AND '%s'"
@@ -2051,8 +2060,8 @@ def _(ctx):
 
 @check("restapi.total_query")
 def _(ctx):
-    """total: true of the REST API gives the number of all rows of a query next to a page of them, and Cube runs a second query for it. In Metabase a second stage
-    counts the rows of the same query, with its filter and with no limit."""
+    """total: true of the REST API gives the number of all rows of a query next to a page of them, and Cube runs a second query for it. Metabase has no request that gives
+    both, so this check can prove only a part: a second stage counts the rows of the same query, with its filter and with no limit."""
     by = ["d:orders.user_id", "d:orders.status"]
     where = [[">", "d:orders.quantity_dim", 1]]
     groups = "SELECT user_id, status, sum(amount) FROM orders WHERE quantity > 1 GROUP BY 1, 2"
@@ -4052,7 +4061,7 @@ def xray_cards(ctx, path, table, above_2_53_stops=False, refusal_ok=False):
     cards = [dc["card"] for dc in dash.get("dashcards", []) if dc.get("card") and dc["card"].get("dataset_query")]
     if not cards:
         raise Fail("the X-ray has no cards")
-    failed, compared, stopped = [], 0, []
+    failed, compared, stopped, empty = [], 0, [], 0
     for card in cards:
         query = card["dataset_query"]
         try:
@@ -4069,10 +4078,12 @@ def xray_cards(ctx, path, table, above_2_53_stops=False, refusal_ok=False):
                 raise Fail("query failed: %s" % str(res.get("error") or res.get("error_type"))[:300])
             data = res["data"]
             assert_rows(data["rows"], ch(XrayTruth(ctx, table, data["cols"]).sql(query)), label="card")
-            compared += 1
+            compared += 1 if data["rows"] else 0
+            empty += 0 if data["rows"] else 1
         except Fail as e:
             failed.append((card.get("name"), str(e)[:300]))
-    print("         %d cards, %d equal to the truth, %d stopped with a message%s" % (len(cards), compared, len(stopped), ": %s" % stopped if stopped else ""))
+    print("         %d cards, %d with rows equal to the truth, %d with no rows on both sides, %d stopped with a message%s"
+          % (len(cards), compared, empty, len(stopped), ": %s" % stopped if stopped else ""))
     if failed:
         raise Fail("%d of %d cards failed: %s" % (len(failed), len(cards), failed[:6]))
     if not compared:
@@ -8864,7 +8875,60 @@ def pa_lambda_source(query, truth):
     return run
 
 
-check("preagg.type.rollup_lambda_over_the_batch_with_source")(pa_lambda_source(pa_query([PA_PL], [], "month"), PA_LAM + " GROUP BY 1"))
+PA_COLD_LAMBDA_CUBE = """  - name: %s
+    sql_table: shop.orders
+    refresh_key: { every: 1 hour }
+    dimensions:
+      - { name: id, sql: id, type: number, primary_key: true, public: true }
+      - { name: status, sql: status, type: string }
+      - { name: created_at, sql: created_at, type: time }
+    measures:
+      - { name: revenue, type: sum, sql: amount }
+    pre_aggregations:
+      - name: with_source
+        type: rollup_lambda
+        union_with_source_data: true
+        rollups: [%s.batch]
+      - name: batch
+        measures: [revenue]
+        dimensions: [status]
+        time_dimension: created_at
+        granularity: day
+        partition_granularity: month
+        build_range_start: { sql: "SELECT toDateTime('2025-01-01 00:00:00', 'UTC')" }
+        build_range_end: { sql: "SELECT toDateTime('2025-06-30 23:59:59', 'UTC')" }
+        indexes:
+          - { name: idx, columns: [status] }
+"""
+PA_COLD_READS = 5
+
+
+def pa_lambda_cold_reads(ctx):
+    """The error of cube-js/cube#12285 comes with the timing, and Cube keeps the source rows of a lambda for an hour. So one read can pass by luck, or from the cache. Each cube
+    here is new in this run, so each read gets its source rows from ClickHouse. On a Cube with no fix, four of six such reads failed."""
+    names = ["pa_cold_%d_%d" % (int(time.time()), i) for i in range(PA_COLD_READS)]
+    with open(PROBE_FILE, "w", encoding="utf-8") as f:
+        f.write("cubes:\n" + "".join(PA_COLD_LAMBDA_CUBE % (name, name) for name in names))
+    try:
+        pa_wait_for_meta(True, names[-1])
+        truth = ch("SELECT status, toStartOfMonth(created_at), sum(amount) FROM orders GROUP BY 1, 2")
+        for name in names:
+            query = pa_query([name + ".revenue"], [name + ".status"], "month")
+            res = pa_load(query)
+            pa_expect_used(res, [name + "_batch"], query)
+            assert_rows(pa_rows(res, query), truth, label="cold read of %s" % name)
+    finally:
+        os.remove(PROBE_FILE)
+        pa_wait_for_meta(False, names[-1])
+
+
+@check("preagg.type.rollup_lambda_over_the_batch_with_source")
+def _(ctx):
+    pa_lambda_source(pa_query([PA_PL], [], "month"), PA_LAM + " GROUP BY 1")(ctx)
+    if DIALECT:
+        pa_lambda_cold_reads(ctx)
+
+
 check("preagg.type.rollup_lambda_after_the_batch_with_source")(pa_lambda_source(pa_query([PA_PL], [], "month", date_range=["2025-08-01", "2025-09-30"]), PA_LAM + " WHERE created_at >= '2025-08-01' AND created_at < '2025-10-01' GROUP BY 1"))
 PA("preagg.type.rollup_lambda_of_two_rollups_with_overlap_hit", pa_query(["pa_lambda_overlap.revenue"], [], "month"), PA_LAM + " GROUP BY 1", ["pa_lambda_overlap_first_half", "pa_lambda_overlap_second_half"])
 

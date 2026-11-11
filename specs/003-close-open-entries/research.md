@@ -37,19 +37,28 @@ versions are Metabase `v0.65.3.6` and Cube `v1.8.20`.
 
 ### restapi.compare_date_range
 
-- Decision: add a check. The feature has two forms in Metabase.
-- Cube runs one query for each range of `compareDateRange`. A Metabase dashboard gives one
-  card a date filter, and each range is one run of the card. This works for each kind of
-  measure.
+- Decision: add a check, with status `partial`. The entry had status `unsupported`.
+- Cube runs one query for each range of `compareDateRange`. Metabase has no request with one
+  result for each range.
+- A Metabase dashboard gives one card a date filter, and each range is one run of the card.
+  This works for each kind of measure.
 - One question with a custom column that names the range compares the ranges in one result.
-  The driver stops a measure that does not add up next to a custom column, so the check uses
-  `sum`, `count` and `avg` measures there.
+  The ranges must not overlap. The driver stops a measure that does not add up next to a custom
+  column, so the check uses `sum`, `count` and `avg` measures there.
 
 ### restapi.total_query
 
-- Decision: add a check. Cube runs a second query for `total: true`. In Metabase a second
-  stage counts the rows of the same query, with its filter and with no limit. The check runs it
-  as a nested query, over a saved question, and through MCP.
+- Decision: add a check, with status `partial`. The entry had status `unsupported`.
+- Cube runs a second query for `total: true`. Metabase has no request that gives a page and
+  the total together. A second stage counts the rows of the same query, with its filter and
+  with no limit. The check runs it as a nested query, over a saved question, and through MCP.
+
+### compile.xray.field_all_cards_run, compile.xray.time_field_all_cards_run
+
+- Decision: make the check strict. Before, it accepted a card that stops with the message of a
+  total through a join. Now such a card fails the check.
+- On Metabase `v0.65.3.6`, each of the two x-rays has 15 cards, and each card gives rows equal
+  to ClickHouse. No card adds up `users.lifetime_orders`, so the reason of the entry was old.
 
 ### dimension.opt.order
 

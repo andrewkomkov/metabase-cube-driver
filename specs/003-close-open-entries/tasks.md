@@ -19,9 +19,9 @@ nettop showed that status. The result line after each task gives the status befo
 - [x] T005 [US1] `dimension.type.geo.view`: give a geo dimension of a view the SQL of its cube in `cube-clickhouse/index.js`
   - Result: `partial` to `pass`, and `partial` on stock Cube. The map columns of `customer_locations` are equal to `latitude`, `longitude` and `count()` of `users`.
 - [x] T006 [US1] `restapi.compare_date_range`: find the Metabase question that compares date ranges of a measure, add a check in `conformance/run.py`
-  - Result: `unsupported` to `pass`. One card with a date filter gives each of two ranges for four kinds of measure. One question with a custom column gives both ranges.
+  - Result: `unsupported` to `partial`, with a check. One card with a date filter gives each of two ranges for four kinds of measure. One question with a custom column gives both ranges for measures that add up. Metabase has no request with one result for each range.
 - [x] T007 [US1] `restapi.total_query`: find the Metabase question that counts all rows of a query with a limit, add a check in `conformance/run.py`
-  - Result: `unsupported` to `pass`. A second stage, a question over a saved question and MCP give `count()` of the groups, next to a page of 7 rows.
+  - Result: `unsupported` to `partial`, with a check. A second stage, a question over a saved question and MCP give `count()` of the groups, next to a page of 7 rows. Metabase has no request that gives both together.
 - [x] T008 [US1] `measure.format.abbr`: look for a Metabase column setting for an abbreviated number
   - Result: Stays `partial`. Metabase has no column setting for `compact`, see research.md. The reason has the evidence.
 - [x] T009 [US1] `measure.format.accounting`: look for a Metabase column setting for parentheses
@@ -90,7 +90,7 @@ nettop showed that status. The result line after each task gives the status befo
 - [x] T039 [US2] `preagg.type.rollup_lambda_after_the_batch_with_source`
   - Result: `partial` to `pass`, and `partial` on stock Cube. The same fix as T024.
 - [x] T040 [US2] `preagg.type.rollup_lambda_over_the_batch_with_source`
-  - Result: `partial` to `pass`, and `partial` on stock Cube. The same fix as T024.
+  - Result: `partial` to `pass`, and `partial` on stock Cube. The same fix as T024. The check also reads five new lambda cubes, so each read gets its source rows from ClickHouse.
 - [x] T041 [US2] `preagg.type.rollup_lambda_gap_loses_the_last_partition`
   - Result: Stays `partial`. Documented behaviour of Cube. The Metabase entry gives the truth.
 - [x] T042 [US2] `preagg.type.original_sql_in_cube_store_with_an_index_stops`
