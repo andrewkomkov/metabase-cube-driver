@@ -193,6 +193,53 @@
     (alter-var-root (requiring-resolve 'metabase.agent-lib.representations.repair/repair) keep-time-on-cube)
     true))
 
+;; The option `order` of a Cube dimension is its default sort order, and a Metabase field has none. Metabase sorts by each breakout in ascending order before the driver reads
+;; the query, and the driver cannot tell that order from the choice of a person. So this wrap acts first, and only on a Cube database. On a stage with a breakout of a
+;; dimension with `order: desc`, it writes the order of each breakout. Metabase then adds none, and an order that a person selected stays. See dimension.opt.order.
+(defn- descending-dimension?
+  [metadata-provider cube-meta clause]
+  (when-let [field (when (and (vector? clause) (= :field (first clause)) (integer? (nth clause 2 nil)))
+                     (driver-api/field metadata-provider (nth clause 2)))]
+    (let [table-name (:name (driver-api/table metadata-provider (:table-id field)))
+          member     (str table-name "." (:name field))]
+      (boolean (some #(and (= member (:name %)) (= "desc" (:order %)))
+                     (mapcat :dimensions (filter #(= table-name (:name %)) (:cubes cube-meta))))))))
+
+(defn- window-aggregation?
+  [stage]
+  (boolean (some #(and (vector? %) (#{:cum-sum :cum-count :offset} (first %)))
+                 (tree-seq coll? seq (mapcat stage [:aggregation :expressions])))))
+
+(defn- with-order-of-dimensions
+  [query]
+  (let [metadata-provider (:lib/metadata query)
+        cube-meta         (cube.meta/cached-meta (:details (driver-api/database metadata-provider)))
+        descending?       (partial descending-dimension? metadata-provider cube-meta)
+        order-by          (requiring-resolve 'metabase.lib.core/order-by)
+        fresh-uuids       (requiring-resolve 'metabase.lib.core/fresh-uuids)]
+    (reduce (fn [query stage-number]
+              (let [{:keys [breakout] :as stage} (nth (:stages query) stage-number)]
+                (if (and (some descending? breakout) (not (window-aggregation? stage)))
+                  (reduce #(order-by %1 stage-number (fresh-uuids %2) (if (descending? %2) :desc :asc)) query breakout)
+                  query)))
+            query
+            (range (count (:stages query))))))
+
+(defn- order-of-dimensions-on-cube
+  [add-implicit-clauses]
+  (fn [query]
+    (add-implicit-clauses
+     (try
+       (cond-> query
+         (cube-metadata-provider? (:lib/metadata query)) with-order-of-dimensions)
+       (catch Exception e
+         (log/warn e "Cube: the default order of a dimension was not applied")
+         query)))))
+
+(defonce order-wrapped
+  (do (alter-var-root (requiring-resolve 'metabase.query-processor.middleware.add-implicit-clauses/add-implicit-clauses) order-of-dimensions-on-cube)
+      true))
+
 ;; A connection that gets the attribute of a person has lists of values, field fingerprints and card fingerprints for all
 ;; rows. See cube.semantic/clear-values-of-person-data!, cube.semantic/clear-field-fingerprints-of-person-data! and
 ;; cube.semantic/clear-result-fingerprints-of-person-data!.
