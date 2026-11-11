@@ -57,7 +57,6 @@ On ClickHouse, also install [`cube-clickhouse`](cube-clickhouse/README.md) on Cu
 `ghcr.io/andrewkomkov/cube:<cube-tag>-mcd.<n>` is Cube built from source, with the fixes that wait in pull requests to `cube-js/cube`. The image adds these fixes to stock Cube with the dialect:
 
 - A date parameter in a prepared statement (M1, M2).
-- A `geo` dimension through a view.
 - Two `sub_query` dimensions on one measure.
 - A custom granularity on a rollup before its origin.
 - Long numbers in the REST API.

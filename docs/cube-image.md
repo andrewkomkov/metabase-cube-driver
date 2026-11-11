@@ -6,12 +6,12 @@
 
 ## What the image adds
 
-Stock Cube with the dialect has the fixes for B1, datetime64, interval, m5, N2 and M3. The image adds these:
+Stock Cube with the dialect has the fixes for B1, datetime64, interval, m5, N2, M3 and geo. The image adds these:
 
 | Finding | Pull request | Result with the image |
 | --- | --- | --- |
 | M1, M2 | [#12535](https://github.com/cube-js/cube/pull/12535) | A date parameter in a prepared statement works in a query that needs SQL generation. |
-| geo | [#12537](https://github.com/cube-js/cube/pull/12537) | A `geo` dimension works through a view. |
+| geo | [#12537](https://github.com/cube-js/cube/pull/12537) | A `geo` dimension works through a view. The dialect has this fix too. |
 | propagate | [#12502](https://github.com/cube-js/cube/pull/12502) | Two `sub_query` dimensions on one measure each read their own subquery. |
 | gran | none yet | A custom granularity in months on a rollup puts a row before the origin in the correct bin. |
 | big | none yet | The REST API keeps the digits of a 64-bit integer and of a long decimal. The SQL API does not change. |
