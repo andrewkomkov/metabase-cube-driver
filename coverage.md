@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1428/1467 pass on Cube with the ClickHouse dialect** (1428 pass, 22 partial, 0 blocked, 17 unsupported, 0 fail of 1467)
+**coverage: 1425/1469 pass on Cube with the ClickHouse dialect** (1425 pass, 26 partial, 0 blocked, 17 unsupported, 1 fail of 1469)
 
-Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `db6ddaed1ba4`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/43064916556), 2026-11-11.
+Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `0ebe427118cb`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/43070630734), 2026-11-11.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -175,8 +175,8 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `db6dd
 | `sqlapi.where_in` | pass |  |
 | `sqlapi.where_is_null` | pass |  |
 | `sqlapi.where_like` | pass |  |
-| `restapi.compare_date_range` | pass |  |
-| `restapi.total_query` | pass |  |
+| `restapi.compare_date_range` | partial | compareDateRange is an option of the REST API, and Metabase has no request that gives one result for each range. The check proves the two Metabase forms of it. A dashboard date filter gives each range from one card, for each kind of measure. One question with a custom column compares ranges that do not overlap, and only for measures that add up, because the driver stops a distinct count next to a custom column. |
+| `restapi.total_query` | partial | total: true is an option of the REST API, and Metabase has no request that gives a page of rows and the number of all rows together. The check proves the Metabase form of it: a second stage with a count on the same query gives the number of all rows, with the filters and with no limit, also over a saved question and through MCP. |
 | `clickhouse.bool` | pass |  |
 | `clickhouse.datetime_utc` | pass |  |
 | `clickhouse.decimal` | pass |  |
@@ -1391,7 +1391,7 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `db6dd
 | `hierarchy.level_of_a_joined_cube` | pass |  |
 | `mb.expr.text` | pass |  |
 | `mb.expr.integer` | pass |  |
-| `mb.expr.float` | pass |  |
+| `mb.expr.float` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-11T18:54:04.571437969Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Query failed: Error: Illegal types String and Float64 of arguments of function mu |
 | `mb.expr.date` | pass |  |
 | `mb.expr.datetime_subtract` | pass |  |
 | `mb.expr.get_week_iso` | pass |  |
@@ -1438,13 +1438,15 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `db6dd
 | `mb.expr.subdomain` | unsupported | Metabase writes this function as a regular expression with a lookbehind. ClickHouse reads a pattern with RE2, which has no lookbehind, and stock Cube has no form for a regular expression. The driver gives a message that tells to add a dimension with that SQL to the data model. See compile.expr.url_function_gets_a_clear_message. |
 | `mb.expr.path` | unsupported | Metabase writes this function as a regular expression with a lookbehind. ClickHouse reads a pattern with RE2, which has no lookbehind, and stock Cube has no form for a regular expression. The driver gives a message that tells to add a dimension with that SQL to the data model. See compile.expr.url_function_gets_a_clear_message. |
 | `mb.expr.split_part` | pass |  |
-| `mb.expr.regex_match_first` | pass |  |
+| `mb.expr.regex_match_first` | partial | The query builder gives the truth for a pattern with a match and for no match. A pattern that matches empty text gives NULL, and Metabase on Postgres gives empty text: extract() of ClickHouse gives empty text also for no match, so the dialect cannot tell them apart. See mb.expr.regex_match_first.empty_match. |
 | `mb.expr.convert_timezone` | unsupported | The SQL API of Cube has no form for a time in another zone. The driver turns off :convert-timezone, so Metabase does not offer convertTimezone. The report time zone of Metabase works, see mb.report_timezone and zone.*. |
 | `compile.expr.url_function_gets_a_clear_message` | pass |  |
 | `measure.type.running_total` | unsupported | Cube v1.8.20 rejects the type when it compiles the model: measures.x.type must be one of [count, number, string, boolean, time, sum, avg, min, max, countDistinct, countDistinctApprox]. Use rolling_window with trailing: unbounded, see measure.rolling.unbounded. |
 | `mb.join.explicit_right` | unsupported | Cube joins are left joins from the cube where the join is in the data model. The driver turns off :right-join, so Metabase does not offer this join type. A left join and an inner join work, see mb.join.explicit_left and mb.join.explicit_inner. |
 | `mb.join.explicit_full` | unsupported | Cube joins are left joins from the cube where the join is in the data model. The driver turns off :full-join, so Metabase does not offer this join type. A left join and an inner join work, see mb.join.explicit_left and mb.join.explicit_inner. |
 | `graphql.api` | unsupported | The GraphQL API is another way for a client to read Cube. The driver reads the SQL API and /v1/meta, and no Metabase query shape maps to GraphQL. |
+| `mb.expr.date_from_text` | pass |  |
+| `mb.expr.regex_match_first.empty_match` | partial | With cube-clickhouse a pattern that matches empty text gives NULL, and Metabase on Postgres gives empty text. The check proves the NULL, and it fails when the limit goes away. |
 | `context.compile_context` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |
