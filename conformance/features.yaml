@@ -9007,16 +9007,18 @@
   status: todo
   status_stock: todo
   check: mb.expr.split_part
-  cap_stock: partial
-  reason_stock: "Stock Cube has no template for SPLIT_PART on ClickHouse, so it cannot send the function to the database. The driver asks Cube and gives a message that tells what to do. cube-clickhouse adds the template, and the query builder gives the truth."
+  cap_stock: unsupported
+  reason_stock: "Stock Cube has no template for SPLIT_PART on ClickHouse. It can compute the function only after the query, which fails next to a measure and on a cube with a rolling window measure. So the driver asks Cube, turns off :split-part so that Metabase does not offer splitPart, and refuses the clause with a message, and no query with the function gives rows. cube-clickhouse adds the template."
 - id: mb.expr.regex_match_first
   area: metabase.expressions
   title: "expr regex match first"
   status: todo
   status_stock: todo
   check: mb.expr.regex_match_first
-  cap_stock: partial
-  reason_stock: "Stock Cube has no template for REGEXP_SUBSTR on ClickHouse, so it cannot send the function to the database. The driver asks Cube and gives a message that tells what to do. cube-clickhouse adds the template, and the query builder gives the truth."
+  cap: partial
+  reason: "The query builder gives the truth for a pattern with a match and for no match. A pattern that matches empty text gives NULL, and Metabase on Postgres gives empty text: extract() of ClickHouse gives empty text also for no match, so the dialect cannot tell them apart. See mb.expr.regex_match_first.empty_match."
+  cap_stock: unsupported
+  reason_stock: "Stock Cube has no template for REGEXP_SUBSTR on ClickHouse. It can compute the function only after the query, which fails next to a measure and on a cube with a rolling window measure. So the driver asks Cube, refuses a regular expression with a message that tells what to do, and no query with the function gives rows. cube-clickhouse adds the template."
 - id: mb.expr.convert_timezone
   area: metabase.expressions
   title: "expr convert timezone"
@@ -9053,3 +9055,19 @@
   status: unsupported
   status_stock: unsupported
   reason: "The GraphQL API is another way for a client to read Cube. The driver reads the SQL API and /v1/meta, and no Metabase query shape maps to GraphQL."
+- id: mb.expr.date_from_text
+  area: metabase.expressions
+  title: "expr date from text"
+  status: todo
+  status_stock: todo
+  check: mb.expr.date_from_text
+- id: mb.expr.regex_match_first.empty_match
+  area: metabase.expressions
+  title: "expr regex match first, a match of empty text"
+  status: todo
+  status_stock: todo
+  check: mb.expr.regex_match_first.empty_match
+  cap: partial
+  reason: "With cube-clickhouse a pattern that matches empty text gives NULL, and Metabase on Postgres gives empty text. The check proves the NULL, and it fails when the limit goes away."
+  cap_stock: unsupported
+  reason_stock: "Stock Cube has no template for REGEXP_SUBSTR on ClickHouse. It can compute the function only after the query, which fails next to a measure and on a cube with a rolling window measure. So the driver asks Cube, refuses a regular expression with a message that tells what to do, and no query with the function gives rows. cube-clickhouse adds the template."

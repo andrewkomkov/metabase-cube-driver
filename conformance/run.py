@@ -9812,9 +9812,10 @@ def _(ctx):
 
 for _name, _clause, _sql in [
     ("text", ["text", QTY], "toString(quantity)"),
-    ("integer", ["integer", ["text", QTY]], "toInt64(toString(quantity))"),
-    ("float", ["float", ["text", QTY]], "toFloat64(toString(quantity))"),
+    ("integer", ["integer", ["concat", ["text", "d:orders.id"], "0"]], "toInt64(concat(toString(id), '0'))"),
+    ("float", ["float", ["concat", ["text", QTY], ".25"]], "toFloat64(concat(toString(quantity), '.25'))"),
     ("date", ["date", CRT], "toDate(created_at)"),
+    ("date_from_text", ["date", ["concat", "2025-03-0", ["text", QTY]]], "toDate(concat('2025-03-0', toString(quantity)))"),
     ("datetime_subtract", ["datetime-subtract", CRT, 1, "month"], "created_at - INTERVAL 1 MONTH"),
     ("get_week_iso", ["get-week", CRT, "iso"], "toISOWeek(created_at)"),
     ("get_week_us", ["get-week", CRT, "us"], "toWeek(created_at, 8)"),
@@ -9863,6 +9864,17 @@ def text_function_check(check_id, name, cases):
             expect_rows(ctx, grouped, "SELECT %s AS k, count() FROM orders GROUP BY k" % sql, str(clause))
 
 
+@check("mb.expr.regex_match_first.empty_match")
+def _(ctx):
+    """Postgres gives empty text for a pattern that matches empty text. extract() of ClickHouse gives empty text also for no match, so the
+    dialect gives NULL for both. If this check fails with empty text, the limit is gone."""
+    query = ctx.mb.inner(ORD, agg=["m:orders.count"], exprs={"k": ["regex-match-first", STA, "x*"]}, by=[["expression", "k"]])
+    if not DIALECT:
+        expect_clear_error(ctx, query, "Stock Cube cannot compute a regular expression")
+        return
+    expect_rows(ctx, query, "SELECT NULL, count() FROM orders", "an empty match")
+
+
 _URL = "d:orders.invoice_url"
 text_function_check("mb.expr.split_part", "splitPart", [
     (["split-part", _URL, "/", 5], "toString(id)"),
@@ -9901,8 +9913,6 @@ for _fid, _clause, _sql in [
     ("during", ["during", CRT, "2025-02-03", "day"], "toDate(created_at) = '2025-02-03'"),
     ("relative_with_offset", ["relative-time-interval", CRT, -3, "month", -_MONTHS, "month"],
      "created_at >= addMonths(%s, %d) AND created_at < addMonths(%s, %d)" % (_THIS_MONTH, -_MONTHS - 3, _THIS_MONTH, -_MONTHS)),
-    ("relative_include_current", ["time-interval", CRT, -_MONTHS, "month", {"include-current": True}],
-     "created_at >= addMonths(%s, %d)" % (_THIS_MONTH, -_MONTHS)),
 ]:
     def _run(ctx, _clause=_clause, _sql=_sql):
         want = ch("SELECT count() FROM orders WHERE %s" % _sql)
@@ -9910,6 +9920,24 @@ for _fid, _clause, _sql in [
             raise Fail("the filter keeps %s rows, so the check shows nothing" % want[0][0])
         assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.count"], where=[_clause])["rows"], want)
     check("mb.filter.%s" % _fid)(_run)
+
+
+
+@check("mb.filter.relative_include_current")
+def _(ctx):
+    """The option adds the current period to a relative range. zone_events has rows in January 2026, and the orders end in 2025.
+    When the current year has no rows the option changes nothing, and the check says so."""
+    ensure_table(ctx, "ny_a")
+    years = max(dt.date.today().year - 2025, 1)
+    this_year = "toStartOfYear(today())"
+    past = "SELECT count() FROM zone_events WHERE ts >= addYears(%s, %d) AND ts < %s" % (this_year, -years, this_year)
+    with_current = "SELECT count() FROM zone_events WHERE ts >= addYears(%s, %d)" % (this_year, -years)
+    if ch(past) == ch(with_current) or ch(past)[0][0] == 0:
+        raise Fail("the current year has no rows in zone_events, so the option changes nothing and the check shows nothing")
+    clause = ["time-interval", "d:ny_a.at", -years, "year"]
+    assert_rows(ctx.mb.mbql("ny_a", agg=["m:ny_a.m_count"], where=[clause])["rows"], ch(past), label="past years")
+    assert_rows(ctx.mb.mbql("ny_a", agg=["m:ny_a.m_count"], where=[clause + [{"include-current": True}]])["rows"], ch(with_current), label="with the current year")
+
 
 Q("mb.filter.inside", "users", "SELECT city, count() FROM users WHERE latitude BETWEEN 35 AND 45 AND longitude BETWEEN -100 AND -80 GROUP BY 1",
   agg=["m:users.count"], by=["d:users.city"], where=[["inside", GEO[0], GEO[1], 45, -100, 35, -80]])
@@ -9924,6 +9952,10 @@ def _(ctx):
     width, low = info.get("bin_width"), info.get("min_value")
     if not width or low is None or len(data["rows"]) < 2:
         raise Fail("auto bin returned %d rows, with binning_info %s" % (len(data["rows"]), info))
+    # The width is the choice of Metabase. The first bin must hold the smallest amount, and the bins must be few enough to read.
+    smallest = ch("SELECT min(toFloat64(amount)) FROM orders")[0][0]
+    if not (low <= smallest < low + width) or len(data["rows"]) > 50:
+        raise Fail("auto bin has %d bins from %s with width %s, and the smallest amount is %s" % (len(data["rows"]), low, width, smallest))
     assert_rows(data["rows"], ch("SELECT %r + floor((toFloat64(amount) - %r) / %r) * %r AS b, count() FROM orders GROUP BY b" % (low, low, width, width)))
 
 

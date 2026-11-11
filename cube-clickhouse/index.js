@@ -250,8 +250,9 @@ class ClickHouseFixes extends ClickHouseQuery {
     // Only the ascending order has a form here. A DESC order stops in ClickHouse with a syntax error, and it gives no number.
     templates.functions.PERCENTILECONT = 'quantileExactInclusive({{ args[0] }})';
     templates.expressions.within_group = "{{ fun_sql }}(toFloat64({{ within_group_concat | replace(' ASC NULLS LAST', '') }}))";
-    // split_part and regexp_substr: no pull request yet. Stock Cube has no template for them on ClickHouse, so it computes them after the
-    // query, and a query with a measure fails. extract() gives the first group, or the whole match with no group, as substring(x FROM p) of Postgres.
+    // split_part and regexp_substr: no pull request yet. Stock Cube has no template for them on ClickHouse, so it can compute them only after
+    // the query. That fails next to a measure, and on a cube with a rolling window measure. extract() gives the first group, or the whole
+    // match with no group, as substring(x FROM p) of Postgres. It gives empty text for no match, so an empty match is NULL too.
     templates.functions.SPLITPART = 'splitByString({{ args[1] }}, toString({{ args[0] }}))[{{ args[2] }}]';
     templates.functions.REGEXP_SUBSTR = "nullIf(extract(toString({{ args[0] }}), {{ args[1] }}), '')";
     // M3: see dateTimeCast. SQL push-down writes these templates.

@@ -880,8 +880,8 @@
                (catch Exception _ false))))))
 
 (defn split-part?
-  "True if Cube writes SQL for SPLIT_PART. Stock Cube has no template for it on ClickHouse, so it can compute the function only after the query,
-  and a query with a measure fails. The ClickHouse dialect adds the template."
+  "True if Cube writes SQL for SPLIT_PART. Stock Cube has no template for it on ClickHouse, so it can compute the function only after the query.
+  That fails next to a measure, and on a cube with a rolling window measure. The ClickHouse dialect adds the template."
   [details]
   (text-function? details :split-part "SPLIT_PART(%s, 'x', 1)"))
 
