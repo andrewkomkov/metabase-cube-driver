@@ -5,7 +5,36 @@ const { CubeStoreQuery } = require('@cubejs-backend/schema-compiler/dist/src/ada
 const { PreAggregationLoader } = require('@cubejs-backend/query-orchestrator/dist/src/orchestrator/PreAggregationLoader');
 const { QueryCache } = require('@cubejs-backend/query-orchestrator/dist/src/orchestrator/QueryCache');
 const { CubeStoreDriver } = require('@cubejs-backend/cubestore-driver');
+const { CubeSymbols } = require('@cubejs-backend/schema-compiler/dist/src/compiler/CubeSymbols');
+const { CubeToMetaTransformer } = require('@cubejs-backend/schema-compiler/dist/src/compiler/CubeToMetaTransformer');
 const { Transform, pipeline } = require('stream');
+
+// Geo dimension of a view: no pull request yet, see docs/cube-audit.md#geo. A view copies the type geo of a dimension and not its latitude and longitude,
+// so each query on it fails with `Cannot read properties of undefined (reading 'sql')`. With another type, the planner reads the SQL of the view member,
+// which is a reference to the dimension of the cube, and that one has both. /v1/meta keeps the type geo.
+const geoOfViews = new WeakMap();
+const generateIncludeMembers = CubeSymbols.prototype.generateIncludeMembers;
+CubeSymbols.prototype.generateIncludeMembers = function generateIncludeMembersWithGeo(members, type, targetCube, ...rest) {
+  const included = generateIncludeMembers.call(this, members, type, targetCube, ...rest);
+  for (const [name, definition] of type === 'dimensions' ? included : []) {
+    if (definition.type === 'geo') {
+      definition.type = 'string';
+      geoOfViews.set(this, (geoOfViews.get(this) || new Set()).add(`${targetCube.name}.${name}`));
+    }
+  }
+  return included;
+};
+const transform = CubeToMetaTransformer.prototype.transform;
+CubeToMetaTransformer.prototype.transform = function transformWithGeo(...args) {
+  const result = transform.apply(this, args);
+  const geo = geoOfViews.get(this.cubeEvaluator);
+  for (const dimension of geo ? result.config.dimensions : []) {
+    if (geo.has(dimension.name)) {
+      dimension.type = 'geo';
+    }
+  }
+  return result;
+};
 
 // Rollup over original_sql: no pull request yet, see docs/cube-audit.md#original-sql-rollup.
 // The load of a rollup into Cube Store streams its SQL with the name of the original_sql table, and that name has no version.
@@ -192,6 +221,10 @@ class ClickHouseFixes extends ClickHouseQuery {
       '{% if not loop.last %} UNION ALL\n{% endif %}' +
       '{% endfor %}' +
       ') AS dates';
+    // percentile: no pull request yet, see docs/cube-findings.md#percentile. Stock Cube removes this function for ClickHouse, so a median and a
+    // percentile fail with `Can't detect Cube query`. quantileExactInclusive is the linear form of PERCENTILE_CONT, and quantile is an estimate.
+    templates.functions.PERCENTILECONT = 'quantileExactInclusive({{ args[0] }})';
+    templates.expressions.within_group = "{{ fun_sql }}(toFloat64({{ within_group_concat | replace(' ASC NULLS LAST', '') }}))";
     // M3: see dateTimeCast. SQL push-down writes these templates.
     if (this.timezone && this.timezone !== 'UTC') {
       const inZone = (text) => `toTimeZone(${text}, '${this.timezone}')`;

@@ -487,8 +487,8 @@
   status: partial
   status_stock: partial
   check: dimension.type.geo.view
-  cap: partial
-  reason: "Cube v1.8.15 fails each query on a geo dimension of a view, also on the REST API: Cannot read properties of undefined (reading 'sql'). No map can work on a view. The driver hides this column and shows it as NULL, so the view stays usable. A map works on the cube of the dimension."
+  cap_stock: partial
+  reason_stock: "Stock Cube v1.8.20 fails each query on a geo dimension of a view, also on the REST API: Cannot read properties of undefined (reading 'sql'). A view copies the type geo and not the latitude and longitude (CubeSymbols.ts, generateIncludeMembers). The driver hides this column and shows it as NULL, so the view stays usable, and a map works on the cube of the dimension. cube-clickhouse gives the view member the SQL of the cube, and then the map works on the view."
 - id: dimension.type.geo.auto_bin
   area: cube.dimensions
   title: "dimension type geo: automatic bins"
@@ -1200,9 +1200,11 @@
 - id: mb.agg.median
   area: metabase.aggregation
   title: "mb agg median"
-  status: unsupported
-  status_stock: unsupported
-  reason: "The Cube template for ClickHouse has no PERCENTILE_CONT: Rewrite Error: Can't detect Cube query. The driver turns off :percentile-aggregations, so Metabase rejects the query with a message. See compile.agg.median_gives_error. Use a measure with quantile() in the model."
+  status: todo
+  status_stock: todo
+  check: mb.agg.median
+  cap_stock: partial
+  reason_stock: "Stock Cube removes PERCENTILE_CONT from its templates for ClickHouse (ClickHouseQuery.ts, delete templates.functions.PERCENTILECONT), so the SQL API answers Can't detect Cube query. The driver asks Cube and turns off :percentile-aggregations, and Metabase refuses a median with a message. cube-clickhouse adds the template with quantileExactInclusive, and the query builder gives the truth."
 - id: mb.agg.min_field
   area: metabase.aggregation
   title: "mb agg min field"
@@ -1218,9 +1220,11 @@
 - id: mb.agg.percentile
   area: metabase.aggregation
   title: "mb agg percentile"
-  status: unsupported
-  status_stock: unsupported
-  reason: "The Cube template for ClickHouse has no PERCENTILE_CONT: Rewrite Error: Can't detect Cube query. The driver turns off :percentile-aggregations, so Metabase rejects the query with a message. Use a measure with quantile() in the model."
+  status: todo
+  status_stock: todo
+  check: mb.agg.percentile
+  cap_stock: partial
+  reason_stock: "Stock Cube removes PERCENTILE_CONT from its templates for ClickHouse (ClickHouseQuery.ts, delete templates.functions.PERCENTILECONT), so the SQL API answers Can't detect Cube query. The driver asks Cube and turns off :percentile-aggregations, and Metabase refuses a percentile with a message. cube-clickhouse adds the template with quantileExactInclusive, and the query builder gives the truth."
 - id: mb.agg.share
   area: metabase.aggregation
   title: "mb agg share"
@@ -2645,7 +2649,7 @@
   check: semantic.measure.min_on_time_column
 - id: compile.agg.median_gives_error
   area: mb.compile.agg
-  title: "agg median gives error"
+  title: "agg median: a clear message where Cube cannot compute it"
   status: pass
   status_stock: pass
   check: compile.agg.median_gives_error

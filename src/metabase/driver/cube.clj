@@ -47,8 +47,6 @@
                  ;; Cube joins through the data model, and its joins are LEFT from the cube that the model starts at.
                  :full-join
                  :right-join
-                 ;; The Cube templates for ClickHouse have no PERCENTILE_CONT, so Cube rejects these aggregations.
-                 :percentile-aggregations
                  :index/fetch
                  :index/standalone-create
                  :metadata/table-existence-check
@@ -63,6 +61,11 @@
                  :uploads
                  :uuid-type]]
   (defmethod driver/database-supports? [:cube feature] [_driver _feature _db] false))
+
+;; Stock Cube has no PERCENTILE_CONT for ClickHouse, and Cube with the ClickHouse dialect or on another data source has it. With no database to ask, false.
+(defmethod driver/database-supports? [:cube :percentile-aggregations]
+  [_driver _feature database]
+  (boolean (some-> database :details not-empty cube.probe/percentiles?)))
 
 ;;; ------------------------------------------------- connection -------------------------------------------------
 

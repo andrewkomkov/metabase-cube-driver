@@ -1043,6 +1043,8 @@ def _(ctx):
             break
         time.sleep(1)
     if "Cannot read properties of undefined" in text:
+        if DIALECT:
+            raise Fail("Cube with the dialect cannot read a geo dimension of a view: %s" % text[:200])
         geo_view_on_stock_cube(ctx)
     elif '"data":[' in text:
         geo_view_on_fixed_cube(ctx)
@@ -1494,6 +1496,33 @@ Q("mb.agg.count_where", ORD, "SELECT countIf(%s) FROM orders" % PAID, agg=[["cou
 Q("mb.agg.share", ORD, "SELECT countIf(%s) / count() FROM orders" % PAID, agg=[["share", ["=", "d:orders.is_paid", True]]])
 Q("mb.agg.custom_expression", ORD, "SELECT sum(toFloat64(amount)) / count() FROM orders", agg=[["/", ["sum", "d:orders.amount_dim"], ["count"]]])
 Q("mb.agg.two_measures", ORD, "SELECT status, sum(amount), count() FROM orders GROUP BY status", agg=["m:orders.revenue", "m:orders.count"], by=["d:orders.status"])
+
+def percentile_check(check_id, clause, levels):
+    """A median or a percentile of the query builder: the total, by a dimension, by a month, with a filter, next to a measure, of another column and through MCP.
+    Stock Cube has no PERCENTILE_CONT for ClickHouse, so there the driver turns the feature off and Metabase must refuse the query with a message."""
+    @check(check_id)
+    def _(ctx):
+        for level in levels:
+            agg = [clause("d:orders.amount_dim", level)]
+            if not DIALECT:
+                expect_clear_error(ctx, ctx.mb.inner(ORD, agg=agg), "Cube cannot")
+                continue
+            amount = "quantileExactInclusive(%s)(toFloat64(amount))" % level
+            assert_rows(ctx.mb.mbql(ORD, agg=agg)["rows"], ch("SELECT %s FROM orders" % amount))
+            assert_rows(ctx.mb.mbql(ORD, agg=agg, by=["d:orders.status"])["rows"], ch("SELECT status, %s FROM orders GROUP BY 1" % amount))
+            assert_rows(ctx.mb.mbql(ORD, agg=agg, by=["d:orders.created_at@month"])["rows"], ch("SELECT toStartOfMonth(created_at), %s FROM orders GROUP BY 1" % amount))
+            assert_rows(ctx.mb.mbql(ORD, agg=agg, by=["d:orders.status"], where=[[">", "d:orders.quantity_dim", 2]])["rows"],
+                        ch("SELECT status, %s FROM orders WHERE quantity > 2 GROUP BY 1" % amount))
+            assert_rows(ctx.mb.mbql(ORD, agg=agg + ["m:orders.revenue", ["count"]], by=["d:orders.status"])["rows"],
+                        ch("SELECT status, %s, sum(amount), count() FROM orders GROUP BY 1" % amount))
+            assert_rows(ctx.mb.mbql(ORD, agg=[clause("d:orders.quantity_dim", level)], by=["d:orders.status"])["rows"],
+                        ch("SELECT status, quantileExactInclusive(%s)(toFloat64(quantity)) FROM orders GROUP BY 1" % level))
+            mcp_rows(ctx, ORD, "SELECT status, %s FROM orders GROUP BY 1" % amount, agg=agg, by=["d:orders.status"])
+
+
+percentile_check("mb.agg.median", lambda column, _level: ["median", column], [0.5])
+percentile_check("mb.agg.percentile", lambda column, level: ["percentile", column, level], [0.9, 0.05])
+
 Q("mb.agg.offset_window", ORD,
   "SELECT m, lagInFrame(toNullable(s)) OVER (ORDER BY m ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM (SELECT toStartOfMonth(created_at) AS m, sum(quantity) AS s FROM orders GROUP BY m) ORDER BY m",
   ordered=True, agg=[["offset", {}, ["sum", "d:orders.quantity_dim"], -1]], by=MONTH, order=[["asc", MONTH[0]]])
@@ -3321,7 +3350,12 @@ def _(ctx):
 
 @check("compile.agg.median_gives_error")
 def _(ctx):
-    expect_clear_error(ctx, ctx.mb.inner(ORD, agg=[["median", _AMT]]), "Cube cannot")
+    """On stock Cube a median stops with a message. With the dialect it runs, see mb.agg.median, and a median of a dimension of a joined cube stops, because Cube reads each of its rows once."""
+    if DIALECT:
+        price = ["field", ctx.mb.field("products", "price")["id"], {"source-field": ctx.mb.fk_field(ORD, "products")["id"]}]
+        expect_clear_error(ctx, ctx.mb.inner(ORD, agg=[["median", price]], by=["d:orders.status"]), "Cube cannot add up the dimension")
+    else:
+        expect_clear_error(ctx, ctx.mb.inner(ORD, agg=[["median", _AMT]]), "Cube cannot")
 
 
 C("compile.agg.other_aggregation_of_measure", ORD, "SELECT max(amount) FROM orders", agg=[["max", "d:orders.revenue"]], sql_has="MAX(")

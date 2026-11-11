@@ -78,6 +78,11 @@
   [details path query-params]
   (json/decode+kw (:body (api-call http/get details path {:query-params query-params}))))
 
+(defn plans-sql?
+  "True if Cube writes SQL for this text of the SQL API. /v1/sql with format=sql runs nothing, and it answers HTTP 500 for a text that Cube cannot plan."
+  [details sql]
+  (= "ok" (get-in (api-get details "/v1/sql" {"format" "sql", "query" sql}) [:sql :status])))
+
 (defn rest-sql
   "The rows of a SQL text on /v1/cubesql, in the time zone `zone`. This path answers with the schema on the first line, and the data
   after it."

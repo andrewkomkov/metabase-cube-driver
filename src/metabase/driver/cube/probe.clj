@@ -846,6 +846,18 @@
 ;;; and "Queue storage error" in the log of Cube, and Cube retries with no end, so the query hangs and no error reaches the driver. Cube keeps each row as a JSON object: each value is text, with the alias
 ;;; cube__member as its key. 1048575 rows of id, user_id and quantity_dim of big_orders made 93138728 bytes, 88.8 bytes a row, and this form gives 89.
 
+(defn percentiles?
+  "True if Cube writes SQL for PERCENTILE_CONT. Stock Cube has no such function for ClickHouse, and the ClickHouse dialect adds it. The answer is at most one minute old.
+  With no answer this is false, so Metabase refuses a median and a percentile with its own message."
+  [details]
+  (boolean
+   (cached details [:percentiles]
+           (fn []
+             (try
+               (when-let [cube (first (filter #(= "cube" (:type %)) (cube.meta/public-cubes (cube.meta/cached-meta details))))]
+                 (cube.meta/plans-sql? details (format "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY 1.0) FROM \"%s\"" (:name cube))))
+               (catch Exception _ false))))))
+
 (def ^:private largest-message-bytes
   "64 MiB, with a margin of a tenth."
   (long (* 0.9 64 1024 1024)))
