@@ -2,14 +2,14 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1361/1402 pass on Cube with the ClickHouse dialect** (1361 pass, 28 partial, 1 blocked, 12 unsupported, 0 fail of 1402)
+**coverage: 1428/1467 pass on Cube with the ClickHouse dialect** (1428 pass, 22 partial, 0 blocked, 17 unsupported, 0 fail of 1467)
 
-Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `bdd0fb92e79e`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/43056099130), 2026-11-11.
+Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `db6ddaed1ba4`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/43064916556), 2026-11-11.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
-| `measure.format.abbr` | partial | Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
-| `measure.format.accounting` | partial | Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
+| `measure.format.abbr` | partial | Limit of Metabase v0.65.3.6. Its formatNumber has the option compact for an abbreviated number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
+| `measure.format.accounting` | partial | Limit of Metabase v0.65.3.6. Its formatNumber has the option negativeInParentheses for parentheses on a negative number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
 | `measure.format.currency` | pass |  |
 | `measure.format.currency_code` | pass |  |
 | `measure.format.d3` | pass |  |
@@ -56,7 +56,7 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `bdd0f
 | `measure.type.string` | pass |  |
 | `measure.type.sum` | pass |  |
 | `measure.type.time` | pass |  |
-| `dimension.format.abbr` | partial | Metabase has no setting for an abbreviated number. The field has a decimal format with the same decimals, and the description keeps the text of Cube. |
+| `dimension.format.abbr` | partial | Limit of Metabase v0.65.3.6. Its formatNumber has the option compact for an abbreviated number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The field has a decimal format with the same decimals, and the description keeps the text of Cube. |
 | `dimension.format.currency` | pass |  |
 | `dimension.format.currency_code` | pass |  |
 | `dimension.format.id` | pass |  |
@@ -72,7 +72,7 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `bdd0f
 | `dimension.opt.mask_sql` | pass |  |
 | `dimension.opt.mask_static` | pass |  |
 | `dimension.opt.meta` | pass |  |
-| `dimension.opt.order` | blocked | A Metabase field has no default sort order. The driver cannot apply this option without a Metabase change, which is out of scope. |
+| `dimension.opt.order` | pass |  |
 | `dimension.opt.primary_key` | pass |  |
 | `dimension.opt.propagate_filters` | pass |  |
 | `dimension.opt.public_false` | pass |  |
@@ -87,7 +87,7 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `bdd0f
 | `dimension.type.geo.raw_rows` | pass |  |
 | `dimension.type.geo.filter` | pass |  |
 | `dimension.type.geo.implicit_join` | pass |  |
-| `dimension.type.geo.view` | partial | Cube v1.8.15 fails each query on a geo dimension of a view, also on the REST API: Cannot read properties of undefined (reading 'sql'). No map can work on a view. The driver hides this column and shows it as NULL, so the view stays usable. A map works on the cube of the dimension. |
+| `dimension.type.geo.view` | pass |  |
 | `dimension.type.geo.auto_bin` | pass |  |
 | `dimension.type.geo.second_stage` | pass |  |
 | `dimension.type.geo.fingerprint` | pass |  |
@@ -97,7 +97,7 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `bdd0f
 | `dimension.type.time` | pass |  |
 | `granularity.custom.interval_hours` | pass |  |
 | `granularity.custom.negative_offset` | pass |  |
-| `granularity.custom.offset` | partial | Cube Store puts a time before the origin of a custom granularity in months in the wrong bin, and no released Cube has a fix. The driver stops such a query when a rollup serves the measure and the data starts before the origin. An offset has its origin in the current year, so this stops most offsets on a rollup. A measure that no rollup serves gives the truth. An origin before all rows gives the truth on a rollup. |
+| `granularity.custom.offset` | partial | Cube Store v1.8.20 puts a time before the origin of a custom granularity in months in the wrong bin, and no released Cube has a fix. The fix is a change of Cube Store in Rust (finding gran in cube-image/queue.json, no pull request yet), so cube-clickhouse cannot hold it. The driver stops such a query when a rollup serves the measure and the data starts before the origin. An offset has its origin in the current year, so this stops most offsets on a rollup. A measure that no rollup serves gives the truth. An origin before all rows gives the truth on a rollup. |
 | `granularity.custom.origin` | pass |  |
 | `granularity.custom.title` | pass |  |
 | `granularity.proxy_default` | pass |  |
@@ -160,7 +160,7 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `bdd0f
 | `preagg.partitioned` | pass |  |
 | `preagg.rollup` | pass |  |
 | `preagg.rollup_join` | pass |  |
-| `preagg.rollup_lambda` | partial | Inside the range of the rollup, the lambda gives the truth. With a range that reads source rows on the demo data, the REST API and the SQL API of Cube can stop on ClickHouse with Stream query failed: aborted, see cube-js/cube#12285. A run gives the truth or this error. The driver shows a clear message for this. dev/cube/model/rollups.yml has the model. |
+| `preagg.rollup_lambda` | pass |  |
 | `sqlapi.aggregate_function` | pass |  |
 | `sqlapi.date_trunc` | pass |  |
 | `sqlapi.having` | pass |  |
@@ -175,8 +175,8 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `bdd0f
 | `sqlapi.where_in` | pass |  |
 | `sqlapi.where_is_null` | pass |  |
 | `sqlapi.where_like` | pass |  |
-| `restapi.compare_date_range` | unsupported | compareDateRange exists only in the REST API. No Metabase query shape maps to it. |
-| `restapi.total_query` | unsupported | A total query exists only in the REST API. No Metabase query shape maps to it. |
+| `restapi.compare_date_range` | pass |  |
+| `restapi.total_query` | pass |  |
 | `clickhouse.bool` | pass |  |
 | `clickhouse.datetime_utc` | pass |  |
 | `clickhouse.decimal` | pass |  |
@@ -200,10 +200,10 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `bdd0f
 | `mb.agg.custom_expression` | pass |  |
 | `mb.agg.distinct` | pass |  |
 | `mb.agg.max_field` | pass |  |
-| `mb.agg.median` | unsupported | The Cube template for ClickHouse has no PERCENTILE_CONT: Rewrite Error: Can't detect Cube query. The driver turns off :percentile-aggregations, so Metabase rejects the query with a message. See compile.agg.median_gives_error. Use a measure with quantile() in the model. |
+| `mb.agg.median` | pass |  |
 | `mb.agg.min_field` | pass |  |
 | `mb.agg.offset_window` | pass |  |
-| `mb.agg.percentile` | unsupported | The Cube template for ClickHouse has no PERCENTILE_CONT: Rewrite Error: Can't detect Cube query. The driver turns off :percentile-aggregations, so Metabase rejects the query with a message. Use a measure with quantile() in the model. |
+| `mb.agg.percentile` | pass |  |
 | `mb.agg.share` | pass |  |
 | `mb.agg.stddev` | pass |  |
 | `mb.agg.sum_field` | pass |  |
@@ -439,7 +439,7 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `bdd0f
 | `semantic.restored_member` | pass |  |
 | `semantic.user_edit_kept` | pass |  |
 | `semantic.user_edit_reset` | pass |  |
-| `semantic.drill_members_native` | unsupported | Metabase has no column that lists the drill columns of a measure. Its drill-through uses all visible fields. The text in the description is the only place, see semantic.drill_members. |
+| `semantic.drill_members_native` | unsupported | Limit of Metabase v0.65.3.6: no object lists the drill columns of a measure. The drill to the rows of a group (src/metabase/lib/drill_thru/underlying_records.cljc) makes a query from the filters and the breakouts of the question, with each visible field of the table, and a driver has no hook in it. The text in the description is the only place, see semantic.drill_members. |
 | `semantic.measure.min_on_time_column` | pass |  |
 | `compile.agg.median_gives_error` | pass |  |
 | `compile.agg.offset_measure` | pass |  |
@@ -638,8 +638,8 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `bdd0f
 | `compile.join.explicit_measure_regular` | pass |  |
 | `compile.ch.integer_within_double` | pass |  |
 | `compile.xray.table_all_cards_run` | pass |  |
-| `compile.xray.field_all_cards_run` | partial | The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) reads two stages, see compile.join.total_of_dimension_refused. The check accepts the clear message of a form that two stages cannot give, or a number equal to the truth. |
-| `compile.xray.time_field_all_cards_run` | partial | The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) reads two stages, see compile.join.total_of_dimension_refused. The check accepts the clear message of a form that two stages cannot give, or a number equal to the truth. |
+| `compile.xray.field_all_cards_run` | pass |  |
+| `compile.xray.time_field_all_cards_run` | pass |  |
 | `compile.xray.typed_table_all_cards_run` | pass |  |
 | `compile.granularity.native_offset_no_rollup` | pass |  |
 | `compile.filter.quote_in_value` | pass |  |
@@ -668,7 +668,7 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `bdd0f
 | `native.row_limit` | pass |  |
 | `native.date_function` | pass |  |
 | `mcp.execute_query.paging_measure` | pass |  |
-| `dimension.opt.propagate_filters_next_to_another_sub_query` | partial | Cube with the Tesseract planner reads the first subquery for two sub_query dimensions with equal SQL when the query has a filter. The driver stops a query that groups by both, and raw rows show NULL in the later column. With other SQL, such as {orders.count} + 0, both work, and each is right alone, see dimension.opt.propagate_filters. |
+| `dimension.opt.propagate_filters_next_to_another_sub_query` | partial | Cube v1.8.20 with the Tesseract planner reads the first subquery for two sub_query dimensions with equal SQL when the query has a filter. The fix is a change of the planner in Rust, cube-js/cube#12502, so cube-clickhouse cannot hold it. The driver stops a query that groups by both, and raw rows show NULL in the later column. With other SQL, such as {orders.count} + 0, both work, and each is right alone, see dimension.opt.propagate_filters. |
 | `measure.multi_stage.time_shift_no_bucket_limit` | pass |  |
 | `clickhouse.datetime64_millis` | pass |  |
 | `compile.rolling.by_day_on_boundaries` | pass |  |
@@ -843,10 +843,10 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `bdd0f
 | `metric.expression.sum_over_count` | pass |  |
 | `metric.expression.sum_over_distinct` | pass |  |
 | `metric.expression.zero_and_null_denominator` | pass |  |
-| `metric.format.abbr` | partial | Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
-| `metric.format.abbr_1` | partial | Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
-| `metric.format.accounting` | partial | Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
-| `metric.format.accounting_0` | partial | Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
+| `metric.format.abbr` | partial | Limit of Metabase v0.65.3.6. Its formatNumber has the option compact for an abbreviated number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
+| `metric.format.abbr_1` | partial | Limit of Metabase v0.65.3.6. Its formatNumber has the option compact for an abbreviated number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
+| `metric.format.accounting` | partial | Limit of Metabase v0.65.3.6. Its formatNumber has the option negativeInParentheses for parentheses on a negative number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
+| `metric.format.accounting_0` | partial | Limit of Metabase v0.65.3.6. Its formatNumber has the option negativeInParentheses for parentheses on a negative number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube. |
 | `metric.format.currency` | pass |  |
 | `metric.format.currency_0` | pass |  |
 | `metric.format.currency_3` | pass |  |
@@ -1104,11 +1104,11 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `bdd0f
 | `preagg.type.rollup_join_same_grain_hit` | pass |  |
 | `preagg.type.rollup_join_through_metabase` | pass |  |
 | `preagg.type.rollup_join_total_hit` | pass |  |
-| `preagg.type.rollup_lambda_after_the_batch_with_source` | partial | A run gives the truth or the error of cube-js/cube#12285, Stream query failed: aborted. The driver shows a clear message, and no number is wrong. |
+| `preagg.type.rollup_lambda_after_the_batch_with_source` | pass |  |
 | `preagg.type.rollup_lambda_filter_hit` | pass |  |
 | `preagg.type.rollup_lambda_inside_the_batch_hit` | pass |  |
 | `preagg.type.rollup_lambda_miss_on_a_finer_grain` | pass |  |
-| `preagg.type.rollup_lambda_over_the_batch_with_source` | partial | A run gives the truth or the error of cube-js/cube#12285, Stream query failed: aborted. The driver shows a clear message, and no number is wrong. |
+| `preagg.type.rollup_lambda_over_the_batch_with_source` | pass |  |
 | `preagg.metabase.time_zone_one_bound_miss` | pass |  |
 | `preagg.metabase.time_zone_range_next_to_a_filter_hit` | pass |  |
 | `preagg.metabase.time_zone_range_without_a_bucket_hit` | pass |  |
@@ -1380,6 +1380,71 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `bdd0f
 | `compile.raw.custom_column_next_to_each_column` | pass |  |
 | `native.scan.adversarial_private_member` | pass |  |
 | `zone.time_measure_repeated_hour_limit` | partial | The SQL API gives a time as text with no offset, so a value in the repeated hour reads as the first pass: 01:00-04:00 where the truth is 01:00-05:00 in New York. README lists this under Known wrong numbers. |
+| `measure.type.count_with_sql` | pass |  |
+| `dimension.opt.cross_cube_reference` | pass |  |
+| `cube.sql_function_of_another_cube` | pass |  |
+| `segment.public_false` | pass |  |
+| `view.segment` | pass |  |
+| `view.rolling_measure` | pass |  |
+| `join.legacy_relationship_name` | pass |  |
+| `segment.meta` | pass |  |
+| `hierarchy.level_of_a_joined_cube` | pass |  |
+| `mb.expr.text` | pass |  |
+| `mb.expr.integer` | pass |  |
+| `mb.expr.float` | pass |  |
+| `mb.expr.date` | pass |  |
+| `mb.expr.datetime_subtract` | pass |  |
+| `mb.expr.get_week_iso` | pass |  |
+| `mb.expr.get_week_us` | pass |  |
+| `mb.expr.get_day_of_week_iso` | pass |  |
+| `mb.expr.now` | pass |  |
+| `mb.expr.today` | pass |  |
+| `mb.expr.literal` | pass |  |
+| `mb.filter.in` | pass |  |
+| `mb.filter.not_in` | pass |  |
+| `mb.filter.exclude_hour_of_day` | pass |  |
+| `mb.filter.exclude_quarter_of_year` | pass |  |
+| `mb.filter.not_date_between` | pass |  |
+| `mb.filter.during` | pass |  |
+| `mb.filter.relative_with_offset` | pass |  |
+| `mb.filter.relative_include_current` | pass |  |
+| `mb.filter.inside` | pass |  |
+| `mb.breakout.bin_default` | pass |  |
+| `mb.dashboard.filter_relative_date` | pass |  |
+| `mb.dashboard.filter_month_year` | pass |  |
+| `mb.dashboard.filter_quarter_year` | pass |  |
+| `mb.dashboard.filter_string_contains` | pass |  |
+| `mb.dashboard.filter_boolean` | pass |  |
+| `mb.dashboard.filter_id` | pass |  |
+| `mb.dashboard.filter_time_grouping` | pass |  |
+| `mb.native.time_grouping_param` | pass |  |
+| `mb.native.param_boolean` | pass |  |
+| `mb.native.card_reference` | pass |  |
+| `mb.export.xlsx` | pass |  |
+| `mcp.browse_collection` | pass |  |
+| `mcp.browse.list_models` | pass |  |
+| `mcp.browse.list_tables_search` | pass |  |
+| `mcp.browse.get_fields_values` | pass |  |
+| `mcp.execute_query.expression` | pass |  |
+| `mcp.execute_query.order_limit` | pass |  |
+| `mcp.execute_query.explicit_join` | pass |  |
+| `mcp.execute_query.two_stages` | pass |  |
+| `mcp.execute_query.binning` | pass |  |
+| `mcp.execute_query.validate_only` | pass |  |
+| `mcp.execute_sql.template_tag_values` | pass |  |
+| `mcp.run_saved_question.parameters` | pass |  |
+| `mb.expr.host` | unsupported | Metabase writes this function as a regular expression with a lookbehind. ClickHouse reads a pattern with RE2, which has no lookbehind, and stock Cube has no form for a regular expression. The driver gives a message that tells to add a dimension with that SQL to the data model. See compile.expr.url_function_gets_a_clear_message. |
+| `mb.expr.domain` | unsupported | Metabase writes this function as a regular expression with a lookbehind. ClickHouse reads a pattern with RE2, which has no lookbehind, and stock Cube has no form for a regular expression. The driver gives a message that tells to add a dimension with that SQL to the data model. See compile.expr.url_function_gets_a_clear_message. |
+| `mb.expr.subdomain` | unsupported | Metabase writes this function as a regular expression with a lookbehind. ClickHouse reads a pattern with RE2, which has no lookbehind, and stock Cube has no form for a regular expression. The driver gives a message that tells to add a dimension with that SQL to the data model. See compile.expr.url_function_gets_a_clear_message. |
+| `mb.expr.path` | unsupported | Metabase writes this function as a regular expression with a lookbehind. ClickHouse reads a pattern with RE2, which has no lookbehind, and stock Cube has no form for a regular expression. The driver gives a message that tells to add a dimension with that SQL to the data model. See compile.expr.url_function_gets_a_clear_message. |
+| `mb.expr.split_part` | pass |  |
+| `mb.expr.regex_match_first` | pass |  |
+| `mb.expr.convert_timezone` | unsupported | The SQL API of Cube has no form for a time in another zone. The driver turns off :convert-timezone, so Metabase does not offer convertTimezone. The report time zone of Metabase works, see mb.report_timezone and zone.*. |
+| `compile.expr.url_function_gets_a_clear_message` | pass |  |
+| `measure.type.running_total` | unsupported | Cube v1.8.20 rejects the type when it compiles the model: measures.x.type must be one of [count, number, string, boolean, time, sum, avg, min, max, countDistinct, countDistinctApprox]. Use rolling_window with trailing: unbounded, see measure.rolling.unbounded. |
+| `mb.join.explicit_right` | unsupported | Cube joins are left joins from the cube where the join is in the data model. The driver turns off :right-join, so Metabase does not offer this join type. A left join and an inner join work, see mb.join.explicit_left and mb.join.explicit_inner. |
+| `mb.join.explicit_full` | unsupported | Cube joins are left joins from the cube where the join is in the data model. The driver turns off :full-join, so Metabase does not offer this join type. A left join and an inner join work, see mb.join.explicit_left and mb.join.explicit_inner. |
+| `graphql.api` | unsupported | The GraphQL API is another way for a client to read Cube. The driver reads the SQL API and /v1/meta, and no Metabase query shape maps to GraphQL. |
 | `context.compile_context` | pass |  |
 | `security.access_policy_groups` | pass |  |
 | `security.compile_context` | pass |  |

@@ -1,24 +1,24 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 1361,
-    "partial": 28,
-    "blocked": 1,
-    "unsupported": 12,
+    "pass": 1428,
+    "partial": 22,
+    "blocked": 0,
+    "unsupported": 17,
     "fail": 0,
-    "total": 1402
+    "total": 1467
   },
-  "coverage": "coverage: 1361/1402 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1428/1467 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
       "status": "partial",
-      "reason": "Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+      "reason": "Limit of Metabase v0.65.3.6. Its formatNumber has the option compact for an abbreviated number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
     },
     {
       "id": "measure.format.accounting",
       "status": "partial",
-      "reason": "Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+      "reason": "Limit of Metabase v0.65.3.6. Its formatNumber has the option negativeInParentheses for parentheses on a negative number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
     },
     {
       "id": "measure.format.currency",
@@ -253,7 +253,7 @@
     {
       "id": "dimension.format.abbr",
       "status": "partial",
-      "reason": "Metabase has no setting for an abbreviated number. The field has a decimal format with the same decimals, and the description keeps the text of Cube."
+      "reason": "Limit of Metabase v0.65.3.6. Its formatNumber has the option compact for an abbreviated number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The field has a decimal format with the same decimals, and the description keeps the text of Cube."
     },
     {
       "id": "dimension.format.currency",
@@ -332,8 +332,8 @@
     },
     {
       "id": "dimension.opt.order",
-      "status": "blocked",
-      "reason": "A Metabase field has no default sort order. The driver cannot apply this option without a Metabase change, which is out of scope."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.opt.primary_key",
@@ -407,8 +407,8 @@
     },
     {
       "id": "dimension.type.geo.view",
-      "status": "partial",
-      "reason": "Cube v1.8.15 fails each query on a geo dimension of a view, also on the REST API: Cannot read properties of undefined (reading 'sql'). No map can work on a view. The driver hides this column and shows it as NULL, so the view stays usable. A map works on the cube of the dimension."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "dimension.type.geo.auto_bin",
@@ -458,7 +458,7 @@
     {
       "id": "granularity.custom.offset",
       "status": "partial",
-      "reason": "Cube Store puts a time before the origin of a custom granularity in months in the wrong bin, and no released Cube has a fix. The driver stops such a query when a rollup serves the measure and the data starts before the origin. An offset has its origin in the current year, so this stops most offsets on a rollup. A measure that no rollup serves gives the truth. An origin before all rows gives the truth on a rollup."
+      "reason": "Cube Store v1.8.20 puts a time before the origin of a custom granularity in months in the wrong bin, and no released Cube has a fix. The fix is a change of Cube Store in Rust (finding gran in cube-image/queue.json, no pull request yet), so cube-clickhouse cannot hold it. The driver stops such a query when a rollup serves the measure and the data starts before the origin. An offset has its origin in the current year, so this stops most offsets on a rollup. A measure that no rollup serves gives the truth. An origin before all rows gives the truth on a rollup."
     },
     {
       "id": "granularity.custom.origin",
@@ -772,8 +772,8 @@
     },
     {
       "id": "preagg.rollup_lambda",
-      "status": "partial",
-      "reason": "Inside the range of the rollup, the lambda gives the truth. With a range that reads source rows on the demo data, the REST API and the SQL API of Cube can stop on ClickHouse with Stream query failed: aborted, see cube-js/cube#12285. A run gives the truth or this error. The driver shows a clear message for this. dev/cube/model/rollups.yml has the model."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "sqlapi.aggregate_function",
@@ -847,13 +847,13 @@
     },
     {
       "id": "restapi.compare_date_range",
-      "status": "unsupported",
-      "reason": "compareDateRange exists only in the REST API. No Metabase query shape maps to it."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "restapi.total_query",
-      "status": "unsupported",
-      "reason": "A total query exists only in the REST API. No Metabase query shape maps to it."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "clickhouse.bool",
@@ -972,8 +972,8 @@
     },
     {
       "id": "mb.agg.median",
-      "status": "unsupported",
-      "reason": "The Cube template for ClickHouse has no PERCENTILE_CONT: Rewrite Error: Can't detect Cube query. The driver turns off :percentile-aggregations, so Metabase rejects the query with a message. See compile.agg.median_gives_error. Use a measure with quantile() in the model."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.agg.min_field",
@@ -987,8 +987,8 @@
     },
     {
       "id": "mb.agg.percentile",
-      "status": "unsupported",
-      "reason": "The Cube template for ClickHouse has no PERCENTILE_CONT: Rewrite Error: Can't detect Cube query. The driver turns off :percentile-aggregations, so Metabase rejects the query with a message. Use a measure with quantile() in the model."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.agg.share",
@@ -2168,7 +2168,7 @@
     {
       "id": "semantic.drill_members_native",
       "status": "unsupported",
-      "reason": "Metabase has no column that lists the drill columns of a measure. Its drill-through uses all visible fields. The text in the description is the only place, see semantic.drill_members."
+      "reason": "Limit of Metabase v0.65.3.6: no object lists the drill columns of a measure. The drill to the rows of a group (src/metabase/lib/drill_thru/underlying_records.cljc) makes a query from the filters and the breakouts of the question, with each visible field of the table, and a driver has no hook in it. The text in the description is the only place, see semantic.drill_members."
     },
     {
       "id": "semantic.measure.min_on_time_column",
@@ -3162,13 +3162,13 @@
     },
     {
       "id": "compile.xray.field_all_cards_run",
-      "status": "partial",
-      "reason": "The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) reads two stages, see compile.join.total_of_dimension_refused. The check accepts the clear message of a form that two stages cannot give, or a number equal to the truth."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.xray.time_field_all_cards_run",
-      "status": "partial",
-      "reason": "The check compares each card with SQL truth. A card that adds up a dimension of a joined cube (sum and avg of users.lifetime_orders) reads two stages, see compile.join.total_of_dimension_refused. The check accepts the clear message of a form that two stages cannot give, or a number equal to the truth."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "compile.xray.typed_table_all_cards_run",
@@ -3313,7 +3313,7 @@
     {
       "id": "dimension.opt.propagate_filters_next_to_another_sub_query",
       "status": "partial",
-      "reason": "Cube with the Tesseract planner reads the first subquery for two sub_query dimensions with equal SQL when the query has a filter. The driver stops a query that groups by both, and raw rows show NULL in the later column. With other SQL, such as {orders.count} + 0, both work, and each is right alone, see dimension.opt.propagate_filters."
+      "reason": "Cube v1.8.20 with the Tesseract planner reads the first subquery for two sub_query dimensions with equal SQL when the query has a filter. The fix is a change of the planner in Rust, cube-js/cube#12502, so cube-clickhouse cannot hold it. The driver stops a query that groups by both, and raw rows show NULL in the later column. With other SQL, such as {orders.count} + 0, both work, and each is right alone, see dimension.opt.propagate_filters."
     },
     {
       "id": "measure.multi_stage.time_shift_no_bucket_limit",
@@ -4188,22 +4188,22 @@
     {
       "id": "metric.format.abbr",
       "status": "partial",
-      "reason": "Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+      "reason": "Limit of Metabase v0.65.3.6. Its formatNumber has the option compact for an abbreviated number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
     },
     {
       "id": "metric.format.abbr_1",
       "status": "partial",
-      "reason": "Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+      "reason": "Limit of Metabase v0.65.3.6. Its formatNumber has the option compact for an abbreviated number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
     },
     {
       "id": "metric.format.accounting",
       "status": "partial",
-      "reason": "Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+      "reason": "Limit of Metabase v0.65.3.6. Its formatNumber has the option negativeInParentheses for parentheses on a negative number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
     },
     {
       "id": "metric.format.accounting_0",
       "status": "partial",
-      "reason": "Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+      "reason": "Limit of Metabase v0.65.3.6. Its formatNumber has the option negativeInParentheses for parentheses on a negative number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
     },
     {
       "id": "metric.format.currency",
@@ -5492,8 +5492,8 @@
     },
     {
       "id": "preagg.type.rollup_lambda_after_the_batch_with_source",
-      "status": "partial",
-      "reason": "A run gives the truth or the error of cube-js/cube#12285, Stream query failed: aborted. The driver shows a clear message, and no number is wrong."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.type.rollup_lambda_filter_hit",
@@ -5512,8 +5512,8 @@
     },
     {
       "id": "preagg.type.rollup_lambda_over_the_batch_with_source",
-      "status": "partial",
-      "reason": "A run gives the truth or the error of cube-js/cube#12285, Stream query failed: aborted. The driver shows a clear message, and no number is wrong."
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "preagg.metabase.time_zone_one_bound_miss",
@@ -6869,6 +6869,331 @@
       "id": "zone.time_measure_repeated_hour_limit",
       "status": "partial",
       "reason": "The SQL API gives a time as text with no offset, so a value in the repeated hour reads as the first pass: 01:00-04:00 where the truth is 01:00-05:00 in New York. README lists this under Known wrong numbers."
+    },
+    {
+      "id": "measure.type.count_with_sql",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "dimension.opt.cross_cube_reference",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "cube.sql_function_of_another_cube",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "segment.public_false",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.segment",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "view.rolling_measure",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "join.legacy_relationship_name",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "segment.meta",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "hierarchy.level_of_a_joined_cube",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.text",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.integer",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.float",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.date",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.datetime_subtract",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.get_week_iso",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.get_week_us",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.get_day_of_week_iso",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.now",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.today",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.literal",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.in",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.not_in",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.exclude_hour_of_day",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.exclude_quarter_of_year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.not_date_between",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.during",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.relative_with_offset",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.relative_include_current",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.filter.inside",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.breakout.bin_default",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.filter_relative_date",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.filter_month_year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.filter_quarter_year",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.filter_string_contains",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.filter_boolean",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.filter_id",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.dashboard.filter_time_grouping",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.native.time_grouping_param",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.native.param_boolean",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.native.card_reference",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.export.xlsx",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.browse_collection",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.browse.list_models",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.browse.list_tables_search",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.browse.get_fields_values",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_query.expression",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_query.order_limit",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_query.explicit_join",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_query.two_stages",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_query.binning",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_query.validate_only",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.execute_sql.template_tag_values",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mcp.run_saved_question.parameters",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.host",
+      "status": "unsupported",
+      "reason": "Metabase writes this function as a regular expression with a lookbehind. ClickHouse reads a pattern with RE2, which has no lookbehind, and stock Cube has no form for a regular expression. The driver gives a message that tells to add a dimension with that SQL to the data model. See compile.expr.url_function_gets_a_clear_message."
+    },
+    {
+      "id": "mb.expr.domain",
+      "status": "unsupported",
+      "reason": "Metabase writes this function as a regular expression with a lookbehind. ClickHouse reads a pattern with RE2, which has no lookbehind, and stock Cube has no form for a regular expression. The driver gives a message that tells to add a dimension with that SQL to the data model. See compile.expr.url_function_gets_a_clear_message."
+    },
+    {
+      "id": "mb.expr.subdomain",
+      "status": "unsupported",
+      "reason": "Metabase writes this function as a regular expression with a lookbehind. ClickHouse reads a pattern with RE2, which has no lookbehind, and stock Cube has no form for a regular expression. The driver gives a message that tells to add a dimension with that SQL to the data model. See compile.expr.url_function_gets_a_clear_message."
+    },
+    {
+      "id": "mb.expr.path",
+      "status": "unsupported",
+      "reason": "Metabase writes this function as a regular expression with a lookbehind. ClickHouse reads a pattern with RE2, which has no lookbehind, and stock Cube has no form for a regular expression. The driver gives a message that tells to add a dimension with that SQL to the data model. See compile.expr.url_function_gets_a_clear_message."
+    },
+    {
+      "id": "mb.expr.split_part",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.regex_match_first",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "mb.expr.convert_timezone",
+      "status": "unsupported",
+      "reason": "The SQL API of Cube has no form for a time in another zone. The driver turns off :convert-timezone, so Metabase does not offer convertTimezone. The report time zone of Metabase works, see mb.report_timezone and zone.*."
+    },
+    {
+      "id": "compile.expr.url_function_gets_a_clear_message",
+      "status": "pass",
+      "reason": ""
+    },
+    {
+      "id": "measure.type.running_total",
+      "status": "unsupported",
+      "reason": "Cube v1.8.20 rejects the type when it compiles the model: measures.x.type must be one of [count, number, string, boolean, time, sum, avg, min, max, countDistinct, countDistinctApprox]. Use rolling_window with trailing: unbounded, see measure.rolling.unbounded."
+    },
+    {
+      "id": "mb.join.explicit_right",
+      "status": "unsupported",
+      "reason": "Cube joins are left joins from the cube where the join is in the data model. The driver turns off :right-join, so Metabase does not offer this join type. A left join and an inner join work, see mb.join.explicit_left and mb.join.explicit_inner."
+    },
+    {
+      "id": "mb.join.explicit_full",
+      "status": "unsupported",
+      "reason": "Cube joins are left joins from the cube where the join is in the data model. The driver turns off :full-join, so Metabase does not offer this join type. A left join and an inner join work, see mb.join.explicit_left and mb.join.explicit_inner."
+    },
+    {
+      "id": "graphql.api",
+      "status": "unsupported",
+      "reason": "The GraphQL API is another way for a client to read Cube. The driver reads the SQL API and /v1/meta, and no Metabase query shape maps to GraphQL."
     },
     {
       "id": "context.compile_context",
