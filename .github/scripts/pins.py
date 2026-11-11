@@ -15,6 +15,8 @@ from install_tools import TOOLS, asset_url
 USAGE = "usage: pins.py read | resolve | matrix | updates | set NAME VERSION | set-tool NAME TAG"
 ROOT = Path(__file__).resolve().parents[2]
 COMPOSE = ROOT / "dev" / "docker-compose.yml"
+# Overrides of COMPOSE that name an image of the same release, such as Cube Store. They must have the same pins.
+FOLLOWERS = [ROOT / "dev" / "docker-compose.production.yml"]
 # The files that state the current pins. The files in docs/ record what ran on a version, so a new pin does not change them.
 DOCS = ["AGENTS.md", "README.md", "CONTRIBUTING.md", ".claude"]
 IMAGES = {
@@ -40,6 +42,10 @@ def read_pins():
     absent = set(IMAGES) - set(pins)
     if absent:
         sys.exit(f"no pin for {sorted(absent)} in {COMPOSE}")
+    for path in FOLLOWERS:
+        for name, version in re.findall(r"\$\{(METABASE|CUBE|CLICKHOUSE)_VERSION:-([^}]+)\}", path.read_text()):
+            if pins[name.lower()] != version:
+                sys.exit(f"{path} has {name}_VERSION {version}, and {COMPOSE} has {pins[name.lower()]}")
     return pins
 
 
@@ -140,8 +146,9 @@ def set_pin(name, new):
     if not STABLE[name].match(new):
         sys.exit(f"{new} is not a stable version of {name}")
     old = read_pins()[name]
-    compose = COMPOSE.read_text()
-    COMPOSE.write_text(compose.replace(f"{name.upper()}_VERSION:-{old}", f"{name.upper()}_VERSION:-{new}"))
+    default = re.compile(re.escape(f"{name.upper()}_VERSION:-") + r"[^}]+")
+    for path in [COMPOSE, *FOLLOWERS]:
+        path.write_text(default.sub(f"{name.upper()}_VERSION:-{new}", path.read_text()))
     mention = re.compile(re.escape(old) + r"(?!\.?\d)")
     for path in doc_files():
         text = path.read_text()

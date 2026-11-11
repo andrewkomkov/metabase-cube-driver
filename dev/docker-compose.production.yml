@@ -5,7 +5,7 @@ services:
   clickhouse:
     ports: ["127.0.0.1:18123:8123"]
   cubestore:
-    image: cubejs/cubestore:${CUBE_VERSION:-v1.8.15}
+    image: cubejs/cubestore:${CUBE_VERSION:-v1.8.20}
     mem_limit: 1g
     environment:
       CUBESTORE_TELEMETRY: "false"
