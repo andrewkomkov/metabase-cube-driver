@@ -31,8 +31,8 @@ versions are Metabase `v0.65.3.6` and Cube `v1.8.20`.
   result is the last stream, not a promise. So `csvQuery` closes the ClickHouse client while
   the rows still come. The query fails with `Stream query failed: aborted`, or not, with the
   timing.
-- On the scratch Cube before the fix, the first two reads after a start failed. With the fix,
-  eight reads after four starts gave the truth.
+- On a scratch Cube with no dialect, four of six reads after three cold starts failed with
+  this error. With the fix, eight of eight reads after four cold starts gave the truth.
 - The dialect reads all rows first. Cube limits these rows with `maxSourceRowLimit`.
 
 ### restapi.compare_date_range
