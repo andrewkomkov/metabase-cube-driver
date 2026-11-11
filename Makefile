@@ -33,6 +33,20 @@ fuzz-native:
 production:
 	sh dev/review/production.sh $(ARGS)
 
+# The same stack and suite on the iMac, with Apple container in place of docker compose. See dev/container/README.md.
+.PHONY: up-imac down-imac reset-imac conformance-imac
+up-imac: package
+	sh dev/container/stack.sh up
+
+down-imac:
+	sh dev/container/stack.sh stop
+
+reset-imac:
+	sh dev/container/stack.sh reset
+
+conformance-imac:
+	STACK=container VARIANT="$(VARIANT)" sh conformance/run_isolated.sh $(ARGS)
+
 conformance-down:
 	cd dev && docker compose -f docker-compose.yml -f docker-compose.conformance.yml rm -sfv metabase-conformance
 	docker volume rm -f metabase-cube-driver_metabase-conformance-data

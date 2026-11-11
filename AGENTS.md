@@ -49,6 +49,7 @@ Use `git show v0.65.3.6:<path>` there, because its checkout is `master`. Do not 
 - `resources/metabase-plugin.yaml`: the plugin manifest.
 - `scripts/package.sh`: makes `dev/plugins/cube.metabase-driver.jar`.
 - `dev/`: the compose stack, the demo seed and the demo Cube model.
+- `dev/container/`: the same stack for Apple `container` on the iMac. See `dev/container/README.md`.
 - `conformance/`: the feature matrix and its runner.
 - `dev/review/`: the review grid. `make grid` runs each shape with its truth. See `dev/review/README.md`.
 
@@ -86,6 +87,20 @@ The iMac is the Mac the agents run on (`iMac-Andrei`). It is the second test mac
 - Put build output, caches and container data on `/Volumes/SanDisk2Tb/builds/metabase-cube-driver/`.
 - Run `df -h /System/Volumes/Data` before a large build. Stop and report if less than 10 GB is free.
 - Use the iMac when nettop is busy, low on disk, or another agent runs the suite there.
+
+`dev/container/stack.sh` runs the same services there, on the loopback addresses of the table above.
+
+| Command | Effect |
+| --- | --- |
+| `make up-imac` | Start the demo stack. |
+| `make down-imac` | Stop the containers. The data stays. |
+| `make reset-imac` | Remove the containers and their data. |
+| `make conformance-imac` | Run the suite on stock Cube and with `cube-clickhouse`. |
+
+- The containers have the names `mcd-SERVICE`. Change only containers, volumes and the network with the prefix `mcd`: other projects use Apple `container` on this Mac.
+- `make grid`, `make fuzz`, `make fuzz-native` and `make production` run on nettop only.
+- Commit a status from a run on the iMac only if nettop gives the same result.
+- The memory limits, the place of the data and the differences from docker compose are in `dev/container/README.md`.
 
 ## Rules for nettop
 

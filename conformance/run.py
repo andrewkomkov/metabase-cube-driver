@@ -59,6 +59,43 @@ BROWSER_URL = os.environ.get("BROWSER_URL", "http://127.0.0.1:9222").rstrip("/")
 CUBE_LEGACY = os.environ.get("CUBE_LEGACY_REST_URL", "http://127.0.0.1:4402").rstrip("/")
 CUBE_LEGACY_SECRET = "cube-legacy-dev-only-secret-0123456789"
 
+# compose is docker compose on nettop. container is Apple container on the iMac, where dev/container/stack.sh starts the services.
+STACK = os.environ.get("STACK") or "compose"
+if STACK not in ("compose", "container"):
+    sys.exit("error: STACK must be compose or container, not %r" % STACK)
+COMPOSE = ["docker", "compose", "-f", os.path.join(REPO, "dev", "docker-compose.yml")]
+
+
+def stack_container(service):
+    """The default name of the container of a service."""
+    return ("mcd-%s" if STACK == "container" else "metabase-cube-driver-%s-1") % service
+
+
+def stack_exec(service, argv):
+    """Run a command in the container of a service."""
+    head = ["container", "exec", stack_container(service)] if STACK == "container" else COMPOSE + ["exec", "-T", service]
+    return subprocess.run(head + argv, capture_output=True, text=True, timeout=120)
+
+
+def stack_logs(container):
+    """Read the full log of one container, by its name."""
+    return subprocess.run(["container" if STACK == "container" else "docker", "logs", container], capture_output=True, text=True, timeout=120)
+
+
+def stack_log_mark(service):
+    """Apple container cannot read a log from a point in time, so a check keeps the length of the log at its start."""
+    if STACK != "container":
+        return None
+    return len(stack_logs(stack_container(service)).stdout.splitlines())
+
+
+def stack_logs_since(service, start, mark):
+    """Read the log of a service from the start of a check. start is a time and mark is the result of stack_log_mark."""
+    if STACK == "container":
+        return "\n".join(stack_logs(stack_container(service)).stdout.splitlines()[mark:])
+    since = "%ds" % (time.time() - start + 1)
+    return subprocess.run(COMPOSE + ["logs", service, "--since", since], capture_output=True, text=True, timeout=120).stdout
+
 
 class Blocked(Exception):
     """The check ran and a limit of a version outside this repository stops the feature. The text is the reason."""
@@ -148,13 +185,11 @@ def http(method, url, body=None, headers=None, form=False):
 
 def ch(sql):
     """Run SQL on the demo ClickHouse. This is the only source of truth values."""
-    cmd = [
-        "docker", "compose", "-f", os.path.join(REPO, "dev", "docker-compose.yml"), "exec", "-T", "clickhouse",
+    p = stack_exec("clickhouse", [
         "clickhouse-client", "--user", "shop", "--password", "shop-dev-only", "--database", "shop",
         "--output_format_json_quote_64bit_integers=0", "--output_format_json_quote_decimals=0",
         "--format", "JSONCompact", "--query", sql,
-    ]
-    p = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    ])
     if p.returncode != 0:
         raise Fail("truth SQL failed: %s: %s" % (sql, p.stderr.strip()[:300]))
     return json.loads(p.stdout)["data"]
@@ -194,11 +229,7 @@ def _same(a, b, tol):
 
 def ch_write(sql):
     """Change the demo ClickHouse. A check that needs a change of data uses this, for a table of its own."""
-    cmd = [
-        "docker", "compose", "-f", os.path.join(REPO, "dev", "docker-compose.yml"), "exec", "-T", "clickhouse",
-        "clickhouse-client", "--user", "shop", "--password", "shop-dev-only", "--database", "shop", "--query", sql,
-    ]
-    p = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    p = stack_exec("clickhouse", ["clickhouse-client", "--user", "shop", "--password", "shop-dev-only", "--database", "shop", "--query", sql])
     if p.returncode != 0:
         raise Fail("SQL failed: %s: %s" % (sql, p.stderr.strip()[:300]))
 
@@ -4823,10 +4854,10 @@ def _(ctx):
         sec.person("carol@example.com").mbql("orders", agg=["m:orders.count"])
     except Fail:
         pass
-    container = os.environ.get("METABASE_CONTAINER", "metabase-cube-driver-metabase-1")
-    out = subprocess.run(["docker", "logs", container], capture_output=True, text=True, timeout=120)
+    container = os.environ.get("METABASE_CONTAINER") or stack_container("metabase")
+    out = stack_logs(container)
     if out.returncode != 0:
-        raise Fail("docker logs %s: %s" % (container, out.stderr[:200]))
+        raise Fail("logs %s: %s" % (container, out.stderr[:200]))
     log = out.stdout + out.stderr
     if "Cube" not in log and "cube" not in log:
         raise Fail("the log has no text about Cube, so this is the wrong container")
@@ -4836,10 +4867,10 @@ def _(ctx):
     if JWT.search(log):
         raise Fail("the Metabase log shows a JWT")
     # Cube writes the token of a request that it refuses to its own log. See docs/security.md. Such a token must be useless.
-    cube_container = os.environ.get("CUBE_SECURE_CONTAINER", "metabase-cube-driver-cube-secure-1")
-    out = subprocess.run(["docker", "logs", cube_container], capture_output=True, text=True, timeout=120)
+    cube_container = os.environ.get("CUBE_SECURE_CONTAINER") or stack_container("cube-secure")
+    out = stack_logs(cube_container)
     if out.returncode != 0:
-        raise Fail("docker logs %s: %s" % (cube_container, out.stderr[:200]))
+        raise Fail("logs %s: %s" % (cube_container, out.stderr[:200]))
     cube_log = out.stdout + out.stderr
     assert_no_secret(cube_log, "the Cube log")
     for token in JWT.findall(cube_log):
@@ -5507,11 +5538,11 @@ def other_database_state(ctx, db_id):
 def _(ctx):
     """The driver adds a topic to the Metabase events. A sync of another database goes on, and the driver writes nothing to it."""
     db, _meta, _table, _field = other_database(ctx)
-    container = os.environ.get("METABASE_CONTAINER", "metabase-cube-driver-metabase-1")
+    container = os.environ.get("METABASE_CONTAINER") or stack_container("metabase")
     finished = "FINISHED: Sync metadata for %s Database %d" % (db["engine"], db["id"])
 
     def log():
-        return subprocess.run(["docker", "logs", container], capture_output=True, text=True, timeout=120).stdout
+        return stack_logs(container).stdout
 
     before = other_database_state(ctx, db["id"])
     runs = log().count(finished)
@@ -8372,9 +8403,8 @@ PA_APPROX_MODEL = """cubes:
 """
 
 
-def pa_refresh_errors(since):
-    p = subprocess.run(["docker", "compose", "-f", os.path.join(REPO, "dev", "docker-compose.yml"), "logs", "cube", "--since", since], capture_output=True, text=True, timeout=120)
-    return p.stdout.count("Refresh Scheduler Error")
+def pa_refresh_errors(start, mark):
+    return stack_logs_since("cube", start, mark).count("Refresh Scheduler Error")
 
 
 @check("preagg.type.count_distinct_approx_stops")
@@ -8382,6 +8412,7 @@ def _(ctx):
     """Cube has no sketch for ClickHouse. A rollup of this type stops each query on the measure, and each run of the refresh worker.
     So this check adds the rollup for a short time. The live model has none, because it stops the refresh of each other rollup too."""
     start = time.time()
+    mark = stack_log_mark("cube")
     with open(PROBE_FILE, "w", encoding="utf-8") as f:
         f.write(PA_APPROX_MODEL)
     try:
@@ -8399,7 +8430,7 @@ def _(ctx):
         pa_expect_used(res, [], other)
         assert_rows(pa_rows(res, other), ch("SELECT status, count() FROM orders GROUP BY 1"))
         for _ in range(45):
-            if pa_refresh_errors("%ds" % (time.time() - start + 1)):
+            if pa_refresh_errors(start, mark):
                 return
             time.sleep(2)
         raise Fail("the refresh worker now goes on with this rollup. Give this entry its full status")
@@ -8725,6 +8756,7 @@ def _(ctx):
     """The dialect builds the smallest form of the docs. Stock Cube stops each query on it, and each run of the refresh worker, so the live model has no such rollup."""
     query = pa_query(["pa_no_index.revenue"], ["pa_no_index.status"])
     start = time.time()
+    mark = stack_log_mark("cube")
     with open(PROBE_FILE, "w", encoding="utf-8") as f:
         f.write(PA_NO_INDEX_MODEL)
     try:
@@ -8738,7 +8770,7 @@ def _(ctx):
         if status == 200 or "without indexes" not in text:
             raise Fail("stock Cube changed: %s" % text[:200])
         for _ in range(45):
-            if pa_refresh_errors("%ds" % (time.time() - start + 1)):
+            if pa_refresh_errors(start, mark):
                 return
             time.sleep(2)
         raise Fail("the refresh worker of stock Cube now goes on with this rollup")

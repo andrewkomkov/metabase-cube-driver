@@ -4,11 +4,19 @@
 
 ## Run
 
-Run the suite on nettop, because it reads the truth with `docker compose exec`.
+Run the suite on nettop, where it reads the truth with `docker compose exec`:
 
 ```sh
 make conformance
 ```
+
+Or run it on the iMac, where it reads the truth with `container exec`:
+
+```sh
+make conformance-imac
+```
+
+The two commands take the same `VARIANT` and `ARGS`. On the iMac, `dev/container/stack.sh` starts the services with Apple `container`. See [`dev/container/README.md`](../dev/container/README.md). The text below names the compose objects. On the iMac the container is `mcd-metabase-conformance` and the volume is `mcd-metabase-conformance-data`. A run on the iMac stops the service `metabase`, because the two Metabase services do not fit in its memory.
 
 This command runs the suite twice, on stock Cube and on Cube with [`cube-clickhouse`](../cube-clickhouse/README.md), and prints a coverage line for each. `make conformance VARIANT=on` or `VARIANT=off` runs one. At the end the demo stack has the dialect. `status` in `features.yaml` is the result with the dialect, and `status_stock` is the result on stock Cube.
 
@@ -55,7 +63,8 @@ METABASE_ADMIN_PASSWORD=... python3 conformance/run.py
 | `CUBE_SQL_API_HOST`, `CUBE_SQL_API_PORT` | `127.0.0.1`, `15433`. The runner uses this address for `EXPLAIN`. |
 | `CUBE_SECURE_SQL_HOST`, `CUBE_SECURE_SQL_PORT` | `cube-secure`, `15432`. Metabase uses this address for the `security.*` checks. |
 | `CUBE_SECURE_REST_INTERNAL_URL` | `http://cube-secure:4000`. Metabase uses this address. |
-| `METABASE_CONTAINER` | `metabase-cube-driver-metabase-1`. The runner reads its log for `security.secret.not_in_logs`. |
+| `STACK` | `compose`. `container` tells the runner to call Apple `container` in place of `docker`. `make conformance-imac` sets it. |
+| `METABASE_CONTAINER` | `metabase-cube-driver-metabase-1`, or `mcd-metabase` with `STACK=container`. The runner reads its log for `security.secret.not_in_logs`. |
 | `CUBE_CLICKHOUSE_FIXES` | `on`. `off` tells the runner that this stack is stock Cube. `dialect.variant` fails if this is false. |
 | `METABASE_INTERNAL_URL` | `http://metabase:3000`. The browser uses this address. |
 | `MAIL_URL` | `http://127.0.0.1:8025`. The runner reads the mail catcher here. |
