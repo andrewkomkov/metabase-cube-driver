@@ -8659,3 +8659,345 @@
   check: zone.time_measure_repeated_hour_limit
   cap: partial
   reason: "The SQL API gives a time as text with no offset, so a value in the repeated hour reads as the first pass: 01:00-04:00 where the truth is 01:00-05:00 in New York. README lists this under Known wrong numbers."
+- id: measure.type.count_with_sql
+  area: cube.measures
+  title: "measure type count with sql"
+  status: todo
+  status_stock: todo
+  check: measure.type.count_with_sql
+- id: dimension.opt.cross_cube_reference
+  area: cube.dimensions
+  title: "dimension opt cross cube reference"
+  status: todo
+  status_stock: todo
+  check: dimension.opt.cross_cube_reference
+- id: cube.sql_function_of_another_cube
+  area: cube.cubes
+  title: "cube sql function of another cube"
+  status: todo
+  status_stock: todo
+  check: cube.sql_function_of_another_cube
+- id: segment.public_false
+  area: cube.segments
+  title: "segment public false"
+  status: todo
+  status_stock: todo
+  check: segment.public_false
+- id: view.segment
+  area: cube.views
+  title: "view segment"
+  status: todo
+  status_stock: todo
+  check: view.segment
+- id: view.rolling_measure
+  area: cube.views
+  title: "view rolling measure"
+  status: todo
+  status_stock: todo
+  check: view.rolling_measure
+- id: join.legacy_relationship_name
+  area: cube.joins
+  title: "join legacy relationship name"
+  status: todo
+  status_stock: todo
+  check: join.legacy_relationship_name
+- id: segment.meta
+  area: cube.segments
+  title: "segment meta"
+  status: todo
+  status_stock: todo
+  check: segment.meta
+- id: hierarchy.level_of_a_joined_cube
+  area: cube.hierarchies
+  title: "hierarchy level of a joined cube"
+  status: todo
+  status_stock: todo
+  check: hierarchy.level_of_a_joined_cube
+- id: mb.expr.text
+  area: metabase.expressions
+  title: "expr text"
+  status: todo
+  status_stock: todo
+  check: mb.expr.text
+- id: mb.expr.integer
+  area: metabase.expressions
+  title: "expr integer"
+  status: todo
+  status_stock: todo
+  check: mb.expr.integer
+- id: mb.expr.float
+  area: metabase.expressions
+  title: "expr float"
+  status: todo
+  status_stock: todo
+  check: mb.expr.float
+- id: mb.expr.date
+  area: metabase.expressions
+  title: "expr date"
+  status: todo
+  status_stock: todo
+  check: mb.expr.date
+- id: mb.expr.datetime_subtract
+  area: metabase.expressions
+  title: "expr datetime subtract"
+  status: todo
+  status_stock: todo
+  check: mb.expr.datetime_subtract
+- id: mb.expr.get_week_iso
+  area: metabase.expressions
+  title: "expr get week iso"
+  status: todo
+  status_stock: todo
+  check: mb.expr.get_week_iso
+- id: mb.expr.get_week_us
+  area: metabase.expressions
+  title: "expr get week us"
+  status: todo
+  status_stock: todo
+  check: mb.expr.get_week_us
+- id: mb.expr.get_day_of_week_iso
+  area: metabase.expressions
+  title: "expr get day of week iso"
+  status: todo
+  status_stock: todo
+  check: mb.expr.get_day_of_week_iso
+- id: mb.expr.now
+  area: metabase.expressions
+  title: "expr now"
+  status: todo
+  status_stock: todo
+  check: mb.expr.now
+- id: mb.expr.today
+  area: metabase.expressions
+  title: "expr today"
+  status: todo
+  status_stock: todo
+  check: mb.expr.today
+- id: mb.expr.literal
+  area: metabase.expressions
+  title: "expr literal"
+  status: todo
+  status_stock: todo
+  check: mb.expr.literal
+- id: mb.expr.host
+  area: metabase.expressions
+  title: "expr host"
+  status: todo
+  status_stock: todo
+  check: mb.expr.host
+- id: mb.expr.domain
+  area: metabase.expressions
+  title: "expr domain"
+  status: todo
+  status_stock: todo
+  check: mb.expr.domain
+- id: mb.expr.path
+  area: metabase.expressions
+  title: "expr path"
+  status: todo
+  status_stock: todo
+  check: mb.expr.path
+- id: mb.expr.split_part
+  area: metabase.expressions
+  title: "expr split part"
+  status: todo
+  status_stock: todo
+  check: mb.expr.split_part
+- id: mb.filter.in
+  area: metabase.filters
+  title: "filter in"
+  status: todo
+  status_stock: todo
+  check: mb.filter.in
+- id: mb.filter.not_in
+  area: metabase.filters
+  title: "filter not in"
+  status: todo
+  status_stock: todo
+  check: mb.filter.not_in
+- id: mb.filter.exclude_hour_of_day
+  area: metabase.filters
+  title: "filter exclude hour of day"
+  status: todo
+  status_stock: todo
+  check: mb.filter.exclude_hour_of_day
+- id: mb.filter.exclude_quarter_of_year
+  area: metabase.filters
+  title: "filter exclude quarter of year"
+  status: todo
+  status_stock: todo
+  check: mb.filter.exclude_quarter_of_year
+- id: mb.filter.not_date_between
+  area: metabase.filters
+  title: "filter not date between"
+  status: todo
+  status_stock: todo
+  check: mb.filter.not_date_between
+- id: mb.filter.during
+  area: metabase.filters
+  title: "filter during"
+  status: todo
+  status_stock: todo
+  check: mb.filter.during
+- id: mb.filter.relative_with_offset
+  area: metabase.filters
+  title: "filter relative with offset"
+  status: todo
+  status_stock: todo
+  check: mb.filter.relative_with_offset
+- id: mb.filter.relative_include_current
+  area: metabase.filters
+  title: "filter relative include current"
+  status: todo
+  status_stock: todo
+  check: mb.filter.relative_include_current
+- id: mb.filter.inside
+  area: metabase.filters
+  title: "filter inside"
+  status: todo
+  status_stock: todo
+  check: mb.filter.inside
+- id: mb.breakout.bin_default
+  area: metabase.breakout
+  title: "breakout bin default"
+  status: todo
+  status_stock: todo
+  check: mb.breakout.bin_default
+- id: mb.dashboard.filter_relative_date
+  area: metabase.dashboards
+  title: "dashboard filter relative date"
+  status: todo
+  status_stock: todo
+  check: mb.dashboard.filter_relative_date
+- id: mb.dashboard.filter_month_year
+  area: metabase.dashboards
+  title: "dashboard filter month year"
+  status: todo
+  status_stock: todo
+  check: mb.dashboard.filter_month_year
+- id: mb.dashboard.filter_quarter_year
+  area: metabase.dashboards
+  title: "dashboard filter quarter year"
+  status: todo
+  status_stock: todo
+  check: mb.dashboard.filter_quarter_year
+- id: mb.dashboard.filter_string_contains
+  area: metabase.dashboards
+  title: "dashboard filter string contains"
+  status: todo
+  status_stock: todo
+  check: mb.dashboard.filter_string_contains
+- id: mb.dashboard.filter_boolean
+  area: metabase.dashboards
+  title: "dashboard filter boolean"
+  status: todo
+  status_stock: todo
+  check: mb.dashboard.filter_boolean
+- id: mb.dashboard.filter_id
+  area: metabase.dashboards
+  title: "dashboard filter id"
+  status: todo
+  status_stock: todo
+  check: mb.dashboard.filter_id
+- id: mb.dashboard.filter_time_grouping
+  area: metabase.dashboards
+  title: "dashboard filter time grouping"
+  status: todo
+  status_stock: todo
+  check: mb.dashboard.filter_time_grouping
+- id: mb.native.time_grouping_param
+  area: metabase.native
+  title: "native time grouping param"
+  status: todo
+  status_stock: todo
+  check: mb.native.time_grouping_param
+- id: mb.native.param_boolean
+  area: metabase.native
+  title: "native param boolean"
+  status: todo
+  status_stock: todo
+  check: mb.native.param_boolean
+- id: mb.native.card_reference
+  area: metabase.native
+  title: "native card reference"
+  status: todo
+  status_stock: todo
+  check: mb.native.card_reference
+- id: mb.export.xlsx
+  area: metabase.export
+  title: "export xlsx"
+  status: todo
+  status_stock: todo
+  check: mb.export.xlsx
+- id: mcp.browse_collection
+  area: mcp
+  title: "mcp browse collection"
+  status: todo
+  status_stock: todo
+  check: mcp.browse_collection
+- id: mcp.browse.list_models
+  area: mcp
+  title: "mcp browse list models"
+  status: todo
+  status_stock: todo
+  check: mcp.browse.list_models
+- id: mcp.browse.list_tables_search
+  area: mcp
+  title: "mcp browse list tables search"
+  status: todo
+  status_stock: todo
+  check: mcp.browse.list_tables_search
+- id: mcp.browse.get_fields_values
+  area: mcp
+  title: "mcp browse get fields values"
+  status: todo
+  status_stock: todo
+  check: mcp.browse.get_fields_values
+- id: mcp.execute_query.expression
+  area: mcp
+  title: "mcp execute query expression"
+  status: todo
+  status_stock: todo
+  check: mcp.execute_query.expression
+- id: mcp.execute_query.order_limit
+  area: mcp
+  title: "mcp execute query order limit"
+  status: todo
+  status_stock: todo
+  check: mcp.execute_query.order_limit
+- id: mcp.execute_query.explicit_join
+  area: mcp
+  title: "mcp execute query explicit join"
+  status: todo
+  status_stock: todo
+  check: mcp.execute_query.explicit_join
+- id: mcp.execute_query.two_stages
+  area: mcp
+  title: "mcp execute query two stages"
+  status: todo
+  status_stock: todo
+  check: mcp.execute_query.two_stages
+- id: mcp.execute_query.binning
+  area: mcp
+  title: "mcp execute query binning"
+  status: todo
+  status_stock: todo
+  check: mcp.execute_query.binning
+- id: mcp.execute_query.validate_only
+  area: mcp
+  title: "mcp execute query validate only"
+  status: todo
+  status_stock: todo
+  check: mcp.execute_query.validate_only
+- id: mcp.execute_sql.template_tag_values
+  area: mcp
+  title: "mcp execute sql template tag values"
+  status: todo
+  status_stock: todo
+  check: mcp.execute_sql.template_tag_values
+- id: mcp.run_saved_question.parameters
+  area: mcp
+  title: "mcp run saved question parameters"
+  status: todo
+  status_stock: todo
+  check: mcp.run_saved_question.parameters

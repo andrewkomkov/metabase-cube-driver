@@ -10,6 +10,7 @@ import datetime as dt
 import hashlib
 import hmac
 import html.parser
+import io
 import json
 import os
 import re
@@ -23,6 +24,8 @@ import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
+from xml.etree import ElementTree
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -9684,6 +9687,358 @@ def _(ctx):
 
 
 zone_day.register(sys.modules[__name__])
+
+
+# ----------------------------------------------------------------- model options, query shapes and MCP arguments with no other check
+
+LED = "ledger"
+LED_USERS = "orders o JOIN users u ON o.user_id = u.id"
+
+Q("measure.type.count_with_sql", LED, "SELECT u.city, countIf(o.status != 'completed') FROM %s GROUP BY 1" % LED_USERS,
+  agg=["m:ledger.open_entries"], by=["d:ledger.holder_city"])
+Q("dimension.opt.cross_cube_reference", LED, "SELECT u.city, count(), sum(o.amount) FROM %s GROUP BY 1" % LED_USERS,
+  agg=["m:ledger.entries", "m:ledger.booked_amount"], by=["d:ledger.holder_city"])
+Q("cube.sql_function_of_another_cube", "ledger_fees", "SELECT 'fee', count(), toDecimal64(count(), 2) FROM orders",
+  agg=["m:ledger_fees.fee_rows", "m:ledger_fees.fee_total"], by=["d:ledger_fees.method"])
+Q("segment.public_false", LED, CNT_O, agg=["m:ledger.entries"], post=expect_hidden("ledger", "audit_only"))
+Q("view.segment", "ledger_view", "SELECT u.state, count() FROM %s WHERE o.%s GROUP BY 1" % (LED_USERS, PAID),
+  agg=["m:ledger_view.entries"], by=["d:ledger_view.users_state"], where=["s:ledger_view.settled"])
+Q("view.rolling_measure", "ledger_view",
+  "SELECT d, sumIf(o.amount, o.created_at >= d - INTERVAL 6 DAY AND o.created_at < d + INTERVAL 1 DAY) "
+  "FROM (SELECT toDateTime('2025-03-03', 'UTC') + toIntervalDay(number) AS d FROM numbers(3)) AS w CROSS JOIN orders o GROUP BY d ORDER BY d",
+  ordered=True, agg=["m:ledger_view.booked_trailing_7d"], by=["d:ledger_view.booked_at@day"],
+  where=[["between", "d:ledger_view.booked_at", "2025-03-03", "2025-03-05"]], order=[["asc", "d:ledger_view.booked_at@day"]])
+
+
+@check("join.legacy_relationship_name")
+def _(ctx):
+    """belongs_to is many_to_one, so the join gives a foreign key and a sum with no fan-out."""
+    if ctx.mb.fk_field(LED, "users")["name"] != "user_id":
+        raise Fail("the foreign key of ledger to users is not user_id")
+    assert_rows(ctx.mb.mbql(LED, agg=["m:ledger.booked_amount"], by=["d:ledger>users.state"])["rows"],
+                ch("SELECT u.state, sum(o.amount) FROM %s GROUP BY 1" % LED_USERS))
+
+
+@check("segment.meta")
+def _(ctx):
+    seg = ctx.mb.entity(ctx.mb.segments, LED, "settled")
+    if not seg or "Use for cash that arrived." not in (seg.get("description") or ""):
+        raise Fail("the segment settled has no meta text: %s" % str(seg)[:300])
+    assert_rows(ctx.mb.mbql(LED, agg=["m:ledger.entries"], where=[["segment", seg["id"]]])["rows"], ch("SELECT count() FROM orders WHERE %s" % PAID))
+
+
+@check("hierarchy.level_of_a_joined_cube")
+def _(ctx):
+    """The text names the cube of a level that this table has no column for, and a query by the two levels reads the join."""
+    text = ctx.mb.table(LED).get("description") or ""
+    if "Holder place: users.state > holder_city" not in text:
+        raise Fail("the description of ledger has no hierarchy with users.state: %r" % text[:400])
+    assert_rows(ctx.mb.mbql(LED, agg=["m:ledger.entries"], by=["d:ledger>users.state", "d:ledger.holder_city"])["rows"],
+                ch("SELECT u.state, u.city, count() FROM %s GROUP BY 1, 2" % LED_USERS))
+
+
+# ----- Metabase: expressions on raw rows. Sixty rows, so that a wrong week or day shows.
+
+_URL = "d:orders.invoice_url"
+_URL_SQL = "concat('https://example.com/invoice/', toString(id))"
+for _name, _clause, _sql in [
+    ("text", ["text", QTY], "toString(quantity)"),
+    ("integer", ["integer", ["text", QTY]], "toInt64(toString(quantity))"),
+    ("float", ["float", ["text", QTY]], "toFloat64(toString(quantity))"),
+    ("date", ["date", CRT], "toDate(created_at)"),
+    ("datetime_subtract", ["datetime-subtract", CRT, 1, "month"], "created_at - INTERVAL 1 MONTH"),
+    ("get_week_iso", ["get-week", CRT, "iso"], "toISOWeek(created_at)"),
+    ("get_week_us", ["get-week", CRT, "us"], "toWeek(created_at, 8)"),
+    ("get_day_of_week_iso", ["get-day-of-week", CRT, "iso"], "toDayOfWeek(created_at)"),
+    ("now", ["datetime-diff", CRT, ["now"], "day"], "dateDiff('day', created_at, now('UTC'))"),
+    ("today", ["datetime-diff", CRT, ["today"], "day"], "dateDiff('day', created_at, now('UTC'))"),
+    ("literal", ["value", 5, {"base_type": "type/Integer", "effective_type": "type/Integer"}], "5"),
+    ("host", ["host", _URL], "domain(%s)" % _URL_SQL),
+    ("domain", ["domain", _URL], "splitByChar('.', domain(%s))[1]" % _URL_SQL),
+    ("path", ["path", _URL], "path(%s)" % _URL_SQL),
+    ("split_part", ["split-part", _URL, "/", 4], "splitByChar('/', %s)[4]" % _URL_SQL),
+]:
+    Q("mb.expr.%s" % _name, ORD, "SELECT id, %s FROM orders WHERE id BETWEEN 1 AND 60 ORDER BY id" % _sql, ordered=True,
+      fields=["d:orders.id", ["expression", _name]], exprs={_name: _clause}, where=[["between", "d:orders.id", 1, 60]], order=[["asc", "d:orders.id"]])
+
+# ----- Metabase: filters
+
+# Months from October 2025 to this month. The demo data ends in December 2025, so each range below keeps a part of the rows.
+_MONTHS = (dt.date.today().year - 2025) * 12 + dt.date.today().month - 10
+_THIS_MONTH = "toStartOfMonth(today())"
+for _fid, _clause, _sql in [
+    ("in", ["in", QTY, 1, 3], "quantity IN (1, 3)"),
+    ("not_in", ["not-in", QTY, 1, 3], "quantity NOT IN (1, 3)"),
+    ("exclude_hour_of_day", ["!=", CRT + "@hour-of-day", 3, 4], "toHour(created_at) NOT IN (3, 4)"),
+    ("exclude_quarter_of_year", ["!=", CRT + "@quarter-of-year", 1], "toQuarter(created_at) != 1"),
+    ("not_date_between", ["not", ["between", CRT, "2025-02-01", "2025-02-28"]], "NOT (toDate(created_at) BETWEEN '2025-02-01' AND '2025-02-28')"),
+    ("during", ["during", CRT, "2025-02-03", "day"], "toDate(created_at) = '2025-02-03'"),
+    ("relative_with_offset", ["relative-time-interval", CRT, -3, "month", -_MONTHS, "month"],
+     "created_at >= addMonths(%s, %d) AND created_at < addMonths(%s, %d)" % (_THIS_MONTH, -_MONTHS - 3, _THIS_MONTH, -_MONTHS)),
+    ("relative_include_current", ["time-interval", CRT, -_MONTHS, "month", {"include-current": True}],
+     "created_at >= addMonths(%s, %d)" % (_THIS_MONTH, -_MONTHS)),
+]:
+    def _run(ctx, _clause=_clause, _sql=_sql):
+        want = ch("SELECT count() FROM orders WHERE %s" % _sql)
+        if want[0][0] in (0, ch(CNT_O)[0][0]):
+            raise Fail("the filter keeps %s rows, so the check shows nothing" % want[0][0])
+        assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.count"], where=[_clause])["rows"], want)
+    check("mb.filter.%s" % _fid)(_run)
+
+Q("mb.filter.inside", "users", "SELECT city, count() FROM users WHERE latitude BETWEEN 35 AND 45 AND longitude BETWEEN -100 AND -80 GROUP BY 1",
+  agg=["m:users.count"], by=["d:users.city"], where=[["inside", GEO[0], GEO[1], 45, -100, 35, -80]])
+
+
+@check("mb.breakout.bin_default")
+def _(ctx):
+    """Auto bin. Metabase chooses the width and reports it. The truth puts each row in a bin of that width."""
+    ref = ["field", ctx.mb.field(ORD, "amount_dim")["id"], {"binning": {"strategy": "default"}}]
+    data = ctx.mb.raw({"source-table": ctx.mb.table(ORD)["id"], "aggregation": [["count"]], "breakout": [ref]})
+    info = data["cols"][0].get("binning_info") or {}
+    width, low = info.get("bin_width"), info.get("min_value")
+    if not width or low is None or len(data["rows"]) < 2:
+        raise Fail("auto bin returned %d rows, with binning_info %s" % (len(data["rows"]), info))
+    assert_rows(data["rows"], ch("SELECT %r + floor((toFloat64(amount) - %r) / %r) * %r AS b, count() FROM orders GROUP BY b" % (low, low, width, width)))
+
+
+# ----- Metabase: dashboard filters of each other type
+
+
+@check("mb.dashboard.filter_relative_date")
+def _(ctx):
+    dash, target = dash_with_param(ctx, "relative", "date/relative", "date", CRT)
+    assert_rows(run_param(ctx, dash, target, "date/relative", "past%ddays" % PAST_DAYS), past_truth())
+
+
+@check("mb.dashboard.filter_month_year")
+def _(ctx):
+    dash, target = dash_with_param(ctx, "month", "date/month-year", "date", CRT)
+    assert_rows(run_param(ctx, dash, target, "date/month-year", "2025-02"), ch(FEB))
+
+
+@check("mb.dashboard.filter_quarter_year")
+def _(ctx):
+    dash, target = dash_with_param(ctx, "quarter", "date/quarter-year", "date", CRT)
+    assert_rows(run_param(ctx, dash, target, "date/quarter-year", "Q2-2025"),
+                ch("SELECT count() FROM orders WHERE toStartOfQuarter(created_at) = '2025-04-01'"))
+
+
+@check("mb.dashboard.filter_string_contains")
+def _(ctx):
+    dash, target = dash_with_param(ctx, "contains", "string/contains", "string", STA)
+    assert_rows(run_param(ctx, dash, target, "string/contains", ["plet"]), ch("SELECT count() FROM orders WHERE status LIKE '%plet%'"))
+
+
+@check("mb.dashboard.filter_boolean")
+def _(ctx):
+    dash, target = dash_with_param(ctx, "boolean", "boolean/=", "boolean", "d:orders.is_paid")
+    assert_rows(run_param(ctx, dash, target, "boolean/=", [True]), ch("SELECT count() FROM orders WHERE %s" % PAID))
+    assert_rows(run_param(ctx, dash, target, "boolean/=", [False]), ch("SELECT count() FROM orders WHERE NOT (%s)" % PAID))
+
+
+@check("mb.dashboard.filter_id")
+def _(ctx):
+    dash, target = dash_with_param(ctx, "id", "id", "id", "d:orders.user_id")
+    assert_rows(run_param(ctx, dash, target, "id", [7, 8]), ch("SELECT count() FROM orders WHERE user_id IN (7, 8)"))
+
+
+@check("mb.dashboard.filter_time_grouping")
+def _(ctx):
+    """The parameter replaces the unit of the breakout, so one card shows months or quarters."""
+    card = ctx.mb.mbql_card("dash unit", ORD, agg=["m:orders.count"], by=[CRT + "@month"])
+    param = {"id": "p1", "name": "Unit", "slug": "unit", "type": "temporal-unit", "sectionId": "temporal-unit"}
+    target = ["dimension", ctx.mb.ref(CRT + "@month"), {"stage-number": 0}]
+    dash = ctx.mb.dashboard("unit", [param], [(card["id"], [("p1", target)])])
+    for unit, sql in (("quarter", "toStartOfQuarter(created_at)"), ("year", "toStartOfYear(created_at)")):
+        rows = ctx.mb.run_dashcard(dash, 0, [{"id": "p1", "type": "temporal-unit", "value": unit, "target": target}])["rows"]
+        assert_rows(rows, ch("SELECT %s, count() FROM orders GROUP BY 1" % sql), label=unit)
+
+
+# ----- Metabase: native variables of each other type
+
+
+@check("mb.native.time_grouping_param")
+def _(ctx):
+    tags = tag("unit", "temporal-unit", dimension=["field", ctx.mb.field(ORD, "created_at")["id"], None])
+    sql = "SELECT {{unit}} AS t, MEASURE(count) AS n FROM orders GROUP BY 1"
+    for unit, truth in (("month", "toStartOfMonth(created_at)"), ("year", "toStartOfYear(created_at)")):
+        data = ctx.mb.native(sql, tags=tags, parameters=[{"type": "temporal-unit", "target": ["dimension", ["template-tag", "unit"]], "value": unit}])
+        assert_rows(data["rows"], ch("SELECT %s, count() FROM orders GROUP BY 1" % truth), label=unit)
+
+
+N("mb.native.param_boolean", "SELECT MEASURE(count) AS n FROM orders WHERE is_paid = {{b}}", "SELECT count() FROM orders WHERE %s" % PAID,
+  tags=tag("b", "boolean"), parameters=[{"type": "boolean/=", "target": ["variable", ["template-tag", "b"]], "value": [True]}])
+
+
+@check("mb.native.card_reference")
+def _(ctx):
+    """{{#id}} puts the SQL of a saved question into the text as a subquery."""
+    inner = ctx.mb.card("native source", {"database": ctx.mb.need_db(), "type": "native",
+                                          "native": {"query": "SELECT status AS status, MEASURE(count) AS n FROM orders GROUP BY 1", "template-tags": {}}})
+    name = "#%d" % inner["id"]
+    tags = {name: {"id": "ref", "name": name, "display-name": name, "type": "card", "card-id": inner["id"]}}
+    data = ctx.mb.native("SELECT status, n FROM {{%s}} AS c" % name, tags=tags)
+    assert_rows(data["rows"], ch(STATUS_CNT))
+
+
+# ----- Metabase: export to a spreadsheet
+
+
+def xlsx_rows(blob):
+    """The rows of the first sheet. The standard library reads the archive and the XML."""
+    ns = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
+    book = zipfile.ZipFile(io.BytesIO(blob))
+    shared = []
+    if "xl/sharedStrings.xml" in book.namelist():
+        shared = ["".join(t.text or "" for t in si.iter(ns + "t")) for si in ElementTree.fromstring(book.read("xl/sharedStrings.xml")).iter(ns + "si")]
+    rows = []
+    for row in ElementTree.fromstring(book.read("xl/worksheets/sheet1.xml")).iter(ns + "row"):
+        cells = []
+        for c in row.iter(ns + "c"):
+            v = c.find(ns + "v")
+            if c.get("t") == "s":
+                cells.append(shared[int(v.text)])
+            elif c.get("t") == "inlineStr":
+                cells.append("".join(t.text or "" for t in c.iter(ns + "t")))
+            else:
+                cells.append(float(v.text) if v is not None else None)
+        rows.append(cells)
+    return rows
+
+
+@check("mb.export.xlsx")
+def _(ctx):
+    query = {"database": ctx.mb.need_db(), "type": "query", "query": ctx.mb.inner(ORD, agg=["m:orders.count"], by=[STA], order=[["asc", STA]])}
+    req = urllib.request.Request(MB + "/api/dataset/xlsx", data=urllib.parse.urlencode({"query": json.dumps(query)}).encode(), method="POST",
+                                 headers={"X-Metabase-Session": ctx.mb.sid, "Content-Type": "application/x-www-form-urlencoded"})
+    try:
+        blob = urllib.request.urlopen(req, timeout=HTTP_TIMEOUT).read()
+    except (urllib.error.URLError, OSError) as e:
+        raise Fail("export xlsx: %s" % e)
+    if blob[:2] != b"PK":
+        raise Fail("export xlsx is no archive: %r" % blob[:200])
+    assert_rows(xlsx_rows(blob)[1:], ch(STATUS_CNT))
+
+
+# ----- MCP: the tools and arguments with no other check
+
+
+def mcp_ids(reply):
+    """The ids of the rows of a list reply."""
+    rows = (reply.get("data") or reply.get("items") or []) if isinstance(reply, dict) else reply
+    return [r.get("id") for r in rows if isinstance(r, dict)]
+
+
+@check("mcp.browse_collection")
+def _(ctx):
+    """An agent finds a saved question from its collection, with no search, and runs it."""
+    card = ctx.mb.mbql_card("mcp browse collection", ORD, agg=["m:orders.revenue"], by=[STA])
+    reply = ctx.mcp.call("browse_collection", id=ctx.mb.collection(), type=["question"], limit=200)
+    if card["id"] not in mcp_ids(reply):
+        raise Fail("browse_collection does not list the question %d: %s" % (card["id"], str(reply)[:300]))
+    assert_rows(ctx.mcp.call("run_saved_question", id=card["id"])["rows"], ch(STATUS_REV))
+
+
+@check("mcp.browse.list_models")
+def _(ctx):
+    model = card_of(ctx, "mcp list models", ctx.mb.inner(ORD, fields=["d:orders.id", STA, "d:orders.amount_dim"]), "model")
+    reply = ctx.mcp.call("browse_data", action="list_models", database_id=ctx.mb.need_db(), limit=200)
+    if model not in mcp_ids(reply):
+        raise Fail("list_models does not list the model %d: %s" % (model, str(reply)[:300]))
+    query = {"lib/type": "mbql/query", "database": ctx.mb.need_db(),
+             "stages": [{"lib/type": "mbql.stage/mbql", "source-card": model, "aggregation": [["count", {}]],
+                         "breakout": [["field", {"base-type": "type/Text"}, "status"]]}]}
+    assert_rows(ctx.mcp.call("execute_query", query=query)["rows"], ch(STATUS_CNT))
+
+
+@check("mcp.browse.list_tables_search")
+def _(ctx):
+    reply = ctx.mcp.call("browse_data", action="list_tables", database_id=ctx.mb.need_db(), search="customers", limit=100, **schema_args(ctx))
+    names = {t["name"].lower() for t in reply["data"]}
+    if "users" not in names or "products" in names:
+        raise Fail("a search for customers must list users by its title Customers and not products: %s" % sorted(names))
+    mcp_rows(ctx, "users", CNT_U, agg=["m:users.count"])
+
+
+@check("mcp.browse.get_fields_values")
+def _(ctx):
+    """The detailed reply carries the values of a list field, so an agent writes a filter with a value that exists."""
+    reply = ctx.mcp.call("browse_data", action="get_fields", table_ids=[ctx.mb.table(ORD)["id"]], response_format="detailed")
+    tables = reply.get("tables") or reply.get("data") or []
+    field = next((f for f in (tables[0].get("fields") or []) if f.get("name") == "status"), None) if tables else None
+    if not field or not field.get("values"):
+        raise Fail("get_fields gives no values for orders.status: %s" % str(field)[:300])
+    assert_rows(values_of(field["values"]), ch("SELECT DISTINCT status FROM orders"))
+
+
+def mcp_field(ctx, ref, **opts):
+    f = ctx.mb.ref(ref)
+    return ["field", dict(f[2] or {}, **opts), f[1]]
+
+
+@check("mcp.execute_query.expression")
+def _(ctx):
+    doubled = ["*", {"lib/expression-name": "doubled"}, mcp_field(ctx, QTY), 2]
+    query = mcp_stage(ctx.mb.table(ORD)["id"], expressions=[doubled], aggregation=[["sum", {}, ["expression", {}, "doubled"]]], breakout=[mcp_field(ctx, STA)])
+    assert_rows(ctx.mcp.call("execute_query", query=query)["rows"], ch("SELECT status, sum(quantity * 2) FROM orders GROUP BY 1"))
+
+
+@check("mcp.execute_query.order_limit")
+def _(ctx):
+    revenue = to_mbql5(ctx.mb.ref("m:orders.revenue"))
+    by_user = mcp_field(ctx, "d:orders.user_id")
+    query = mcp_stage(ctx.mb.table(ORD)["id"], aggregation=[revenue], breakout=[by_user], limit=5,
+                      **{"order-by": [["desc", {}, revenue], ["asc", {}, by_user]]})
+    assert_rows(ctx.mcp.call("execute_query", query=query)["rows"],
+                ch("SELECT user_id, sum(amount) AS r FROM orders GROUP BY 1 ORDER BY r DESC, user_id LIMIT 5"), ordered=True)
+
+
+@check("mcp.execute_query.explicit_join")
+def _(ctx):
+    join = {"lib/type": "mbql/join", "alias": "U", "strategy": "left-join",
+            "stages": [{"lib/type": "mbql.stage/mbql", "source-table": ctx.mb.table("users")["id"]}],
+            "conditions": [["=", {}, mcp_field(ctx, "d:orders.user_id"), mcp_field(ctx, "d:users.id", **{"join-alias": "U"})]]}
+    query = mcp_stage(ctx.mb.table(ORD)["id"], joins=[join], aggregation=[["count", {}]], breakout=[mcp_field(ctx, "d:users.city", **{"join-alias": "U"})])
+    assert_rows(ctx.mcp.call("execute_query", query=query)["rows"], ch(ORD_USERS % ("city", "city")))
+
+
+@check("mcp.execute_query.two_stages")
+def _(ctx):
+    first = {"lib/type": "mbql.stage/mbql", "source-table": ctx.mb.table(ORD)["id"], "aggregation": [["count", {}]], "breakout": [mcp_field(ctx, "d:orders.user_id")]}
+    second = {"lib/type": "mbql.stage/mbql", "aggregation": [["max", {}, ["field", {"base-type": "type/Integer"}, "count"]], ["count", {}]]}
+    query = {"lib/type": "mbql/query", "database": ctx.mb.need_db(), "stages": [first, second]}
+    assert_rows(ctx.mcp.call("execute_query", query=query)["rows"], ch("SELECT max(c), count() FROM (SELECT count() AS c FROM orders GROUP BY user_id)"))
+
+
+@check("mcp.execute_query.binning")
+def _(ctx):
+    query = mcp_stage(ctx.mb.table(ORD)["id"], aggregation=[["count", {}]],
+                      breakout=[mcp_field(ctx, "d:orders.amount_dim", binning={"strategy": "bin-width", "bin-width": 100})])
+    assert_rows(ctx.mcp.call("execute_query", query=query)["rows"], ch("SELECT intDiv(toInt64(amount), 100) * 100 AS b, count() FROM orders GROUP BY b"))
+
+
+@check("mcp.execute_query.validate_only")
+def _(ctx):
+    """validate_only gives a handle and no rows. The handle then runs the same query."""
+    reply = ctx.mcp.call("execute_query", query=mcp_query(ctx.mb, ORD, agg=["m:orders.revenue"], by=[STA]), validate_only=True)
+    if not reply.get("query_handle") or reply.get("rows"):
+        raise Fail("validate_only must give a handle and no rows: %s" % str(reply)[:300])
+    assert_rows(ctx.mcp.call("execute_query", query_handle=reply["query_handle"])["rows"], ch(STATUS_REV))
+
+
+@check("mcp.execute_sql.template_tag_values")
+def _(ctx):
+    data = ctx.mcp.call("execute_sql", database_id=ctx.mb.need_db(), template_tag_values={"s": "shipped", "q": 2},
+                        sql="SELECT MEASURE(count) AS n FROM orders WHERE status = {{s}} AND quantity_dim >= {{q}}")
+    assert_rows(data["rows"], ch("SELECT count() FROM orders WHERE status = 'shipped' AND quantity >= 2"))
+
+
+@check("mcp.run_saved_question.parameters")
+def _(ctx):
+    query = {"database": ctx.mb.need_db(), "type": "native",
+             "native": {"query": "SELECT MEASURE(count) AS n FROM orders WHERE status = {{s}}", "template-tags": tag("s", "text")}}
+    card = ctx.mb.card("mcp run param", query, parameters=[{"id": "s", "name": "S", "slug": "s", "type": "category", "target": ["variable", ["template-tag", "s"]]}])
+    assert_rows(ctx.mcp.call("run_saved_question", id=card["id"], parameters=[{"id": "s", "value": "shipped"}])["rows"], ch(SHIPPED))
 
 
 def main():
