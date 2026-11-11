@@ -35,6 +35,9 @@ Then restart Cube. A cube on another data source keeps its own dialect.
 | time measure in a zone | none yet | A measure of type time, such as `max(ts)`, is in the zone of the query on each column type, so it agrees with each time dimension. |
 | empty text in a rollup | none yet | A rollup keeps empty text apart from `NULL`, in a group and in a filter. |
 | M3 | none yet | With a report time zone, a `Date` or `Date32` column stays on its day, in a bucket and in a filter. |
+| percentile | none yet | A median and a percentile of the Metabase query builder work. `PERCENTILE_CONT` reads `quantileExactInclusive`, which is exact. |
+| geo dimension of a view | [#12537](https://github.com/cube-js/cube/pull/12537) | A view reads a `geo` dimension, so a map works on a view. |
+| source rows of a `rollup_lambda` | none yet, see [#12285](https://github.com/cube-js/cube/issues/12285) | A `rollup_lambda` with `union_with_source_data` reads its source rows on each run. Stock Cube stops some runs with `Stream query failed: aborted`. |
 
 Each override in `index.js` has the link. Remove an override when Cube ships its fix. The driver asks Cube how it writes a date range, so it needs no setting for this.
 

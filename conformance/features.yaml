@@ -8,7 +8,7 @@
   status_stock: partial
   check: measure.format.abbr
   cap: partial
-  reason: "Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+  reason: "Limit of Metabase v0.65.3.6. Its formatNumber has the option compact for an abbreviated number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: measure.format.accounting
   area: cube.measures
   title: "measure format accounting"
@@ -16,7 +16,7 @@
   status_stock: partial
   check: measure.format.accounting
   cap: partial
-  reason: "Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+  reason: "Limit of Metabase v0.65.3.6. Its formatNumber has the option negativeInParentheses for parentheses on a negative number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: measure.format.currency
   area: cube.measures
   title: "measure format currency"
@@ -300,7 +300,7 @@
   status_stock: partial
   check: dimension.format.abbr
   cap: partial
-  reason: "Metabase has no setting for an abbreviated number. The field has a decimal format with the same decimals, and the description keeps the text of Cube."
+  reason: "Limit of Metabase v0.65.3.6. Its formatNumber has the option compact for an abbreviated number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The field has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: dimension.format.currency
   area: cube.dimensions
   title: "dimension format currency"
@@ -550,7 +550,7 @@
   status_stock: partial
   check: granularity.custom.offset
   cap: partial
-  reason: "Cube Store puts a time before the origin of a custom granularity in months in the wrong bin, and no released Cube has a fix. The driver stops such a query when a rollup serves the measure and the data starts before the origin. An offset has its origin in the current year, so this stops most offsets on a rollup. A measure that no rollup serves gives the truth. An origin before all rows gives the truth on a rollup."
+  reason: "Cube Store v1.8.20 puts a time before the origin of a custom granularity in months in the wrong bin, and no released Cube has a fix. The fix is a change of Cube Store in Rust (finding gran in cube-image/queue.json, no pull request yet), so cube-clickhouse cannot hold it. The driver stops such a query when a rollup serves the measure and the data starts before the origin. An offset has its origin in the current year, so this stops most offsets on a rollup. A measure that no rollup serves gives the truth. An origin before all rows gives the truth on a rollup."
 - id: granularity.custom.origin
   area: cube.dimensions
   title: "granularity custom origin"
@@ -2640,7 +2640,7 @@
   title: "Drill members as a Metabase object"
   status: unsupported
   status_stock: unsupported
-  reason: "Metabase has no column that lists the drill columns of a measure. Its drill-through uses all visible fields. The text in the description is the only place, see semantic.drill_members."
+  reason: "Limit of Metabase v0.65.3.6: no object lists the drill columns of a measure. The drill to the rows of a group (src/metabase/lib/drill_thru/underlying_records.cljc) makes a query from the filters and the breakouts of the question, with each visible field of the table, and a driver has no hook in it. The text in the description is the only place, see semantic.drill_members."
 - id: semantic.measure.min_on_time_column
   area: semantic.sync
   title: "Time of the first order as a measure of type time"
@@ -4148,7 +4148,7 @@
   status_stock: partial
   check: dimension.opt.propagate_filters_next_to_another_sub_query
   cap: partial
-  reason: "Cube with the Tesseract planner reads the first subquery for two sub_query dimensions with equal SQL when the query has a filter. The driver stops a query that groups by both, and raw rows show NULL in the later column. With other SQL, such as {orders.count} + 0, both work, and each is right alone, see dimension.opt.propagate_filters."
+  reason: "Cube v1.8.20 with the Tesseract planner reads the first subquery for two sub_query dimensions with equal SQL when the query has a filter. The fix is a change of the planner in Rust, cube-js/cube#12502, so cube-clickhouse cannot hold it. The driver stops a query that groups by both, and raw rows show NULL in the later column. With other SQL, such as {orders.count} + 0, both work, and each is right alone, see dimension.opt.propagate_filters."
 - id: measure.multi_stage.time_shift_no_bucket_limit
   area: cube.measures
   title: "time shift with no time bucket"
@@ -5222,7 +5222,7 @@
   status_stock: partial
   check: metric.format.abbr
   cap: partial
-  reason: "Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+  reason: "Limit of Metabase v0.65.3.6. Its formatNumber has the option compact for an abbreviated number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: metric.format.abbr_1
   area: cube.metrics
   title: "metric format abbr 1"
@@ -5230,7 +5230,7 @@
   status_stock: partial
   check: metric.format.abbr_1
   cap: partial
-  reason: "Metabase has no setting for an abbreviated number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+  reason: "Limit of Metabase v0.65.3.6. Its formatNumber has the option compact for an abbreviated number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: metric.format.accounting
   area: cube.metrics
   title: "metric format accounting"
@@ -5238,7 +5238,7 @@
   status_stock: partial
   check: metric.format.accounting
   cap: partial
-  reason: "Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+  reason: "Limit of Metabase v0.65.3.6. Its formatNumber has the option negativeInParentheses for parentheses on a negative number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: metric.format.accounting_0
   area: cube.metrics
   title: "metric format accounting 0"
@@ -5246,7 +5246,7 @@
   status_stock: partial
   check: metric.format.accounting_0
   cap: partial
-  reason: "Metabase has no setting for parentheses on a negative number. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
+  reason: "Limit of Metabase v0.65.3.6. Its formatNumber has the option negativeInParentheses for parentheses on a negative number (frontend/src/metabase/utils/formatting/numbers.tsx), but no column setting sets it: getComputedSettings (frontend/src/metabase/viz-core/lib/settings.ts) keeps only the settings that viz-core/lib/settings/column.ts defines, so each other key of the field settings is lost. The column has a decimal format with the same decimals, and the description keeps the text of Cube."
 - id: metric.format.currency
   area: cube.metrics
   title: "metric format currency"

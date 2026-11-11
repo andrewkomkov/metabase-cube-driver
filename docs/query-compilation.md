@@ -134,7 +134,7 @@ These queries fail with a message that tells what to do. The message includes th
 | Join of a question, or with a filter inside the join | A subquery that lists its columns has no `__cubeJoinField`. A subquery with `SELECT *` has it, but a filter inside it applies to the whole query, so it has no use here. |
 | A right or a full join | Metabase asks a driver for this feature, and Cube joins are left joins. |
 | A count of rows or an aggregation of a dimension on a view with a one to many join from the cube where it starts | See [Fan-out](#fan-out). |
-| `median`, `percentile` | The Cube templates for ClickHouse have no `PERCENTILE_CONT`. |
+| `median`, `percentile` on stock Cube | The ClickHouse dialect of stock Cube has no `PERCENTILE_CONT`. The driver asks Cube, and Metabase then refuses the aggregation. [The ClickHouse dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) has it, with `quantileExactInclusive`, and then both work in the query builder. |
 | `datetime-diff` in months, quarters, years | Cube has no form for whole months. Its `DATEDIFF` counts boundaries. |
 | `datetime-add` on stock Cube | The ClickHouse dialect of stock Cube has no template for an interval: `Can't generate SQL for interval`. The form `x + INTERVAL` fails on raw rows too. [The ClickHouse dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) has the template. |
 | `EXTRACT` in native SQL next to a measure | The ClickHouse dialect of Cube has no template for it, so it fails with each measure. It works on Postgres. |
@@ -173,7 +173,7 @@ These queries fail with a message that tells what to do. The message includes th
 | Two `sub_query` dimensions with equal SQL in a query with a filter | Cube reads the first subquery for both. Raw rows show `NULL` in the later column. |
 | A number at or above 2^53 in a result | It has lost digits, because the SQL API has the type Double. A dimension with `sql: toString(column)` gives the full digits as text. |
 | A distinct count or a measure with its own SQL, next to a breakout on an expression, or a filter or a group on a measure column | The driver reads the values of rows here, and these values do not add up to the measure. |
-| `rollup_lambda` on ClickHouse, when the range reads source rows, with no report time zone | Cube fails with `Stream query failed: aborted`. Inside the range of the rollup it works. See `preagg.rollup_lambda`. |
+| `rollup_lambda` on stock Cube on ClickHouse, when the range reads source rows, with no report time zone | Cube can fail with `Stream query failed: aborted`, with the timing of the stream. Inside the range of the rollup it works. [The ClickHouse dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) waits for the rows, and then each run gives the truth. See `preagg.rollup_lambda`. |
 | `OR` of two segments | Cube fails with `Can't use OR operator with segments`. |
 | A segment of another cube | Cube fails with `No field named`. Use a view that has it. |
 

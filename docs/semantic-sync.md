@@ -19,6 +19,7 @@ The step runs on the Metabase event `:event/sync-metadata-end`, and again on `:e
 | Format `currency`, `percent`, `link`, `imageUrl` | Semantic type `Currency`, `Percentage`, `URL`, `ImageURL` |
 | Numeric format | Field settings: number style, decimals, currency code. A Measure result inherits them. |
 | Join with one equality of two plain members | Foreign key, on the many side of the join |
+| `order: desc` of a dimension | The default order of a question that groups by the field. An order that a person selects wins. |
 
 A table has no schema, because Cube has one namespace. The MCP tool `browse_data` then lists the tables with only a
 database id.

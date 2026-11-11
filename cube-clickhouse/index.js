@@ -9,7 +9,8 @@ const { CubeSymbols } = require('@cubejs-backend/schema-compiler/dist/src/compil
 const { CubeToMetaTransformer } = require('@cubejs-backend/schema-compiler/dist/src/compiler/CubeToMetaTransformer');
 const { Transform, pipeline } = require('stream');
 
-// Geo dimension of a view: no pull request yet, see docs/cube-audit.md#geo. A view copies the type geo of a dimension and not its latitude and longitude,
+// Geo dimension of a view: https://github.com/cube-js/cube/pull/12537
+// A view copies the type geo of a dimension and not its latitude and longitude,
 // so each query on it fails with `Cannot read properties of undefined (reading 'sql')`. With another type, the planner reads the SQL of the view member,
 // which is a reference to the dimension of the cube, and that one has both. /v1/meta keeps the type geo.
 const geoOfViews = new WeakMap();
