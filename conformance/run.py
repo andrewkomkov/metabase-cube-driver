@@ -4045,22 +4045,25 @@ XRAY_ABOVE_2_53 = re.compile(
     r"toString\(column\) to the data model to read the full digits as text, or filter out these rows\.")
 
 
-def xray_cards(ctx, path, table, above_2_53_stops=False):
-    """Runs each card of the X-ray. A card must equal a query on ClickHouse, or stop with the documented message.
-    A card that adds up a dimension of a joined cube stops on stock Cube. A patched Cube can answer it, so no count of stopped cards is fixed."""
+def xray_cards(ctx, path, table, above_2_53_stops=False, refusal_ok=False):
+    """Runs each card of the X-ray. A card must equal a query on ClickHouse. With refusal_ok, a card that adds up a dimension of a joined cube can stop with the documented
+    message, and with above_2_53_stops a card with a number that a Double cannot hold can stop. The check prints the number of cards that stopped."""
     dash = ctx.mb.api("GET", "/api/automagic-dashboards/" + path)
     cards = [dc["card"] for dc in dash.get("dashcards", []) if dc.get("card") and dc["card"].get("dataset_query")]
     if not cards:
         raise Fail("the X-ray has no cards")
-    failed, compared = [], 0
+    failed, compared, stopped = [], 0, []
     for card in cards:
         query = card["dataset_query"]
         try:
             res = ctx.mb.api("POST", "/api/dataset", query, ok=(200, 202, 400, 500))
             if XRAY_TOTAL_REFUSAL in str(res.get("error") or ""):
-                continue
+                stopped.append(card.get("name"))
+                if refusal_ok:
+                    continue
             above = above_2_53_stops and XRAY_ABOVE_2_53.fullmatch(str(res.get("error") or ""))
             if above and abs(float(above.group(1))) >= 2 ** 53:
+                stopped.append(card.get("name"))
                 continue
             if res.get("error") or res.get("status") == "failed":
                 raise Fail("query failed: %s" % str(res.get("error") or res.get("error_type"))[:300])
@@ -4069,6 +4072,7 @@ def xray_cards(ctx, path, table, above_2_53_stops=False):
             compared += 1
         except Fail as e:
             failed.append((card.get("name"), str(e)[:300]))
+    print("         %d cards, %d equal to the truth, %d stopped with a message%s" % (len(cards), compared, len(stopped), ": %s" % stopped if stopped else ""))
     if failed:
         raise Fail("%d of %d cards failed: %s" % (len(failed), len(cards), failed[:6]))
     if not compared:
