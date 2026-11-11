@@ -240,6 +240,32 @@
   (do (alter-var-root (requiring-resolve 'metabase.query-processor.middleware.add-implicit-clauses/add-implicit-clauses) order-of-dimensions-on-cube)
       true))
 
+;; The MCP tool `execute_query` writes a total order into the query before the query processor, for its pages: each column that has no order gets an ascending one.
+;; So the default order of a dimension must be in the query before that step. This wrap acts only on a Cube database, and a Metabase with no such step keeps its vars.
+(defn- total-order-after-order-of-dimensions
+  [total-order]
+  (fn [serialized-query]
+    (total-order
+     (or (try
+           (when (and (map? serialized-query) (pos-int? (:database serialized-query)) (seq (:stages serialized-query)))
+             (let [metadata-provider ((requiring-resolve 'metabase.lib-be.core/application-database-metadata-provider) (:database serialized-query))]
+               (when (cube-metadata-provider? metadata-provider)
+                 (let [query   ((requiring-resolve 'metabase.lib.core/query) metadata-provider serialized-query)
+                       ordered (with-order-of-dimensions query)]
+                   (when-not (= query ordered)
+                     ((requiring-resolve 'metabase.mcp.v2.query/serialize-preserving-parameters) serialized-query ordered))))))
+           (catch Exception e
+             (log/warn e "Cube: the default order of a dimension was not applied to a query of the MCP server")
+             nil))
+         serialized-query))))
+
+(defonce mcp-order-wrapped
+  (when-let [total-order (try
+                           (requiring-resolve 'metabase.mcp.v2.query/with-total-order)
+                           (catch Exception _ nil))]
+    (alter-var-root total-order total-order-after-order-of-dimensions)
+    true))
+
 ;; A connection that gets the attribute of a person has lists of values, field fingerprints and card fingerprints for all
 ;; rows. See cube.semantic/clear-values-of-person-data!, cube.semantic/clear-field-fingerprints-of-person-data! and
 ;; cube.semantic/clear-result-fingerprints-of-person-data!.
