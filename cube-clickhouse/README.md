@@ -36,6 +36,7 @@ Then restart Cube. A cube on another data source keeps its own dialect.
 | empty text in a rollup | none yet | A rollup keeps empty text apart from `NULL`, in a group and in a filter. |
 | M3 | none yet | With a report time zone, a `Date` or `Date32` column stays on its day, in a bucket and in a filter. |
 | percentile | none yet | A median and a percentile of the Metabase query builder work. `PERCENTILE_CONT` reads `quantileExactInclusive`, which is exact. |
+| text functions | none yet | `splitPart` and `regexExtract` of the Metabase query builder work, also next to a measure. `SPLIT_PART` reads `splitByString`, and `REGEXP_SUBSTR` reads `extract`. |
 | geo dimension of a view | [#12537](https://github.com/cube-js/cube/pull/12537) | A view reads a `geo` dimension, so a map works on a view. |
 | source rows of a `rollup_lambda` | none yet, see [#12285](https://github.com/cube-js/cube/issues/12285) | A `rollup_lambda` with `union_with_source_data` reads its source rows on each run. Stock Cube stops some runs with `Stream query failed: aborted`. |
 

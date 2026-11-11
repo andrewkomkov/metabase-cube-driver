@@ -29,10 +29,10 @@ These features have no Metabase object, so they are text in a description. The M
 
 | Cube | Text | Where |
 | --- | --- | --- |
-| Hierarchies | `Hierarchies: Fulfilment: status > size.` | Table |
+| Hierarchies | `Hierarchies: Fulfilment: status > size.` A level of a joined cube keeps the name of its cube: `Holder place: users.state > holder_city`. | Table |
 | Folders | `Folders: Money: net_sales, [Ratios: count].` | Table |
 | View groups | `View groups: Revenue views (revenue_views).` | Table |
-| `meta` | `Meta: {"owner":"finance"}.` | Table, field, Measure |
+| `meta` | `Meta: {"owner":"finance"}.` | Table, field, Measure, Segment |
 | Drill members | `To drill into this measure, use: id, status, created_at.` | Measure |
 | Links | `Links: Search status.` | Field |
 | Link label | `Link label: Open invoice.` | Field |

@@ -42,6 +42,9 @@ Run Cube with the Tesseract planner, the default since Cube v1.7.0. With `CUBEJS
 | `log` | `LN(x) / LN(10)`, because `LOG(x)` on ClickHouse has base e | Push-down |
 | `a / b`, also for two measures | `a * CAST('1.0' AS double precision) / NULLIF(b * CAST('1.0' AS double precision), 0.0)`. A cast of `a` fails on ClickHouse when a measure is NULL: `Cannot convert NULL value to non-Nullable type`. A plain `1.0` is a decimal in Cube, and it cuts the digits of a `Decimal`. | Push-down |
 | `datetime-diff` in seconds, minutes, hours, days, weeks | `DATEDIFF` | Push-down |
+| `weekday` with the mode `iso` | The day of the week from Monday, for each setting of the first day of the week | Push-down |
+| `splitPart`, with the ClickHouse dialect | `split_part(x, 'a', n)`. The dialect writes `splitByString('a', x)[n]`. | Push-down |
+| `regexExtract`, with the ClickHouse dialect | `regexp_substr(x, 'p')`. The dialect writes `nullIf(extract(x, 'p'), '')`. The result is the first group, or the whole match if the pattern has no group. No match and a match of empty text give `NULL`. | Push-down |
 | Implicit or explicit join | `ON a.__cubeJoinField = b.__cubeJoinField` | Regular with a measure, push-down with `COUNT(*)` |
 | Inner join | As above, and the joined column must not be NULL | Push-down |
 | Segment | `segment = TRUE` | Regular |
@@ -135,6 +138,9 @@ These queries fail with a message that tells what to do. The message includes th
 | A right or a full join | Metabase asks a driver for this feature, and Cube joins are left joins. |
 | A count of rows or an aggregation of a dimension on a view with a one to many join from the cube where it starts | See [Fan-out](#fan-out). |
 | `median`, `percentile` on stock Cube | The ClickHouse dialect of stock Cube has no `PERCENTILE_CONT`. The driver asks Cube, and Metabase then refuses the aggregation. [The ClickHouse dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) has it, with `quantileExactInclusive`, and then both work in the query builder. |
+| `splitPart` and `regexExtract` on stock Cube | Stock Cube has no template for `SPLIT_PART` and `REGEXP_SUBSTR` on ClickHouse. The driver asks Cube. It turns off `splitPart`, and it gives a message for a regular expression. [The ClickHouse dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) adds the templates. |
+| `host`, `domain`, `subdomain`, `path` | Metabase writes them as a regular expression with a lookbehind. ClickHouse reads a pattern with RE2, which has no lookbehind. Add a dimension with the SQL of ClickHouse, such as `domain(url)`. |
+| `convertTimezone` | The SQL API of Cube has no form for a time in another zone. The driver turns the feature off, so Metabase does not offer the function. Use the report time zone of Metabase. |
 | `datetime-diff` in months, quarters, years | Cube has no form for whole months. Its `DATEDIFF` counts boundaries. |
 | `datetime-add` on stock Cube | The ClickHouse dialect of stock Cube has no template for an interval: `Can't generate SQL for interval`. The form `x + INTERVAL` fails on raw rows too. [The ClickHouse dialect](https://github.com/andrewkomkov/metabase-cube-driver/tree/main/cube-clickhouse) has the template. |
 | `EXTRACT` in native SQL next to a measure | The ClickHouse dialect of Cube has no template for it, so it fails with each measure. It works on Postgres. |
