@@ -54,7 +54,6 @@
                  :nested-field-columns
                  :persist-models
                  :rename
-                 :split-part
                  :transforms/index-ddl
                  :transforms/python
                  :transforms/table
@@ -66,6 +65,14 @@
 (defmethod driver/database-supports? [:cube :percentile-aggregations]
   [_driver _feature database]
   (boolean (some-> database :details not-empty cube.probe/percentiles?)))
+
+;; Stock Cube has no template for SPLIT_PART on ClickHouse, and the ClickHouse dialect adds one. With no database to ask, false.
+(defmethod driver/database-supports? [:cube :split-part]
+  [_driver _feature database]
+  (boolean (some-> database :details not-empty cube.probe/split-part?)))
+
+;; ClickHouse reads a pattern with RE2, which has no lookahead and no lookbehind.
+(defmethod driver/database-supports? [:cube :regex/lookaheads-and-lookbehinds] [_driver _feature _db] false)
 
 ;;; ------------------------------------------------- connection -------------------------------------------------
 
@@ -2905,6 +2912,27 @@
 (defmethod sql.qp/date [:cube :minute-of-hour]   [_ _ expr] (since :minute :hour expr))
 ;; DATEDIFF counts boundaries of hours in absolute time. In a zone with an offset of part of an hour, each row is one hour too high, and on the day
 ;; of a clock change the rows move. The text of the time has the hour on the clock, and it goes to the database with no bucket.
+;; Stock Cube has no template for SPLIT_PART and REGEXP_SUBSTR on ClickHouse, and the ClickHouse dialect adds them.
+(defn- need-text-function
+  [template? function]
+  (when-not (some-> (driver-api/database (driver-api/metadata-provider)) :details not-empty template?)
+    (throw (ex-info (format (str "Stock Cube cannot compute %s on ClickHouse. Add a dimension with that SQL to the data model, or install "
+                                 "the ClickHouse dialect, see cube-clickhouse/README.md.")
+                            function)
+                    {:type :invalid-query}))))
+
+;; The Postgres form is a CASE around the call. The position is a number of 1 or more in MBQL, so the call alone is enough.
+(defmethod sql.qp/->honeysql [:cube :split-part]
+  [driver [_ _opts text divider position]]
+  (need-text-function cube.probe/split-part? "splitPart")
+  [:split_part (sql.qp/->honeysql driver text) (sql.qp/->honeysql driver divider) (sql.qp/->honeysql driver position)])
+
+;; `substring(x FROM pattern)` of Postgres reads as a position in Cube, so this is REGEXP_SUBSTR.
+(defmethod sql.qp/->honeysql [:cube :regex-match-first]
+  [driver [_ _opts arg pattern]]
+  (need-text-function cube.probe/regex? "a regular expression, such as regexExtract, host, domain, subdomain and path,")
+  [:regexp_substr (sql.qp/->honeysql driver arg) (sql.qp/->honeysql driver pattern)])
+
 (defmethod sql.qp/date [:cube :hour-of-day]
   [_ _ expr]
   (if (report-zone?)
@@ -2929,6 +2957,12 @@
 (defmethod sql.qp/date [:cube :day-of-week]
   [_driver _unit expr]
   [:+ (weekday-from (start-of-week-index) expr) [:inline 1]])
+
+;; The mode `iso` of get-day-of-week counts from Monday for each setting. The method of the parent binds the first day and calls :day-of-week,
+;; and that binding does not reach `start-of-week-index`.
+(defmethod sql.qp/date [:cube :day-of-week-iso]
+  [_driver _unit expr]
+  [:+ (weekday-from 1 expr) [:inline 1]])
 
 (defn- week-of-year-from
   "Week 1 starts on 1 January and week 2 on the first day `start` after it."
@@ -3165,6 +3199,9 @@
     (str "Cube cannot compute this text function. Add a dimension with that SQL to the data model.")]
    ["user-defined coercion failed"
     (str "Cube cannot compute this text function. Add a dimension with that SQL to the data model.")]
+   ["cannot compile re2"
+    (str "ClickHouse cannot run a regular expression with a lookahead or a lookbehind, and the functions host, domain, subdomain and "
+         "path use one. Add a dimension with that SQL to the data model.")]
    ["Date range is required for time series"
     (str "Cube needs a date range for this query. A rolling window measure by a time bucket needs a date filter on the "
          "same time column. Add a date filter.")]

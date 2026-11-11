@@ -249,6 +249,10 @@ class ClickHouseFixes extends ClickHouseQuery {
     // percentile fail with `Can't detect Cube query`. quantileExactInclusive is the linear form of PERCENTILE_CONT, and quantile is an estimate.
     templates.functions.PERCENTILECONT = 'quantileExactInclusive({{ args[0] }})';
     templates.expressions.within_group = "{{ fun_sql }}(toFloat64({{ within_group_concat | replace(' ASC NULLS LAST', '') }}))";
+    // split_part and regexp_substr: no pull request yet. Stock Cube has no template for them on ClickHouse, so it computes them after the
+    // query, and a query with a measure fails. extract() gives the first group, or the whole match with no group, as substring(x FROM p) of Postgres.
+    templates.functions.SPLITPART = 'splitByString({{ args[1] }}, toString({{ args[0] }}))[{{ args[2] }}]';
+    templates.functions.REGEXP_SUBSTR = "nullIf(extract(toString({{ args[0] }}), {{ args[1] }}), '')";
     // M3: see dateTimeCast. SQL push-down writes these templates.
     if (this.timezone && this.timezone !== 'UTC') {
       const inZone = (text) => `toTimeZone(${text}, '${this.timezone}')`;

@@ -8779,30 +8779,6 @@
   status: todo
   status_stock: todo
   check: mb.expr.literal
-- id: mb.expr.host
-  area: metabase.expressions
-  title: "expr host"
-  status: todo
-  status_stock: todo
-  check: mb.expr.host
-- id: mb.expr.domain
-  area: metabase.expressions
-  title: "expr domain"
-  status: todo
-  status_stock: todo
-  check: mb.expr.domain
-- id: mb.expr.path
-  area: metabase.expressions
-  title: "expr path"
-  status: todo
-  status_stock: todo
-  check: mb.expr.path
-- id: mb.expr.split_part
-  area: metabase.expressions
-  title: "expr split part"
-  status: todo
-  status_stock: todo
-  check: mb.expr.split_part
 - id: mb.filter.in
   area: metabase.filters
   title: "filter in"
@@ -9001,3 +8977,79 @@
   status: todo
   status_stock: todo
   check: mcp.run_saved_question.parameters
+- id: mb.expr.host
+  area: metabase.expressions
+  title: "expr host"
+  status: unsupported
+  status_stock: unsupported
+  reason: "Metabase writes this function as a regular expression with a lookbehind. ClickHouse reads a pattern with RE2, which has no lookbehind, and stock Cube has no form for a regular expression. The driver gives a message that tells to add a dimension with that SQL to the data model. See compile.expr.url_function_gets_a_clear_message."
+- id: mb.expr.domain
+  area: metabase.expressions
+  title: "expr domain"
+  status: unsupported
+  status_stock: unsupported
+  reason: "Metabase writes this function as a regular expression with a lookbehind. ClickHouse reads a pattern with RE2, which has no lookbehind, and stock Cube has no form for a regular expression. The driver gives a message that tells to add a dimension with that SQL to the data model. See compile.expr.url_function_gets_a_clear_message."
+- id: mb.expr.subdomain
+  area: metabase.expressions
+  title: "expr subdomain"
+  status: unsupported
+  status_stock: unsupported
+  reason: "Metabase writes this function as a regular expression with a lookbehind. ClickHouse reads a pattern with RE2, which has no lookbehind, and stock Cube has no form for a regular expression. The driver gives a message that tells to add a dimension with that SQL to the data model. See compile.expr.url_function_gets_a_clear_message."
+- id: mb.expr.path
+  area: metabase.expressions
+  title: "expr path"
+  status: unsupported
+  status_stock: unsupported
+  reason: "Metabase writes this function as a regular expression with a lookbehind. ClickHouse reads a pattern with RE2, which has no lookbehind, and stock Cube has no form for a regular expression. The driver gives a message that tells to add a dimension with that SQL to the data model. See compile.expr.url_function_gets_a_clear_message."
+- id: mb.expr.split_part
+  area: metabase.expressions
+  title: "expr split part"
+  status: todo
+  status_stock: todo
+  check: mb.expr.split_part
+  cap_stock: partial
+  reason_stock: "Stock Cube has no template for SPLIT_PART on ClickHouse, so it cannot send the function to the database. The driver asks Cube and gives a message that tells what to do. cube-clickhouse adds the template, and the query builder gives the truth."
+- id: mb.expr.regex_match_first
+  area: metabase.expressions
+  title: "expr regex match first"
+  status: todo
+  status_stock: todo
+  check: mb.expr.regex_match_first
+  cap_stock: partial
+  reason_stock: "Stock Cube has no template for REGEXP_SUBSTR on ClickHouse, so it cannot send the function to the database. The driver asks Cube and gives a message that tells what to do. cube-clickhouse adds the template, and the query builder gives the truth."
+- id: mb.expr.convert_timezone
+  area: metabase.expressions
+  title: "expr convert timezone"
+  status: unsupported
+  status_stock: unsupported
+  reason: "The SQL API of Cube has no form for a time in another zone. The driver turns off :convert-timezone, so Metabase does not offer convertTimezone. The report time zone of Metabase works, see mb.report_timezone and zone.*."
+- id: compile.expr.url_function_gets_a_clear_message
+  area: mb.compile.expr
+  title: "host, domain, subdomain and path give a clear message"
+  status: todo
+  status_stock: todo
+  check: compile.expr.url_function_gets_a_clear_message
+- id: measure.type.running_total
+  area: cube.measures
+  title: "measure type running total"
+  status: unsupported
+  status_stock: unsupported
+  reason: "Cube v1.8.20 rejects the type when it compiles the model: measures.x.type must be one of [count, number, string, boolean, time, sum, avg, min, max, countDistinct, countDistinctApprox]. Use rolling_window with trailing: unbounded, see measure.rolling.unbounded."
+- id: mb.join.explicit_right
+  area: metabase.joins
+  title: "join explicit right"
+  status: unsupported
+  status_stock: unsupported
+  reason: "Cube joins are left joins from the cube where the join is in the data model. The driver turns off :right-join, so Metabase does not offer this join type. A left join and an inner join work, see mb.join.explicit_left and mb.join.explicit_inner."
+- id: mb.join.explicit_full
+  area: metabase.joins
+  title: "join explicit full"
+  status: unsupported
+  status_stock: unsupported
+  reason: "Cube joins are left joins from the cube where the join is in the data model. The driver turns off :full-join, so Metabase does not offer this join type. A left join and an inner join work, see mb.join.explicit_left and mb.join.explicit_inner."
+- id: graphql.api
+  area: cube.rest_api
+  title: "GraphQL API"
+  status: unsupported
+  status_stock: unsupported
+  reason: "The GraphQL API is another way for a client to read Cube. The driver reads the SQL API and /v1/meta, and no Metabase query shape maps to GraphQL."

@@ -858,6 +858,38 @@
                  (cube.meta/plans-sql? details (format "SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY 1.0) FROM \"%s\"" (:name cube))))
                (catch Exception _ false))))))
 
+(defn- text-function?
+  "True if Cube writes SQL for `call` next to an aggregation, so the function runs in the database. `call` is a format string for one column.
+  The column is a number or a text dimension of the first cube that has one. With no answer this is false."
+  [details question call]
+  (boolean
+   (cached details [question]
+           (fn []
+             (try
+               (let [plain?    #(and (contains? #{"string" "number"} (:type %)) (not (false? (:public %))) (not (false? (:isVisible %))))
+                     dimension (first (for [cube (cube.meta/public-cubes (cube.meta/cached-meta details))
+                                            :when (= "cube" (:type cube))
+                                            dimension (:dimensions cube)
+                                            :when (plain? dimension)]
+                                        (:name dimension)))]
+                 (when dimension
+                   (let [[cube-name column] (str/split dimension #"\." 2)]
+                     (cube.meta/plans-sql? details (format "SELECT %s AS p, COUNT(*) FROM \"%s\" GROUP BY 1"
+                                                           (format call (format "CAST(\"%s\" AS TEXT)" column))
+                                                           cube-name)))))
+               (catch Exception _ false))))))
+
+(defn split-part?
+  "True if Cube writes SQL for SPLIT_PART. Stock Cube has no template for it on ClickHouse, so it can compute the function only after the query,
+  and a query with a measure fails. The ClickHouse dialect adds the template."
+  [details]
+  (text-function? details :split-part "SPLIT_PART(%s, 'x', 1)"))
+
+(defn regex?
+  "True if Cube writes SQL for REGEXP_SUBSTR. Stock Cube has no template for it on ClickHouse, and the ClickHouse dialect adds one."
+  [details]
+  (text-function? details :regex "REGEXP_SUBSTR(%s, 'x')"))
+
 (def ^:private largest-message-bytes
   "64 MiB, with a margin of a tenth."
   (long (* 0.9 64 1024 1024)))

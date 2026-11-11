@@ -9614,9 +9614,12 @@ def _(ctx):
 
 @check("compile.expr.function_of_no_plan_gets_a_clear_message")
 def _(ctx):
-    """regex-match-first and convert-timezone have no form on the SQL API, so the message says what to do."""
-    for label, expr in (("regex", ["regex-match-first", "d:orders.status", "c.m"]),
-                        ("zone", ["get-hour", ["convert-timezone", "d:orders.created_at", "Asia/Kathmandu", "UTC"]])):
+    """convert-timezone has no form on the SQL API, and regex-match-first has none on stock Cube, so the message says what to do.
+    With the dialect a regular expression works, see mb.expr.regex_match_first."""
+    cases = [("zone", ["get-hour", ["convert-timezone", "d:orders.created_at", "Asia/Kathmandu", "UTC"]])]
+    if not DIALECT:
+        cases.append(("regex", ["regex-match-first", "d:orders.status", "c.m"]))
+    for label, expr in cases:
         rows, error = outcome(ctx, ctx.mb.inner(ORD, agg=[["count"]], exprs={"k": expr}, by=[["expression", "k"]]))
         if not error or "Add a dimension" not in error:
             raise Fail("%s: %s" % (label, (error or rows)))
@@ -9739,8 +9742,6 @@ def _(ctx):
 
 # ----- Metabase: expressions on raw rows. Sixty rows, so that a wrong week or day shows.
 
-_URL = "d:orders.invoice_url"
-_URL_SQL = "concat('https://example.com/invoice/', toString(id))"
 for _name, _clause, _sql in [
     ("text", ["text", QTY], "toString(quantity)"),
     ("integer", ["integer", ["text", QTY]], "toInt64(toString(quantity))"),
@@ -9750,16 +9751,73 @@ for _name, _clause, _sql in [
     ("get_week_iso", ["get-week", CRT, "iso"], "toISOWeek(created_at)"),
     ("get_week_us", ["get-week", CRT, "us"], "toWeek(created_at, 8)"),
     ("get_day_of_week_iso", ["get-day-of-week", CRT, "iso"], "toDayOfWeek(created_at)"),
-    ("now", ["datetime-diff", CRT, ["now"], "day"], "dateDiff('day', created_at, now('UTC'))"),
-    ("today", ["datetime-diff", CRT, ["today"], "day"], "dateDiff('day', created_at, now('UTC'))"),
     ("literal", ["value", 5, {"base_type": "type/Integer", "effective_type": "type/Integer"}], "5"),
-    ("host", ["host", _URL], "domain(%s)" % _URL_SQL),
-    ("domain", ["domain", _URL], "splitByChar('.', domain(%s))[1]" % _URL_SQL),
-    ("path", ["path", _URL], "path(%s)" % _URL_SQL),
-    ("split_part", ["split-part", _URL, "/", 4], "splitByChar('/', %s)[4]" % _URL_SQL),
 ]:
     Q("mb.expr.%s" % _name, ORD, "SELECT id, %s FROM orders WHERE id BETWEEN 1 AND 60 ORDER BY id" % _sql, ordered=True,
       fields=["d:orders.id", ["expression", _name]], exprs={_name: _clause}, where=[["between", "d:orders.id", 1, 60]], order=[["asc", "d:orders.id"]])
+
+
+
+def one_expression(ctx, clause):
+    return ctx.mb.mbql(ORD, fields=["d:orders.id", ["expression", "k"]], exprs={"k": clause}, where=ID7)["rows"][0][1]
+
+
+@check("mb.expr.now")
+def _(ctx):
+    """The clock of ClickHouse is the truth. The two clocks can differ by the time of the query, so two minutes is the limit."""
+    got = dt.datetime.fromisoformat(norm(one_expression(ctx, ["now"])))
+    want = dt.datetime.fromisoformat(norm(ch("SELECT toString(now('UTC'))")[0][0]))
+    if abs((got - want).total_seconds()) > 120:
+        raise Fail("now is %s, and ClickHouse has %s" % (got, want))
+
+
+@check("mb.expr.today")
+def _(ctx):
+    before = ch("SELECT toString(toDate(now('UTC')))")[0][0]
+    got = str(one_expression(ctx, ["today"]))[:10]
+    if got not in (before, ch("SELECT toString(toDate(now('UTC')))")[0][0]):
+        raise Fail("today is %s, and ClickHouse has %s" % (got, before))
+
+
+def text_function_check(check_id, name, cases):
+    """A function that stock Cube cannot send to ClickHouse. cases: (clause, truth SQL of one row). The check reads raw rows and groups by the result.
+    On stock Cube the message must say what to do."""
+    @check(check_id)
+    def _(ctx):
+        for clause, sql in cases:
+            raw = ctx.mb.inner(ORD, fields=["d:orders.id", ["expression", "k"]], exprs={"k": clause}, where=[["between", "d:orders.id", 1, 60]], order=[["asc", "d:orders.id"]])
+            grouped = ctx.mb.inner(ORD, agg=["m:orders.count"], exprs={"k": clause}, by=[["expression", "k"]])
+            if not DIALECT:
+                for query in (raw, grouped):
+                    expect_clear_error(ctx, query, "Stock Cube cannot compute %s" % name)
+                continue
+            expect_rows(ctx, raw, "SELECT id, %s FROM orders WHERE id BETWEEN 1 AND 60 ORDER BY id" % sql, str(clause), ordered=True)
+            expect_rows(ctx, grouped, "SELECT %s AS k, count() FROM orders GROUP BY k" % sql, str(clause))
+
+
+_URL = "d:orders.invoice_url"
+text_function_check("mb.expr.split_part", "splitPart", [
+    (["split-part", _URL, "/", 5], "toString(id)"),
+    (["split-part", _URL, "/", 9], "''"),
+    (["split-part", STA, "p", 2], "splitByString('p', status)[2]"),
+])
+# The truth of a pattern is its meaning in words: the text of the first group, or of the whole match, and NULL with no match.
+text_function_check("mb.expr.regex_match_first", "a regular expression", [
+    (["regex-match-first", STA, "c.m"], "if(status = 'completed', 'com', NULL)"),
+    (["regex-match-first", STA, "s(h.)p"], "if(status = 'shipped', 'hi', NULL)"),
+    (["regex-match-first", _URL, "/([0-9]+)$"], "toString(id)"),
+])
+
+
+@check("compile.expr.url_function_gets_a_clear_message")
+def _(ctx):
+    """host, domain, subdomain and path are patterns with a lookbehind in Metabase. ClickHouse has no lookbehind, so the message must say what to do."""
+    needle = "lookbehind" if DIALECT else "Stock Cube cannot compute a regular expression"
+    for name in ("host", "domain", "subdomain", "path"):
+        rows, error = outcome(ctx, ctx.mb.inner(ORD, fields=["d:orders.id", ["expression", "k"]], exprs={"k": [name, _URL]}, where=ID7))
+        if not error or needle not in error or "Add a dimension" not in error:
+            raise Fail("%s: %s" % (name, (error or rows)))
+
 
 # ----- Metabase: filters
 
@@ -9967,7 +10025,7 @@ def _(ctx):
     tables = reply.get("tables") or reply.get("data") or []
     field = next((f for f in (tables[0].get("fields") or []) if f.get("name") == "status"), None) if tables else None
     if not field or not field.get("values"):
-        raise Fail("get_fields gives no values for orders.status: %s" % str(field)[:300])
+        raise Fail("get_fields gives no values for orders.status. The field has: %s" % sorted(field or []))
     assert_rows(values_of(field["values"]), ch("SELECT DISTINCT status FROM orders"))
 
 
