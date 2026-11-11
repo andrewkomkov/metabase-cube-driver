@@ -49,6 +49,29 @@ PreAggregationLoader.prototype.refresh = function refreshWithVersionedNames(...a
   return refresh.apply(this, args);
 };
 
+// Source rows of a rollup_lambda: no pull request yet, see cube-js/cube#12285. csvQuery gives a callback to stream.pipeline and awaits its result, which is the last stream
+// and not a promise. So it closes the client while the rows still come, and the query fails with `Stream query failed: aborted`, or not, with the timing.
+// This reads all rows first and gives them to the branch of csvQuery for a driver with no stream. Cube limits these rows with maxSourceRowLimit.
+const csvQuery = QueryCache.prototype.csvQuery;
+QueryCache.prototype.csvQuery = function csvQueryAfterTheRows(client, q) {
+  if (!client.stream) {
+    return csvQuery.call(this, client, q);
+  }
+  const downloadQueryResults = async (...args) => {
+    const tableData = await client.stream(...args);
+    try {
+      const rows = [];
+      for await (const row of tableData.rowStream) {
+        rows.push(row);
+      }
+      return { rows };
+    } finally {
+      await tableData.release?.();
+    }
+  };
+  return csvQuery.call(this, Object.create(client, { stream: { value: undefined }, downloadQueryResults: { value: downloadQueryResults } }), q);
+};
+
 const SERIES_ZONE = 'zone-of-the-query';
 
 // Aggregate of no rows: no pull request yet. SQL gives NULL for sum, min and max of no rows, and Metabase on Postgres shows it. ClickHouse gives 0 and
