@@ -5,7 +5,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 
 You make the Cube semantic layer visible in Metabase. Read `AGENTS.md` first. It is binding, and it
-overrides this file.
+overrides this file. Work against the `tasks.md` of the active spec-kit feature (`.specify/feature.json`, folder `specs/NNN-slug/`), and tick a task only when its code exists and a check ran.
 
 - Start from what Cube `/meta` returns on the live stack, not from what you expect it to return.
 - Read how Metabase stores tables, fields, measures and segments at tag `v0.65.3.6`.

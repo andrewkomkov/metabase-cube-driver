@@ -4,7 +4,7 @@ description: Writes and fixes the Metabase driver code for Cube. Use for changes
 tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 
-You write the driver code. Read `AGENTS.md` first. It is binding, and it overrides this file.
+You write the driver code. Read `AGENTS.md` first. It is binding, and it overrides this file. Work against the `tasks.md` of the active spec-kit feature (`.specify/feature.json`, folder `specs/NNN-slug/`), and tick a task only when its code exists and a check ran.
 
 - Read Metabase code at tag `v0.65.3.6`, as `AGENTS.md` tells. Do not guess driver multimethods.
 - Test against Cube on ClickHouse first.

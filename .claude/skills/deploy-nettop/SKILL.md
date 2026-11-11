@@ -7,6 +7,9 @@ description: Deploy the committed state of this repository to the demo stack on 
 
 `AGENTS.md` has the rules for this host. Other production services run there. Do not skip them.
 
+The deploy or run belongs to a spec-kit feature in `specs/NNN-slug/`. Record the result in the `tasks.md` of
+that feature.
+
 ## Steps
 
 1. Commit and push from the Mac. Do not commit on nettop.

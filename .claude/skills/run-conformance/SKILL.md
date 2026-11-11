@@ -8,6 +8,9 @@ description: Run the conformance suite against the live demo stack and read the 
 `AGENTS.md` has the definition of done. `conformance/features.yaml` is the only source of truth for
 coverage, and you report only the number that `conformance/run.py` prints.
 
+The deploy or run belongs to a spec-kit feature in `specs/NNN-slug/`. Record the result in the `tasks.md` of
+that feature.
+
 ## Steps
 
 1. Deploy the state you want to test. Use the `deploy-nettop` skill.

@@ -3,6 +3,16 @@
 This repository is a Metabase driver plugin for Cube Core. Agents do most of the work here.
 Read this file before you change anything.
 
+## Spec-kit
+
+Every change goes through spec-kit: features, fixes, refactors and chores.
+
+1. Read `.specify/memory/constitution.md`. It is binding, together with this file.
+2. Find the active feature in `.specify/feature.json` and read its `spec.md` and `tasks.md`.
+3. If the work does not fit an unfinished feature, make a new folder `specs/NNN-slug/` with
+   `/speckit-specify`, `/speckit-plan` and `/speckit-tasks` before you write code.
+4. Tick a task only when its code exists and a check ran. Leave open work unticked and say so.
+
 ## Goal
 
 Every Cube semantic layer feature works natively in Metabase, for people and for AI agents.
@@ -67,6 +77,16 @@ Run the suite on nettop with `make conformance`. It runs on stock Cube and with 
 
 Deploy with git: commit on the Mac, push, then `git pull` on nettop. Do not commit on nettop.
 
+## The iMac
+
+The iMac is the Mac the agents run on (`iMac-Andrei`). It is the second test machine, next to nettop.
+
+- Run Linux containers with Apple `container` only. Do not install Docker, Compose, Colima, Lima,
+  Podman or OrbStack.
+- Put build output, caches and container data on `/Volumes/SanDisk2Tb/builds/metabase-cube-driver/`.
+- Run `df -h /System/Volumes/Data` before a large build. Stop and report if less than 10 GB is free.
+- Use the iMac when nettop is busy, low on disk, or another agent runs the suite there.
+
 ## Rules for nettop
 
 Other production services run on this host.
@@ -75,6 +95,8 @@ Other production services run on this host.
 - Leave every other container, image, volume and network as it is.
 - Do not run `docker system prune`, `docker volume prune` or `docker image prune`.
 - Stop and report if free disk space on `/` is below 15 GB.
+- To free disk, remove only images of this compose project that no container uses and that no
+  compose file in the clone names as a default. Run `docker rmi` with the image names. Do not prune.
 
 ## Rules for this repository
 

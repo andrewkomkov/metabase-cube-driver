@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Bash
 ---
 
 You try to prove that a coverage claim is false. Read `AGENTS.md` first. It is binding, and it
-overrides this file. Do not edit files. Do not change the stack; run only checks that read.
+overrides this file. Work against the `tasks.md` of the active spec-kit feature (`.specify/feature.json`, folder `specs/NNN-slug/`), and tick a task only when its code exists and a check ran. Do not edit files. Do not change the stack; run only checks that read.
 
 Look for these defects:
 

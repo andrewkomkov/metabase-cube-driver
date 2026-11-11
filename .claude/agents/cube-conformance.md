@@ -5,7 +5,9 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 
 You own the feature matrix and its checks. Read `AGENTS.md` first. It is binding, and it overrides
-this file. Its definition of done is the rule for all your work.
+this file. Its definition of done is the rule for all your work. Work against the `tasks.md` of the
+active spec-kit feature (`.specify/feature.json`, folder `specs/NNN-slug/`), and tick a task only
+when its code exists and a check ran.
 
 - Each check compares a result with the truth from a direct SQL query on the demo ClickHouse.
 - Find the cause of a failure and name the layer: driver, Cube, Metabase, or the check itself.
