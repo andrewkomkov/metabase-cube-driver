@@ -416,7 +416,10 @@
 
 (defn- hierarchy-line
   [{:keys [title levels], hierarchy-name :name}]
-  (str (or (non-blank title) (short-name hierarchy-name)) ": " (str/join " > " (map short-name levels))))
+  ;; A level of a joined cube keeps the name of its cube, `users.state`, because this table has no column for it.
+  (let [own-prefix (subs hierarchy-name 0 (inc (str/last-index-of hierarchy-name ".")))
+        level-text #(if (str/starts-with? % own-prefix) (short-name %) %)]
+    (str (or (non-blank title) (short-name hierarchy-name)) ": " (str/join " > " (map level-text levels)))))
 
 (defn- folder-text
   "A folder as text. A nested folder is in brackets: `Money: net_sales, [Ratios: count]`."
