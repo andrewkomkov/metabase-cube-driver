@@ -1006,6 +1006,28 @@ Q("dimension.type.geo.implicit_join", ORD, "SELECT u.latitude, u.longitude, coun
   agg=[["count"]], by=["d:orders>users.location__latitude", "d:orders>users.location__longitude"], post=expect_map_columns)
 
 
+@check("dimension.opt.order")
+def _(ctx):
+    """`order: desc` of a dimension is its default sort order. A question that groups by it and names no order must give the rows in that order. An order that a person
+    selects wins, and a dimension with no option keeps the ascending order of Metabase."""
+    sorted_status = "d:orders.status_sorted"
+    counts = "SELECT status, count() FROM orders GROUP BY 1 ORDER BY 1 %s"
+    if len(ch(counts % "DESC")) < 3:
+        raise Fail("too few values of status to prove an order")
+    assert_rows(ctx.mb.mbql(ORD, agg=[["count"]], by=[sorted_status])["rows"], ch(counts % "DESC"), ordered=True, label="default order")
+    assert_rows(ctx.mb.mbql(ORD, agg=["m:orders.revenue"], by=[sorted_status])["rows"], ch("SELECT status, sum(amount) FROM orders GROUP BY 1 ORDER BY 1 DESC"), ordered=True, label="with a measure")
+    assert_rows(ctx.mb.mbql(ORD, agg=[["count"]], by=[sorted_status], order=[["asc", sorted_status]])["rows"], ch(counts % "ASC"), ordered=True, label="a selected order wins")
+    assert_rows(ctx.mb.mbql(ORD, agg=[["count"]], by=[sorted_status], order=[["asc", ["aggregation", 0]]])["rows"],
+                ch("SELECT status, count() AS n FROM orders GROUP BY 1 ORDER BY n ASC, status DESC"), ordered=True, label="an order by the count wins")
+    assert_rows(ctx.mb.mbql(ORD, agg=[["count"]], by=["d:orders.size", sorted_status])["rows"],
+                ch("SELECT %s AS size, status, count() FROM orders GROUP BY 1, 2 ORDER BY size ASC, status DESC" % SIZE), ordered=True, label="second breakout")
+    assert_rows(ctx.mb.mbql(ORD, agg=[["count"]], by=[sorted_status, "d:orders.size"])["rows"],
+                ch("SELECT status, %s AS size, count() FROM orders GROUP BY 1, 2 ORDER BY status DESC, size ASC" % SIZE), ordered=True, label="first breakout")
+    assert_rows(ctx.mb.mbql(ORD, agg=[["count"]], by=["d:orders.status"])["rows"], ch(counts % "ASC"), ordered=True, label="a dimension with no option")
+    mcp = ctx.mcp.call("execute_query", query=mcp_query(ctx.mb, ORD, agg=[["count"]], by=[sorted_status]))["rows"]
+    assert_rows(mcp, ch(counts % "DESC"), ordered=True, label="default order through MCP")
+
+
 def geo_view_on_stock_cube(ctx):
     """The view must keep working without the geo dimension."""
     if ctx.mb.has_field("customer_locations", "location__latitude"):
@@ -1992,6 +2014,61 @@ def _(ctx):
 def _(ctx):
     dash, target = dash_with_param(ctx, "date", "date/all-options", "date", CRT)
     assert_rows(run_param(ctx, dash, target, "date/all-options", "2025-02-01~2025-02-28"), ch(FEB))
+
+
+@check("restapi.compare_date_range")
+def _(ctx):
+    """compareDateRange is an option of the REST API, and Cube runs one query for each range. Metabase has two forms of it. A dashboard gives one card a date filter, and each
+    range is one run of that card, for each kind of measure. One question with a custom column that names the range compares the ranges in one result, for measures that add up."""
+    ranges = [("2025-02-01", "2025-03-31"), ("2025-05-01", "2025-06-30")]
+    measures = [("revenue", "sum(amount)"), ("count", "count()"), ("avg_order_value", "avg(amount)"), ("unique_customers", "uniqExact(user_id)")]
+    in_range = "toDate(created_at) BETWEEN '%s' AND '%s'"
+    card = ctx.mb.mbql_card("compare date ranges", ORD, agg=["m:orders.%s" % name for name, _sql in measures], by=["d:orders.created_at@month", "d:orders.status"])
+    target = ["dimension", ctx.mb.ref(CRT)]
+    dash = ctx.mb.dashboard("compare date ranges", [{"id": "p1", "name": "P", "slug": "p", "type": "date/all-options", "sectionId": "date"}], [(card["id"], [("p1", target)])])
+    results = []
+    for start, end in ranges:
+        truth = ch("SELECT toStartOfMonth(created_at), status, %s FROM orders WHERE %s GROUP BY 1, 2" % (", ".join(sql for _name, sql in measures), in_range % (start, end)))
+        if len(truth) < 8:
+            raise Fail("the range %s to %s has too few groups for a comparison: %d" % (start, end, len(truth)))
+        assert_rows(run_param(ctx, dash, target, "date/all-options", "%s~%s" % (start, end)), truth, label="range from %s" % start)
+        results.append(truth)
+    if sorted(map(str, results[0])) == sorted(map(str, results[1])):
+        raise Fail("the two ranges have the same rows, so the comparison proves nothing")
+    between = [["between", CRT, start, end] for start, end in ranges]
+    name_of_range = "multiIf(%s, 'first', %s, 'second', 'none')" % tuple(in_range % r for r in ranges)
+    where = "WHERE %s OR %s" % tuple(in_range % r for r in ranges)
+    exprs = {"range": ["case", [[between[0], "first"], [between[1], "second"]], {"default": "none"}]}
+    one = dict(agg=["m:orders.revenue", "m:orders.count", "m:orders.avg_order_value"], exprs=exprs, where=[["or"] + between])
+    assert_rows(ctx.mb.mbql(ORD, by=[["expression", "range"]], **one)["rows"],
+                ch("SELECT %s, sum(amount), count(), avg(amount) FROM orders %s GROUP BY 1" % (name_of_range, where)), label="one question")
+    assert_rows(ctx.mb.mbql(ORD, by=[["expression", "range"], "d:orders.status"], **one)["rows"],
+                ch("SELECT %s, status, sum(amount), count(), avg(amount) FROM orders %s GROUP BY 1, 2" % (name_of_range, where)), label="one question by status")
+
+
+@check("restapi.total_query")
+def _(ctx):
+    """total: true of the REST API gives the number of all rows of a query next to a page of them, and Cube runs a second query for it. In Metabase a second stage
+    counts the rows of the same query, with its filter and with no limit."""
+    by = ["d:orders.user_id", "d:orders.status"]
+    where = [[">", "d:orders.quantity_dim", 1]]
+    groups = "SELECT user_id, status, sum(amount) FROM orders WHERE quantity > 1 GROUP BY 1, 2"
+    page = ctx.mb.mbql(ORD, agg=["m:orders.revenue"], by=by, where=where, order=[["asc", by[0]], ["asc", by[1]]], limit=7)
+    assert_rows(page["rows"], ch(groups + " ORDER BY 1, 2 LIMIT 7"), ordered=True, label="page")
+    total = ch("SELECT count() FROM (%s)" % groups)
+    if total[0][0] <= 7:
+        raise Fail("the query has only %s rows, so the total proves nothing" % total[0][0])
+    first = ctx.mb.inner(ORD, agg=["m:orders.revenue"], by=by, where=where)
+    assert_rows(ctx.mb.raw({"source-query": first, "aggregation": [["count"]]})["rows"], total, label="total")
+    card = ctx.mb.mbql_card("total of a page", ORD, agg=["m:orders.revenue"], by=by, where=where)
+    assert_rows(ctx.mb.raw({"source-table": "card__%d" % card["id"], "aggregation": [["count"]]})["rows"], total, label="total of a saved question")
+    stages = mcp_query(ctx.mb, ORD, agg=["m:orders.revenue"], by=by, where=where)
+    stages["stages"].append({"lib/type": "mbql.stage/mbql", "aggregation": [["count", {}]]})
+    assert_rows(ctx.mcp.call("execute_query", query=stages)["rows"], total, label="total through MCP")
+    # A page of raw rows and the number of all of them.
+    assert_rows(ctx.mb.mbql(ORD, fields=["d:orders.id", "d:orders.status"], where=where, order=[["asc", "d:orders.id"]], limit=5)["rows"],
+                ch("SELECT id, status FROM orders WHERE quantity > 1 ORDER BY id LIMIT 5"), ordered=True, label="page of raw rows")
+    assert_rows(ctx.mb.mbql(ORD, agg=[["count"]], where=where)["rows"], ch("SELECT count() FROM orders WHERE quantity > 1"), label="total of raw rows")
 
 
 @check("mb.dashboard.filter_values")
@@ -6763,15 +6840,15 @@ def _(ctx):
 
 @check("preagg.rollup_lambda")
 def _(ctx):
-    """Inside the range of the rollup, the lambda gives the truth. With a range that reads source rows, ClickHouse fails, and the driver tells this."""
+    """Inside the range of the rollup, the lambda gives the truth. With a range that reads source rows, stock Cube can fail, and the driver tells this. With the dialect it must give the truth."""
     ensure_table(ctx, "lambda_sales")
     inside = "SELECT status, toStartOfMonth(created_at), sum(amount) FROM orders WHERE created_at >= '2025-02-01' AND created_at < '2025-03-01' GROUP BY 1, 2"
     used_rollup({"measures": ["lambda_sales.revenue"], "dimensions": ["lambda_sales.status"],
                  "timeDimensions": [{"dimension": "lambda_sales.created_at", "granularity": "month", "dateRange": ["2025-02-01", "2025-02-28"]}]}, "lambda")(ctx, None)
     expect_rows(ctx, ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.status", "d:lambda_sales.created_at@month"],
                                   where=[[">=", "d:lambda_sales.created_at", "2025-02-01"], ["<", "d:lambda_sales.created_at", "2025-03-01"]]), inside, "inside the rollup")
-    # On ClickHouse, the whole range fails or not with the state of the rollup. So this is the truth, or the clear message.
-    grid = Grid(ctx, refusal="Cube cannot read a rollup_lambda")
+    # On stock Cube, the whole range fails or not with the timing of the stream. So there this is the truth, or the clear message.
+    grid = Grid(ctx, refusal=None if DIALECT else "Cube cannot read a rollup_lambda")
     grid.add("whole range", ctx.mb.inner("lambda_sales", agg=["m:lambda_sales.revenue"], by=["d:lambda_sales.status"]), "SELECT status, sum(amount) FROM orders GROUP BY status")
     grid.done()
 
@@ -8761,7 +8838,7 @@ PA("preagg.type.rollup_lambda_filter_hit", pa_query([PA_PL], [], "month", date_r
 
 
 def pa_lambda_source(query, truth):
-    """Over the end of the batch, Cube reads source rows too. A run gives the truth or the error of cube-js/cube#12285, never a wrong number."""
+    """Over the end of the batch, Cube reads source rows too. On stock Cube a run gives the truth or the error of cube-js/cube#12285, never a wrong number. With the dialect it must give the truth."""
     def run(ctx):
         status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
         for _ in range(120):
@@ -8770,7 +8847,8 @@ def pa_lambda_source(query, truth):
             time.sleep(2)
             status, text, _h = http("POST", CUBE + "/cubejs-api/v1/load", {"query": query})
         if status != 200:
-            if "Stream query failed" not in text:
+            # The dialect waits for the rows of the source, so no error is right there.
+            if DIALECT or "Stream query failed" not in text:
                 raise Fail("another error: %s" % text[:300])
             return
         res = json.loads(text)

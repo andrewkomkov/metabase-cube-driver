@@ -393,10 +393,10 @@
   check: dimension.opt.meta
 - id: dimension.opt.order
   area: cube.dimensions
-  title: "dimension opt order"
-  status: blocked
-  status_stock: blocked
-  reason: "A Metabase field has no default sort order. The driver cannot apply this option without a Metabase change, which is out of scope."
+  title: "dimension opt order: the default sort order of a dimension"
+  status: todo
+  status_stock: todo
+  check: dimension.opt.order
 - id: dimension.opt.primary_key
   area: cube.dimensions
   title: "dimension opt primary key"
@@ -961,8 +961,8 @@
   status: partial
   status_stock: partial
   check: preagg.rollup_lambda
-  cap: partial
-  reason: "Inside the range of the rollup, the lambda gives the truth. With a range that reads source rows on the demo data, the REST API and the SQL API of Cube can stop on ClickHouse with Stream query failed: aborted, see cube-js/cube#12285. A run gives the truth or this error. The driver shows a clear message for this. dev/cube/model/rollups.yml has the model."
+  cap_stock: partial
+  reason_stock: "Stock Cube v1.8.20 can stop a rollup_lambda that reads source rows with Stream query failed: aborted, see cube-js/cube#12285. QueryCache.csvQuery awaits stream.pipeline with a callback, which is no promise, so it closes the ClickHouse client while the rows still come. A run gives the truth or this error, with the timing, and the driver shows a clear message. No number is wrong. cube-clickhouse waits for the end of the rows, and then each run gives the truth."
 - id: sqlapi.aggregate_function
   area: cube.sql_api
   title: "sqlapi aggregate function"
@@ -1049,16 +1049,16 @@
   check: sqlapi.where_like
 - id: restapi.compare_date_range
   area: cube.rest_api
-  title: "restapi compare date range"
-  status: unsupported
-  status_stock: unsupported
-  reason: "compareDateRange exists only in the REST API. No Metabase query shape maps to it."
+  title: "restapi compare date range: one card with a date filter for each range, and one question with a custom column"
+  status: todo
+  status_stock: todo
+  check: restapi.compare_date_range
 - id: restapi.total_query
   area: cube.rest_api
-  title: "restapi total query"
-  status: unsupported
-  status_stock: unsupported
-  reason: "A total query exists only in the REST API. No Metabase query shape maps to it."
+  title: "restapi total query: a second stage counts all rows of a query with a limit"
+  status: todo
+  status_stock: todo
+  check: restapi.total_query
 - id: clickhouse.bool
   area: clickhouse
   title: "clickhouse bool"
@@ -6815,8 +6815,8 @@
   status: partial
   status_stock: partial
   check: preagg.type.rollup_lambda_after_the_batch_with_source
-  cap: partial
-  reason: "A run gives the truth or the error of cube-js/cube#12285, Stream query failed: aborted. The driver shows a clear message, and no number is wrong."
+  cap_stock: partial
+  reason_stock: "Stock Cube v1.8.20 can stop a rollup_lambda that reads source rows with Stream query failed: aborted, see cube-js/cube#12285. QueryCache.csvQuery awaits stream.pipeline with a callback, which is no promise, so it closes the ClickHouse client while the rows still come. A run gives the truth or this error, with the timing, and the driver shows a clear message. No number is wrong. cube-clickhouse waits for the end of the rows, and then each run gives the truth."
 - id: preagg.type.rollup_lambda_filter_hit
   area: cube.pre_aggregations
   title: "preagg type rollup lambda filter hit"
@@ -6841,8 +6841,8 @@
   status: partial
   status_stock: partial
   check: preagg.type.rollup_lambda_over_the_batch_with_source
-  cap: partial
-  reason: "A run gives the truth or the error of cube-js/cube#12285, Stream query failed: aborted. The driver shows a clear message, and no number is wrong."
+  cap_stock: partial
+  reason_stock: "Stock Cube v1.8.20 can stop a rollup_lambda that reads source rows with Stream query failed: aborted, see cube-js/cube#12285. QueryCache.csvQuery awaits stream.pipeline with a callback, which is no promise, so it closes the ClickHouse client while the rows still come. A run gives the truth or this error, with the timing, and the driver shows a clear message. No number is wrong. cube-clickhouse waits for the end of the rows, and then each run gives the truth."
 - id: preagg.metabase.time_zone_one_bound_miss
   area: cube.pre_aggregations
   title: "preagg metabase time zone one bound miss"
