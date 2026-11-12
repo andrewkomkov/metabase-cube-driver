@@ -2,9 +2,9 @@
 
 CI generates this page from `conformance/run.py`. Do not edit it.
 
-**coverage: 1425/1469 pass on Cube with the ClickHouse dialect** (1425 pass, 26 partial, 0 blocked, 17 unsupported, 1 fail of 1469)
+**coverage: 1426/1469 pass on Cube with the ClickHouse dialect** (1426 pass, 26 partial, 0 blocked, 17 unsupported, 0 fail of 1469)
 
-Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `2e4000f29990`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/43197558074), 2026-11-12.
+Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `6abec188284a`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/43199562524), 2026-11-12.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -1391,7 +1391,7 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `2e400
 | `hierarchy.level_of_a_joined_cube` | pass |  |
 | `mb.expr.text` | pass |  |
 | `mb.expr.integer` | pass |  |
-| `mb.expr.float` | fail | float of text: query failed: ERROR: Database Execution Error: Query failed: Error: Illegal types String and Float64 of arguments of function multiply: In scope SELECT ord.id AS id, (CONCAT(CAST(ord.quantity, 'String'), '.25') * CAST('1.0', 'DOUBLE')) AS k FROM shop.orders AS ord WHERE (ord.id >= '1') AND (ord.id <= '60') ORDER  |
+| `mb.expr.float` | pass |  |
 | `mb.expr.date` | pass |  |
 | `mb.expr.datetime_subtract` | pass |  |
 | `mb.expr.get_week_iso` | pass |  |

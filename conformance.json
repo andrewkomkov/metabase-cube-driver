@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "counts": {
-    "pass": 1425,
+    "pass": 1426,
     "partial": 26,
     "blocked": 0,
     "unsupported": 17,
-    "fail": 1,
+    "fail": 0,
     "total": 1469
   },
-  "coverage": "coverage: 1425/1469 pass on Cube with the ClickHouse dialect",
+  "coverage": "coverage: 1426/1469 pass on Cube with the ClickHouse dialect",
   "features": [
     {
       "id": "measure.format.abbr",
@@ -6927,8 +6927,8 @@
     },
     {
       "id": "mb.expr.float",
-      "status": "fail",
-      "reason": "float of text: query failed: ERROR: Database Execution Error: Query failed: Error: Illegal types String and Float64 of arguments of function multiply: In scope SELECT ord.id AS id, (CONCAT(CAST(ord.quantity, 'String'), '.25') * CAST('1.0', 'DOUBLE')) AS k FROM shop.orders AS ord WHERE (ord.id >= '1') AND (ord.id <= '60') ORDER "
+      "status": "pass",
+      "reason": ""
     },
     {
       "id": "mb.expr.date",
