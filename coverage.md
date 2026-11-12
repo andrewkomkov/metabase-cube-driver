@@ -4,7 +4,7 @@ CI generates this page from `conformance/run.py`. Do not edit it.
 
 **coverage: 1425/1469 pass on Cube with the ClickHouse dialect** (1425 pass, 26 partial, 0 blocked, 17 unsupported, 1 fail of 1469)
 
-Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `0ebe427118cb`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/43070630734), 2026-11-11.
+Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `bda114883173`, [run](https://github.com/andrewkomkov/metabase-cube-driver/actions/runs/43179304741), 2026-11-12.
 
 | Feature | Status | Reason |
 | --- | --- | --- |
@@ -1391,7 +1391,7 @@ Metabase `v0.65.3.6`, Cube `v1.8.20`, ClickHouse `26.10.3-alpine`, commit `0ebe4
 | `hierarchy.level_of_a_joined_cube` | pass |  |
 | `mb.expr.text` | pass |  |
 | `mb.expr.integer` | pass |  |
-| `mb.expr.float` | fail | POST /api/dataset: HTTP 400: {"database_id":2,"parameterized":false,"started_at":"2026-11-11T18:54:04.571437969Z","via":[{"status":"failed","class":"class clojure.lang.ExceptionInfo","error":"Error executing query: ERROR: Database Execution Error: Query failed: Error: Illegal types String and Float64 of arguments of function mu |
+| `mb.expr.float` | fail | float of text: query failed: ERROR: Database Execution Error: Query failed: Error: Illegal types String and Float64 of arguments of function multiply: In scope SELECT ord.id AS id, (CONCAT(CAST(ord.quantity, 'String'), '.25') * CAST('1.0', 'DOUBLE')) AS k FROM shop.orders AS ord WHERE (ord.id >= '1') AND (ord.id <= '60') ORDER  |
 | `mb.expr.date` | pass |  |
 | `mb.expr.datetime_subtract` | pass |  |
 | `mb.expr.get_week_iso` | pass |  |

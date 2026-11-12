@@ -6928,7 +6928,7 @@
     {
       "id": "mb.expr.float",
       "status": "fail",
-      "reason": "POST /api/dataset: HTTP 400: {\"database_id\":2,\"parameterized\":false,\"started_at\":\"2026-11-11T18:54:04.571437969Z\",\"via\":[{\"status\":\"failed\",\"class\":\"class clojure.lang.ExceptionInfo\",\"error\":\"Error executing query: ERROR: Database Execution Error: Query failed: Error: Illegal types String and Float64 of arguments of function mu"
+      "reason": "float of text: query failed: ERROR: Database Execution Error: Query failed: Error: Illegal types String and Float64 of arguments of function multiply: In scope SELECT ord.id AS id, (CONCAT(CAST(ord.quantity, 'String'), '.25') * CAST('1.0', 'DOUBLE')) AS k FROM shop.orders AS ord WHERE (ord.id >= '1') AND (ord.id <= '60') ORDER "
     },
     {
       "id": "mb.expr.date",
