@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.2.0](https://github.com/andrewkomkov/metabase-cube-driver/compare/v0.1.1...v0.2.0) (2026-11-12)
+
+
+### Features
+
+* add median and percentile, and the geo dimension of a view, to the clickhouse dialect ([5b6b1c8](https://github.com/andrewkomkov/metabase-cube-driver/commit/5b6b1c806cceadc9dc83caae341f3d1f07855ea9))
+* add splitPart and regexExtract through the clickhouse dialect, and the iso mode of weekday ([6f4e81f](https://github.com/andrewkomkov/metabase-cube-driver/commit/6f4e81fc438d4ba81afff907c4403b0a3239f2f1))
+* apply the default order of a cube dimension to a breakout ([79ca96d](https://github.com/andrewkomkov/metabase-cube-driver/commit/79ca96d74310a8f0f066418e7e094b2d86fd200b))
+* apply the default order of a dimension before the total order of the mcp server ([4d26a87](https://github.com/andrewkomkov/metabase-cube-driver/commit/4d26a878c7652c01a96bf546b8c06376c0bff9b4))
+* **demo:** add a ledger model with the cube options that had no check ([e6437c0](https://github.com/andrewkomkov/metabase-cube-driver/commit/e6437c09c4bc54c1640d716c49fcb9a47f5e2d34))
+* **dev:** run the stack and the suite on the imac with apple container ([3ad6f3a](https://github.com/andrewkomkov/metabase-cube-driver/commit/3ad6f3ad67939dde8cf916ac7358c7a152a4ad76))
+* write now and today as a time literal, and scan the field before the mcp values check ([08e4aef](https://github.com/andrewkomkov/metabase-cube-driver/commit/08e4aef78f3ceb46e08b07af2d305550736ec3a6))
+
+
+### Bug fixes
+
+* **cube-clickhouse:** read all source rows of a rollup_lambda before the client closes ([4ae21e2](https://github.com/andrewkomkov/metabase-cube-driver/commit/4ae21e287d4be592f73cf99eca542da5c01e58f8))
+* **dev:** keep the imac stack off the external drive ([0e6171e](https://github.com/andrewkomkov/metabase-cube-driver/commit/0e6171eec94a13de2680726a6a88acc43db26120))
+* **dev:** make the cube store tag follow the cube pin ([ab63c4a](https://github.com/andrewkomkov/metabase-cube-driver/commit/ab63c4a4e65edd1f73ea90cc5ec9ee52aac048ce))
+* **dev:** read cube at the container address in the imac run ([2e4000f](https://github.com/andrewkomkov/metabase-cube-driver/commit/2e4000f29990d05d0f3ee2bde1f30764a466f94f))
+* **sync:** keep the cube name of a hierarchy level from a joined cube ([741a461](https://github.com/andrewkomkov/metabase-cube-driver/commit/741a461ac1fbbb0921f19c3eb9d93399dff60457))
+* write the float function of a custom expression as a cast of the text ([6abec18](https://github.com/andrewkomkov/metabase-cube-driver/commit/6abec188284ab06fed7b3f88a848f74c6232af3e))
+
+
+### Documentation
+
+* describe the text functions of the dialect, the url functions and the mcp arguments with a check ([4445bfb](https://github.com/andrewkomkov/metabase-cube-driver/commit/4445bfb95cb0f89dc073e278a3cbe82964c7b8e8))
+* drop the note that no release exists ([46bfd08](https://github.com/andrewkomkov/metabase-cube-driver/commit/46bfd0819ed4fa80d4a3197d18fe1d87b48df071))
+* give the metabase forms of two rest options ([2999500](https://github.com/andrewkomkov/metabase-cube-driver/commit/2999500d78a7f50e808df551aae7fd6eee12cb6a))
+* record the limits that the dialect closes and the reasons of open entries ([0999b18](https://github.com/andrewkomkov/metabase-cube-driver/commit/0999b18a3d3f6a034f1cd89ccb92a04222a30247))
+* say that the dialect has the geo fix of the cube image ([0ebe427](https://github.com/andrewkomkov/metabase-cube-driver/commit/0ebe427118cbf9147f89be9ce0be622250397896))
+* **specs:** add feature 003 to close the open entries ([489d5fd](https://github.com/andrewkomkov/metabase-cube-driver/commit/489d5fd4fc9262ad2a69a783eb88f8d0698bbd76))
+* **specs:** add feature 004 for features with no entry in the matrix ([d870e22](https://github.com/andrewkomkov/metabase-cube-driver/commit/d870e22b47fde4d383934d2934d4111b96a75b3d))
+* **specs:** record the first run and the fixes of feature 004 ([2de668c](https://github.com/andrewkomkov/metabase-cube-driver/commit/2de668cf02e1c03cf9def41bc3d3710ce9259794))
+* **specs:** record the result of each task of feature 003 ([db6ddae](https://github.com/andrewkomkov/metabase-cube-driver/commit/db6ddaed1ba4a640727cd7289a61a816b1fb88d9))
+
 ## [0.1.1](https://github.com/andrewkomkov/metabase-cube-driver/compare/v0.1.0...v0.1.1) (2026-11-08)
 
 
