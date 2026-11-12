@@ -394,8 +394,8 @@
 - id: dimension.opt.order
   area: cube.dimensions
   title: "dimension opt order: the default sort order of a dimension"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: dimension.opt.order
 - id: dimension.opt.primary_key
   area: cube.dimensions
@@ -484,7 +484,7 @@
 - id: dimension.type.geo.view
   area: cube.dimensions
   title: "dimension type geo: coordinates in a view"
-  status: partial
+  status: pass
   status_stock: partial
   check: dimension.type.geo.view
   cap_stock: partial
@@ -958,7 +958,7 @@
 - id: preagg.rollup_lambda
   area: cube.pre_aggregations
   title: "preagg rollup lambda"
-  status: partial
+  status: pass
   status_stock: partial
   check: preagg.rollup_lambda
   cap_stock: partial
@@ -1050,16 +1050,16 @@
 - id: restapi.compare_date_range
   area: cube.rest_api
   title: "restapi compare date range"
-  status: todo
-  status_stock: todo
+  status: partial
+  status_stock: partial
   check: restapi.compare_date_range
   cap: partial
   reason: "compareDateRange is an option of the REST API, and Metabase has no request that gives one result for each range. The check proves the two Metabase forms of it. A dashboard date filter gives each range from one card, for each kind of measure. One question with a custom column compares ranges that do not overlap, and only for measures that add up, because the driver stops a distinct count next to a custom column."
 - id: restapi.total_query
   area: cube.rest_api
   title: "restapi total query"
-  status: todo
-  status_stock: todo
+  status: partial
+  status_stock: partial
   check: restapi.total_query
   cap: partial
   reason: "total: true is an option of the REST API, and Metabase has no request that gives a page of rows and the number of all rows together. The check proves the Metabase form of it: a second stage with a count on the same query gives the number of all rows, with the filters and with no limit, also over a saved question and through MCP."
@@ -1204,8 +1204,8 @@
 - id: mb.agg.median
   area: metabase.aggregation
   title: "mb agg median"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: partial
   check: mb.agg.median
   cap_stock: partial
   reason_stock: "Stock Cube removes PERCENTILE_CONT from its templates for ClickHouse (ClickHouseQuery.ts, delete templates.functions.PERCENTILECONT), so the SQL API answers Can't detect Cube query. The driver asks Cube and turns off :percentile-aggregations, and Metabase refuses a median with a message. cube-clickhouse adds the template with quantileExactInclusive, and the query builder gives the truth."
@@ -1224,8 +1224,8 @@
 - id: mb.agg.percentile
   area: metabase.aggregation
   title: "mb agg percentile"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: partial
   check: mb.agg.percentile
   cap_stock: partial
   reason_stock: "Stock Cube removes PERCENTILE_CONT from its templates for ClickHouse (ClickHouseQuery.ts, delete templates.functions.PERCENTILECONT), so the SQL API answers Can't detect Cube query. The driver asks Cube and turns off :percentile-aggregations, and Metabase refuses a percentile with a message. cube-clickhouse adds the template with quantileExactInclusive, and the query builder gives the truth."
@@ -3838,14 +3838,14 @@
 - id: compile.xray.field_all_cards_run
   area: mb.compile.xray
   title: "xray field all cards run"
-  status: partial
-  status_stock: partial
+  status: pass
+  status_stock: pass
   check: compile.xray.field_all_cards_run
 - id: compile.xray.time_field_all_cards_run
   area: mb.compile.xray
   title: "xray time field all cards run"
-  status: partial
-  status_stock: partial
+  status: pass
+  status_stock: pass
   check: compile.xray.time_field_all_cards_run
 - id: compile.xray.typed_table_all_cards_run
   area: mb.compile.xray
@@ -6812,7 +6812,7 @@
 - id: preagg.type.rollup_lambda_after_the_batch_with_source
   area: cube.pre_aggregations
   title: "preagg type rollup lambda after the batch with source"
-  status: partial
+  status: pass
   status_stock: partial
   check: preagg.type.rollup_lambda_after_the_batch_with_source
   cap_stock: partial
@@ -6838,7 +6838,7 @@
 - id: preagg.type.rollup_lambda_over_the_batch_with_source
   area: cube.pre_aggregations
   title: "preagg type rollup lambda over the batch with source"
-  status: partial
+  status: pass
   status_stock: partial
   check: preagg.type.rollup_lambda_over_the_batch_with_source
   cap_stock: partial
@@ -8662,320 +8662,320 @@
 - id: measure.type.count_with_sql
   area: cube.measures
   title: "measure type count with sql"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: measure.type.count_with_sql
 - id: dimension.opt.cross_cube_reference
   area: cube.dimensions
   title: "dimension opt cross cube reference"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: dimension.opt.cross_cube_reference
 - id: cube.sql_function_of_another_cube
   area: cube.cubes
   title: "cube sql function of another cube"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: cube.sql_function_of_another_cube
 - id: segment.public_false
   area: cube.segments
   title: "segment public false"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: segment.public_false
 - id: view.segment
   area: cube.views
   title: "view segment"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: view.segment
 - id: view.rolling_measure
   area: cube.views
   title: "view rolling measure"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: view.rolling_measure
 - id: join.legacy_relationship_name
   area: cube.joins
   title: "join legacy relationship name"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: join.legacy_relationship_name
 - id: segment.meta
   area: cube.segments
   title: "segment meta"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: segment.meta
 - id: hierarchy.level_of_a_joined_cube
   area: cube.hierarchies
   title: "hierarchy level of a joined cube"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: hierarchy.level_of_a_joined_cube
 - id: mb.expr.text
   area: metabase.expressions
   title: "expr text"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.text
 - id: mb.expr.integer
   area: metabase.expressions
   title: "expr integer"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.integer
 - id: mb.expr.float
   area: metabase.expressions
   title: "expr float"
-  status: todo
-  status_stock: todo
+  status: fail
+  status_stock: fail
   check: mb.expr.float
 - id: mb.expr.date
   area: metabase.expressions
   title: "expr date"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.date
 - id: mb.expr.datetime_subtract
   area: metabase.expressions
   title: "expr datetime subtract"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.datetime_subtract
 - id: mb.expr.get_week_iso
   area: metabase.expressions
   title: "expr get week iso"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.get_week_iso
 - id: mb.expr.get_week_us
   area: metabase.expressions
   title: "expr get week us"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.get_week_us
 - id: mb.expr.get_day_of_week_iso
   area: metabase.expressions
   title: "expr get day of week iso"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.get_day_of_week_iso
 - id: mb.expr.now
   area: metabase.expressions
   title: "expr now"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.now
 - id: mb.expr.today
   area: metabase.expressions
   title: "expr today"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.today
 - id: mb.expr.literal
   area: metabase.expressions
   title: "expr literal"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.literal
 - id: mb.filter.in
   area: metabase.filters
   title: "filter in"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.in
 - id: mb.filter.not_in
   area: metabase.filters
   title: "filter not in"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.not_in
 - id: mb.filter.exclude_hour_of_day
   area: metabase.filters
   title: "filter exclude hour of day"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.exclude_hour_of_day
 - id: mb.filter.exclude_quarter_of_year
   area: metabase.filters
   title: "filter exclude quarter of year"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.exclude_quarter_of_year
 - id: mb.filter.not_date_between
   area: metabase.filters
   title: "filter not date between"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.not_date_between
 - id: mb.filter.during
   area: metabase.filters
   title: "filter during"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.during
 - id: mb.filter.relative_with_offset
   area: metabase.filters
   title: "filter relative with offset"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.relative_with_offset
 - id: mb.filter.relative_include_current
   area: metabase.filters
   title: "filter relative include current"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.relative_include_current
 - id: mb.filter.inside
   area: metabase.filters
   title: "filter inside"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.filter.inside
 - id: mb.breakout.bin_default
   area: metabase.breakout
   title: "breakout bin default"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.breakout.bin_default
 - id: mb.dashboard.filter_relative_date
   area: metabase.dashboards
   title: "dashboard filter relative date"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.dashboard.filter_relative_date
 - id: mb.dashboard.filter_month_year
   area: metabase.dashboards
   title: "dashboard filter month year"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.dashboard.filter_month_year
 - id: mb.dashboard.filter_quarter_year
   area: metabase.dashboards
   title: "dashboard filter quarter year"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.dashboard.filter_quarter_year
 - id: mb.dashboard.filter_string_contains
   area: metabase.dashboards
   title: "dashboard filter string contains"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.dashboard.filter_string_contains
 - id: mb.dashboard.filter_boolean
   area: metabase.dashboards
   title: "dashboard filter boolean"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.dashboard.filter_boolean
 - id: mb.dashboard.filter_id
   area: metabase.dashboards
   title: "dashboard filter id"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.dashboard.filter_id
 - id: mb.dashboard.filter_time_grouping
   area: metabase.dashboards
   title: "dashboard filter time grouping"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.dashboard.filter_time_grouping
 - id: mb.native.time_grouping_param
   area: metabase.native
   title: "native time grouping param"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.native.time_grouping_param
 - id: mb.native.param_boolean
   area: metabase.native
   title: "native param boolean"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.native.param_boolean
 - id: mb.native.card_reference
   area: metabase.native
   title: "native card reference"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.native.card_reference
 - id: mb.export.xlsx
   area: metabase.export
   title: "export xlsx"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.export.xlsx
 - id: mcp.browse_collection
   area: mcp
   title: "mcp browse collection"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mcp.browse_collection
 - id: mcp.browse.list_models
   area: mcp
   title: "mcp browse list models"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mcp.browse.list_models
 - id: mcp.browse.list_tables_search
   area: mcp
   title: "mcp browse list tables search"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mcp.browse.list_tables_search
 - id: mcp.browse.get_fields_values
   area: mcp
   title: "mcp browse get fields values"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mcp.browse.get_fields_values
 - id: mcp.execute_query.expression
   area: mcp
   title: "mcp execute query expression"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_query.expression
 - id: mcp.execute_query.order_limit
   area: mcp
   title: "mcp execute query order limit"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_query.order_limit
 - id: mcp.execute_query.explicit_join
   area: mcp
   title: "mcp execute query explicit join"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_query.explicit_join
 - id: mcp.execute_query.two_stages
   area: mcp
   title: "mcp execute query two stages"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_query.two_stages
 - id: mcp.execute_query.binning
   area: mcp
   title: "mcp execute query binning"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_query.binning
 - id: mcp.execute_query.validate_only
   area: mcp
   title: "mcp execute query validate only"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_query.validate_only
 - id: mcp.execute_sql.template_tag_values
   area: mcp
   title: "mcp execute sql template tag values"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mcp.execute_sql.template_tag_values
 - id: mcp.run_saved_question.parameters
   area: mcp
   title: "mcp run saved question parameters"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mcp.run_saved_question.parameters
 - id: mb.expr.host
   area: metabase.expressions
@@ -9004,16 +9004,16 @@
 - id: mb.expr.split_part
   area: metabase.expressions
   title: "expr split part"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: unsupported
   check: mb.expr.split_part
   cap_stock: unsupported
   reason_stock: "Stock Cube has no template for SPLIT_PART on ClickHouse. It can compute the function only after the query, which fails next to a measure and on a cube with a rolling window measure. So the driver asks Cube, turns off :split-part so that Metabase does not offer splitPart, and refuses the clause with a message, and no query with the function gives rows. cube-clickhouse adds the template."
 - id: mb.expr.regex_match_first
   area: metabase.expressions
   title: "expr regex match first"
-  status: todo
-  status_stock: todo
+  status: partial
+  status_stock: unsupported
   check: mb.expr.regex_match_first
   cap: partial
   reason: "The query builder gives the truth for a pattern with a match and for no match. A pattern that matches empty text gives NULL, and Metabase on Postgres gives empty text: extract() of ClickHouse gives empty text also for no match, so the dialect cannot tell them apart. See mb.expr.regex_match_first.empty_match."
@@ -9028,8 +9028,8 @@
 - id: compile.expr.url_function_gets_a_clear_message
   area: mb.compile.expr
   title: "host, domain, subdomain and path give a clear message"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: compile.expr.url_function_gets_a_clear_message
 - id: measure.type.running_total
   area: cube.measures
@@ -9058,14 +9058,14 @@
 - id: mb.expr.date_from_text
   area: metabase.expressions
   title: "expr date from text"
-  status: todo
-  status_stock: todo
+  status: pass
+  status_stock: pass
   check: mb.expr.date_from_text
 - id: mb.expr.regex_match_first.empty_match
   area: metabase.expressions
   title: "expr regex match first, a match of empty text"
-  status: todo
-  status_stock: todo
+  status: partial
+  status_stock: unsupported
   check: mb.expr.regex_match_first.empty_match
   cap: partial
   reason: "With cube-clickhouse a pattern that matches empty text gives NULL, and Metabase on Postgres gives empty text. The check proves the NULL, and it fails when the limit goes away."

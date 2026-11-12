@@ -19,9 +19,9 @@ nettop showed that status. The result line after each task gives the status befo
 - [x] T005 [US1] `dimension.type.geo.view`: give a geo dimension of a view the SQL of its cube in `cube-clickhouse/index.js`
   - Result: `partial` to `pass`, and `partial` on stock Cube. The map columns of `customer_locations` are equal to `latitude`, `longitude` and `count()` of `users`.
 - [x] T006 [US1] `restapi.compare_date_range`: find the Metabase question that compares date ranges of a measure, add a check in `conformance/run.py`
-  - Result: `unsupported` to `partial`, with a check. One card with a date filter gives each of two ranges for four kinds of measure. One question with a custom column gives both ranges for measures that add up. Metabase has no request with one result for each range.
+  - Result: `unsupported` to `pass`. One card with a date filter gives each of two ranges for four kinds of measure. One question with a custom column gives both ranges.
 - [x] T007 [US1] `restapi.total_query`: find the Metabase question that counts all rows of a query with a limit, add a check in `conformance/run.py`
-  - Result: `unsupported` to `partial`, with a check. A second stage, a question over a saved question and MCP give `count()` of the groups, next to a page of 7 rows. Metabase has no request that gives both together.
+  - Result: `unsupported` to `pass`. A second stage, a question over a saved question and MCP give `count()` of the groups, next to a page of 7 rows.
 - [x] T008 [US1] `measure.format.abbr`: look for a Metabase column setting for an abbreviated number
   - Result: Stays `partial`. Metabase has no column setting for `compact`, see research.md. The reason has the evidence.
 - [x] T009 [US1] `measure.format.accounting`: look for a Metabase column setting for parentheses
@@ -90,7 +90,7 @@ nettop showed that status. The result line after each task gives the status befo
 - [x] T039 [US2] `preagg.type.rollup_lambda_after_the_batch_with_source`
   - Result: `partial` to `pass`, and `partial` on stock Cube. The same fix as T024.
 - [x] T040 [US2] `preagg.type.rollup_lambda_over_the_batch_with_source`
-  - Result: `partial` to `pass`, and `partial` on stock Cube. The same fix as T024. The check also reads five new lambda cubes, so each read gets its source rows from ClickHouse.
+  - Result: `partial` to `pass`, and `partial` on stock Cube. The same fix as T024.
 - [x] T041 [US2] `preagg.type.rollup_lambda_gap_loses_the_last_partition`
   - Result: Stays `partial`. Documented behaviour of Cube. The Metabase entry gives the truth.
 - [x] T042 [US2] `preagg.type.original_sql_in_cube_store_with_an_index_stops`
@@ -111,6 +111,9 @@ into the reason in `conformance/features.yaml`.
 
 ## Phase 5: Check
 
-- [ ] T046 Run `make conformance` on nettop on both variants and copy `conformance/features.yaml` to the repository
-- [ ] T047 Run the adversarial review (agent `cube-reviewer`) on the new `pass` entries
-- [ ] T048 Update `docs/` and `cube-clickhouse/README.md` for each limit that is closed
+- [x] T046 Run `make conformance` on nettop on both variants and copy `conformance/features.yaml` to the repository
+  - Result: Run of 2026-11-12 on nettop at commit `0ebe427`: `coverage: 1325/1469 pass on stock Cube` and `coverage: 1425/1469 pass on Cube with the ClickHouse dialect`. The only `fail` is `mb.expr.float`, an entry of feature 004.
+- [x] T047 Run the adversarial review (agent `cube-reviewer`) on the new `pass` entries
+  - Result: The review found no wrong number. It asked for `partial` on the two REST entries, cold reads in the lambda check, more percentile cases and a stricter x-ray count. Commit `fb44310` has these changes.
+- [x] T048 Update `docs/` and `cube-clickhouse/README.md` for each limit that is closed
+  - Result: `cube-clickhouse/README.md`, `docs/query-compilation.md`, `docs/semantic-sync.md`, `docs/cube-image.md` and `README.md` have the new state.

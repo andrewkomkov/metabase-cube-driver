@@ -2,7 +2,7 @@
 
 **Feature Branch**: `003-close-open-entries`
 **Created**: 2026-11-11
-**Status**: In progress
+**Status**: Done
 **Input**: `conformance/features.yaml` has 1402 entries, and 41 are not `pass`. Find the layer
 that stops each of them. Close the limit where a layer of this repository can do it, and prove
 the result on the live stack. Where the limit is real, the status stays and the reason gives
