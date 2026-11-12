@@ -1,6 +1,6 @@
 info:
   name: Metabase Cube Driver
-  version: 0.1.1
+  version: 0.2.0
   description: >-
     Connects Metabase to Cube Core through the Cube SQL API and the Cube REST
     API.
