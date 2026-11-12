@@ -49,7 +49,11 @@ new_metabase() {
 
 case $STACK in
   compose) metabase_container=metabase-cube-driver-metabase-conformance-1 ;;
-  container) metabase_container=mcd-metabase-conformance ;;
+  container)
+    metabase_container=mcd-metabase-conformance
+    CUBE_MODEL_DIR=$(sh "$stack" model-dir)
+    export CUBE_MODEL_DIR
+    ;;
   *) echo "error: STACK must be compose or container" >&2; exit 2 ;;
 esac
 

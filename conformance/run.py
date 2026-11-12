@@ -2506,7 +2506,8 @@ def _(ctx):
 
 # ----- Cube semantics as Metabase objects. See docs/semantic-sync.md.
 
-PROBE_FILE = os.path.join(REPO, "dev", "cube", "model", "zz_conformance_probe.yml")
+# CUBE_MODEL_DIR is the directory that Cube reads. On the iMac it can be a copy of dev/cube/model, see dev/container/README.md.
+PROBE_FILE = os.path.join(os.environ.get("CUBE_MODEL_DIR") or os.path.join(REPO, "dev", "cube", "model"), "zz_conformance_probe.yml")
 PROBE_TRUTH = "SELECT sum(amount) FROM orders"
 PROBE_SEGMENT_TRUTH = "SELECT count() FROM orders WHERE status = 'completed'"
 

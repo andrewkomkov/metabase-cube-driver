@@ -64,6 +64,7 @@ METABASE_ADMIN_PASSWORD=... python3 conformance/run.py
 | `CUBE_SECURE_SQL_HOST`, `CUBE_SECURE_SQL_PORT` | `cube-secure`, `15432`. Metabase uses this address for the `security.*` checks. |
 | `CUBE_SECURE_REST_INTERNAL_URL` | `http://cube-secure:4000`. Metabase uses this address. |
 | `STACK` | `compose`. `container` tells the runner to call Apple `container` in place of `docker`. `make conformance-imac` sets it. |
+| `CUBE_MODEL_DIR` | `dev/cube/model`. The directory that Cube reads the model from. The runner writes its probe model there. `make conformance-imac` sets it. |
 | `METABASE_CONTAINER` | `metabase-cube-driver-metabase-1`, or `mcd-metabase` with `STACK=container`. The runner reads its log for `security.secret.not_in_logs`. |
 | `CUBE_CLICKHOUSE_FIXES` | `on`. `off` tells the runner that this stack is stock Cube. `dialect.variant` fails if this is false. |
 | `METABASE_INTERNAL_URL` | `http://metabase:3000`. The browser uses this address. |

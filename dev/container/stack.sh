@@ -7,7 +7,14 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 dev="$root/dev"
 net=mcd
 prefix=mcd-
-volumes=${STACK_VOLUMES:-/Volumes/SanDisk2Tb/builds/metabase-cube-driver/volumes}
+volumes=${STACK_VOLUMES:-}
+# With the screen of the Mac locked, Apple container cannot open a new directory or image on the external drive. The start
+# waits with no end and blocks the service for each project on this Mac. So a checkout on /Volumes gets a copy of the
+# mounted files on the internal disk, and the volumes stay on the internal disk unless STACK_VOLUMES names a directory.
+case $root in
+  /Volumes/*) src=${STACK_STATE:-$HOME/.local/state/metabase-cube-driver}/stage ;;
+  *) src=$root ;;
+esac
 fixes=${CUBE_CLICKHOUSE_FIXES:-on}
 img_clickhouse=clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-26.10.3-alpine}
 img_cube=cubejs/cube:${CUBE_VERSION:-v1.8.20}
@@ -48,13 +55,25 @@ sync_hosts() {
   done
 }
 
+stage() {
+  [ "$src" != "$root" ] || return 0
+  mkdir -p "$src/dev"
+  rsync -a --delete "$dev/clickhouse" "$dev/cube" "$dev/cube-secure" "$src/dev/"
+  rsync -a --delete "$root/cube-clickhouse" "$src/"
+  # No --delete here: Metabase writes its own files into a plugins directory.
+  for plugins in plugins plugins-conformance; do
+    [ ! -d "$dev/$plugins" ] || rsync -a "$dev/$plugins" "$src/dev/"
+  done
+}
+
 # A named volume is an ext4 image in the application directory of Apple container, on the internal disk.
-# A symbolic link moves the image to the external drive. A bind mount is not possible: ClickHouse cannot chown on virtiofs.
+# A bind mount is not possible: ClickHouse cannot chown on virtiofs. STACK_VOLUMES moves the image behind a symbolic link.
 volume() {
   container volume ls -q | grep -qx "$1" && return 0
-  [ -d "$(dirname "$volumes")" ] || die "the external drive is not mounted: $volumes"
-  app=$(container system status | awk '$1 == "paths.appRoot" { sub(/^[^ ]+ +/, ""); print }')
   container volume create -s "$2" "$1" >/dev/null
+  [ "$volumes" != "" ] || return 0
+  [ -d "$(dirname "$volumes")" ] || die "the drive is not mounted: $volumes"
+  app=$(container system status | awk '$1 == "paths.appRoot" { sub(/^[^ ]+ +/, ""); print }')
   mkdir -p "$volumes"
   rm -rf "${volumes:?}/$1"
   mv "${app%/}/volumes/$1" "$volumes/$1"
@@ -63,7 +82,22 @@ volume() {
 
 drop_volume() {
   container volume rm "$1" >/dev/null 2>&1 || true
-  rm -rf "${volumes:?}/$1"
+  [ "$volumes" = "" ] || rm -rf "${volumes:?}/$1"
+}
+
+# A start that waits on a file blocks the service for each project on this Mac, so this stops it after 90 seconds.
+guard() {
+  name=$1
+  shift
+  "$@" >/dev/null &
+  pid=$!
+  (sleep 90 && kill "$pid" 2>/dev/null && pkill -f "container-runtime-linux start .*--uuid $name\$") >/dev/null 2>&1 &
+  watch=$!
+  rc=0
+  wait "$pid" || rc=$?
+  kill "$watch" 2>/dev/null || true
+  wait "$watch" 2>/dev/null || true
+  [ "$rc" -eq 0 ] || die "$name did not start. See dev/container/README.md"
 }
 
 need_image() {
@@ -86,10 +120,10 @@ launch() {
   fi
   case $state in
     running) return 0 ;;
-    stopped) container start "$name" >/dev/null ;;
+    stopped) guard "$name" container start "$name" ;;
     *)
       need_image "$image"
-      container run -d --progress none --name "$name" --network "$net" -l "mcd.config=$hash" "$@" "$image" >/dev/null
+      guard "$name" container run -d --progress none --name "$name" --network "$net" -l "mcd.config=$hash" "$@" "$image"
       ;;
   esac
   sync_hosts
@@ -114,8 +148,8 @@ up_clickhouse() {
   volume ${prefix}clickhouse-data 40G
   launch clickhouse "$img_clickhouse" -m 2g -c 4 --ulimit nofile=262144:262144 \
     -e CLICKHOUSE_DB=shop -e CLICKHOUSE_USER=shop -e CLICKHOUSE_PASSWORD=shop-dev-only -e CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1 \
-    -v "$dev/clickhouse/seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro" \
-    -v "$dev/clickhouse/seed-extra.sql:/docker-entrypoint-initdb.d/seed-extra.sql:ro" \
+    -v "$src/dev/clickhouse/seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro" \
+    -v "$src/dev/clickhouse/seed-extra.sql:/docker-entrypoint-initdb.d/seed-extra.sql:ro" \
     -v ${prefix}clickhouse-data:/var/lib/clickhouse
   wait_for clickhouse_ready
 }
@@ -125,19 +159,21 @@ cube_common() {
   printf '%s\n' -e CUBEJS_DB_TYPE=clickhouse -e CUBEJS_DB_HOST=clickhouse -e CUBEJS_DB_PORT=8123 -e CUBEJS_DB_NAME=shop \
     -e CUBEJS_DB_USER=shop -e CUBEJS_DB_PASS=shop-dev-only -e CUBEJS_PG_SQL_PORT=15432 -e CUBEJS_TELEMETRY=false \
     -e CUBEJS_PRE_AGGREGATIONS_ALLOW_NON_STRICT_DATE_RANGE_MATCH=false -e CUBEJS_DB_QUERY_LIMIT=2000000 \
-    -e "CUBE_CLICKHOUSE_FIXES=$fixes" -v "$root/cube-clickhouse:/cube/conf/cube-clickhouse:ro"
+    -e "CUBE_CLICKHOUSE_FIXES=$fixes" -v "$src/cube-clickhouse:/cube/conf/cube-clickhouse:ro"
 }
 
 second_source() {
   printf '%s\n' -e CUBEJS_DATASOURCES=default,second -e CUBEJS_DS_SECOND_DB_TYPE=clickhouse -e CUBEJS_DS_SECOND_DB_HOST=clickhouse \
     -e CUBEJS_DS_SECOND_DB_PORT=8123 -e CUBEJS_DS_SECOND_DB_NAME=shop_second -e CUBEJS_DS_SECOND_DB_USER=shop \
     -e CUBEJS_DS_SECOND_DB_PASS=shop-dev-only -e CUBEJS_SQL_USER=cube -e CUBEJS_SQL_PASSWORD=cube-dev-only \
-    -v "$dev/cube/model:/cube/conf/model:ro" -v "$dev/cube/cube.js:/cube/conf/cube.js:ro"
+    -v "$src/dev/cube/model:/cube/conf/model:ro" -v "$src/dev/cube/cube.js:/cube/conf/cube.js:ro"
 }
 
 up_cube() {
+  # 4 GB, not the 2 GB of the compose file: the limit is the memory of a virtual machine with no swap. With 2 GB the kernel
+  # stopped Cube, and with 3 GB two checks of the dialect run failed. See dev/container/README.md.
   # shellcheck disable=SC2046
-  launch cube "$img_cube" -m 2g -c 4 -p 127.0.0.1:4400:4000 -p 127.0.0.1:15433:15432 $(cube_common) $(second_source) \
+  launch cube "$img_cube" -m 4g -c 4 -p 127.0.0.1:4400:4000 -p 127.0.0.1:15433:15432 $(cube_common) $(second_source) \
     -e CUBEJS_DEV_MODE=true -e CUBEJS_API_SECRET=cube-dev-only-secret-0123456789abcdef \
     -e CUBEJS_DEFAULT_API_SCOPES=meta,data,graphql,sql,jobs -e CUBESQL_QUERY_CACHE_SIZE=50 -e CUBEJS_COMPILER_CACHE_SIZE=4
   wait_for curl -fsS -o /dev/null http://127.0.0.1:4400/readyz
@@ -145,16 +181,16 @@ up_cube() {
 
 up_cube_secure() {
   # shellcheck disable=SC2046
-  launch cube-secure "$img_cube" -m 1g -c 2 -p 127.0.0.1:4401:4000 -p 127.0.0.1:15434:15432 $(cube_common) \
+  launch cube-secure "$img_cube" -m 768m -c 2 -p 127.0.0.1:4401:4000 -p 127.0.0.1:15434:15432 $(cube_common) \
     -e CUBEJS_DEV_MODE=false -e CUBEJS_CACHE_AND_QUEUE_DRIVER=memory -e CUBEJS_API_SECRET=cube-secure-dev-only-secret-0123456789 \
     -e CUBEJS_SQL_PASSWORD=cube-secure-dev-only \
-    -v "$dev/cube-secure/cube.js:/cube/conf/cube.js:ro" -v "$dev/cube-secure/model:/cube/conf/model:ro"
+    -v "$src/dev/cube-secure/cube.js:/cube/conf/cube.js:ro" -v "$src/dev/cube-secure/model:/cube/conf/model:ro"
   wait_for curl -fsS -o /dev/null http://127.0.0.1:4401/readyz
 }
 
 up_cube_legacy() {
   # shellcheck disable=SC2046
-  launch cube-legacy "$img_cube" -m 2g -c 2 -p 127.0.0.1:4402:4000 -p 127.0.0.1:15436:15432 $(cube_common) $(second_source) \
+  launch cube-legacy "$img_cube" -m 1536m -c 2 -p 127.0.0.1:4402:4000 -p 127.0.0.1:15436:15432 $(cube_common) $(second_source) \
     -e CUBEJS_DEV_MODE=true -e CUBEJS_CACHE_AND_QUEUE_DRIVER=memory -e CUBEJS_API_SECRET=cube-legacy-dev-only-secret-0123456789 \
     -e CUBEJS_TESSERACT_SQL_PLANNER=false -e CUBEJS_PRE_AGGREGATIONS_SCHEMA=dev_pre_aggregations_legacy
   wait_for curl -fsS -o /dev/null http://127.0.0.1:4402/readyz
@@ -180,8 +216,8 @@ up_one() {
     cube-legacy) up_cube_legacy ;;
     mail) launch mail "$img_mail" -m 256m -c 1 -p 127.0.0.1:8025:8025 ;;
     browser) launch browser "$img_browser" -m 1g -c 2 --shm-size 256m -p 127.0.0.1:9222:9222 ;;
-    metabase) metabase metabase 3300 "$dev/plugins" ;;
-    metabase-conformance) metabase metabase-conformance 3301 "$dev/plugins-conformance" ;;
+    metabase) metabase metabase 3300 "$src/dev/plugins" ;;
+    metabase-conformance) metabase metabase-conformance 3301 "$src/dev/plugins-conformance" ;;
     *) die "unknown service: $1" ;;
   esac
 }
@@ -192,6 +228,7 @@ cmd=${1:-}
 case $cmd in
   up)
     container network ls -q | grep -qx "$net" || container network create "$net" >/dev/null
+    stage
     [ "$#" -ne 0 ] || set -- clickhouse cube cube-secure mail metabase
     for service in "$@"; do
       up_one "$service"
@@ -216,6 +253,8 @@ case $cmd in
     [ "$whole" -ne 0 ] || container network rm "$net" >/dev/null 2>&1 || true
     ;;
   hosts) sync_hosts ;;
+  # The directory that Cube reads the model from. The runner writes its probe model there.
+  model-dir) echo "$src/dev/cube/model" ;;
   status) table | awk '{ print $1, $2, $4 }' ;;
   # Fails if a service is not in the state running: Apple container has no restart policy.
   check)
@@ -223,5 +262,5 @@ case $cmd in
       [ "$(field "$service" 2)" = running ] || die "the service $service is not in the state running"
     done
     ;;
-  *) die "usage: stack.sh up|stop|reset|check|hosts|status [service...]" ;;
+  *) die "usage: stack.sh up|stop|reset|check|hosts|status|model-dir [service...]" ;;
 esac

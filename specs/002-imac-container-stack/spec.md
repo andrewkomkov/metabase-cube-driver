@@ -70,6 +70,8 @@ the place of the data and the known differences from nettop.
 - The external drive is not mounted. The script must stop with a clear message.
 - Free space on the internal disk is below 10 GB. The script must stop before it pulls an image.
 - The demo Metabase and the Metabase for conformance together do not fit in the memory budget.
+- The screen of the Mac locks during a run. Apple `container` then cannot open a new file on the
+  external drive.
 
 ## Requirements *(mandatory)*
 
@@ -85,7 +87,7 @@ the place of the data and the known differences from nettop.
   same as before.
 - **FR-005**: The Makefile MUST have targets for the iMac: start, stop and conformance.
 - **FR-006**: The data of ClickHouse and Metabase and the plugin directories MUST be on the
-  external drive where Apple `container` permits it.
+  external drive where Apple `container` permits it. A run MUST NOT need an unlocked screen.
 - **FR-007**: The memory limits of the services that run together MUST fit in 16 GB with space
   for macOS. The documents MUST give the values.
 - **FR-008**: Each pinned image MUST run as arm64, or with Rosetta if it has no arm64 variant. The
@@ -101,7 +103,8 @@ the place of the data and the known differences from nettop.
 - **SC-001**: The full suite runs on the iMac in the two variants and prints two coverage lines.
 - **SC-002**: Each difference between the iMac result and the committed statuses has a recorded
   cause.
-- **SC-003**: The sum of the memory limits for a conformance run is at most 12 GB.
+- **SC-003**: The sum of the memory limits for a conformance run is at most 12.5 GB. The first
+  value was 12 GB. Cube with the dialect needs 4 GB, see research.md.
 - **SC-004**: With the backend variable not set, a test of the helper shows the same command
   lines as the code before this feature.
 

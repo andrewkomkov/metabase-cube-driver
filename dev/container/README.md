@@ -17,6 +17,7 @@ service in a compose file, make the same change in `stack.sh`.
 | `sh dev/container/stack.sh reset SERVICE...` | Remove only these services and their volumes. |
 | `sh dev/container/stack.sh status` | Show the state and the address of each container. |
 | `sh dev/container/stack.sh check SERVICE...` | Fail if one of these services is not in the state running. |
+| `sh dev/container/stack.sh model-dir` | Print the directory that Cube reads the model from. |
 
 The addresses on the loopback interface are those of the table in `AGENTS.md`.
 
@@ -42,24 +43,56 @@ Each container is a small virtual machine, and the limit is the memory of that m
 | Service | Limit | In the compose file |
 | --- | --- | --- |
 | `clickhouse` | 2 GB | 3 GB |
-| `cube` | 2 GB | 2 GB |
-| `cube-secure` | 1 GB | 1 GB |
-| `cube-legacy` | 2 GB | 2 GB |
+| `cube` | 4 GB | 2 GB |
+| `cube-secure` | 768 MB | 1 GB |
+| `cube-legacy` | 1.5 GB | 2 GB |
 | `metabase`, `metabase-conformance` | 3 GB | 3 GB |
 | `mail` | 256 MB | 128 MB |
 | `browser` | 1 GB | 1 GB |
 
-A conformance run uses at most 11.25 GB and the demo stack 8.25 GB, on a Mac with 16 GB. The two
-Metabase services together do not fit, so `make conformance-imac` stops `metabase` first. Its
-data stays. Start it again with `make up-imac`.
+A conformance run uses at most 12.5 GB and the demo stack 10 GB, on a Mac with 16 GB.
+
+`cube` has more memory than in the compose file. The machine has no swap, and the kernel and
+Cube Store use a part of the limit.
+
+- With 2 GB, the kernel stopped Cube in the full suite, in
+  `preagg.latency.big_orders_hit_is_faster_than_a_miss`: the Cube process held 1.9 GB.
+- With 3 GB, the run on stock Cube gave the statuses of nettop. In the run with the dialect,
+  the machine had 50 MB free. `preagg.latency.big_orders_hit_is_faster_than_a_miss` and
+  `preagg.type.original_sql_in_cube_store_with_an_index_stops` failed with `IncompleteRead`:
+  Cube closed the connection before the end of the answer.
+- `cube-secure` used 270 MB and `cube-legacy` 750 MB in a full run, so they have less.
+
+The two Metabase services together do not fit, so `make conformance-imac` stops `metabase`
+first. Its data stays. Start it again with `make up-imac`.
+
+## The external drive and a locked screen
+
+With the screen of the Mac locked, Apple `container` cannot open a new directory or a new volume
+image on `/Volumes/SanDisk2Tb`. The start of the container waits in `open` with no end. While
+it waits, the service of Apple `container` accepts no other start, stop or `exec`, for each
+project on this Mac. A container that runs keeps the files that it has open.
+
+Agents work while the screen is locked, so the script keeps these files on the internal disk:
+
+- If the checkout is below `/Volumes`, `up` copies the mounted files to
+  `~/.local/state/metabase-cube-driver/stage` and mounts the copy. These are `dev/clickhouse`,
+  `dev/cube`, `dev/cube-secure`, `cube-clickhouse` and the two plugins directories.
+  `STACK_STATE` sets another directory. Run `up` again after you change a model file. The
+  runner writes its probe model into the copy: `conformance/run_isolated.sh` sets
+  `CUBE_MODEL_DIR` from `stack.sh model-dir`.
+- If the checkout is on the internal disk, the script mounts it directly.
+- The script stops a start that takes more than 90 seconds, and fails. If a start of another
+  project blocks the service, a start of this stack fails in the same way.
 
 ## Data and images
 
 - The data of ClickHouse and Metabase is in named volumes: `mcd-clickhouse-data`,
-  `mcd-metabase-data` and `mcd-metabase-conformance-data`. The script moves the image of each
-  volume to `/Volumes/SanDisk2Tb/builds/metabase-cube-driver/volumes/` and leaves a symbolic
-  link in the application directory of Apple `container`. `STACK_VOLUMES` sets another
-  directory.
+  `mcd-metabase-data` and `mcd-metabase-conformance-data`. A volume is an ext4 image in the
+  application directory of Apple `container`, on the internal disk. After a full conformance
+  run the three images use about 2 GB.
+- `STACK_VOLUMES=DIRECTORY` moves each new volume image to that directory and leaves a symbolic
+  link. Use it only when the screen stays unlocked.
 - A bind mount cannot hold the data of ClickHouse: `chown` fails on the shared file system.
 - The images stay in the application directory on the internal disk, about 5 GB. Only
   `container system start --app-root` moves them, and that command restarts the containers of

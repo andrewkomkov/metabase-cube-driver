@@ -30,9 +30,9 @@ The decisions and the tests behind them are in [research.md](research.md).
   the same result. Each difference gets a cause in the report. Pass.
 - IV. Pinned versions: the script uses the same pins as the compose file. Pass.
 - V. Scope: all changes are in this repository. Pass.
-- Environments: only Apple `container` on the iMac. The volumes go to the external drive. The
-  images stay in the application directory of Apple `container`, see research.md. Pass with
-  this recorded limit.
+- Environments: only Apple `container` on the iMac. Build output stays on the external drive.
+  The volumes, the images and a copy of the mounted files are on the internal disk, about
+  7 GB. research.md gives the test that made this necessary. Pass with this recorded limit.
 
 ## Project Structure
 
@@ -54,9 +54,10 @@ Makefile                     up-imac, down-imac, reset-imac, conformance-imac
   `mcd.config`. A different checksum makes a new container. This is how a change of
   `CUBE_CLICKHOUSE_FIXES` gets to the Cube services.
 - **Data**: named volumes `mcd-clickhouse-data`, `mcd-metabase-data` and
-  `mcd-metabase-conformance-data`, with their images on the external drive.
+  `mcd-metabase-conformance-data`. Their images and the mounted files stay on the internal
+  disk, because Apple `container` cannot open the external drive while the screen is locked.
 - **Runner**: with `STACK` not set the helper builds the same `docker` command lines as before.
   With `STACK=container` it calls `container exec` and `container logs`.
-- **Memory**: ClickHouse 2 GB, `cube` 2 GB, `cube-secure` 1 GB, `cube-legacy` 2 GB, Metabase
-  3 GB, mail 256 MB, browser 1 GB. A conformance run uses at most 11.25 GB. The script stops
+- **Memory**: ClickHouse 2 GB, `cube` 4 GB, `cube-secure` 768 MB, `cube-legacy` 1.5 GB, Metabase
+  3 GB, mail 256 MB, browser 1 GB. A conformance run uses at most 12.5 GB. The script stops
   the demo Metabase before a conformance run.

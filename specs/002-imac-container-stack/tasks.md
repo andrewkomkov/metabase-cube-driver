@@ -11,8 +11,11 @@
 
 - [x] T003 Write `dev/container/stack.sh` with `up`, `stop`, `reset`, `check`, `hosts` and `status` for the services of `dev/docker-compose.yml` and `dev/docker-compose.conformance.yml` (FR-001, FR-002)
 - [x] T004 Give each container the addresses of the other services in `/etc/hosts`, in `dev/container/stack.sh` (FR-003)
-- [x] T005 Put the volume images on the external drive and check free disk space before a pull, in `dev/container/stack.sh` (FR-006)
-- [x] T006 Set a memory limit for each service in `dev/container/stack.sh`, at most 12 GB for a conformance run (FR-007, SC-003)
+- [x] T005 Check free disk space before a pull, and move the volume images to the directory in `STACK_VOLUMES`, in `dev/container/stack.sh` (FR-006)
+- [x] T019 Copy the mounted files of a checkout below `/Volumes` to the internal disk, in `dev/container/stack.sh` (FR-006)
+- [ ] T020 Stop a start that takes more than 90 seconds, in `dev/container/stack.sh`
+- [x] T021 Let `conformance/run.py` write its probe model into the directory in `CUBE_MODEL_DIR` (FR-006)
+- [x] T006 Set a memory limit for each service in `dev/container/stack.sh`, at most 12.5 GB for a conformance run (FR-007, SC-003)
 
 ## Phase 3: User Story 1 - the suite on the iMac (P1)
 
