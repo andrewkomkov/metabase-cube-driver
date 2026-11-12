@@ -85,6 +85,14 @@ run_variant() {
   seed_extra
   new_metabase
   result=0
+  if [ "$STACK" = container ]; then
+    # A published port of Apple container cuts the end of a large answer of Cube: 10 of 150 reads of 555 kB were short.
+    # So the runner reads Cube at the address of the container, where no read was short. Metabase stays on its
+    # published port: its answers were complete, and its OAuth resource must be equal to MB_SITE_URL.
+    CUBE_REST_URL=http://$(sh "$stack" address cube):4000
+    CUBE_LEGACY_REST_URL=http://$(sh "$stack" address cube-legacy):4000
+    export CUBE_REST_URL CUBE_LEGACY_REST_URL
+  fi
   METABASE_URL=http://127.0.0.1:3301 \
     METABASE_INTERNAL_URL=http://metabase-conformance:3000 \
     METABASE_CONTAINER="$metabase_container" \

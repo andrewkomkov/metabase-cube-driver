@@ -216,7 +216,8 @@ up_one() {
     cube-legacy) up_cube_legacy ;;
     mail) launch mail "$img_mail" -m 256m -c 1 -p 127.0.0.1:8025:8025 ;;
     browser) launch browser "$img_browser" -m 1g -c 2 --shm-size 256m -p 127.0.0.1:9222:9222 ;;
-    metabase) metabase metabase 3300 "$src/dev/plugins" ;;
+    # An ssh tunnel to the Metabase of nettop can hold port 3300 on this Mac. STACK_METABASE_PORT gives another port.
+    metabase) metabase metabase "${STACK_METABASE_PORT:-3300}" "$src/dev/plugins" ;;
     metabase-conformance) metabase metabase-conformance 3301 "$src/dev/plugins-conformance" ;;
     *) die "unknown service: $1" ;;
   esac
@@ -253,6 +254,11 @@ case $cmd in
     [ "$whole" -ne 0 ] || container network rm "$net" >/dev/null 2>&1 || true
     ;;
   hosts) sync_hosts ;;
+  # The address of a service on the network of the stack. The host can reach it with no published port.
+  address)
+    [ "$(field "${1:-}" 2)" = running ] || die "the service ${1:-} is not in the state running"
+    field "$1" 4
+    ;;
   # The directory that Cube reads the model from. The runner writes its probe model there.
   model-dir) echo "$src/dev/cube/model" ;;
   status) table | awk '{ print $1, $2, $4 }' ;;
@@ -262,5 +268,5 @@ case $cmd in
       [ "$(field "$service" 2)" = running ] || die "the service $service is not in the state running"
     done
     ;;
-  *) die "usage: stack.sh up|stop|reset|check|hosts|status|model-dir [service...]" ;;
+  *) die "usage: stack.sh up|stop|reset|check|hosts|status|address|model-dir [service...]" ;;
 esac

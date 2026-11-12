@@ -23,13 +23,14 @@
 - [x] T008 [US1] Compare the command lines of the helper with `STACK` not set against the old code of `conformance/run.py` (SC-004)
 - [x] T009 [US1] Let `conformance/run_isolated.sh` start the services, load the extra seed and make a new Metabase with the two backends (FR-004)
 - [x] T010 [US1] Add the target `conformance-imac` to `Makefile` (FR-005)
-- [ ] T011 [US1] Run `make conformance-imac` on the iMac in the two variants and record the two coverage lines (SC-001)
-- [ ] T012 [US1] Compare the iMac result with the statuses in `conformance/features.yaml` and record the cause of each difference (FR-010, SC-002)
+- [x] T022 [US1] Give the runner the addresses of `cube` and `cube-legacy` in `conformance/run_isolated.sh`, because a published port cuts large answers of Cube
+- [x] T011 [US1] Run `make conformance-imac` on the iMac in the two variants and record the two coverage lines (SC-001)
+- [x] T012 [US1] Compare the iMac result with the statuses in `conformance/features.yaml` and record the cause of each difference (FR-010, SC-002)
 
 ## Phase 4: User Story 2 - the demo stack on the iMac (P2)
 
 - [x] T013 [US2] Add the targets `up-imac`, `down-imac` and `reset-imac` to `Makefile` (FR-005)
-- [ ] T014 [US2] Run `make up-imac`, check each address of the demo services, then check `stop` and `reset` of `dev/container/stack.sh`
+- [x] T014 [US2] Run `make up-imac`, check each address of the demo services, then check `stop` and `reset` of `dev/container/stack.sh`
 
 ## Phase 5: User Story 3 - the documents (P3)
 
@@ -40,6 +41,12 @@
 ## Phase 6: Check
 
 - [x] T018 Run `shellcheck` on `dev/container/stack.sh` and `conformance/run_isolated.sh`, `python3 -m py_compile conformance/run.py` and `yamllint --strict .`
+
+## Open
+
+- T020 is not ticked. The code is in `dev/container/stack.sh` and each normal start goes through
+  it. After the change, each start took less than 90 seconds. Thus the branch that stops a
+  start had no test.
 
 ## Dependencies
 

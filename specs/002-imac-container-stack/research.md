@@ -81,3 +81,41 @@ Each decision below comes from a test on the iMac with Apple `container` 1.7.1.
   `preagg.type.original_sql_in_cube_store_with_an_index_stops`. The Cube machine had 50 MB free
   and read 565 GB from its disk, which shows that it had no memory for its file cache.
   `cube-legacy` used 750 MB in that run.
+
+## Published ports
+
+- **Decision**: the runner reads Cube at the addresses of `cube` and `cube-legacy`. It reads
+  Metabase, the mail catcher and the browser at the published loopback ports.
+- **Rationale**: a full run failed checks with `IncompleteRead`, also with 4 GB for `cube`. 10
+  of 150 reads of the 555 kB answer of `/cubejs-api/v1/meta` through `127.0.0.1:4402` were
+  short. 0 of 150 reads from the address of the same container were short. Metabase had 0
+  short reads in 250 reads of 2 MB and 4 MB through its published port. With Metabase at the
+  address of its container, the MCP checks failed with `invalid_scope`, because the OAuth
+  resource must be equal to `MB_SITE_URL`.
+- **Alternatives**: a second try in the runner after a short read. It changes the runner on
+  nettop and can hide a real fault.
+
+## Result of the full run on the iMac
+
+The run was `make conformance-imac` on 2026-11-12, on commit `bda1148` of `main` with this
+feature on top. The runner printed these lines:
+
+```text
+coverage: 1325/1469 pass on stock Cube
+coverage: 1425/1469 pass on Cube with the ClickHouse dialect
+```
+
+The statuses of the run are not in a commit. The comparison with `conformance/features.yaml`
+of that commit gave these differences:
+
+| Entries | File | iMac | Cause |
+| --- | --- | --- | --- |
+| 63 entries of feature 004 | `todo` | 58 pass with the dialect, 55 on stock Cube, 4 partial, 3 unsupported on stock Cube, 1 fail | The file had no result from nettop for them. |
+| `mb.expr.float` | `todo` | `fail` in the two variants | ClickHouse gives `Illegal types String and Float64 of arguments of function multiply`. This is one of the 63. It is a fault of the check or of the driver, not of the iMac. |
+| `dimension.type.geo.view`, `preagg.rollup_lambda`, `preagg.type.rollup_lambda_after_the_batch_with_source`, `preagg.type.rollup_lambda_over_the_batch_with_source` | `status: partial` | `pass` with the dialect | Feature 003 changed the dialect and left only `cap_stock` in these entries. The `status` line is older than that change. |
+| `compile.xray.field_all_cards_run`, `compile.xray.time_field_all_cards_run` | `partial` in the two variants | `pass` in the two variants | Feature 003 changed the driver and removed the cap. The status lines are older than that change. |
+
+All other entries had the status of the file. No difference came from the platform.
+
+An earlier run on commit `bdd0fb9`, with 3 GB for `cube`, gave `1268/1402` on stock Cube, which
+is the count of the file. The two failures of its dialect run are in the section on memory.

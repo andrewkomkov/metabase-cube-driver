@@ -2,7 +2,7 @@
 
 **Feature Branch**: `002-imac-container-stack`
 **Created**: 2026-11-11
-**Status**: In progress
+**Status**: Done, with task T020 open
 **Input**: Run the demo stack and the conformance suite on the iMac with Apple `container`. Today
 they run only on nettop with `docker compose`.
 

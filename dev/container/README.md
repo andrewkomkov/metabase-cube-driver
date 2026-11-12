@@ -18,8 +18,14 @@ service in a compose file, make the same change in `stack.sh`.
 | `sh dev/container/stack.sh status` | Show the state and the address of each container. |
 | `sh dev/container/stack.sh check SERVICE...` | Fail if one of these services is not in the state running. |
 | `sh dev/container/stack.sh model-dir` | Print the directory that Cube reads the model from. |
+| `sh dev/container/stack.sh address SERVICE` | Print the address of a service on the network `mcd`. |
 
 The addresses on the loopback interface are those of the table in `AGENTS.md`.
+
+If a start fails with `Address already in use`, another program holds the port. An ssh tunnel
+to the Metabase of nettop holds `127.0.0.1:3300`. Close the tunnel. As an alternative, give the
+demo Metabase another port: `STACK_METABASE_PORT=3310 make up-imac`. The suite does not use
+this port.
 
 ## Differences from docker compose
 
@@ -35,6 +41,14 @@ The addresses on the loopback interface are those of the table in `AGENTS.md`.
   When an argument changes, for example `CUBE_CLICKHOUSE_FIXES`, `up` makes a new container.
 - `container logs` cannot read a log from a point in time. The runner counts the lines of the
   log at the start of a check.
+- A published port of Apple `container` can cut the end of a large answer of Cube. In a test,
+  10 of 150 reads of a 555 kB answer from `127.0.0.1:4402` were short. From the address of the
+  container, 0 of 150 were short. In the suite this shows as `IncompleteRead`. So
+  `make conformance-imac` gives the runner the addresses of `cube` and `cube-legacy`. A script
+  that reads large answers of Cube must use `stack.sh address`.
+- Metabase had no short read in 250 reads of 2 MB and 4 MB through its published port. The
+  runner uses that port, because the OAuth resource of the MCP server must be equal to
+  `MB_SITE_URL`.
 
 ## Memory
 
@@ -90,7 +104,11 @@ Agents work while the screen is locked, so the script keeps these files on the i
 - The data of ClickHouse and Metabase is in named volumes: `mcd-clickhouse-data`,
   `mcd-metabase-data` and `mcd-metabase-conformance-data`. A volume is an ext4 image in the
   application directory of Apple `container`, on the internal disk. After a full conformance
-  run the three images use about 2 GB.
+  run the volumes use about 2.5 GB.
+- Apple `container` keeps a copy of the image file system for each container, also in the
+  application directory. After a full conformance run these copies use about 13 GB: 4 GB for
+  each of `cube` and `cube-legacy`, 2 GB for `clickhouse`. With the images, the stack uses
+  about 21 GB of the internal disk. `make reset-imac` frees the copies and the volumes.
 - `STACK_VOLUMES=DIRECTORY` moves each new volume image to that directory and leaves a symbolic
   link. Use it only when the screen stays unlocked.
 - A bind mount cannot hold the data of ClickHouse: `chown` fails on the shared file system.
