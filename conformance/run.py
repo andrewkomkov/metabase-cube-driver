@@ -9813,7 +9813,6 @@ def _(ctx):
 for _name, _clause, _sql in [
     ("text", ["text", QTY], "toString(quantity)"),
     ("integer", ["integer", ["concat", ["text", "d:orders.id"], "0"]], "toInt64(concat(toString(id), '0'))"),
-    ("float", ["float", ["concat", ["text", QTY], ".25"]], "toFloat64(concat(toString(quantity), '.25'))"),
     ("date", ["date", CRT], "toDate(created_at)"),
     ("date_from_text", ["date", ["concat", "2025-03-0", ["text", QTY]]], "toDate(concat('2025-03-0', toString(quantity)))"),
     ("datetime_subtract", ["datetime-subtract", CRT, 1, "month"], "created_at - INTERVAL 1 MONTH"),
@@ -9825,6 +9824,14 @@ for _name, _clause, _sql in [
     Q("mb.expr.%s" % _name, ORD, "SELECT id, %s FROM orders WHERE id BETWEEN 1 AND 60 ORDER BY id" % _sql, ordered=True,
       fields=["d:orders.id", ["expression", _name]], exprs={_name: _clause}, where=[["between", "d:orders.id", 1, 60]], order=[["asc", "d:orders.id"]])
 
+
+
+@check("mb.expr.float")
+def _(ctx):
+    """A text with a fraction, so a cast to a whole number shows."""
+    clause = ["float", ["concat", ["text", QTY], ".25"]]
+    query = ctx.mb.inner(ORD, fields=["d:orders.id", ["expression", "k"]], exprs={"k": clause}, where=[["between", "d:orders.id", 1, 60]], order=[["asc", "d:orders.id"]])
+    expect_rows(ctx, query, "SELECT id, toFloat64(concat(toString(quantity), '.25')) FROM orders WHERE id BETWEEN 1 AND 60 ORDER BY id", "float of text", ordered=True)
 
 
 def one_expression(ctx, clause):
