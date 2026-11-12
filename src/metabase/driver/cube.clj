@@ -3073,6 +3073,13 @@
   [_driver value]
   [:* value (number-literal 1.0)])
 
+;; The function `float` of a custom expression reads a text, and a product of a text is an error in ClickHouse. So this is a cast,
+;; inside a CASE, because ClickHouse stops on a cast of NULL.
+(defmethod sql.qp/->honeysql [:cube :float]
+  [driver [_ _opts value]]
+  (let [expr (sql.qp/->honeysql driver value)]
+    [:case [:not= expr nil] (h2x/cast "double precision" expr)]))
+
 (defn- apply-binning
   [{:keys [bin-width min-value]} expr]
   (let [shifted (if (zero? min-value) expr [:- expr (number-literal min-value)])
